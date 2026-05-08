@@ -472,11 +472,16 @@ const __callAssessmentExtractor = async (rawText) => {
       body: JSON.stringify({
         model,
         stream: false,
-        format: 'json',
+        // format: 'json' removed. With it set, llama3.2 sometimes
+        // returns the empty object '{}' when uncertain instead of a
+        // valid array. We now ask for JSON in the prompt and let the
+        // model output it as prose; our parser extracts the array
+        // substring. Restored 25k char window (down from 30k) so the
+        // model has more attention budget per token.
         options: { temperature: 0.1, num_predict: 800 },
         messages: [
           { role: 'system', content: ASSESSMENT_SYSTEM_PROMPT },
-          { role: 'user', content: `SYLLABUS (may include multiple documents joined together):\n${rawText.slice(0, 30000)}\n\nReturn the JSON array of every graded assessment across all documents.` }
+          { role: 'user', content: `SYLLABUS (may include multiple documents joined together):\n\n${rawText.slice(0, 25000)}\n\nReturn the JSON array of every graded assessment across all documents. Output ONLY the JSON array, nothing else.` }
         ]
       }),
       signal: controller.signal

@@ -210,21 +210,19 @@ export default function MasterDashboard() {
   //      Academic Tools use, so the student hears 'Course X identified.
   //      Your semester is now mapped.'
   const handleSprintCreation = async (data) => {
-    // LLM-first extraction. When Ollama is reachable, it is the SOLE
-    // source of truth for assessments. The regex pass is preserved
-    // only as a fallback when Ollama is unreachable (network error,
-    // HTTP 5xx, or the active provider is local-mock). An Ollama
-    // call that succeeds but returns an empty list is respected as
-    // an empty list; we do NOT pad the DoD with regex noise just to
-    // make it look full.
+    // LLM-first extraction with regex safety net. When Ollama is
+    // reachable AND returns at least one valid brief, that wins. If
+    // Ollama returns nothing usable (empty array, parse failure,
+    // or a generic empty '{}' which llama3.2 sometimes produces under
+    // format:json constraints), the regex output is used so the DoD
+    // is not punished by the model having a bad day. Hard network /
+    // HTTP failures also fall back to regex.
     const regexTitles = Array.isArray(data.assessmentTitles) ? data.assessmentTitles.slice() : [];
     let assessmentBriefs = [];
-    let ollamaSucceeded = false;
     if (data?.rawText && data.rawText.trim().length > 200 && getProviderName() === 'ollama') {
       window.dispatchEvent(new CustomEvent(REASONING_START_EVENT));
       try {
         assessmentBriefs = await extractAssessmentBriefs(data.rawText);
-        ollamaSucceeded = true;
       } catch (err) {
         if (typeof console !== 'undefined') console.warn('[handleSprintCreation] Ollama extraction error, falling back to regex:', err.message);
       } finally {
@@ -232,11 +230,17 @@ export default function MasterDashboard() {
       }
     }
 
-    // Source-of-truth decision.
+    // Source-of-truth decision. Ollama wins only when it produced at
+    // least one brief. Empty Ollama output -> use regex as the safety
+    // net so the cockpit always shows something the student can act
+    // on, even when the LLM whiffed.
     let assessmentTitles;
-    if (ollamaSucceeded) {
+    if (assessmentBriefs.length > 0) {
       assessmentTitles = assessmentBriefs.map(b => b.weight ? `${b.title} (${b.weight})` : b.title);
     } else {
+      if (typeof console !== 'undefined' && regexTitles.length > 0) {
+        console.info('[handleSprintCreation] Ollama returned 0 briefs, using', regexTitles.length, 'regex titles as safety net');
+      }
       assessmentTitles = regexTitles;
     }
 
