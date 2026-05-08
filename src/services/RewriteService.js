@@ -418,7 +418,9 @@ export const nameCourse = async (text) => {
 // to whatever the regex produced. Bypasses the reason() wrapper because
 // this is a quiet metadata pass, not a writing aid.
 const ASSESSMENT_SYSTEM_PROMPT = [
-  'You are an extraction tool. Read a course syllabus and return ONLY the graded assessments.',
+  'You are an extraction tool. Read course syllabus material and return ONLY the graded assessments.',
+  '',
+  'CRITICAL CONTEXT: The input may be MULTIPLE documents concatenated together (Course Outline, Assessment Brief, Marking Rubric). You must look at ALL the text, not just the start. Course Outlines often list every assessment in a table or schedule; individual Assessment Briefs zoom in on one task. Combine the views: the canonical assessment list lives in the Course Outline. Your job is to surface EVERY graded assessment across all documents, not just the one that has the most prose.',
   '',
   'OUTPUT FORMAT: A JSON array of objects. Each object has these keys:',
   '  "title": short name of the assessment (3 to 60 chars, capital first letter)',
@@ -426,16 +428,19 @@ const ASSESSMENT_SYSTEM_PROMPT = [
   '  "wordCountGoal": integer target word count (e.g. 1500), or 0 if not specified',
   '  "dueDate": short due date string (e.g. "Friday Week 5", "12 May 2026"), or "" if not specified',
   'Example:',
-  '  [{"title":"Literature Review","weight":"30%","wordCountGoal":1500,"dueDate":"Friday Week 5"},',
-  '   {"title":"Final Exam","weight":"50%","wordCountGoal":0,"dueDate":"Exam Period"}]',
+  '  [{"title":"Literature Review","weight":"25%","wordCountGoal":2000,"dueDate":"Friday Week 5"},',
+  '   {"title":"Test 1","weight":"30%","wordCountGoal":0,"dueDate":"Week 7"},',
+  '   {"title":"Science Communication Project","weight":"25%","wordCountGoal":0,"dueDate":"Week 11"},',
+  '   {"title":"Final Exam","weight":"20%","wordCountGoal":0,"dueDate":"Exam Period"}]',
   '',
   'ABSOLUTE RULES:',
   '1. Australian English only.',
   '2. Never use em-dashes or en-dashes.',
   '3. Return ONLY the JSON array. No preamble, no markdown fence, no commentary.',
   '4. Exclude topics, lecture titles, learning outcomes, rubric column headers, navigation copy (Moodle, Hub), and word fragments (cation, p 2, Item).',
-  '5. Each title must appear ONLY ONCE. Deduplicate aggressively.',
-  '6. If the syllabus does not list assessments, return [].'
+  '5. Each title must appear ONLY ONCE. Deduplicate aggressively across documents.',
+  '6. The weightings of the returned assessments should sum to approximately 100% if the syllabus is complete. If your output sums to far less than 100%, scan the input again for assessments you missed.',
+  '7. If the syllabus genuinely lists no assessments, return [].'
 ].join('\n');
 
 // Internal: send the prompt and parse the JSON response. Returns an array
@@ -471,7 +476,7 @@ const __callAssessmentExtractor = async (rawText) => {
         options: { temperature: 0.1, num_predict: 800 },
         messages: [
           { role: 'system', content: ASSESSMENT_SYSTEM_PROMPT },
-          { role: 'user', content: `SYLLABUS:\n${rawText.slice(0, 10000)}\n\nReturn the JSON array.` }
+          { role: 'user', content: `SYLLABUS (may include multiple documents joined together):\n${rawText.slice(0, 30000)}\n\nReturn the JSON array of every graded assessment across all documents.` }
         ]
       }),
       signal: controller.signal

@@ -333,6 +333,21 @@ export default function MasterDashboard() {
   };
 
   const simulateVoiceNote = () => {
+    // Triple purpose:
+    //   1. Speak a test phrase out loud so the student can verify the
+    //      audio path is actually audible (voice picked, volume up,
+    //      tab not muted). The phrase is a self-test so it sounds
+    //      meaningful even when the LMS is empty.
+    //   2. Simulate an incoming voice-note webhook so the cockpit
+    //      exercises its inbox routing.
+    //   3. Force a getVoices() call inside the user gesture in case
+    //      Chrome was holding off on populating the list.
+    try {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.getVoices();
+      }
+    } catch { /* ignore */ }
+    speakSystemMessage('Audio test. AURA is online, sovereign, and listening.');
     const payload = {
       type: 'voice',
       source: 'WhatsApp',
