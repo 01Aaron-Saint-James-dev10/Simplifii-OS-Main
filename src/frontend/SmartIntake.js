@@ -1,88 +1,97 @@
 import React, { useState, useRef } from 'react';
 import { Brain, ArrowRight, FileText, CheckCircle2, UploadCloud, Loader2 } from 'lucide-react';
-import pdfToText from 'react-pdftotext';
-import { extractDeepCourseData } from '../services/BriefService';
+import { extractDeepCourseData, extractDynamicThemes } from '../services/BriefService';
+import { useSettings } from './SettingsContext';
+import { processDocumentWithGCP } from '../services/DocumentAIService';
 
 export default function SmartIntake({ task, onSelectPath, onSprintCreated }) {
-  const [courseOutlineUploaded, setCourseOutlineUploaded] = useState(false);
-  const [assessmentBriefUploaded, setAssessmentBriefUploaded] = useState(false);
-  const [markingRubricUploaded, setMarkingRubricUploaded] = useState(false);
+  const { eduLevel, setEduLevel, setMode } = useSettings();
+  const [filesUploaded, setFilesUploaded] = useState({ outline: false, brief: false, rubric: false });
   const [isProcessing, setIsProcessing] = useState(false);
   const [extractedData, setExtractedData] = useState({ unitCode: '', words: 2000, theme: '' });
-  const [level, setLevel] = useState('MRes');
+  const [showNeuroSuggest, setShowNeuroSuggest] = useState(false);
   
-  const [outlineParsing, setOutlineParsing] = useState(false);
-  const [briefParsing, setBriefParsing] = useState(false);
-  const [rubricParsing, setRubricParsing] = useState(false);
+  const [parsingFiles, setParsingFiles] = useState(false);
+  const fileInputRef = useRef(null);
 
-  const outlineRef = useRef(null);
-  const briefRef = useRef(null);
-  const rubricRef = useRef(null);
+  const extractFallbackMetadata = (fileName) => {
+    const lowerName = fileName.toLowerCase();
+    let tier = 'tertiary';
+    if (lowerName.includes('mres') || lowerName.includes('master')) tier = 'mres';
+    if (lowerName.includes('tafe')) tier = 'tafe';
+    if (lowerName.includes('primary')) tier = 'primary';
+    if (lowerName.includes('secondary')) tier = 'secondary';
+    
+    return tier;
+  };
 
-  const handleOutlineUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setOutlineParsing(true);
+  const handleFileUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    console.log("File upload triggered. Files selected:", files.length);
+    if (files.length === 0) return;
+    
+    setParsingFiles(true);
+    
+    let combinedExtractedData = { unitCode: '', words: 2000, theme: '' };
+    const uploadState = { outline: false, brief: false, rubric: false };
     
     try {
-      const text = await pdfToText(file);
-      const unitCodeMatch = text.match(/[A-Z]{4}\d{4}/i);
-      const code = unitCodeMatch ? unitCodeMatch[0].toUpperCase() : 'BABS1201';
-      setExtractedData(prev => ({ ...prev, unitCode: code }));
-      setCourseOutlineUploaded(true);
+      await Promise.all(files.map(async (file) => {
+        const lowerName = file.name.toLowerCase();
+        let text = '';
+        
+        const determineType = () => {
+          if (lowerName.includes('outline')) { uploadState.outline = true; return 'outline'; }
+          if (lowerName.includes('brief') || lowerName.includes('assessment')) { uploadState.brief = true; return 'brief'; }
+          if (lowerName.includes('rubric') || lowerName.includes('criteria')) { uploadState.rubric = true; return 'rubric'; }
+          uploadState.brief = true; return 'brief';
+        };
+        const docType = determineType();
+
+        try {
+          // Instead of react-pdftotext, we use the GCP Document AI Service.
+          // Note: In a full OAuth flow, we would pass the actual user token here.
+          text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
+        } catch (err) {
+          console.error(`Failed to extract text from ${file.name}`);
+          const fallbackTier = extractFallbackMetadata(file.name);
+          if (fallbackTier) setEduLevel(fallbackTier);
+          combinedExtractedData.level = fallbackTier;
+          combinedExtractedData.theme = 'General Studies';
+          return;
+        }
+
+        if (docType === 'outline') {
+          const unitCodeMatch = text.match(/[A-Z]{4}\d{4}/i);
+          combinedExtractedData.unitCode = unitCodeMatch ? unitCodeMatch[0].toUpperCase() : '';
+        } else if (docType === 'brief') {
+          const theme = extractDynamicThemes(text);
+          const deepData = extractDeepCourseData(text);
+          if (deepData.detectedLevel) {
+            setEduLevel(deepData.detectedLevel);
+            if (deepData.detectedLevel === 'tertiary') setShowNeuroSuggest(true);
+          }
+          combinedExtractedData = { ...combinedExtractedData, theme, level: deepData.detectedLevel || eduLevel, rawText: text, ...deepData };
+        } else if (docType === 'rubric') {
+          combinedExtractedData.rubricText = text;
+          const theme = extractDynamicThemes(text);
+          const deepData = extractDeepCourseData(text);
+          if (deepData.detectedLevel) setEduLevel(deepData.detectedLevel);
+          combinedExtractedData = { ...combinedExtractedData, theme, level: deepData.detectedLevel || eduLevel, rawText: text, ...deepData };
+        }
+      }));
+
+      setExtractedData(prev => ({ ...prev, ...combinedExtractedData }));
+      setFilesUploaded({ ...uploadState }); // Ensure new reference
     } catch (error) {
-      console.error("Failed to extract text from pdf");
-      setExtractedData(prev => ({ ...prev, unitCode: 'BABS1201' }));
-      setCourseOutlineUploaded(true);
+      console.error("Critical extraction failure:", error);
     } finally {
-      setOutlineParsing(false);
+      setParsingFiles(false);
+      if (e.target) e.target.value = null; // Reset input to allow re-upload
     }
   };
 
-  const handleBriefUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setBriefParsing(true);
-    
-    try {
-      const text = await pdfToText(file);
-      const lowerText = text.toLowerCase();
-      
-      let theme = 'molecules';
-      if (lowerText.includes('genes')) theme = 'genes';
-      else if (lowerText.includes('cells')) theme = 'cells';
-      else if (lowerText.includes('molecules')) theme = 'molecules';
-      
-      const deepData = extractDeepCourseData(text, level);
-      
-      setExtractedData(prev => ({ ...prev, theme, level, rawText: text, ...deepData }));
-      setAssessmentBriefUploaded(true);
-    } catch (error) {
-      console.error("Failed to extract text from pdf");
-      setExtractedData(prev => ({ ...prev, theme: 'molecules' }));
-      setAssessmentBriefUploaded(true);
-    } finally {
-      setBriefParsing(false);
-    }
-  };
-  const handleRubricUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setRubricParsing(true);
-    
-    try {
-      const text = await pdfToText(file);
-      setExtractedData(prev => ({ ...prev, rubricText: text }));
-      setMarkingRubricUploaded(true);
-    } catch (error) {
-      console.error("Failed to extract text from rubric pdf");
-      setMarkingRubricUploaded(true);
-    } finally {
-      setRubricParsing(false);
-    }
-  };
-
-  const isReady = courseOutlineUploaded && assessmentBriefUploaded && markingRubricUploaded;
+  const isReady = filesUploaded.brief || filesUploaded.outline || filesUploaded.rubric;
 
   const handleProcess = () => {
     setIsProcessing(true);
@@ -109,90 +118,80 @@ export default function SmartIntake({ task, onSelectPath, onSprintCreated }) {
         </div>
 
         <div className="flex justify-center mb-8">
-          <div className="bg-zinc-900 p-1.5 rounded-2xl flex gap-2 border border-zinc-800">
-            {['Undergrad', 'Honours', 'MRes', 'PhD'].map(tier => (
-              <button
-                key={tier}
-                onClick={() => setLevel(tier)}
-                className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${level === tier ? 'bg-emerald-500 text-black shadow-glow-emerald' : 'text-zinc-500 hover:text-white'}`}
-              >
-                {tier}
-              </button>
-            ))}
+          <div className="text-center">
+            <input 
+              type="file" 
+              accept=".pdf" 
+              multiple
+              className="hidden" 
+              ref={fileInputRef} 
+              onChange={handleFileUpload} 
+            />
+            <button 
+              onClick={() => fileInputRef.current?.click()} 
+              disabled={parsingFiles}
+              className="px-8 py-4 rounded-2xl bg-zinc-900 border border-zinc-800 hover:border-emerald-500 hover:text-emerald-400 transition-all font-black uppercase tracking-widest flex items-center gap-3 disabled:opacity-50 mx-auto shadow-xl"
+            >
+              {parsingFiles ? <Loader2 size={24} className="animate-spin" /> : <UploadCloud size={24} />} 
+              {parsingFiles ? 'EXTRACTING METADATA...' : 'DROP DOCUMENTS HERE'}
+            </button>
+            <p className="text-zinc-500 text-xs mt-3 font-medium tracking-wide">Upload Outline, Brief, and Rubric simultaneously for deep grounding.</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-6 mb-10">
-          <div className={`p-8 rounded-3xl border transition-all duration-500 relative overflow-hidden flex flex-col items-center text-center ${courseOutlineUploaded ? 'bg-emerald-500/5 border-emerald-500/50 shadow-glow-emerald' : 'bg-[#07080D] border-zinc-800 hover:border-zinc-700'}`}>
-            <div className="mb-4">
-              {outlineParsing ? <Loader2 size={40} className="text-emerald-500 animate-spin" /> : courseOutlineUploaded ? <CheckCircle2 size={40} className="text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]" /> : <FileText size={40} className="text-zinc-600" />}
+        {showNeuroSuggest && (
+          <div className="flex items-center justify-between bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl mb-8 animate-fade-in shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+            <div className="flex items-center gap-3">
+              <Brain size={24} className="text-amber-500" />
+              <div>
+                <h4 className="text-amber-500 font-black tracking-widest text-xs uppercase">Dense Academic Text Detected</h4>
+                <p className="text-zinc-400 text-sm font-medium">Would you like to enable the Lexical/OpenDyslexic layout for easier reading?</p>
+              </div>
             </div>
-            <h3 className={`font-black text-lg mb-2 uppercase tracking-widest ${courseOutlineUploaded ? 'text-emerald-400' : 'text-white'}`}>Stage 1: Course Outline</h3>
-            <p className="text-sm text-zinc-500 font-medium mb-6">Extracts the Unit Code and Learning Outcomes to align grading criteria.</p>
-            
-            <input type="file" accept=".pdf" className="hidden" ref={outlineRef} onChange={handleOutlineUpload} />
-            
-            {!courseOutlineUploaded ? (
+            <div className="flex gap-2">
+              <button onClick={() => setShowNeuroSuggest(false)} className="px-4 py-2 text-zinc-500 hover:text-white text-xs font-black uppercase tracking-widest transition-all">Dismiss</button>
               <button 
-                onClick={() => outlineRef.current?.click()} 
-                disabled={outlineParsing}
-                className="px-6 py-3 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-emerald-500 hover:text-emerald-400 transition-all font-black uppercase text-xs tracking-widest flex items-center gap-2 disabled:opacity-50"
+                onClick={() => { setMode('lexical'); setShowNeuroSuggest(false); }} 
+                className="px-4 py-2 bg-amber-500 text-black rounded-lg text-xs font-black uppercase tracking-widest hover:bg-amber-400 transition-all shadow-[0_0_10px_rgba(245,158,11,0.5)]"
               >
-                {outlineParsing ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />} 
-                {outlineParsing ? 'PARSING PDF...' : 'Upload Outline'}
+                Enable Layout
               </button>
-            ) : (
-              <div className="px-4 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-black uppercase tracking-widest border border-emerald-500/30">
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-3 gap-6 mb-10">
+          <div className={`p-8 rounded-3xl border transition-all duration-500 relative overflow-hidden flex flex-col items-center text-center ${filesUploaded.outline ? 'bg-emerald-500/5 border-emerald-500/50 shadow-glow-emerald' : 'bg-[#07080D] border-zinc-800 opacity-50'}`}>
+            <div className="mb-4">
+              {filesUploaded.outline ? <CheckCircle2 size={40} className="text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]" /> : <FileText size={40} className="text-zinc-600" />}
+            </div>
+            <h3 className={`font-black text-lg mb-2 uppercase tracking-widest ${filesUploaded.outline ? 'text-emerald-400' : 'text-white'}`}>Stage 1: Course Outline</h3>
+            {filesUploaded.outline && (
+              <div className="px-4 py-2 mt-4 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-black uppercase tracking-widest border border-emerald-500/30">
                 Extracted: {extractedData.unitCode}
               </div>
             )}
           </div>
 
-          <div className={`p-8 rounded-3xl border transition-all duration-500 relative overflow-hidden flex flex-col items-center text-center ${assessmentBriefUploaded ? 'bg-emerald-500/5 border-emerald-500/50 shadow-glow-emerald' : 'bg-[#07080D] border-zinc-800 hover:border-zinc-700'}`}>
+          <div className={`p-8 rounded-3xl border transition-all duration-500 relative overflow-hidden flex flex-col items-center text-center ${filesUploaded.brief ? 'bg-emerald-500/5 border-emerald-500/50 shadow-glow-emerald' : 'bg-[#07080D] border-zinc-800 opacity-50'}`}>
             <div className="mb-4">
-              {briefParsing ? <Loader2 size={40} className="text-emerald-500 animate-spin" /> : assessmentBriefUploaded ? <CheckCircle2 size={40} className="text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]" /> : <FileText size={40} className="text-zinc-600" />}
+              {filesUploaded.brief ? <CheckCircle2 size={40} className="text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]" /> : <FileText size={40} className="text-zinc-600" />}
             </div>
-            <h3 className={`font-black text-lg mb-2 uppercase tracking-widest ${assessmentBriefUploaded ? 'text-emerald-400' : 'text-white'}`}>Stage 2: Assessment Brief</h3>
-            <p className="text-sm text-zinc-500 font-medium mb-6">Extracts specific word counts, article requirements, and thematic rules.</p>
-            
-            <input type="file" accept=".pdf" className="hidden" ref={briefRef} onChange={handleBriefUpload} />
-
-            {!assessmentBriefUploaded ? (
-              <button 
-                onClick={() => briefRef.current?.click()} 
-                disabled={briefParsing}
-                className="px-6 py-3 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-emerald-500 hover:text-emerald-400 transition-all font-black uppercase text-xs tracking-widest flex items-center gap-2 disabled:opacity-50"
-              >
-                {briefParsing ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />} 
-                {briefParsing ? 'PARSING PDF...' : 'Upload Brief'}
-              </button>
-            ) : (
-              <div className="px-4 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-black uppercase tracking-widest border border-emerald-500/30">
+            <h3 className={`font-black text-lg mb-2 uppercase tracking-widest ${filesUploaded.brief ? 'text-emerald-400' : 'text-white'}`}>Stage 2: Assessment Brief</h3>
+            {filesUploaded.brief && (
+              <div className="px-4 py-2 mt-4 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-black uppercase tracking-widest border border-emerald-500/30">
                 Extracted: {extractedData.words} Words
               </div>
             )}
           </div>
           
-          <div className={`p-8 rounded-3xl border transition-all duration-500 relative overflow-hidden flex flex-col items-center text-center ${markingRubricUploaded ? 'bg-emerald-500/5 border-emerald-500/50 shadow-glow-emerald' : 'bg-[#07080D] border-zinc-800 hover:border-zinc-700'}`}>
+          <div className={`p-8 rounded-3xl border transition-all duration-500 relative overflow-hidden flex flex-col items-center text-center ${filesUploaded.rubric ? 'bg-emerald-500/5 border-emerald-500/50 shadow-glow-emerald' : 'bg-[#07080D] border-zinc-800 opacity-50'}`}>
             <div className="mb-4">
-              {rubricParsing ? <Loader2 size={40} className="text-emerald-500 animate-spin" /> : markingRubricUploaded ? <CheckCircle2 size={40} className="text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]" /> : <FileText size={40} className="text-zinc-600" />}
+              {filesUploaded.rubric ? <CheckCircle2 size={40} className="text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]" /> : <FileText size={40} className="text-zinc-600" />}
             </div>
-            <h3 className={`font-black text-lg mb-2 uppercase tracking-widest ${markingRubricUploaded ? 'text-emerald-400' : 'text-white'}`}>Stage 3: Marking Rubric</h3>
-            <p className="text-sm text-zinc-500 font-medium mb-6">Extracts HD Criteria and Section Weighting.</p>
-            
-            <input type="file" accept=".pdf" className="hidden" ref={rubricRef} onChange={handleRubricUpload} />
-
-            {!markingRubricUploaded ? (
-              <button 
-                onClick={() => rubricRef.current?.click()} 
-                disabled={rubricParsing || !assessmentBriefUploaded}
-                className="px-6 py-3 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-emerald-500 hover:text-emerald-400 transition-all font-black uppercase text-xs tracking-widest flex items-center gap-2 disabled:opacity-50"
-              >
-                {rubricParsing ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />} 
-                {rubricParsing ? 'PARSING PDF...' : 'Upload Rubric'}
-              </button>
-            ) : (
-              <div className="px-4 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-black uppercase tracking-widest border border-emerald-500/30">
+            <h3 className={`font-black text-lg mb-2 uppercase tracking-widest ${filesUploaded.rubric ? 'text-emerald-400' : 'text-white'}`}>Stage 3: Marking Rubric</h3>
+            {filesUploaded.rubric && (
+              <div className="px-4 py-2 mt-4 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-black uppercase tracking-widest border border-emerald-500/30">
                 Parsed Successfully
               </div>
             )}

@@ -8,6 +8,16 @@ export const SettingsProvider = ({ children }) => {
   const [highContrast, setHighContrast] = useState(localStorage.getItem('highContrast') === 'true');
   const [reducedMotion, setReducedMotion] = useState(localStorage.getItem('reducedMotion') === 'true');
   const [darkMode, setDarkMode] = useState(localStorage.getItem('darkMode') !== 'false');
+  const [persona, setPersona] = useState(localStorage.getItem('persona') || 'Socratic');
+  
+  // Accessibility Vault State
+  const [overlayTint, setOverlayTint] = useState(localStorage.getItem('overlayTint') || 'none'); // 'none', 'mint', 'cream', 'skyblue'
+  const [fontScale, setFontScale] = useState(localStorage.getItem('fontScale') || 'normal'); // 'normal', 'large', 'xl'
+  const [lineSpacing, setLineSpacing] = useState(localStorage.getItem('lineSpacing') || 'normal'); // 'normal', 'relaxed', 'loose'
+  const [isRulerActive, setIsRulerActive] = useState(localStorage.getItem('isRulerActive') === 'true');
+  const [isBionicActive, setIsBionicActive] = useState(localStorage.getItem('isBionicActive') === 'true');
+  const [bionicIntensity, setBionicIntensity] = useState(Number(localStorage.getItem('bionicIntensity')) || 3); // 1 to 5
+  const [isDriveAttached, setIsDriveAttached] = useState(localStorage.getItem('isDriveAttached') === 'true');
 
   useEffect(() => {
     localStorage.setItem('mode', mode);
@@ -15,7 +25,15 @@ export const SettingsProvider = ({ children }) => {
     localStorage.setItem('highContrast', highContrast);
     localStorage.setItem('reducedMotion', reducedMotion);
     localStorage.setItem('darkMode', darkMode);
-  }, [mode, eduLevel, highContrast, reducedMotion, darkMode]);
+    localStorage.setItem('persona', persona);
+    localStorage.setItem('overlayTint', overlayTint);
+    localStorage.setItem('fontScale', fontScale);
+    localStorage.setItem('lineSpacing', lineSpacing);
+    localStorage.setItem('isRulerActive', isRulerActive);
+    localStorage.setItem('isBionicActive', isBionicActive);
+    localStorage.setItem('bionicIntensity', bionicIntensity);
+    localStorage.setItem('isDriveAttached', isDriveAttached);
+  }, [mode, eduLevel, highContrast, reducedMotion, darkMode, persona, overlayTint, fontScale, lineSpacing, isRulerActive, isBionicActive, bionicIntensity, isDriveAttached]);
 
   const rules = {
     sequential: { font: 'Inter', spacing: 'normal', lineHeight: 'normal', letterSpacing: 'normal' },
@@ -30,6 +48,14 @@ export const SettingsProvider = ({ children }) => {
       highContrast, setHighContrast,
       reducedMotion, setReducedMotion,
       darkMode, setDarkMode,
+      persona, setPersona,
+      overlayTint, setOverlayTint,
+      fontScale, setFontScale,
+      lineSpacing, setLineSpacing,
+      isRulerActive, setIsRulerActive,
+      isBionicActive, setIsBionicActive,
+      bionicIntensity, setBionicIntensity,
+      isDriveAttached, setIsDriveAttached,
       activeRules: rules[mode] 
     }}>
       <div 

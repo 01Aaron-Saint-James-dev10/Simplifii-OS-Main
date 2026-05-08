@@ -32,3 +32,33 @@ export const simulateIncomingWebhook = (payload, dispatchToState) => {
     });
   }, 1000); 
 };
+
+export const speakSystemMessage = (text, onEndCallback, rate = 1.05, pitch = 0.9, onBoundaryCallback) => {
+  if (!window.speechSynthesis) return;
+  
+  // Cancel any ongoing speech
+  window.speechSynthesis.cancel();
+  
+  const utterance = new SpeechSynthesisUtterance(text);
+  
+  // Find a decent english voice if possible
+  const voices = window.speechSynthesis.getVoices();
+  const preferredVoice = voices.find(v => v.name.includes('Google') || v.name.includes('Siri') || v.lang.startsWith('en'));
+  if (preferredVoice) {
+    utterance.voice = preferredVoice;
+  }
+  
+  utterance.rate = rate;
+  utterance.pitch = 0.9;
+  
+  if (onEndCallback) {
+    utterance.onend = onEndCallback;
+    utterance.onerror = onEndCallback;
+  }
+
+  if (onBoundaryCallback) {
+    utterance.onboundary = onBoundaryCallback;
+  }
+  
+  window.speechSynthesis.speak(utterance);
+};

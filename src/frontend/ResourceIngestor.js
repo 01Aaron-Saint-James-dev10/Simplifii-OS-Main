@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link as LinkIcon, Loader2, CheckCircle2, FileText, Search, AlertCircle } from 'lucide-react';
+import { translateToEnglish } from '../services/TranslationService';
+import { extractSemanticEntities } from '../services/KnowledgeGraphService';
 
 export default function ResourceIngestor({ evidenceFormula = [], onIngestComplete }) {
   const slots = useMemo(() => {
@@ -61,12 +63,38 @@ export default function ResourceIngestor({ evidenceFormula = [], onIngestComplet
     }
 
     setIsScraping(true);
-    // Simulate scraping
-    setTimeout(() => {
+    // Simulate semantic scraping, translation, and knowledge graph mapping
+    const focus = localStorage.getItem('simplifii_inferred_focus') || 'General Academic Topic';
+    
+    setTimeout(async () => {
+      const extractions = await Promise.all(urls.filter(u => u).map(async (url, index) => {
+        const domainMatch = url.match(/:\/\/(www\.)?([^/]+)/);
+        const source = domainMatch ? domainMatch[2] : 'Academic Database';
+        
+        // 1. "Scrape" raw text (Simulated)
+        const rawContent = `Foreign/Raw finding regarding ${focus}: Specific conditions activate key molecular pathways.`;
+        
+        // 2. Multi-Modal Translation
+        const translatedContent = await translateToEnglish(rawContent, 'mock_jwt_token_xyz123');
+        
+        // 3. Knowledge Graph Entity Extraction
+        const entities = await extractSemanticEntities(translatedContent, 'mock_jwt_token_xyz123');
+        const entityTags = entities.map(e => `<span class="bg-zinc-800 text-emerald-400 px-1 py-0.5 rounded text-[10px] uppercase font-bold">${e.label}</span>`).join(' ');
+
+        return {
+          id: `ev_${Date.now()}_${index}`,
+          type: 'link',
+          source: source,
+          content: `${translatedContent}<br/><div class="mt-2 flex gap-1 flex-wrap">${entityTags}</div>`,
+          entities: entities, // Save raw entities for the Ledger
+          timestamp: Date.now()
+        };
+      }));
+      
       setIsScraping(false);
       setIngested(true);
-      if (onIngestComplete) onIngestComplete(urls.filter(u => u));
-    }, 3000);
+      if (onIngestComplete) onIngestComplete(extractions);
+    }, 1500);
   };
 
   if (ingested) {

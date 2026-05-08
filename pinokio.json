@@ -1,0 +1,61 @@
+{
+  "title": "Simplifii-OS Cognitive Engine (Ghost Drive Handshake)",
+  "description": "Storage-aware AI deployment for Llama-3-8B-Instruct-Q4_K_M on external SSD.",
+  "version": "1.0.0",
+  "start": "start.js",
+  "menu": [
+    {
+      "html": "Start AI Backend",
+      "href": "start.js"
+    }
+  ],
+  "env": {
+    "EXTERNAL_DRIVE_PATH": "/Volumes/EXTERNAL_SSD/Simplifii_Models",
+    "MODEL_REPO": "unsloth/llama-3-8b-Instruct-GGUF",
+    "MODEL_FILE": "Meta-Llama-3-8B-Instruct-Q4_K_M.gguf",
+    "MEDIAPIPE_MODEL": "face_landmarker.task"
+  },
+  "install": [
+    {
+      "method": "shell.run",
+      "params": {
+        "message": "echo 'Initiating Ghost Drive Handshake...'",
+        "env": {}
+      }
+    },
+    {
+      "method": "fs.mkdir",
+      "params": {
+        "dir": "{{env.EXTERNAL_DRIVE_PATH}}"
+      }
+    },
+    {
+      "method": "shell.run",
+      "params": {
+        "message": "huggingface-cli download {{env.MODEL_REPO}} {{env.MODEL_FILE}} --local-dir {{env.EXTERNAL_DRIVE_PATH}} --local-dir-use-symlinks False",
+        "env": {}
+      }
+    },
+    {
+      "method": "shell.run",
+      "params": {
+        "message": "echo 'Downloading MediaPipe FaceMesh/Landmarker weights...'",
+        "env": {}
+      }
+    },
+    {
+      "method": "shell.run",
+      "params": {
+        "message": "curl -o {{env.EXTERNAL_DRIVE_PATH}}/{{env.MEDIAPIPE_MODEL}} -L https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+        "env": {}
+      }
+    },
+    {
+      "method": "shell.run",
+      "params": {
+        "message": "echo 'Sovereign Engine Installed on External Drive. Internal SSD protected. MediaPipe ready.'",
+        "env": {}
+      }
+    }
+  ]
+}

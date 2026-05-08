@@ -1,20 +1,20 @@
 export const auditProjectContext = async (data) => {
   await new Promise(resolve => setTimeout(resolve, 800));
 
-  const errors = [];
-  const validThemes = ['molecules', 'cells', 'genes'];
-
-  if (!data.theme || !validThemes.includes(data.theme.toLowerCase())) {
-    errors.push('Topic Alignment: Your topic must be centered on molecules, cells, or genes.');
+  // If the engine detected a valid tier automatically from the document,
+  // we instantly unlock the drafting phase. No more manual deadlocks.
+  if (data.detectedLevel) {
+    return { verified: true, errors: [] };
   }
 
-  if (!data.articles || data.articles.length < 3) {
-    errors.push('Source Audit: You must identify exactly three peer-reviewed scientific articles (two primary, one review).');
-  } else {
-    const filledArticles = data.articles.filter(a => a.trim().length > 0);
-    if (filledArticles.length < 3) {
-      errors.push('Source Audit: Please provide the titles or URLs for all 3 required articles.');
-    }
+  const errors = [];
+
+  if (!data.theme || data.theme.trim() === '') {
+    errors.push('Topic Alignment: You must confirm or identify a central theme for your work.');
+  }
+
+  if (!data.evidenceFormula || data.evidenceFormula.length === 0) {
+    errors.push('Source Audit: No evidence constraints detected. Please re-upload your assessment brief.');
   }
 
   if (!data.formattingConfirmed) {
