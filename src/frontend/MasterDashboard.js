@@ -46,9 +46,17 @@ export default function MasterDashboard() {
   const [showSupportBridge, setShowSupportBridge] = useState(false);
   const [showAccessibilityVault, setShowAccessibilityVault] = useState(false);
   const [pendingDeleteCourseId, setPendingDeleteCourseId] = useState(null);
+  // Modal that re-launches the Grounding (PDF drop) screen from the
+  // sidebar. The first onboarding pass uses Grounding inside stage 4;
+  // after onboarding is complete StartIgnition jumps straight to canvas,
+  // which previously left no path to ingest a second syllabus. Now the
+  // '+ Add Course' button mounts Grounding in an overlay.
+  const [showAddCourseModal, setShowAddCourseModal] = useState(false);
   // Inline course editor state. Replaces the legacy window.prompt() flow so
   // the cockpit no longer breaks the AURA Pulse with a native popup.
-  const [courseEditMode, setCourseEditMode] = useState(null); // 'add' | 'rename' | null
+  // Used now only for the Edit (rename) action; new courses come in via
+  // the syllabus modal so the OS names them itself.
+  const [courseEditMode, setCourseEditMode] = useState(null); // 'rename' | null
   const [courseEditValue, setCourseEditValue] = useState('');
   const courseEditInputRef = useRef(null);
   useEffect(() => { if (courseEditMode && courseEditInputRef.current) courseEditInputRef.current.focus(); }, [courseEditMode]);
@@ -436,6 +444,35 @@ export default function MasterDashboard() {
 
       {showSupportBridge && <SupportBridge onClose={() => setShowSupportBridge(false)} isLiteralMode={isLiteralMode} />}
       {showAccessibilityVault && <AccessibilityVault onClose={() => setShowAccessibilityVault(false)} />}
+      {showAddCourseModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-stretch justify-center animate-fade-in"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowAddCourseModal(false); }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Add a new course by uploading a syllabus"
+        >
+          <div className="relative w-full max-w-5xl m-8 bg-zinc-950 border border-emerald-500/30 rounded-3xl shadow-[0_0_60px_rgba(16,185,129,0.25)] overflow-hidden flex flex-col">
+            <button
+              type="button"
+              onClick={() => setShowAddCourseModal(false)}
+              aria-label="Close add course"
+              className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-zinc-900 border border-zinc-800 hover:border-emerald-500 hover:text-emerald-400 text-zinc-400 text-xl font-black flex items-center justify-center transition-all"
+            >
+              ×
+            </button>
+            <div className="flex-1 overflow-y-auto">
+              <Grounding
+                profile={profile}
+                onComplete={(data) => {
+                  setShowAddCourseModal(false);
+                  handleSprintCreation(data);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
       <ConfirmDialog
         open={!!pendingDeleteCourseId}
         title="Delete Course"
@@ -520,8 +557,9 @@ export default function MasterDashboard() {
               ) : (
               <div className="flex gap-2 mt-2">
                 <button
-                  onClick={() => { setCourseEditValue(''); setCourseEditMode('add'); }}
+                  onClick={() => setShowAddCourseModal(true)}
                   className="flex-1 text-[10px] font-black text-emerald-500 hover:text-black hover:bg-emerald-500 uppercase tracking-widest border border-emerald-500/30 hover:border-emerald-500 py-2 rounded-lg transition-all"
+                  title="Drop a syllabus PDF; the OS names the course itself"
                 >
                   + Add Course
                 </button>
