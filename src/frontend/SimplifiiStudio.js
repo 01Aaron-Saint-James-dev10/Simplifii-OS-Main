@@ -602,6 +602,20 @@ function Cockpit({ pillar, pillars, drafts, setDraft, activeBlockId, setActiveBl
     dueDate: pillar.due
   }), [pillar]);
 
+  const insertStepsIntoActiveBlock = (steps) => {
+    if (!steps || steps.length === 0) return;
+    const block = activeBlock;
+    const heading = `Study plan steps (generated ${new Date().toLocaleString('en-AU')})`;
+    const body = steps.map((s) => `${s.step}. ${s.title}: ${s.action}`).join('\n');
+    const existing = drafts[block.id] || '';
+    const next = existing.trim()
+      ? `${existing.trim()}\n\n${heading}\n${body}\n`
+      : `${heading}\n${body}\n`;
+    setDraft(block.id, next);
+  };
+
+  const isActiveBlockEmpty = !((drafts[activeBlock.id] || '').trim().length > 0);
+
   const onGenerateSteps = async () => {
     if (microLoading) return;
     setMicroLoading(true);
@@ -609,6 +623,14 @@ function Cockpit({ pillar, pillars, drafts, setDraft, activeBlockId, setActiveBl
     try {
       const steps = await generateMicroSteps(briefForPillar, pillar.name);
       setMicroSteps(steps);
+      // One-click pre-fill: when the active block is empty, drop the
+      // generated steps straight in. Section Health recomputes naturally
+      // from the inserted text (imperative verbs + numbered structure
+      // push it to Developing). When the block has existing prose we
+      // require an explicit 'Insert' click to avoid clobbering work.
+      if (isActiveBlockEmpty) {
+        insertStepsIntoActiveBlock(steps);
+      }
     } catch (err) {
       setMicroError(err?.message || 'Could not generate steps.');
     } finally {
@@ -616,17 +638,7 @@ function Cockpit({ pillar, pillars, drafts, setDraft, activeBlockId, setActiveBl
     }
   };
 
-  const onInsertSteps = () => {
-    if (microSteps.length === 0) return;
-    const block = activeBlock;
-    const heading = `Study plan steps (generated ${new Date().toLocaleString('en-AU')})`;
-    const body = microSteps.map((s) => `${s.step}. ${s.title}: ${s.action}`).join('\n');
-    const existing = drafts[block.id] || '';
-    const next = existing.trim()
-      ? `${existing.trim()}\n\n${heading}\n${body}\n`
-      : `${heading}\n${body}\n`;
-    setDraft(block.id, next);
-  };
+  const onInsertSteps = () => insertStepsIntoActiveBlock(microSteps);
 
   // Mastery stage derived from total progress: 0% -> introduce, <33% -> drill,
   // <66% -> recognise, else simulate. Maps the pedagogical loop to the
@@ -717,12 +729,16 @@ function Cockpit({ pillar, pillars, drafts, setDraft, activeBlockId, setActiveBl
               UDL Micro-steps  ·  {pillar.name}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn-pill primary" onClick={onGenerateSteps} disabled={microLoading}>
-                {microLoading ? 'Generating...' : (microSteps.length > 0 ? 'Regenerate' : 'Generate steps')}
+              <button className="btn-pill primary" onClick={onGenerateSteps} disabled={microLoading} title={isActiveBlockEmpty ? 'Generate and pre-fill the empty block in one click' : 'Generate steps to review before inserting'}>
+                {microLoading
+                  ? 'Generating...'
+                  : (microSteps.length > 0
+                      ? 'Regenerate'
+                      : (isActiveBlockEmpty ? 'Pre-fill block' : 'Generate steps'))}
               </button>
-              {microSteps.length > 0 && (
-                <button className="btn-pill" onClick={onInsertSteps} title="Insert steps into the current block">
-                  Insert into draft
+              {microSteps.length > 0 && !isActiveBlockEmpty && (
+                <button className="btn-pill" onClick={onInsertSteps} title="Append steps to the current block">
+                  Append to draft
                 </button>
               )}
             </div>
