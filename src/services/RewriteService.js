@@ -306,5 +306,95 @@ export const elevateRigour = (text, ctx) => reason('elevateRigour', [text, ctx])
 export const synthesise = (text, ctx) => reason('synthesise', [text, ctx]);
 export const applyLogicMode = (text, mode, ctx) => reason('applyLogicMode', [text, mode, ctx]);
 
+// ---------------------------------------------------------------------------
+// nameCourse(): asks Ollama for the canonical course name from a syllabus
+// excerpt. This is the Smart Handshake: the cockpit derives the course name
+// itself instead of popping a 'Name this course' prompt at the student.
+//
+// Falls through to a regex-based name when Ollama is unreachable or the
+// active provider is local-mock. Always returns a non-empty string.
+//
+// Bypasses the reason() wrapper because we do not want a 2-second floor on
+// course creation, and we do not want to dispatch the reasoning pulse for a
+// background metadata call.
+// ---------------------------------------------------------------------------
+
+const NAME_SYSTEM_PROMPT = [
+  'You are AURA, naming a course inside Simplifii OS.',
+  'You are given an excerpt from a course syllabus or assessment brief.',
+  'You return a single line: the canonical course name.',
+  '',
+  'ABSOLUTE RULES, never break them:',
+  '1. Australian English only. Never use US spellings.',
+  '2. No em-dashes or en-dashes. Use a single space, full stop, or comma.',
+  '3. Format: "<unit code> <Course Title>". Example: "BABS1201 Cell Biology and Biochemistry".',
+  '4. If no unit code is present, return only the Course Title in title case.',
+  '5. Maximum 80 characters.',
+  '6. Return ONLY the name. No quotes, no preamble, no explanation.'
+].join('\n');
+
+const buildNameCoursePrompt = (text) => [
+  'TASK: Read the excerpt below and return the canonical course name.',
+  '',
+  'EXCERPT:',
+  text.slice(0, 4000),
+  '',
+  'Return only the course name on a single line.'
+].join('\n');
+
+const fallbackCourseName = (text) => {
+  if (!text) return 'New Course';
+  const codeMatch = text.match(/\b([A-Z]{2,5}\d{3,5})\b/);
+  const code = codeMatch ? codeMatch[1] : '';
+  const titleMatch = text.match(/\b[A-Z]{2,5}\d{3,5}\s+([A-Z][A-Za-z][^\n]{4,80})/);
+  let title = '';
+  if (titleMatch) {
+    title = titleMatch[1].split(/[\n\r,;:]/)[0].trim().replace(/\s+/g, ' ').slice(0, 70);
+  } else {
+    const heading = text.split(/\n+/).map(l => l.trim()).find(l => /^[A-Z][A-Za-z][A-Za-z\s]{4,80}$/.test(l));
+    if (heading) title = heading.slice(0, 70);
+  }
+  if (code && title) return `${code} ${title}`.slice(0, 80);
+  if (code) return code;
+  if (title) return title;
+  return 'New Course';
+};
+
+export const nameCourse = async (text) => {
+  const fallback = fallbackCourseName(text);
+  if (!text || !text.trim()) return fallback;
+  if (getProviderName() !== 'ollama') return fallback;
+
+  try {
+    const endpoint = (typeof window !== 'undefined' ? localStorage.getItem(OLLAMA_ENDPOINT_KEY) : null) || DEFAULT_OLLAMA_ENDPOINT;
+    const model = (typeof window !== 'undefined' ? localStorage.getItem(OLLAMA_MODEL_KEY) : null) || DEFAULT_OLLAMA_MODEL;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    const response = await fetch(`${endpoint.replace(/\/$/, '')}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        stream: false,
+        options: { temperature: 0.2, num_predict: 60 },
+        messages: [
+          { role: 'system', content: NAME_SYSTEM_PROMPT },
+          { role: 'user', content: buildNameCoursePrompt(text) }
+        ]
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+    if (!response.ok) throw new Error(`status ${response.status}`);
+    const data = await response.json().catch(() => ({}));
+    const cleaned = cleanModelOutput(data?.message?.content || '');
+    const oneLine = cleaned.split(/\n/)[0].trim().slice(0, 80);
+    return oneLine || fallback;
+  } catch (err) {
+    if (typeof console !== 'undefined') console.warn('[RewriteService] nameCourse falling back:', err.message);
+    return fallback;
+  }
+};
+
 // Exported for unit tests and DevTools poking.
-export const __internals = { SYSTEM_PROMPT, buildElevatePrompt, buildSynthesisePrompt, buildLogicModePrompt, cleanModelOutput, LOGIC_LENSES };
+export const __internals = { SYSTEM_PROMPT, buildElevatePrompt, buildSynthesisePrompt, buildLogicModePrompt, cleanModelOutput, LOGIC_LENSES, fallbackCourseName, buildNameCoursePrompt };

@@ -13,6 +13,7 @@ import AIAvatar from './AIAvatar';
 import SupportBridge from './SupportBridge';
 import { fetchLMSData } from '../backend/LMSConnector';
 import { mapToWorkspace } from '../services/BriefService';
+import { nameCourse } from '../services/RewriteService';
 import { jsPDF } from 'jspdf';
 import FloatingResourceCard from './FloatingResourceCard';
 import ResourceIngestor from './ResourceIngestor';
@@ -45,6 +46,25 @@ export default function MasterDashboard() {
   const [showSupportBridge, setShowSupportBridge] = useState(false);
   const [showAccessibilityVault, setShowAccessibilityVault] = useState(false);
   const [pendingDeleteCourseId, setPendingDeleteCourseId] = useState(null);
+  // Inline course editor state. Replaces the legacy window.prompt() flow so
+  // the cockpit no longer breaks the AURA Pulse with a native popup.
+  const [courseEditMode, setCourseEditMode] = useState(null); // 'add' | 'rename' | null
+  const [courseEditValue, setCourseEditValue] = useState('');
+  const courseEditInputRef = useRef(null);
+  useEffect(() => { if (courseEditMode && courseEditInputRef.current) courseEditInputRef.current.focus(); }, [courseEditMode]);
+  const commitCourseEdit = () => {
+    const name = courseEditValue.trim();
+    if (!name) { setCourseEditMode(null); setCourseEditValue(''); return; }
+    if (courseEditMode === 'add') {
+      const id = addCourse(name);
+      if (id) setActiveCourseId(id);
+    } else if (courseEditMode === 'rename') {
+      renameCourse(activeCourseId, name);
+    }
+    setCourseEditMode(null);
+    setCourseEditValue('');
+  };
+  const cancelCourseEdit = () => { setCourseEditMode(null); setCourseEditValue(''); };
 
   useEffect(() => {
     const handleToggleAccessibility = () => setShowAccessibilityVault(prev => !prev);
@@ -126,7 +146,15 @@ export default function MasterDashboard() {
     setCurrentStage(nextStage);
   };
 
-  const handleSprintCreation = (data) => {
+  // Smart Handshake. The cockpit derives the course name itself instead of
+  // popping a 'Name this course' prompt at the student. We:
+  //   1. Build initial state from the extracted data immediately (no waiting)
+  //   2. Ask Ollama for a clean canonical name in the background
+  //   3. Auto-create a new course with that name and switch to it
+  // If Ollama is unreachable or the provider is local-mock, the regex
+  // fallback inside nameCourse() returns a deterministic name based on the
+  // unit code and the first heading in the syllabus.
+  const handleSprintCreation = async (data) => {
     const newTask = { course: data.unitCode || 'Extracted', task: 'Mini Literature Review', level: data.level, rawText: data.rawText };
     setTasks(prev => [...prev, newTask]);
     setActiveTask(newTask);
@@ -138,6 +166,18 @@ export default function MasterDashboard() {
     });
     const generatedBlocks = mapToWorkspace(data.rawText || '', data.level || 'Tertiary');
     setBlocks(generatedBlocks);
+
+    if (data?.rawText && data.rawText.trim().length > 50) {
+      try {
+        const derivedName = await nameCourse(data.rawText);
+        if (derivedName && derivedName !== 'New Course') {
+          const id = addCourse(derivedName);
+          if (id) setActiveCourseId(id);
+        }
+      } catch (err) {
+        if (typeof console !== 'undefined') console.warn('[handleSprintCreation] nameCourse failed:', err.message);
+      }
+    }
   };
 
   const generatePremiumPDF = () => {
@@ -410,22 +450,42 @@ export default function MasterDashboard() {
                   <option key={id} value={id}>{c.name || '(unnamed)'}</option>
                 ))}
               </select>
+              {courseEditMode ? (
+                <div className="mt-2 flex gap-2">
+                  <input
+                    ref={courseEditInputRef}
+                    value={courseEditValue}
+                    onChange={(e) => setCourseEditValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { e.preventDefault(); commitCourseEdit(); }
+                      if (e.key === 'Escape') { e.preventDefault(); cancelCourseEdit(); }
+                    }}
+                    placeholder={courseEditMode === 'add' ? 'New course name' : 'Course name'}
+                    className="flex-1 bg-black/60 border border-emerald-500/40 rounded-lg px-3 py-2 text-xs font-bold text-white placeholder-zinc-600 focus:border-emerald-500 outline-none"
+                  />
+                  <button
+                    onClick={commitCourseEdit}
+                    className="text-[10px] font-black text-black bg-emerald-500 hover:bg-emerald-400 uppercase tracking-widest py-2 px-3 rounded-lg transition-all"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={cancelCourseEdit}
+                    className="text-[10px] font-black text-zinc-500 hover:text-white uppercase tracking-widest border border-zinc-800 hover:border-zinc-600 py-2 px-3 rounded-lg transition-all"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
               <div className="flex gap-2 mt-2">
                 <button
-                  onClick={() => {
-                    const name = window.prompt('Name this course:');
-                    if (name && name.trim()) addCourse(name.trim());
-                  }}
+                  onClick={() => { setCourseEditValue(''); setCourseEditMode('add'); }}
                   className="flex-1 text-[10px] font-black text-emerald-500 hover:text-black hover:bg-emerald-500 uppercase tracking-widest border border-emerald-500/30 hover:border-emerald-500 py-2 rounded-lg transition-all"
                 >
                   + Add Course
                 </button>
                 <button
-                  onClick={() => {
-                    const current = courses[activeCourseId];
-                    const next = window.prompt('Rename course:', current?.name || '');
-                    if (next && next.trim()) renameCourse(activeCourseId, next.trim());
-                  }}
+                  onClick={() => { setCourseEditValue(courses[activeCourseId]?.name || ''); setCourseEditMode('rename'); }}
                   className="text-[10px] font-black text-zinc-500 hover:text-white uppercase tracking-widest border border-zinc-800 hover:border-zinc-600 py-2 px-3 rounded-lg transition-all"
                   title="Rename active course"
                 >
@@ -441,6 +501,7 @@ export default function MasterDashboard() {
                   <Trash2 size={12} />
                 </button>
               </div>
+              )}
             </div>
 
             {!isBooting && (

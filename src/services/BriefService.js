@@ -172,18 +172,52 @@ export const extractDeepCourseData = (text) => {
   if (udlPrinciples.includes('action_expression')) udlSuggestions.push('viewAsSpeech', 'literalMode');
   if (udlPrinciples.includes('engagement')) udlSuggestions.push('zenMode', 'readingRuler');
 
-  // Build the Definition of Done checklist directly from extracted Learning
-  // Outcomes so a real PDF actually populates the cockpit's DoD column.
-  const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '').slice(0, 40) || 'lo';
-  const doneWhenChecklist = learningOutcomes.slice(0, 12).map((lo, i) => ({
-    id: `lo_${i}_${slugify(lo)}`,
-    text: lo,
+  // Extract Assessment Titles. The student cares about what is actually
+  // graded, not the abstract Learning Outcomes. We look for several
+  // syllabus patterns common across Australian universities:
+  //   "Assessment 1: Lab Report"      "Assessment Task 2 - Essay"
+  //   "Task 1: Reflective Journal"    "AT1 Critical Review"
+  //   Lines beginning with "Final Exam" or "Mid-semester Test"
+  // We capture the title (40 chars max) plus any percentage weighting that
+  // sits within the same logical line, so the DoD reads as
+  //   "Assessment 1: Lab Report (25%)"
+  const assessmentLineRegex = /(?:Assessment(?:\s+Task)?|Task|AT)\s*\d*\s*[:\-\u2014]?\s*([A-Z][A-Za-z0-9 '&/\-]{3,40}?)(?=[,;.\n]|\s+(?:due|weighting|worth|deadline|\(?\d{1,3}\s*%))/g;
+  const examLineRegex = /\b(Final Exam|Mid-?semester Exam|Mid-?term Exam|Final Assessment|Take-home Exam|Oral Presentation|Practical Exam|Lab Report|Reflective Journal|Literature Review|Annotated Bibliography|Portfolio|Research Proposal|Research Report|Critical Review|Essay)\b(?:[^\n]{0,80}?(\d{1,3})\s*%)?/gi;
+  const seen = new Set();
+  const assessmentTitles = [];
+  for (const m of text.matchAll(assessmentLineRegex)) {
+    const title = m[1].trim().replace(/\s+/g, ' ');
+    const weight = m[2] ? `${m[2]}%` : '';
+    const key = title.toLowerCase();
+    if (key.length < 4 || seen.has(key)) continue;
+    seen.add(key);
+    assessmentTitles.push(weight ? `${title} (${weight})` : title);
+  }
+  for (const m of text.matchAll(examLineRegex)) {
+    const title = m[1].replace(/\s+/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).replace(/-Semester/i, '-semester');
+    const weight = m[2] ? `${m[2]}%` : '';
+    const key = title.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    assessmentTitles.push(weight ? `${title} (${weight})` : title);
+  }
+
+  // Build the Definition of Done checklist. Prefer assessment titles so the
+  // student sees what they will be graded on; fall back to Learning Outcomes
+  // when the syllabus does not surface explicit assessments.
+  const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '').slice(0, 40) || 'item';
+  const doneSource = assessmentTitles.length > 0 ? assessmentTitles : learningOutcomes;
+  const doneSourceTag = assessmentTitles.length > 0 ? 'assess' : 'lo';
+  const doneWhenChecklist = doneSource.slice(0, 12).map((entry, i) => ({
+    id: `${doneSourceTag}_${i}_${slugify(entry)}`,
+    text: entry,
     checked: false,
-    triggerWord: lo.split(/\s+/).slice(0, 3).join(' ').toLowerCase()
+    triggerWord: entry.split(/\s+/).slice(0, 3).join(' ').toLowerCase()
   }));
 
   return {
     learningOutcomes,
+    assessmentTitles,
     referencingStyle,
     rubricCriteria,
     evidenceFormula,
@@ -221,6 +255,7 @@ export const mergeExtractionData = (prev, next) => {
     ...prev,
     ...next,
     learningOutcomes: dedupeStrings([...(prev.learningOutcomes || []), ...(next.learningOutcomes || [])]),
+    assessmentTitles: dedupeStrings([...(prev.assessmentTitles || []), ...(next.assessmentTitles || [])]),
     rubricCriteria: dedupeStrings([...(prev.rubricCriteria || []), ...(next.rubricCriteria || [])]),
     assessmentDates: dedupeStrings([...(prev.assessmentDates || []), ...(next.assessmentDates || [])]),
     udlRequirements: dedupeStrings([...(prev.udlRequirements || []), ...(next.udlRequirements || [])]),
