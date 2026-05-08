@@ -422,12 +422,15 @@ const ASSESSMENT_SYSTEM_PROMPT = [
   '',
   'CRITICAL CONTEXT: The input may be MULTIPLE documents concatenated together (Course Outline, Assessment Brief, Marking Rubric). You must look at ALL the text, not just the start. Course Outlines often list every assessment in a table or schedule; individual Assessment Briefs zoom in on one task. Combine the views: the canonical assessment list lives in the Course Outline. Your job is to surface EVERY graded assessment across all documents, not just the one that has the most prose.',
   '',
-  'OUTPUT FORMAT: A JSON array of objects. Each object has these keys:',
-  '  "title": short name of the assessment (3 to 60 chars, capital first letter)',
-  '  "weight": percentage as a string like "30%", or "" if no weighting is given',
-  '  "wordCountGoal": integer target word count (e.g. 1500), or 0 if not specified',
-  '  "dueDate": short due date string (e.g. "Friday Week 5", "12 May 2026"), or "" if not specified',
-  'Example:',
+  'OUTPUT FORMAT: A JSON array of objects. Each object MUST use these EXACT lowercase keys:',
+  '  "title"           (string, required, 3 to 60 chars, capital first letter)',
+  '  "weight"          (string like "30%", or "" if not specified)',
+  '  "wordCountGoal"   (integer like 1500, or 0 if not specified)',
+  '  "dueDate"         (string like "Friday Week 5", or "" if not specified)',
+  '',
+  'DO NOT use alternate keys like "id", "name", "weightage", "date", "type". The keys must be exactly title, weight, wordCountGoal, dueDate.',
+  '',
+  'Example output:',
   '  [{"title":"Literature Review","weight":"25%","wordCountGoal":2000,"dueDate":"Friday Week 5"},',
   '   {"title":"Test 1","weight":"30%","wordCountGoal":0,"dueDate":"Week 7"},',
   '   {"title":"Science Communication Project","weight":"25%","wordCountGoal":0,"dueDate":"Week 11"},',
@@ -542,26 +545,46 @@ const __callAssessmentExtractor = async (rawText) => {
     // Quality threshold: discard junk before it ever lands. Title must
     // start with a capital letter, run 4 to 60 chars, and not match
     // the noise words even if the LLM ignored the instruction.
+    //
+    // Field aliases. llama3.2 sometimes uses 'id' instead of 'title',
+    // 'weightage' instead of 'weight', 'date' instead of 'dueDate'.
+    // We accept all common variants so the model's stylistic choices
+    // do not silently drop the entire result. If you find a real
+    // syllabus where the model uses yet another key, add it to the
+    // appropriate fallback chain here.
     const NOISE_WORDS = /^(item|cation|p\s*\d+|figure|table|page|section|lecture|topic|content|outline|rubric|details|overview|description|length|information|notes|comments|criteria)$/i;
+    const pickTitle = (item) => String(
+      item.title ?? item.name ?? item.assessment ?? item.task ?? item.id ?? ''
+    ).trim().replace(/\s+/g, ' ');
+    const pickWeight = (item) => {
+      const raw = String(item.weight ?? item.weighting ?? item.weightage ?? item.percentage ?? item.percent ?? '').trim();
+      return raw && /\d/.test(raw) ? raw : '';
+    };
+    const pickWordCount = (item) => {
+      const raw = item.wordCountGoal ?? item.wordCount ?? item.words ?? item.length;
+      if (typeof raw === 'number' && raw > 0 && raw < 50000) return raw;
+      if (typeof raw === 'string' && /^\d+$/.test(raw.trim())) return parseInt(raw.trim(), 10);
+      return 0;
+    };
+    const pickDueDate = (item) => String(
+      item.dueDate ?? item.due ?? item.deadline ?? item.date ?? item.when ?? ''
+    ).trim().slice(0, 60);
+
     const seen = new Set();
     const briefs = [];
     let droppedNoLetter = 0, droppedShort = 0, droppedNoise = 0, droppedDup = 0;
     for (const item of parsed) {
       if (!item || typeof item !== 'object') continue;
-      const title = String(item.title || item.name || item.assessment || '').trim().replace(/\s+/g, ' ');
+      const title = pickTitle(item);
       if (title.length < 4 || title.length > 60) { droppedShort++; continue; }
       if (!/^[A-Z]/.test(title)) { droppedNoLetter++; continue; }
       if (NOISE_WORDS.test(title)) { droppedNoise++; continue; }
       const key = title.toLowerCase();
       if (seen.has(key)) { droppedDup++; continue; }
       seen.add(key);
-      const weightRaw = String(item.weight || item.weighting || '').trim();
-      const weight = weightRaw && /\d/.test(weightRaw) ? weightRaw : '';
-      const wcRaw = item.wordCountGoal !== undefined ? item.wordCountGoal : item.words;
-      const wordCountGoal = (typeof wcRaw === 'number' && wcRaw > 0 && wcRaw < 50000)
-        ? wcRaw
-        : (typeof wcRaw === 'string' && /^\d+$/.test(wcRaw.trim())) ? parseInt(wcRaw.trim(), 10) : 0;
-      const dueDate = String(item.dueDate || item.due || item.deadline || '').trim().slice(0, 60);
+      const weight = pickWeight(item);
+      const wordCountGoal = pickWordCount(item);
+      const dueDate = pickDueDate(item);
       briefs.push({ title, weight, wordCountGoal, dueDate });
     }
     if (typeof console !== 'undefined') {
