@@ -183,6 +183,14 @@ export const extractDeepCourseData = (text) => {
   //   "Assessment 1: Lab Report (25%)"
   const assessmentLineRegex = /(?:Assessment(?:\s+Task)?|Task|AT)\s*\d*\s*[:\-\u2014]?\s*([A-Z][A-Za-z0-9 '&/\-]{3,40}?)(?=[,;.\n]|\s+(?:due|weighting|worth|deadline|\(?\d{1,3}\s*%))/g;
   const examLineRegex = /\b(Final Exam|Mid-?semester Exam|Mid-?term Exam|Final Assessment|Take-home Exam|Oral Presentation|Practical Exam|Lab Report|Reflective Journal|Literature Review|Annotated Bibliography|Portfolio|Research Proposal|Research Report|Critical Review|Essay)\b(?:[^\n]{0,80}?(\d{1,3})\s*%)?/gi;
+  // Navigation copy filter. The assessment regex sometimes catches the
+  // sentence that follows an Assessment heading rather than the heading
+  // itself ('Assessment 1: Hub on Moodle for more details'). Reject any
+  // title that contains LMS navigation tokens; the next regex match
+  // surfaces the real assessment name.
+  const NAV_NOISE = /\b(moodle|canvas|blackboard|hub|portal|click(?: here)?|see (?:the|your|moodle|canvas)|more details|further information|via the link|the link below|see\s*\w*\s*for|url)\b/i;
+  const isAssessmentNoise = (title) => NAV_NOISE.test(title);
+
   const seen = new Set();
   const assessmentTitles = [];
   for (const m of text.matchAll(assessmentLineRegex)) {
@@ -190,6 +198,7 @@ export const extractDeepCourseData = (text) => {
     const weight = m[2] ? `${m[2]}%` : '';
     const key = title.toLowerCase();
     if (key.length < 4 || seen.has(key)) continue;
+    if (isAssessmentNoise(title)) continue;
     seen.add(key);
     assessmentTitles.push(weight ? `${title} (${weight})` : title);
   }
@@ -198,6 +207,7 @@ export const extractDeepCourseData = (text) => {
     const weight = m[2] ? `${m[2]}%` : '';
     const key = title.toLowerCase();
     if (seen.has(key)) continue;
+    if (isAssessmentNoise(title)) continue;
     seen.add(key);
     assessmentTitles.push(weight ? `${title} (${weight})` : title);
   }

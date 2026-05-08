@@ -6,6 +6,7 @@ import { useInstitution } from './InstitutionalContext';
 import TaskCard from './TaskCard';
 import AccessibilityVault from './AccessibilityVault';
 import ConfirmDialog from './ConfirmDialog';
+import AskAura from './AskAura';
 import { StartIgnition, IdentityGate, TemporalBaseline, CourseDefinition, Grounding } from './UniversalOnboarding';
 import LinearCanvas from './LinearCanvas';
 import MathsStepEditor from './MathsStepEditor';
@@ -478,6 +479,7 @@ export default function MasterDashboard() {
           </div>
         </div>
       )}
+      {currentStage === 5 && !isZenMode && <AskAura />}
       <ConfirmDialog
         open={!!pendingDeleteCourseId}
         title="Delete Course"
