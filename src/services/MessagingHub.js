@@ -51,6 +51,7 @@ const __speechQueue = [];
 const __preInteractionBuffer = [];
 let __speechSpeaking = false;
 let __userHasInteracted = false;
+let __loggedVoice = false;
 
 export const markSpeechUnlocked = () => {
   if (__userHasInteracted) return;
@@ -132,7 +133,17 @@ export const speakSystemMessage = (text, onEndOrSubtitle, rate = 1.05, pitch = 0
 
   const utterance = new SpeechSynthesisUtterance(text);
   const preferred = __pickVoice();
-  if (preferred) utterance.voice = preferred;
+  if (preferred) {
+    utterance.voice = preferred;
+    if (!__loggedVoice) {
+      __loggedVoice = true;
+      if (typeof console !== 'undefined') console.info('[Speech] using voice:', preferred.name, '(', preferred.lang, ')');
+    }
+  } else if (!__loggedVoice && typeof console !== 'undefined') {
+    const total = window.speechSynthesis.getVoices().length;
+    console.warn('[Speech] no English voice available. Total voices loaded:', total, '. macOS users: System Settings > Accessibility > Spoken Content > System Voice.');
+    __loggedVoice = true;
+  }
   utterance.rate = rate;
   utterance.pitch = pitch;
 

@@ -442,9 +442,19 @@ const ASSESSMENT_SYSTEM_PROMPT = [
 // of normalised brief objects. Used by both the legacy
 // extractAssessmentsWithOllama (string list) and the richer
 // extractAssessmentBriefs (full objects).
+//
+// Logs every early exit so a silent zero is diagnosable. Set
+// localStorage.simplifii_extract_debug = 'true' to also dump the raw
+// model output to console.
 const __callAssessmentExtractor = async (rawText) => {
-  if (!rawText || rawText.trim().length < 200) return [];
-  if (getProviderName() !== 'ollama') return [];
+  if (!rawText || rawText.trim().length < 200) {
+    if (typeof console !== 'undefined') console.info('[RewriteService] extractor skipped: rawText too short');
+    return [];
+  }
+  if (getProviderName() !== 'ollama') {
+    if (typeof console !== 'undefined') console.info('[RewriteService] extractor skipped: provider is', getProviderName());
+    return [];
+  }
   try {
     const endpoint = getOllamaEndpoint().replace(/\/$/, '');
     const model = getOllamaModel();
@@ -466,9 +476,18 @@ const __callAssessmentExtractor = async (rawText) => {
       signal: controller.signal
     });
     clearTimeout(timer);
-    if (!response.ok) return [];
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      if (typeof console !== 'undefined') console.warn('[RewriteService] extractor HTTP', response.status, body.slice(0, 160));
+      return [];
+    }
     const data = await response.json().catch(() => ({}));
     const raw = data?.message?.content || '';
+    const debug = (() => {
+      try { return localStorage.getItem('simplifii_extract_debug') === 'true'; } catch { return false; }
+    })();
+    if (debug && typeof console !== 'undefined') console.info('[RewriteService] raw model output:', raw);
+
     let parsed = null;
     try { parsed = JSON.parse(raw); } catch { /* try fallbacks */ }
     if (!parsed) {
@@ -479,10 +498,21 @@ const __callAssessmentExtractor = async (rawText) => {
       const arrayMatch = raw.match(/\[[\s\S]*\]/);
       if (arrayMatch) { try { parsed = JSON.parse(arrayMatch[0]); } catch { /* give up */ } }
     }
-    if (!Array.isArray(parsed)) return [];
 
-    // Some models wrap the array under a key like {assessments: [...]}.
-    if (parsed.length === 0 && typeof parsed === 'object') return [];
+    // Some models wrap the array under a key. Look for the first array
+    // value on the parsed object before declaring failure.
+    if (parsed && !Array.isArray(parsed) && typeof parsed === 'object') {
+      const arrayKey = Object.keys(parsed).find(k => Array.isArray(parsed[k]));
+      if (arrayKey) {
+        if (typeof console !== 'undefined') console.info('[RewriteService] unwrapping object key', arrayKey);
+        parsed = parsed[arrayKey];
+      }
+    }
+
+    if (!Array.isArray(parsed)) {
+      if (typeof console !== 'undefined') console.warn('[RewriteService] extractor: model returned non-array. Raw head:', String(raw).slice(0, 200));
+      return [];
+    }
 
     // Quality threshold: discard junk before it ever lands. Title must
     // start with a capital letter, run 4 to 60 chars, and not match
@@ -490,30 +520,31 @@ const __callAssessmentExtractor = async (rawText) => {
     const NOISE_WORDS = /^(item|cation|p\s*\d+|figure|table|page|section|lecture|topic|content|outline|rubric|details|overview|description|length|information|notes|comments|criteria)$/i;
     const seen = new Set();
     const briefs = [];
+    let droppedNoLetter = 0, droppedShort = 0, droppedNoise = 0, droppedDup = 0;
     for (const item of parsed) {
       if (!item || typeof item !== 'object') continue;
-      const title = String(item.title || '').trim().replace(/\s+/g, ' ');
-      if (title.length < 4 || title.length > 60) continue;
-      if (!/^[A-Z]/.test(title)) continue;
-      if (NOISE_WORDS.test(title)) continue;
+      const title = String(item.title || item.name || item.assessment || '').trim().replace(/\s+/g, ' ');
+      if (title.length < 4 || title.length > 60) { droppedShort++; continue; }
+      if (!/^[A-Z]/.test(title)) { droppedNoLetter++; continue; }
+      if (NOISE_WORDS.test(title)) { droppedNoise++; continue; }
       const key = title.toLowerCase();
-      if (seen.has(key)) continue;
+      if (seen.has(key)) { droppedDup++; continue; }
       seen.add(key);
-      const weightRaw = String(item.weight || '').trim();
+      const weightRaw = String(item.weight || item.weighting || '').trim();
       const weight = weightRaw && /\d/.test(weightRaw) ? weightRaw : '';
-      const wcRaw = item.wordCountGoal;
+      const wcRaw = item.wordCountGoal !== undefined ? item.wordCountGoal : item.words;
       const wordCountGoal = (typeof wcRaw === 'number' && wcRaw > 0 && wcRaw < 50000)
         ? wcRaw
         : (typeof wcRaw === 'string' && /^\d+$/.test(wcRaw.trim())) ? parseInt(wcRaw.trim(), 10) : 0;
-      const dueDate = String(item.dueDate || '').trim().slice(0, 60);
+      const dueDate = String(item.dueDate || item.due || item.deadline || '').trim().slice(0, 60);
       briefs.push({ title, weight, wordCountGoal, dueDate });
     }
     if (typeof console !== 'undefined') {
-      console.info('[RewriteService] Ollama extracted', briefs.length, 'assessment briefs');
+      console.info('[RewriteService] Ollama extracted', briefs.length, 'assessment briefs (dropped:', { short: droppedShort, noLetter: droppedNoLetter, noise: droppedNoise, dup: droppedDup }, ')');
     }
     return briefs.slice(0, 12);
   } catch (err) {
-    if (typeof console !== 'undefined') console.warn('[RewriteService] assessment extraction failed:', err.message);
+    if (typeof console !== 'undefined') console.warn('[RewriteService] assessment extraction failed:', err?.name, err?.message);
     return [];
   }
 };

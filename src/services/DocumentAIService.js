@@ -143,7 +143,15 @@ export class PdfExtractionError extends Error {
 }
 
 export const processDocumentWithGCP = async (fileBlob, authToken) => {
-  const liveToken = localStorage.getItem('gcp_access_token') || authToken;
+  const stored = (() => {
+    try { return localStorage.getItem('gcp_access_token'); } catch { return null; }
+  })();
+  // Reject obvious mock tokens. The legacy onboarding code passes
+  // 'mock_jwt_token_xyz123' as authToken, which used to drive every
+  // upload through GCP and produce three 401 round-trips per file.
+  // We only try GCP when localStorage has a non-empty real token.
+  const isMock = (t) => !t || /^mock[_-]/i.test(t) || t.length < 20;
+  const liveToken = !isMock(stored) ? stored : (!isMock(authToken) ? authToken : null);
 
   // Tier 1: GCP Document AI when authenticated.
   if (liveToken) {
