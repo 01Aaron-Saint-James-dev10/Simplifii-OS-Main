@@ -125,6 +125,161 @@ const wordCount = (s) => {
 };
 
 // ============================================================
+// Section Health (v3): content-aware grading. Returns
+// { level: 0-5, label: 'Empty' | 'Sparse' | 'Developing' | 'Building' | 'Rigorous',
+//   state: 'empty' | 'developing' | 'moderate' | 'strong',
+//   completion: 0-100 }
+//
+// Blends two signals:
+//   completion: how close the draft is to the target word count (55%)
+//   density:    citation patterns (Author, 2024), hedging language
+//               ('however', 'although', 'contend'), academic markers
+//               ('synthesis', 'methodology', 'evidence') (45%)
+// So an empty block reads Empty, a long but unsourced block reads
+// Sparse, a tight cited block reads Rigorous.
+// ============================================================
+
+const sectionHealth = (text, target) => {
+  const w = wordCount(text);
+  if (w === 0) return { level: 0, label: 'Empty', state: 'empty', completion: 0 };
+  const cites = (text.match(/\([A-Z][a-z]+(?:\s*(?:&|et al\.?|,)\s*[A-Z]?[a-z]*)*,?\s*\d{4}/g) || []).length
+    + (text.match(/p\.\s?\d+/g) || []).length;
+  const hedges = (text.match(/\b(however|whereas|although|nevertheless|conversely|in contrast|by contrast|disagree|contested|contend|argues?|claims?)\b/gi) || []).length;
+  const academic = (text.match(/\b(synthesis|methodology|empirical|hypothesis|literature|peer-reviewed|primary studies|review|evidence|tolerance|cascade|signalling|adaptive)\b/gi) || []).length;
+  const completion = Math.min(1, w / Math.max(1, target));
+  const density = (cites * 3 + hedges * 1.5 + academic) / Math.max(40, w);
+  const blended = Math.min(1, completion * 0.55 + Math.min(1, density * 6) * 0.45);
+  const level = Math.max(1, Math.round(blended * 5));
+  let label = 'Sparse';
+  let state = 'empty';
+  if (blended >= 0.78) { label = 'Rigorous'; state = 'strong'; }
+  else if (blended >= 0.55) { label = 'Building'; state = 'moderate'; }
+  else if (blended >= 0.25) { label = 'Developing'; state = 'developing'; }
+  return { level, label, state, completion: Math.round(completion * 100) };
+};
+
+// ============================================================
+// Mastery Flow (v3): top-of-cockpit pedagogical sequence
+// Introduce -> Drill -> Recognise -> Simulate
+// ============================================================
+
+const MASTERY_STAGES = [
+  { id: 'introduce', name: 'Introduce', desc: 'Frame the topic' },
+  { id: 'drill', name: 'Drill', desc: 'Repeat the moves' },
+  { id: 'recognise', name: 'Recognise', desc: 'Spot patterns in the wild' },
+  { id: 'simulate', name: 'Simulate', desc: 'Perform under load' }
+];
+
+function MasteryBar({ activeId }) {
+  const idx = MASTERY_STAGES.findIndex((s) => s.id === activeId);
+  return (
+    <div className="mastery">
+      <span className="mastery-label">MASTERY FLOW</span>
+      <div className="mastery-flow">
+        {MASTERY_STAGES.map((s, i) => {
+          const state = i < idx ? 'done' : i === idx ? 'active' : 'next';
+          return (
+            <div className="mastery-stage" key={s.id} data-state={state}>
+              <span className="mastery-glyph" />
+              <span className="mastery-num">0{i + 1}</span>
+              <span className="mastery-name">{s.name}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Neural Visualiser (v3): collapsible concept-map under editor
+// Per-pillar dataset with x/y nodes and connecting lines.
+// ============================================================
+
+const VISUALISER_NODES = {
+  'lit-review': {
+    title: 'Cell Surface Receptor Cascade',
+    sub: 'BABS1201 reference structure',
+    nodes: [
+      { id: 1, x: 22, y: 38, name: 'Toll-like receptor (TLR4)', desc: 'Pattern recognition. Triggers the MyD88 dependent path on LPS binding.' },
+      { id: 2, x: 48, y: 28, name: 'Adaptor protein (MyD88)', desc: 'Routes the signal toward NF-kB and the cytokine response.' },
+      { id: 3, x: 70, y: 52, name: 'NF-kB nuclear shuttle', desc: 'Drives transcription of the inflammatory cytokine programme.' },
+      { id: 4, x: 38, y: 72, name: 'Crosstalk node (microbiome)', desc: 'Where the literature contests whether commensals trigger or modulate.' }
+    ]
+  }
+};
+
+function NeuralVisualiser({ pillarId }) {
+  const dataset = VISUALISER_NODES[pillarId] || VISUALISER_NODES['lit-review'];
+  const [active, setActive] = useState(dataset.nodes[0].id);
+  const [collapsed, setCollapsed] = useState(true);
+  return (
+    <div className="visualiser" data-collapsed={collapsed}>
+      <div className="visualiser-head">
+        <div className="visualiser-title">
+          <span className="pip" />
+          <span>NEURAL VISUALISER  ·  {dataset.title}</span>
+        </div>
+        <div className="visualiser-actions">
+          {!collapsed && <button className="btn-pill">Cite this</button>}
+          {!collapsed && <button className="btn-pill">Drop into draft</button>}
+          <button className="visualiser-toggle" onClick={() => setCollapsed((c) => !c)}>
+            {collapsed ? 'Expand v' : 'Collapse ^'}
+          </button>
+        </div>
+      </div>
+      <div className="visualiser-grid">
+        <div className="visualiser-stage">
+          <svg className="visualiser-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="ln" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#50C878" stopOpacity="0.6" />
+                <stop offset="100%" stopColor="#50C878" stopOpacity="0.05" />
+              </linearGradient>
+            </defs>
+            {dataset.nodes.slice(0, -1).map((n, i) => {
+              const m = dataset.nodes[i + 1];
+              return (
+                <line key={i} x1={n.x} y1={n.y} x2={m.x} y2={m.y} stroke="url(#ln)" strokeWidth="0.4" strokeDasharray="0.8 0.8" />
+              );
+            })}
+            {dataset.nodes.map((n) => (
+              <circle key={n.id} cx={n.x} cy={n.y} r={active === n.id ? 1.6 : 0.9} fill="#50C878" opacity={active === n.id ? 1 : 0.4} />
+            ))}
+          </svg>
+          <div className="visualiser-hotspots">
+            {dataset.nodes.map((n) => (
+              <button key={n.id} className="hotspot" data-active={active === n.id} style={{ left: `calc(${n.x}% - 7px)`, top: `calc(${n.y}% - 7px)` }} onClick={() => setActive(n.id)} />
+            ))}
+          </div>
+        </div>
+        <div className="visualiser-legend">
+          {dataset.nodes.map((n) => (
+            <div className="legend-row" key={n.id} data-active={active === n.id}>
+              <span className="legend-num">{n.id}</span>
+              <div className="legend-text">
+                <div className="legend-name">{n.name}</div>
+                <div className="legend-desc">{n.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Source clustering (v3): group docs into Methodology / Evidence / Rubrics
+// ============================================================
+
+const SOURCE_CLUSTERS = [
+  { id: 'methodology', theme: 'methodology', name: 'Methodology', filter: (d) => d.cluster === 'methodology' || d.tag === 'MASTER SOURCE' },
+  { id: 'evidence', theme: 'evidence', name: 'Evidence', filter: (d) => d.cluster === 'evidence' || d.tag === 'ACTIVE SPRINT' || d.tag === 'PRIMARY' },
+  { id: 'rubric', theme: 'rubric', name: 'Rubrics', filter: (d) => d.cluster === 'rubric' || d.tag === 'REFERENCED' }
+];
+
+// ============================================================
 // Nav Rail
 // ============================================================
 
@@ -149,12 +304,13 @@ function NavRail({ onExit }) {
 
 function SourcesPanel({ docs, pillars, activePillar, activeDoc, onPickPillar, onPickDoc, onAddSource, courses, activeCourseId, onPickCourse }) {
   const courseEntries = Object.entries(courses || {});
+  const courseLabel = (courses?.[activeCourseId]?.name || 'COURSE').toUpperCase().slice(0, 24);
   return (
     <div className="col" id="sources-col">
       <div className="col-head">
         <div className="col-head-title">
           <span className="dot" />
-          <span>Source Documents</span>
+          <span>Grounding Drive</span>
         </div>
         <button className="rail-btn" title="Add source" onClick={onAddSource}><Ico.Plus /></button>
       </div>
@@ -190,37 +346,72 @@ function SourcesPanel({ docs, pillars, activePillar, activeDoc, onPickPillar, on
           </>
         )}
 
-        <div className="sources-section-label">Course Grounding</div>
+        <div className="source-map">
+          <div className="source-map-label">SOURCE MAP  ·  {courseLabel}</div>
+          <svg className="source-map-svg" viewBox="0 0 100 60" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="smln" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#50C878" stopOpacity="0.6" />
+                <stop offset="100%" stopColor="#50C878" stopOpacity="0.05" />
+              </linearGradient>
+            </defs>
+            <line x1="50" y1="14" x2="22" y2="42" stroke="url(#smln)" strokeWidth="0.4" />
+            <line x1="50" y1="14" x2="78" y2="42" stroke="url(#smln)" strokeWidth="0.4" />
+            <line x1="50" y1="14" x2="50" y2="46" stroke="url(#smln)" strokeWidth="0.4" />
+            <circle cx="50" cy="14" r="2.4" fill="#50C878" />
+            <circle cx="22" cy="42" r="1.7" fill="#50C878" opacity="0.7" />
+            <circle cx="78" cy="42" r="1.7" fill="#C9A24A" opacity="0.7" />
+            <circle cx="50" cy="46" r="1.7" fill="#6BA9E0" opacity="0.7" />
+          </svg>
+          <div className="source-map-legend">
+            <span><i style={{ background: 'var(--emerald)' }} /> METHOD</span>
+            <span><i style={{ background: '#6BA9E0' }} /> EVIDENCE</span>
+            <span><i style={{ background: '#C9A24A' }} /> RUBRIC</span>
+          </div>
+        </div>
 
         {docs.length === 0 ? (
           <div style={{ padding: '14px 18px', fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-mute)', lineHeight: 1.6 }}>
             No syllabus uploaded yet. Click + to drop the Course Outline, Brief, and Rubric.
           </div>
-        ) : docs.map((d) => (
-          <button
-            key={d.id}
-            className="source-card"
-            data-active={d.id === activeDoc}
-            onClick={() => onPickDoc(d.id)}
-          >
-            <div className="source-row">
-              <div className="source-icon">{d.abbr}</div>
-              <div className="source-meta">
-                <div className="source-name">{d.name}</div>
-                <div className="source-tags">
-                  <span className={`tag ${d.tagClass || ''}`}>{d.tag}</span>
-                </div>
-                <div className="source-sub">
-                  <span>{d.pages || '-'} pp</span>
-                  <span>·</span>
-                  <span>{d.annotations || 0} notes</span>
-                  <span>·</span>
-                  <span>{d.opened || 'just now'}</span>
-                </div>
+        ) : SOURCE_CLUSTERS.map((c) => {
+          const items = docs.filter(c.filter);
+          if (items.length === 0) return null;
+          return (
+            <div className="source-cluster" key={c.id}>
+              <div className="cluster-head" data-theme={c.theme}>
+                <span className="cluster-glyph" />
+                <span className="cluster-name">{c.name}</span>
+                <span className="cluster-count">{items.length}</span>
               </div>
+              {items.map((d) => (
+                <button
+                  key={d.id}
+                  className="source-card"
+                  data-active={d.id === activeDoc}
+                  onClick={() => onPickDoc(d.id)}
+                >
+                  <div className="source-row">
+                    <div className="source-icon">{d.abbr}</div>
+                    <div className="source-meta">
+                      <div className="source-name">{d.name}</div>
+                      <div className="source-tags">
+                        <span className={`tag ${d.tagClass || ''}`}>{d.tag}</span>
+                      </div>
+                      <div className="source-sub">
+                        <span>{d.pages || '-'} pp</span>
+                        <span>·</span>
+                        <span>{d.annotations || 0} notes</span>
+                        <span>·</span>
+                        <span>{d.opened || 'just now'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              ))}
             </div>
-          </button>
-        ))}
+          );
+        })}
 
         <div className="divider-soft" />
 
@@ -294,11 +485,13 @@ function BlocksBar({ blocks, drafts, activeId, onPick }) {
   return (
     <div className="blocks">
       {blocks.map((b, i) => {
-        const w = wordCount(drafts[b.id] || '');
+        const text = drafts[b.id] || '';
+        const w = wordCount(text);
         const target = Math.max(1, b.target);
         const pct = Math.min(100, Math.round((w / target) * 100));
         const num = String(i + 1).padStart(2, '0');
         const isComplete = pct >= 100;
+        const health = sectionHealth(text, b.target);
         return (
           <button
             key={b.id}
@@ -307,6 +500,7 @@ function BlocksBar({ blocks, drafts, activeId, onPick }) {
             data-fill={pct > 0 ? 'true' : undefined}
             data-fill-pct={pct}
             data-complete={isComplete}
+            data-health={health.state}
             style={{ '--block-fill': (pct / 100).toFixed(2) }}
             onClick={() => onPick(b.id)}
           >
@@ -325,6 +519,12 @@ function BlocksBar({ blocks, drafts, activeId, onPick }) {
             <div className="block-words">
               {w.toLocaleString()} / {b.target.toLocaleString()} words
               {isComplete ? '   ·   COMPLETE' : ''}
+            </div>
+            <div className="block-health">
+              <span className="health-dots" data-level={health.level}>
+                <i /><i /><i /><i /><i />
+              </span>
+              <span className="health-label">SECTION HEALTH · {health.label.toUpperCase()}</span>
             </div>
           </button>
         );
@@ -386,9 +586,20 @@ function Cockpit({ pillar, pillars, drafts, setDraft, activeBlockId, setActiveBl
 
   const activeBlock = pillar.blocks.find((b) => b.id === activeBlockId) || pillar.blocks[0];
 
+  // Mastery stage derived from total progress: 0% -> introduce, <33% -> drill,
+  // <66% -> recognise, else simulate. Maps the pedagogical loop to the
+  // student's actual draft state so the bar doesn't lie.
+  const totalForStage = pillar.blocks.reduce((sum, b) => sum + wordCount(drafts[b.id] || ''), 0);
+  const stagePct = pillar.wordTarget > 0 ? totalForStage / pillar.wordTarget : 0;
+  let masteryActive = 'introduce';
+  if (stagePct >= 0.66) masteryActive = 'simulate';
+  else if (stagePct >= 0.33) masteryActive = 'recognise';
+  else if (stagePct > 0) masteryActive = 'drill';
+
   return (
     <div className="col cockpit">
       <Roadmap pillars={pillars} activeId={pillar.id} onPick={onPickPillar} />
+      <MasteryBar activeId={masteryActive} />
 
       <div className="cockpit-context swap-in" key={pillar.id}>
         <div>
@@ -467,6 +678,8 @@ function Cockpit({ pillar, pillars, drafts, setDraft, activeBlockId, setActiveBl
           ))}
         </div>
       </div>
+
+      <NeuralVisualiser pillarId={pillar.id} />
 
       <CockpitFooter words={totalWords} />
     </div>
