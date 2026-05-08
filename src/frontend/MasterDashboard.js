@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Brain, RefreshCw, Sparkles, CheckCircle2, Layout, FileText, Download, Target, AlertTriangle, Shield, ChevronDown } from 'lucide-react';
+import { Brain, RefreshCw, Sparkles, CheckCircle2, Layout, FileText, Download, Target, AlertTriangle, Shield, ChevronDown, Eye } from 'lucide-react';
 import { useSettings } from './SettingsContext';
 import { useProject } from './ProjectContext';
 import { useInstitution } from './InstitutionalContext';
