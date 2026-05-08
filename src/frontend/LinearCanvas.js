@@ -270,10 +270,9 @@ export default function LinearCanvas({
   // re-render.
   useEffect(() => {
     const incoming = extractionData?.doneWhenChecklist;
-    if (Array.isArray(incoming) && incoming.length > 0 && incoming.length > checklist.length) {
-      setChecklist(incoming);
+    if (Array.isArray(incoming) && incoming.length > 0) {
+      setChecklist(prev => incoming.length > prev.length ? incoming : prev);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [extractionData]);
   const [hoveredBlockId, setHoveredBlockId] = useState(null);
   const [ghostAssets, setGhostAssets] = useState({});
