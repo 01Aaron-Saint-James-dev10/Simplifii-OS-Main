@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Save, AlertCircle, FileText, CheckCircle2, GripVertical, Network, Activity, CheckCircle, Circle, Type, Mic, Edit3, MessageSquare, Zap, Clock, BookOpen, ArrowRight, Wand2, Target, Flag, ChevronLeft, ChevronRight, BrainCircuit, Volume2, LifeBuoy, Shield, Maximize2, Minimize2, Eye, HardDrive, Code } from 'lucide-react';
 import { speakSystemMessage } from '../services/MessagingHub';
+import { getPersonaResponse } from '../services/PersonaEngine';
 import { saveBlockSnapshot, getBlockHistory } from '../services/IndexedDBService';
 import ZenTools from './ZenTools';
 import SupportBridge from './SupportBridge';
@@ -211,7 +212,7 @@ const DEFAULT_LINEAR_SECTIONS = [
   { id: 'conclusion', title: 'Conclusion', content: '', neuralTemplate: '' }
 ];
 
-const linearStorageKey = (profile) => `simplifii_linear_canvas_${profile?.courseName || 'default'}`;
+const linearStorageKey = (courseId) => `simplifii_linear_canvas_${courseId || 'default'}`;
 
 // Best-effort partial recovery: keep what parses cleanly, drop malformed sections.
 function recoverSections(raw) {
@@ -231,22 +232,22 @@ function recoverSections(raw) {
 }
 
 export default function LinearCanvas({
-  extractionData, profile, onAddGhostAsset,
+  extractionData, profile, courseId, onAddGhostAsset,
   isZenMode, setIsZenMode, isLeftCollapsed, setIsLeftCollapsed, isRightCollapsed, setIsRightCollapsed
 }) {
   const [sections, setSections] = useState(() => {
-    try { return recoverSections(localStorage.getItem(linearStorageKey(profile))); }
+    try { return recoverSections(localStorage.getItem(linearStorageKey(courseId))); }
     catch { return DEFAULT_LINEAR_SECTIONS; }
   });
 
   useEffect(() => {
-    const key = linearStorageKey(profile);
+    const key = linearStorageKey(courseId);
     const t = setTimeout(() => {
       try { localStorage.setItem(key, JSON.stringify(sections)); }
       catch { /* quota exceeded or storage unavailable */ }
     }, 500);
     return () => clearTimeout(t);
-  }, [sections, profile?.courseName]);
+  }, [sections, courseId]);
   const [activeSectionId, setActiveSectionId] = useState('intro');
   const [bloomedSectionId, setBloomedSectionId] = useState(null);
   const [activeLogicMode, setActiveLogicMode] = useState(null);
@@ -270,7 +271,7 @@ export default function LinearCanvas({
   const [showSupportBridge, setShowSupportBridge] = useState(false);
   const [showAccessibilityVault, setShowAccessibilityVault] = useState(false);
   const [showSosPulse, setShowSosPulse] = useState(false);
-  const { fontScale, lineSpacing, isBionicActive, bionicIntensity, isDriveAttached } = useSettings();
+  const { fontScale, lineSpacing, isBionicActive, bionicIntensity, isDriveAttached, persona } = useSettings();
   const [showDevInsights, setShowDevInsights] = useState(false);
 
   const [showSuccessPulse, setShowSuccessPulse] = useState(false);
@@ -428,19 +429,42 @@ export default function LinearCanvas({
     speakSystemMessage("Mirror draft generated in your Ghost Layer. Review the reflection question.", "Precision Scaffolding active.");
   };
 
-  // Deterministic preview transforms. These are baseline edits that show the
-  // tool intent until a real LLM rewrite path lands. The avatar speech makes
-  // the action audible; the section content visibly changes so the student
-  // sees the click did something.
+  // Academic Augmentation preview transforms.
+  // Text mutation is deterministic local (academic synonym swap + framing)
+  // until a real LLM rewrite ships. Avatar feedback routes through
+  // PersonaEngine.getPersonaResponse so the message is persona-styled.
+  const ACADEMIC_SYNONYMS = {
+    'a lot of': 'a substantial body of',
+    'really': 'particularly',
+    'big': 'significant',
+    'shows': 'demonstrates',
+    'gets': 'obtains',
+    'uses': 'employs',
+    'helps': 'facilitates',
+    'looks at': 'examines',
+    'finds': 'identifies',
+    'thinks': 'argues',
+    'so': 'therefore',
+    'also': 'furthermore',
+    'but': 'however'
+  };
+  const swapAcademicSynonyms = (text) =>
+    Object.entries(ACADEMIC_SYNONYMS).reduce(
+      (acc, [from, to]) => acc.replace(new RegExp(`\\b${from}\\b`, 'gi'), to),
+      text
+    );
+
   const handleElevateRigour = (section) => {
     const trimmed = (section.content || '').trim();
     if (!trimmed) {
       speakSystemMessage("Write something first, then I can elevate the rigour.", "No content yet.");
       return;
     }
-    const elevated = `Drawing on the peer-reviewed literature, ${trimmed.charAt(0).toLowerCase()}${trimmed.slice(1)}`;
+    const swapped = swapAcademicSynonyms(trimmed);
+    const elevated = `Drawing on the peer-reviewed literature, ${swapped.charAt(0).toLowerCase()}${swapped.slice(1)}`;
     handleContentChange(section.id, elevated);
-    speakSystemMessage("Tone elevated to academic register. Review the opening clause.", "Rigour preview applied.");
+    const personaMsg = getPersonaResponse(persona, 'elevate_rigour');
+    speakSystemMessage(personaMsg, "Rigour preview applied.");
   };
 
   const handleSynthesise = (section) => {
@@ -451,12 +475,14 @@ export default function LinearCanvas({
     }
     const synthesised = `Synthesising the evidence reviewed above: ${trimmed}`;
     handleContentChange(section.id, synthesised);
-    speakSystemMessage("Synthesis frame applied. Tighten the argument by removing repeated claims.", "Synthesis preview applied.");
+    const personaMsg = getPersonaResponse(persona, 'synthesise');
+    speakSystemMessage(personaMsg, "Synthesis preview applied.");
   };
 
   const handleLogicBlockClick = (inst) => {
     setActiveLogicMode(inst.id);
-    speakSystemMessage(`Logic mode set to ${inst.label}. Future drafts in the active section will be primed for this mode.`, `${inst.label} mode active.`);
+    const personaMsg = getPersonaResponse(persona, 'logic_mode');
+    speakSystemMessage(`${personaMsg} ${inst.label} focus active.`, `${inst.label} mode active.`);
   };
 
   const renderDensityScanner = (content) => {

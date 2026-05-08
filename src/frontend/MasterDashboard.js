@@ -33,7 +33,8 @@ export default function MasterDashboard() {
     profile, setProfile,
     tasks, setTasks,
     extractionData, setExtractionData,
-    activeTask, setActiveTask
+    activeTask, setActiveTask,
+    courses, activeCourseId, setActiveCourseId, addCourse, renameCourse
   } = useProject();
   const { setInstitutionalData } = useInstitution();
 
@@ -200,10 +201,12 @@ export default function MasterDashboard() {
             {isMaths ? (
               <MathsStepEditor extractionData={extractionData} profile={profile} />
             ) : (
-              <LinearCanvas 
-                extractionData={extractionData} 
-                profile={profile} 
-                onAddGhostAsset={handleAddGhostAsset} 
+              <LinearCanvas
+                key={activeCourseId}
+                extractionData={extractionData}
+                profile={profile}
+                courseId={activeCourseId}
+                onAddGhostAsset={handleAddGhostAsset}
                 isZenMode={isZenMode}
                 setIsZenMode={setIsZenMode}
                 isLeftCollapsed={isLeftCollapsed}
@@ -353,6 +356,42 @@ export default function MasterDashboard() {
         
         {!isLeftCollapsed && (
           <>
+            {/* Course Switcher: pick the active course; data scopes follow. */}
+            <div className="mb-6">
+              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 px-2">Active Course</p>
+              <select
+                value={activeCourseId}
+                onChange={(e) => setActiveCourseId(e.target.value)}
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs font-bold text-white focus:border-emerald-500 outline-none cursor-pointer"
+              >
+                {Object.entries(courses).map(([id, c]) => (
+                  <option key={id} value={id}>{c.name || '(unnamed)'}</option>
+                ))}
+              </select>
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => {
+                    const name = window.prompt('Name this course (e.g. BABS1201, MRes Research):');
+                    if (name && name.trim()) addCourse(name.trim());
+                  }}
+                  className="flex-1 text-[10px] font-black text-emerald-500 hover:text-black hover:bg-emerald-500 uppercase tracking-widest border border-emerald-500/30 hover:border-emerald-500 py-2 rounded-lg transition-all"
+                >
+                  + Add Course
+                </button>
+                <button
+                  onClick={() => {
+                    const current = courses[activeCourseId];
+                    const next = window.prompt('Rename course:', current?.name || '');
+                    if (next && next.trim()) renameCourse(activeCourseId, next.trim());
+                  }}
+                  className="text-[10px] font-black text-zinc-500 hover:text-white uppercase tracking-widest border border-zinc-800 hover:border-zinc-600 py-2 px-3 rounded-lg transition-all"
+                  title="Rename active course"
+                >
+                  Edit
+                </button>
+              </div>
+            </div>
+
             {!isBooting && (
               <>
                 <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-4 px-2 whitespace-nowrap">Semester Roadmap</p>

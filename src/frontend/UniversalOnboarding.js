@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { ArrowRight, User, Calendar, BookOpen, Brain, UploadCloud, Loader2 } from 'lucide-react';
 import { processDocumentWithGCP } from '../services/DocumentAIService';
-import { extractDeepCourseData } from '../services/BriefService';
+import { extractDeepCourseData, mergeExtractionData } from '../services/BriefService';
 
 export function StartIgnition({ onStart }) {
   return (
@@ -155,7 +155,15 @@ export function CourseDefinition({ onComplete, profile, setProfile }) {
 export function Grounding({ onComplete, profile }) {
   const [parsingFiles, setParsingFiles] = useState(false);
   const [extractionError, setExtractionError] = useState(null);
+  const [aggregated, setAggregated] = useState(null);
+  const [fileNames, setFileNames] = useState([]);
   const fileInputRef = useRef(null);
+
+  const baseFromProfile = () => ({
+    unitCode: profile.courseName,
+    level: profile.level,
+    theme: 'General'
+  });
 
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files);
@@ -163,39 +171,27 @@ export function Grounding({ onComplete, profile }) {
 
     setExtractionError(null);
     setParsingFiles(true);
-    let combinedExtractedData = { 
-      unitCode: profile.courseName, 
-      words: 2000, 
-      theme: 'General', 
-      level: profile.level,
-      doneWhenChecklist: [
-        { id: 'dw1', text: 'Explain ATP synthesis mechanism', checked: false, triggerWord: 'atp synthesis' },
-        { id: 'dw2', text: 'Analyze primary source methodology', checked: false, triggerWord: 'methodolog' },
-        { id: 'dw3', text: 'Identify gap in knowledge', checked: false, triggerWord: 'gap' }
-      ],
-      temporalMap: {
-        milestones: { 'intro': 'Wednesday', 'body_1': 'Thursday', 'body_2': 'Thursday', 'conclusion': 'Friday' },
-        tasks: { 'body_1': 'Analyze primary source methodology and literature context.' },
-        weightings: { 'intro': 10, 'body_1': 40, 'body_2': 30, 'conclusion': 20 }
-      }
-    };
     try {
-      await Promise.all(files.map(async (file) => {
-        let text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
+      let next = aggregated || baseFromProfile();
+      for (const file of files) {
+        const text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
         const deepData = extractDeepCourseData(text);
-        combinedExtractedData = { ...combinedExtractedData, rawText: text, ...deepData };
-      }));
-      
-      setTimeout(() => {
-        onComplete(combinedExtractedData);
-      }, 3000);
-      
+        next = mergeExtractionData(next, { ...deepData, rawText: text });
+      }
+      setAggregated(next);
+      setFileNames(prev => [...prev, ...files.map(f => f.name)]);
     } catch (error) {
       console.error("Critical extraction failure:", error);
       setExtractionError(error?.message || 'Could not read that file. Try another PDF.');
     } finally {
       setParsingFiles(false);
+      // Reset the input so the same filename can be re-selected.
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
+  };
+
+  const handleContinue = () => {
+    if (aggregated) onComplete(aggregated);
   };
 
   return (
@@ -207,22 +203,26 @@ export function Grounding({ onComplete, profile }) {
         <h2 className="text-4xl font-black text-white tracking-tight mb-4">Triple-Stage Grounding</h2>
         <p className="text-zinc-400 font-medium mb-12 text-lg">Drop your Outline, Brief, and Rubric here.</p>
         
-        <input 
-          type="file" 
-          accept=".pdf" 
+        <input
+          type="file"
+          accept=".pdf"
           multiple
-          className="hidden" 
-          ref={fileInputRef} 
-          onChange={handleFileUpload} 
+          className="hidden"
+          ref={fileInputRef}
+          onChange={handleFileUpload}
         />
-        <button 
-          onClick={() => fileInputRef.current?.click()} 
+        <button
+          onClick={() => fileInputRef.current?.click()}
           disabled={parsingFiles}
           className="w-full py-8 rounded-3xl bg-zinc-900 border-2 border-dashed border-zinc-700 hover:border-emerald-500 hover:bg-emerald-500/5 transition-all flex flex-col items-center justify-center gap-4 group cursor-pointer disabled:opacity-50"
         >
           {parsingFiles ? <Loader2 size={48} className="animate-spin text-emerald-500" /> : <UploadCloud size={48} className="text-zinc-600 group-hover:text-emerald-500 transition-colors" />}
           <span className="text-xl font-black uppercase tracking-widest text-zinc-400 group-hover:text-emerald-400 transition-colors">
-            {parsingFiles ? 'Extracting Metadata...' : 'Drop Documents Here'}
+            {parsingFiles
+              ? 'Extracting Metadata...'
+              : fileNames.length === 0
+                ? 'Drop Documents Here'
+                : '+ Add Another File'}
           </span>
         </button>
         {extractionError && (
@@ -231,6 +231,27 @@ export function Grounding({ onComplete, profile }) {
             <p className="text-red-300/80 text-xs font-medium leading-relaxed">{extractionError}</p>
           </div>
         )}
+
+        {aggregated && fileNames.length > 0 && (
+          <div className="mt-6 p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/30 text-left">
+            <p className="text-emerald-400 text-xs font-black uppercase tracking-widest mb-3">{fileNames.length} file{fileNames.length === 1 ? '' : 's'} aggregated</p>
+            <ul className="text-zinc-400 text-xs font-medium space-y-1 mb-4">
+              {fileNames.map((name, i) => <li key={i}>· {name}</li>)}
+            </ul>
+            <div className="grid grid-cols-3 gap-3 text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">
+              <div><span className="text-emerald-400 block text-xl font-black">{aggregated.learningOutcomes?.length || 0}</span>Learning Outcomes</div>
+              <div><span className="text-emerald-400 block text-xl font-black">{aggregated.assessmentDates?.length || 0}</span>Dates</div>
+              <div><span className="text-emerald-400 block text-xl font-black">{aggregated.udlPrinciples?.length || 0}</span>UDL Principles</div>
+            </div>
+            <button
+              onClick={handleContinue}
+              className="w-full py-3 rounded-xl bg-emerald-500 text-black font-black uppercase tracking-widest hover:bg-emerald-400 transition-all"
+            >
+              Continue to Canvas
+            </button>
+          </div>
+        )}
+
         <p className="mt-6 text-[10px] uppercase tracking-widest text-zinc-600 font-bold">
           Parsed locally on your Mac. The file does not leave this device.
         </p>

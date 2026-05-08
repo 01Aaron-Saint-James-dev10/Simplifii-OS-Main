@@ -199,3 +199,39 @@ export const extractDeepCourseData = (text) => {
     theme: 'Molecules'
   };
 };
+
+// Merge two extraction snapshots so a student can drop multiple PDFs into the
+// same course (e.g. Unit Outline + Assessment Brief + Marking Rubric) and the
+// cockpit treats them as one consolidated brief. Arrays are unioned by value
+// or by id where applicable; scalars take the higher-fidelity value.
+const dedupeStrings = (arr) => Array.from(new Set((arr || []).filter(Boolean).map(s => s.trim()))).filter(Boolean);
+const dedupeById = (arr) => {
+  const seen = new Set();
+  return (arr || []).filter(item => {
+    if (!item || !item.id || seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+};
+
+export const mergeExtractionData = (prev, next) => {
+  if (!prev) return next;
+  if (!next) return prev;
+  return {
+    ...prev,
+    ...next,
+    learningOutcomes: dedupeStrings([...(prev.learningOutcomes || []), ...(next.learningOutcomes || [])]),
+    rubricCriteria: dedupeStrings([...(prev.rubricCriteria || []), ...(next.rubricCriteria || [])]),
+    assessmentDates: dedupeStrings([...(prev.assessmentDates || []), ...(next.assessmentDates || [])]),
+    udlRequirements: dedupeStrings([...(prev.udlRequirements || []), ...(next.udlRequirements || [])]),
+    udlPrinciples: Array.from(new Set([...(prev.udlPrinciples || []), ...(next.udlPrinciples || [])])),
+    udlSuggestions: Array.from(new Set([...(prev.udlSuggestions || []), ...(next.udlSuggestions || [])])),
+    evidenceFormula: [...(prev.evidenceFormula || []), ...(next.evidenceFormula || [])],
+    doneWhenChecklist: dedupeById([...(prev.doneWhenChecklist || []), ...(next.doneWhenChecklist || [])]),
+    words: Math.max(prev.words || 0, next.words || 0) || (prev.words || next.words),
+    weighting: Math.max(prev.weighting || 0, next.weighting || 0) || (prev.weighting || next.weighting),
+    referencingStyle: prev.referencingStyle || next.referencingStyle,
+    detectedLevel: next.detectedLevel || prev.detectedLevel,
+    rawText: [prev.rawText, next.rawText].filter(Boolean).join('\n\n')
+  };
+};

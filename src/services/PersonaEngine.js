@@ -78,5 +78,23 @@ export const getPersonaResponse = (personaKey, eventType) => {
     const greetingTemplate = persona.greetings[Math.floor(Math.random() * persona.greetings.length)];
     return greetingTemplate.replace('{{name}}', userName);
   }
+
+  // Academic Augmentation events. Persona-styled responses to tool clicks so
+  // the avatar feedback isn't generic. payload is optional and may carry a
+  // 'mode' or 'label' field used to colour the message.
+  if (eventType === 'elevate_rigour') {
+    if (personaKey === 'Hardcore') return `Rigour elevated, ${userName}. Strip the filler in your next pass.`;
+    if (personaKey === 'Executive') return `Tone elevated to academic register. Review the opening clause.`;
+    return `Lovely, ${userName}. I've shifted that into a peer-reviewed register. Read it back to me.`;
+  }
+  if (eventType === 'synthesise') {
+    if (personaKey === 'Hardcore') return `Synthesis applied. Now compress the redundant claims.`;
+    if (personaKey === 'Executive') return `Synthesis frame applied. Let's tighten the argument from here.`;
+    return `Beautiful synthesis. What pattern is emerging from those sources?`;
+  }
+  if (eventType === 'logic_mode') {
+    return `Logic mode active. Drafting will be primed for this frame.`;
+  }
+
   return persona.prompts[eventType] || "System updated.";
 };
