@@ -181,15 +181,32 @@ export const extractDeepCourseData = (text) => {
   // We capture the title (40 chars max) plus any percentage weighting that
   // sits within the same logical line, so the DoD reads as
   //   "Assessment 1: Lab Report (25%)"
-  const assessmentLineRegex = /(?:Assessment(?:\s+Task)?|Task|AT)\s*\d*\s*[:\-\u2014]?\s*([A-Z][A-Za-z0-9 '&/\-]{3,40}?)(?=[,;.\n]|\s+(?:due|weighting|worth|deadline|\(?\d{1,3}\s*%))/g;
-  const examLineRegex = /\b(Final Exam|Mid-?semester Exam|Mid-?term Exam|Final Assessment|Take-home Exam|Oral Presentation|Practical Exam|Lab Report|Reflective Journal|Literature Review|Annotated Bibliography|Portfolio|Research Proposal|Research Report|Critical Review|Essay)\b(?:[^\n]{0,80}?(\d{1,3})\s*%)?/gi;
+  // assessmentLineRegex: requires a DIGIT between the keyword and the
+  // separator (Assessment 1:, Task 2:, AT3:). The previous version made
+  // both the digit and the separator optional, which caused two-letter
+  // match seeds like 'AT' to land inside ordinary prose. On a real
+  // BABS1201 brief that match strategy captured 'URE REVIEW RUBRIC' (a
+  // word fragment from 'LITERATURE REVIEW RUBRIC' split mid-glyph by
+  // pdfjs) and 'Item Weight Relevant Dates Details' (a row of rubric
+  // table headers).
+  const assessmentLineRegex = /(?:Assessment(?:\s+Task)?|Task|AT)\s*\d+\s*[:\-\u2014]\s*([A-Z][A-Za-z0-9 '&/\-]{3,40}?)(?=[,;.\n]|\s+(?:due|weighting|worth|deadline|\(?\d{1,3}\s*%))/g;
+  // examLineRegex: requires a percentage within 80 chars of the named
+  // exam phrase, so a topic mention of 'Literature Review' inside a
+  // lecture schedule no longer registers as an assessment.
+  const examLineRegex = /\b(Final Exam|Mid-?semester Exam|Mid-?term Exam|Final Assessment|Take-home Exam|Oral Presentation|Practical Exam|Lab Report\s*\d*|Reflective Journal|Literature Review|Annotated Bibliography|Portfolio|Research Proposal|Research Report|Critical Review|Essay)\b[^\n]{0,80}?(\d{1,3})\s*%/gi;
   // Navigation copy filter. The assessment regex sometimes catches the
   // sentence that follows an Assessment heading rather than the heading
   // itself ('Assessment 1: Hub on Moodle for more details'). Reject any
   // title that contains LMS navigation tokens; the next regex match
   // surfaces the real assessment name.
   const NAV_NOISE = /\b(moodle|canvas|blackboard|hub|portal|click(?: here)?|see (?:the|your|moodle|canvas)|more details|further information|via the link|the link below|see\s*\w*\s*for|url)\b/i;
-  const isAssessmentNoise = (title) => NAV_NOISE.test(title);
+  // GENERIC_NOISE: rejects single-word matches that are obviously rubric
+  // table headers or topic words rather than assessment titles. Only
+  // applies when the captured title is exactly one of these tokens
+  // (case-insensitive, full match), so multi-word titles that happen to
+  // contain one of these words still pass.
+  const GENERIC_NOISE = /^(item|structure|details|overview|description|length|information|topics|tasks|lecture|content|brief|outline|rubric|page|section|figure|notes|comments|criteria|requirement|requirements)$/i;
+  const isAssessmentNoise = (title) => NAV_NOISE.test(title) || GENERIC_NOISE.test(title.trim());
 
   const seen = new Set();
   const assessmentTitles = [];
