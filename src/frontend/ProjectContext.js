@@ -19,22 +19,37 @@ const initialProjectState = {
   inbox: []
 };
 
+const DEFAULT_PROFILE = {
+  name: 'Adonis',
+  deadline: 'Friday',
+  courseName: '',
+  level: 'university',
+  neuroTypes: ['ADHD', 'Autism']
+};
+
+const loadJSON = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
 export const ProjectProvider = ({ children }) => {
-  const [project, setProject] = useState(() => {
-    const saved = localStorage.getItem('simplifii_project_state');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return initialProjectState;
-      }
-    }
-    return initialProjectState;
-  });
+  const [project, setProject] = useState(() => loadJSON('simplifii_project_state', initialProjectState));
+  const [profile, setProfile] = useState(() => loadJSON('simplifii_profile', DEFAULT_PROFILE));
+  const [tasks, setTasks] = useState(() => loadJSON('simplifii_tasks', []));
+  const [extractionData, setExtractionData] = useState(() => loadJSON('simplifii_extractionData', null));
+  const [activeTask, setActiveTask] = useState(null);
 
   useEffect(() => {
     localStorage.setItem('simplifii_project_state', JSON.stringify(project));
   }, [project]);
+
+  useEffect(() => { localStorage.setItem('simplifii_profile', JSON.stringify(profile)); }, [profile]);
+  useEffect(() => { localStorage.setItem('simplifii_tasks', JSON.stringify(tasks)); }, [tasks]);
+  useEffect(() => { localStorage.setItem('simplifii_extractionData', JSON.stringify(extractionData)); }, [extractionData]);
 
   const lastSyncIndex = useRef(0);
 
@@ -114,7 +129,13 @@ export const ProjectProvider = ({ children }) => {
   };
 
   return (
-    <ProjectContext.Provider value={{ project, updateBlock, appendToBlock, receiveMessage, clearMessage, setBlocks, logEffort }}>{children}</ProjectContext.Provider>
+    <ProjectContext.Provider value={{
+      project, updateBlock, appendToBlock, receiveMessage, clearMessage, setBlocks, logEffort,
+      profile, setProfile,
+      tasks, setTasks,
+      extractionData, setExtractionData,
+      activeTask, setActiveTask
+    }}>{children}</ProjectContext.Provider>
   );
 };
 

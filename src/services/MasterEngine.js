@@ -1,25 +1,29 @@
 /**
  * MasterEngine.js
- * The core orchestrator for Active Grounding in Simplifii-OS.
- * Interfaces with Gemini and Google Cloud Search API to verify claims against the web and the user's Drive Research Vault.
+ *
+ * Two responsibilities:
+ *   1. Active Grounding: simulate Gemini + Google Cloud Search claim verification
+ *      against the user's Drive Research Vault (verifyClaim).
+ *   2. Feature Registry: a single source of truth for the "Universal Suite" of
+ *      modules every Simplifii-OS student can boot on demand. Components are
+ *      lazy-loaded so they only enter the bundle when actually rendered.
  */
+
+import { lazy } from 'react';
 
 const GCP_PROJECT_ID = process.env.REACT_APP_GCP_PROJECT_ID || 'simplifii-os-production';
 
-// Simulates the Gemini & Cloud Search API Pipeline
+// ---------------------------------------------------------------------------
+// 1. Active Grounding (Truth HUD pipeline simulation)
+// ---------------------------------------------------------------------------
+
 export const verifyClaim = async (text, authToken) => {
   if (!text || text.trim().length < 15) return null;
 
-  // Real pipeline would look like:
-  // 1. Gemini extracts the core factual claim from the sentence.
-  // 2. Cloud Search queries the Drive Vault for matches.
-  // 3. Gemini returns a confidence score and citations.
-
   return new Promise((resolve) => {
     setTimeout(() => {
-      // Simulate Truth HUD response based on text keywords
       const lowerText = text.toLowerCase();
-      
+
       if (lowerText.includes('mitochondria') || lowerText.includes('atp')) {
         resolve({
           status: 'verified',
@@ -42,9 +46,57 @@ export const verifyClaim = async (text, authToken) => {
           source: 'web'
         });
       } else {
-        // No strong signal
         resolve(null);
       }
     }, 800);
   });
 };
+
+// ---------------------------------------------------------------------------
+// 2. Universal Feature Registry
+// ---------------------------------------------------------------------------
+// Every student tier (highschool, undergrad, mres, phd) gets the modules that
+// fit their workflow. Add new entries here when a new Universal-suite module
+// lands; nothing else has to change.
+
+export const TIERS = ['highschool', 'undergrad', 'mres', 'phd'];
+
+export const FeatureRegistry = {
+  smartIntake: {
+    label: 'Smart Intake',
+    description: 'Lighter-weight sprint creator for quick course briefs.',
+    component: lazy(() => import('../frontend/SmartIntake')),
+    tiers: ['highschool', 'undergrad', 'mres', 'phd']
+  },
+  humaniser: {
+    label: 'Humaniser',
+    description: 'Tone rewrite that preserves the student\'s authentic voice.',
+    component: lazy(() => import('../frontend/Humaniser')),
+    tiers: ['highschool', 'undergrad', 'mres', 'phd']
+  },
+  graphView: {
+    label: 'Knowledge Graph View',
+    description: 'Visualise the semantic entities pulled from research sources.',
+    component: lazy(() => import('../frontend/GraphView')),
+    tiers: ['undergrad', 'mres', 'phd']
+  },
+  essayScorer: {
+    label: 'Essay Scorer',
+    description: 'Score current draft against the active rubric criteria.',
+    component: lazy(() => import('../frontend/EssayScorer')),
+    tiers: ['highschool', 'undergrad', 'mres', 'phd']
+  }
+};
+
+export const getAvailableFeatures = (tier) => {
+  if (!tier || !TIERS.includes(tier)) return [];
+  return Object.entries(FeatureRegistry)
+    .filter(([, feat]) => feat.tiers.includes(tier))
+    .map(([key, feat]) => ({ key, ...feat }));
+};
+
+export const getFeature = (key) => FeatureRegistry[key] || null;
+
+// EffortTracker is a hook (not a mountable component) so it travels through
+// MasterEngine as a re-export rather than an entry in the registry.
+export { useEffortTracker } from '../frontend/EffortTracker';

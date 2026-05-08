@@ -20,52 +20,28 @@ import { auditProjectContext } from '../services/VerificationService';
 import { saveGhostAsset, getAllGhostAssets } from '../services/IndexedDBService';
 
 export default function MasterDashboard() {
-  const { mode, setMode } = useSettings();
-  const { project, updateBlock, appendToBlock, receiveMessage, clearMessage, setBlocks, logEffort } = useProject();
+  const {
+    mode, setMode,
+    overlayTint, isRulerActive, isBionicActive,
+    isZenMode, setIsZenMode,
+    isLeftCollapsed, setIsLeftCollapsed,
+    isRightCollapsed, setIsRightCollapsed
+  } = useSettings();
+  const {
+    project, updateBlock, appendToBlock, receiveMessage, clearMessage, setBlocks, logEffort,
+    profile, setProfile,
+    tasks, setTasks,
+    extractionData, setExtractionData,
+    activeTask, setActiveTask
+  } = useProject();
   const { setInstitutionalData } = useInstitution();
-  const { overlayTint, isRulerActive, isBionicActive } = useSettings();
-  
-  const [extractionData, setExtractionData] = useState(() => {
-    const saved = localStorage.getItem('simplifii_extractionData');
-    return saved ? JSON.parse(saved) : null;
-  });
+
   const [focusedBlockId, setFocusedBlockId] = useState(null);
-
   const [currentStage, setCurrentStage] = useState(0);
-  const [profile, setProfile] = useState(() => {
-    const saved = localStorage.getItem('simplifii_profile');
-    return saved ? JSON.parse(saved) : {
-      name: 'Adonis',
-      deadline: 'Friday',
-      courseName: '',
-      level: 'university',
-      neuroTypes: ['ADHD', 'Autism']
-    };
-  });
-
-  const [tasks, setTasks] = useState(() => {
-    const saved = localStorage.getItem('simplifii_tasks');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [activeTask, setActiveTask] = useState(null);
-
-  useEffect(() => {
-    localStorage.setItem('simplifii_extractionData', JSON.stringify(extractionData));
-    localStorage.setItem('simplifii_profile', JSON.stringify(profile));
-    localStorage.setItem('simplifii_tasks', JSON.stringify(tasks));
-  }, [extractionData, profile, tasks]);
-
   const [globalGhostAssets, setGlobalGhostAssets] = useState([]);
-
-  // Zen Mode & Collapse State
-  const [isZenMode, setIsZenMode] = useState(false);
-  const [isLeftCollapsed, setIsLeftCollapsed] = useState(false);
-  const [isRightCollapsed, setIsRightCollapsed] = useState(false);
-
-  // Advocacy Bridge
   const [showSupportBridge, setShowSupportBridge] = useState(false);
 
-  // Metacognitive Reflection on Zen Mode Exit
+  // Metacognitive reflection on Zen Mode exit
   const prevZenModeRef = useRef(isZenMode);
   useEffect(() => {
     if (prevZenModeRef.current === true && isZenMode === false) {
@@ -83,7 +59,7 @@ export default function MasterDashboard() {
     getAllGhostAssets().then(setGlobalGhostAssets).catch(() => {});
   }, []);
 
-  // Zen Mode global hotkey and Dev Insights Shift+D
+  // Cmd+F toggles Zen Mode globally; Shift+D dispatches the Dev Insights signal.
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
@@ -92,35 +68,12 @@ export default function MasterDashboard() {
       }
       if (e.shiftKey && e.key.toLowerCase() === 'd') {
         e.preventDefault();
-        const event = new CustomEvent('toggle-dev-insights');
-        window.dispatchEvent(event);
+        window.dispatchEvent(new CustomEvent('toggle-dev-insights'));
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  // Persistence
-  useEffect(() => {
-    if (profile.courseName) {
-      const saved = localStorage.getItem(`simplifii_ui_${profile.courseName}`);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setIsLeftCollapsed(parsed.left || false);
-        setIsRightCollapsed(parsed.right || false);
-      }
-    }
-  }, [profile.courseName]);
-
-  useEffect(() => {
-    if (profile.courseName) {
-      localStorage.setItem(`simplifii_ui_${profile.courseName}`, JSON.stringify({
-        left: isLeftCollapsed,
-        right: isRightCollapsed
-      }));
-    }
-  }, [isLeftCollapsed, isRightCollapsed, profile.courseName]);
-
+  }, [setIsZenMode]);
 
   const handleAddGhostAsset = (asset) => {
     saveGhostAsset(asset).then(() => {

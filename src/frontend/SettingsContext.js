@@ -19,6 +19,11 @@ export const SettingsProvider = ({ children }) => {
   const [bionicIntensity, setBionicIntensity] = useState(Number(localStorage.getItem('bionicIntensity')) || 3); // 1 to 5
   const [isDriveAttached, setIsDriveAttached] = useState(localStorage.getItem('isDriveAttached') === 'true');
 
+  // Cockpit layout flags (lifted from MasterDashboard so any view can react)
+  const [isZenMode, setIsZenMode] = useState(localStorage.getItem('isZenMode') === 'true');
+  const [isLeftCollapsed, setIsLeftCollapsed] = useState(localStorage.getItem('isLeftCollapsed') === 'true');
+  const [isRightCollapsed, setIsRightCollapsed] = useState(localStorage.getItem('isRightCollapsed') === 'true');
+
   useEffect(() => {
     localStorage.setItem('mode', mode);
     localStorage.setItem('eduLevel', eduLevel);
@@ -33,7 +38,10 @@ export const SettingsProvider = ({ children }) => {
     localStorage.setItem('isBionicActive', isBionicActive);
     localStorage.setItem('bionicIntensity', bionicIntensity);
     localStorage.setItem('isDriveAttached', isDriveAttached);
-  }, [mode, eduLevel, highContrast, reducedMotion, darkMode, persona, overlayTint, fontScale, lineSpacing, isRulerActive, isBionicActive, bionicIntensity, isDriveAttached]);
+    localStorage.setItem('isZenMode', isZenMode);
+    localStorage.setItem('isLeftCollapsed', isLeftCollapsed);
+    localStorage.setItem('isRightCollapsed', isRightCollapsed);
+  }, [mode, eduLevel, highContrast, reducedMotion, darkMode, persona, overlayTint, fontScale, lineSpacing, isRulerActive, isBionicActive, bionicIntensity, isDriveAttached, isZenMode, isLeftCollapsed, isRightCollapsed]);
 
   const rules = {
     sequential: { font: 'Inter', spacing: 'normal', lineHeight: 'normal', letterSpacing: 'normal' },
@@ -56,7 +64,10 @@ export const SettingsProvider = ({ children }) => {
       isBionicActive, setIsBionicActive,
       bionicIntensity, setBionicIntensity,
       isDriveAttached, setIsDriveAttached,
-      activeRules: rules[mode] 
+      isZenMode, setIsZenMode,
+      isLeftCollapsed, setIsLeftCollapsed,
+      isRightCollapsed, setIsRightCollapsed,
+      activeRules: rules[mode]
     }}>
       <div 
         style={{ 

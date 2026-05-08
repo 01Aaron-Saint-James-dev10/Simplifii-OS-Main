@@ -95,7 +95,7 @@ export default function AIAvatar({ eventType, isLiteralMode, onClick }) {
 
   // Emergency Directive Mount Speech
   useEffect(() => {
-    const msg = "Sovereign engine active, Adonis. My neural loops are now running 100% locally on your Mac—no trials, no timeouts.";
+    const msg = "Sovereign engine active, Adonis. My neural loops are now running 100% locally on your Mac, no trials, no timeouts.";
     setDisplayMessage(msg);
     setIsSpeaking(true);
     
