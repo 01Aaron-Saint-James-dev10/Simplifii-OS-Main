@@ -146,6 +146,14 @@ export const extractDeepCourseData = (text) => {
   const weightingMatch = lowerText.match(/(\d{1,3})\s*%(?:\s*weighting)?/i) || lowerText.match(/weighting[:\s]*(\d{1,3})\s*%/i);
   const weighting = weightingMatch ? parseInt(weightingMatch[1]) : 0;
 
+  // Assessment dates: "due Friday Week 5", "Submission: 12 May 2026", "deadline 12/05/2026"
+  const dateRegex = /(?:due|deadline|submission|assessment)\s*(?:on|by|date)?[:\-]?\s*((?:[A-Z][a-z]+day\s*(?:Week\s*\d+)?)|(?:\d{1,2}\s+[A-Z][a-z]+\s+\d{2,4})|(?:\d{1,2}\/\d{1,2}\/\d{2,4}))/gi;
+  const assessmentDates = [...new Set([...text.matchAll(dateRegex)].map(m => m[1].trim()))];
+
+  // UDL requirements: capture phrases tied to UDL principles or guidelines
+  const udlRegex = /UDL\s*(?:\d+(?:\.\d+)?)?\s*[:\-]?\s*([A-Za-z][^.;\n]{5,160})/gi;
+  const udlRequirements = [...new Set([...text.matchAll(udlRegex)].map(m => m[1].trim()))].slice(0, 10);
+
   return {
     learningOutcomes,
     referencingStyle,
@@ -155,6 +163,8 @@ export const extractDeepCourseData = (text) => {
     detectedLevel,
     words,
     weighting,
+    assessmentDates,
+    udlRequirements,
     theme: 'Molecules'
   };
 };

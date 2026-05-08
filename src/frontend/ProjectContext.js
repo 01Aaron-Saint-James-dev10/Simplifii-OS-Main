@@ -128,13 +128,28 @@ export const ProjectProvider = ({ children }) => {
     }));
   };
 
+  // Derived "grounding" snapshot. Single read-only surface for any view that
+  // wants to know what the system has learned from the uploaded brief.
+  const grounding = {
+    complete: !!extractionData,
+    learningOutcomes: extractionData?.learningOutcomes || [],
+    assessmentDates: extractionData?.assessmentDates || [],
+    udlRequirements: extractionData?.udlRequirements || [],
+    referencingStyle: extractionData?.referencingStyle || null,
+    rubricCriteria: extractionData?.rubricCriteria || [],
+    evidenceFormula: extractionData?.evidenceFormula || [],
+    detectedLevel: extractionData?.detectedLevel || null,
+    targetWords: extractionData?.words || null
+  };
+
   return (
     <ProjectContext.Provider value={{
       project, updateBlock, appendToBlock, receiveMessage, clearMessage, setBlocks, logEffort,
       profile, setProfile,
       tasks, setTasks,
       extractionData, setExtractionData,
-      activeTask, setActiveTask
+      activeTask, setActiveTask,
+      grounding
     }}>{children}</ProjectContext.Provider>
   );
 };

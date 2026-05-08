@@ -255,8 +255,10 @@ export default function LinearCanvas({
   const [isProofing, setIsProofing] = useState(false);
   const [checklist, setChecklist] = useState(extractionData?.doneWhenChecklist || []);
   const [hoveredBlockId, setHoveredBlockId] = useState(null);
-  const [ghostAssets, setGhostAssets] = useState({}); 
+  const [ghostAssets, setGhostAssets] = useState({});
   const [justCheckedId, setJustCheckedId] = useState(null);
+  const [processingDropSectionId, setProcessingDropSectionId] = useState(null);
+  const processingDropTimerRef = useRef(null);
   
   const containerRef = useRef(null);
   const [mappedBlocks, setMappedBlocks] = useState([]); 
@@ -668,18 +670,21 @@ export default function LinearCanvas({
       const isPrimary = Math.random() > 0.5; // Mock analysis
       const newAsset = {
         id: Date.now().toString(),
-        blockId: id,
+        blockId: sectionId,
         source: textData.substring(0, 50) + '...',
         text: `Extracted Insight: The primary data indicates a strong correlation in ${textData.substring(0, 20)}...`,
         author: 'Smith et al.',
         year: '2026',
         isPrimary: isPrimary,
-        mentorNotes: isPrimary 
-          ? "This is a Primary source because it’s an original empirical study on ATP synthesis, noted by its 'Methods' and 'Results' sections." 
-          : "This is a Secondary source. It is a literature review summarizing other studies, rather than providing original experimental data."
+        mentorNotes: isPrimary
+          ? "This is a Primary source because it's an original empirical study on ATP synthesis, noted by its 'Methods' and 'Results' sections."
+          : "This is a Secondary source. It is a literature review summarising other studies, rather than providing original experimental data."
       };
-      setGhostAssets(prev => ({ ...prev, [id]: [...(prev[id] || []), newAsset] }));
+      setGhostAssets(prev => ({ ...prev, [sectionId]: [...(prev[sectionId] || []), newAsset] }));
       if (onAddGhostAsset) onAddGhostAsset(newAsset);
+      setProcessingDropSectionId(sectionId);
+      if (processingDropTimerRef.current) clearTimeout(processingDropTimerRef.current);
+      processingDropTimerRef.current = setTimeout(() => setProcessingDropSectionId(null), 1800);
       avatarSpeak("Asset extracted and embedded into the Ghost Layer.", "Source parsed. Metadata generated.");
     }
   };
@@ -890,7 +895,14 @@ export default function LinearCanvas({
 
             return (
               <div key={section.id} className={`relative flex gap-8 transition-all duration-700 ${isBloomed ? 'fixed inset-0 m-auto w-[90vw] h-[90vh] z-[800] bg-[#0A0A0A] border border-emerald-500/50 shadow-[0_0_100px_rgba(0,0,0,0.9)] rounded-[2rem] p-16' : isDimmed ? 'opacity-10 blur-xl bg-white/5 backdrop-blur-3xl pointer-events-none' : ''}`}>
-                <section 
+                {processingDropSectionId === section.id && (
+                  <div className="absolute inset-0 z-[900] rounded-[2rem] pointer-events-none border-2 border-emerald-400/70 shadow-[0_0_40px_rgba(16,185,129,0.5)] animate-pulse flex items-start justify-center pt-6">
+                    <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 text-[10px] font-black uppercase tracking-widest">
+                      Mapping to Knowledge Graph
+                    </span>
+                  </div>
+                )}
+                <section
                   id={`section-${section.id}`}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => handleDrop(e, section.id)}
