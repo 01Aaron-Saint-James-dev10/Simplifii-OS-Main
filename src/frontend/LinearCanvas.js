@@ -993,6 +993,11 @@ export default function LinearCanvas({
               {extractionData?.unitCode || 'Universal OS'}
             </h1>
             <p className="text-2xl text-emerald-500 font-bold uppercase tracking-widest drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]">Advanced Authoring Cockpit</p>
+            {activeCourse?.schemaLocked && (
+              <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/40 text-[9px] font-black uppercase tracking-widest text-amber-300">
+                Schema Locked
+              </div>
+            )}
             {activeSprintTitle && (
               <div className="mt-4 inline-flex items-center gap-3 px-4 py-2 rounded-full bg-emerald-500/15 border border-emerald-400/40 shadow-[0_0_18px_rgba(16,185,129,0.3)]">
                 <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Active Sprint</span>

@@ -160,13 +160,77 @@ export const ProjectProvider = ({ children }) => {
   // default milestones so consumers can always read activeCourse.roadmap.x
   // without optional chaining sprinkled through every panel.
   const rawActiveCourse = courses[activeCourseId] || makeEmptyCourse('(Missing course)');
+
+  // Console helpers for schema lock. Exposed once on first render so a
+  // student can paste a schema from DevTools without wiring up a UI yet:
+  //   window.simplifii.lockSchema('BABS1201', [
+  //     { title: 'Literature Review', weight: '25%', wordCountGoal: 2000, dueDate: 'Friday Week 5' },
+  //     { title: 'Test 1', weight: '30%' },
+  //     ...
+  //   ]);
+  //   window.simplifii.unlockSchema('BABS1201');
+  // The course id argument matches activeCourseId; use
+  //   window.simplifii.activeCourseId   to find it.
+  if (typeof window !== 'undefined' && !window.simplifii) {
+    window.simplifii = {
+      get activeCourseId() { return localStorage.getItem('simplifii_activeCourseId'); },
+      lockSchema: (courseId, pillars) => {
+        if (!courseId || !Array.isArray(pillars)) {
+          console.warn('[simplifii.lockSchema] usage: lockSchema(courseId, [{title, weight, wordCountGoal, dueDate}, ...])');
+          return;
+        }
+        try {
+          localStorage.setItem(`simplifii_schema_${courseId}`, JSON.stringify({ pillars }));
+          console.info('[simplifii.lockSchema] locked', pillars.length, 'pillars for', courseId, '. Reload to apply.');
+        } catch (e) { console.warn('[simplifii.lockSchema] failed:', e.message); }
+      },
+      unlockSchema: (courseId) => {
+        try {
+          localStorage.removeItem(`simplifii_schema_${courseId}`);
+          console.info('[simplifii.unlockSchema] cleared override for', courseId, '. Reload to revert to LLM extraction.');
+        } catch (e) { console.warn('[simplifii.unlockSchema] failed:', e.message); }
+      }
+    };
+  }
+
+  // Per-course schema override. When a student knows the LLM extraction
+  // is unreliable for their syllabus PDFs (or simply wants to pin the
+  // assessments to a verified list), they can write a JSON schema to
+  //   localStorage.simplifii_schema_<courseId>
+  // shaped as { pillars: [{ title, weight, wordCountGoal, dueDate }, ...] }
+  // The override completely replaces the LLM/regex assessment list and
+  // the rebuilt DoD checklist + Semester Roadmap. This is sovereign by
+  // construction (per-browser, never synced) and generalisable (works
+  // for any course, BABS, MRes, future units).
+  const __readSchemaOverride = (courseId) => {
+    if (typeof window === 'undefined' || !courseId) return null;
+    try {
+      const raw = window.localStorage.getItem(`simplifii_schema_${courseId}`);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      const pillars = Array.isArray(parsed?.pillars) ? parsed.pillars : null;
+      if (!pillars || pillars.length === 0) return null;
+      return pillars
+        .map(p => ({
+          title: String(p?.title || '').trim(),
+          weight: String(p?.weight || '').trim(),
+          wordCountGoal: Number(p?.wordCountGoal) > 0 ? Number(p.wordCountGoal) : 0,
+          dueDate: String(p?.dueDate || '').trim()
+        }))
+        .filter(p => p.title.length >= 3);
+    } catch { return null; }
+  };
+  const __schemaPillars = __readSchemaOverride(activeCourseId);
+
   // Resolve the currently focused assessment brief (if any). The brief
   // carries the title, weight, wordCountGoal, and dueDate, which the
   // canvas uses for its Logic Block progression and AURA Chat context.
   const __activeTitle = rawActiveCourse.activeAssessmentTitle || null;
-  const __briefs = Array.isArray(rawActiveCourse.extractionData?.assessmentBriefs)
+  const __extractedBriefs = Array.isArray(rawActiveCourse.extractionData?.assessmentBriefs)
     ? rawActiveCourse.extractionData.assessmentBriefs
     : [];
+  // Schema override wins over extracted briefs when present.
+  const __briefs = __schemaPillars || __extractedBriefs;
   const __resolveBrief = (title) => {
     if (!title) return null;
     return __briefs.find(b => {
@@ -174,12 +238,53 @@ export const ProjectProvider = ({ children }) => {
       return display === title || b.title === title;
     }) || null;
   };
+
+  // When the schema override is active, rebuild the extractionData
+  // surfaces (assessmentTitles, doneWhenChecklist) so every consumer
+  // sees the locked list without needing to know the override exists.
+  const __overriddenExtractionData = __schemaPillars
+    ? (() => {
+        const titles = __schemaPillars.map(p => p.weight ? `${p.title} (${p.weight})` : p.title);
+        const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '').slice(0, 40) || 'item';
+        const checklist = titles.slice(0, 12).map((entry, i) => ({
+          id: `lock_${i}_${slugify(entry)}`,
+          text: entry,
+          checked: false,
+          triggerWord: entry.split(/\s+/).slice(0, 3).join(' ').toLowerCase()
+        }));
+        return {
+          ...(rawActiveCourse.extractionData || {}),
+          assessmentBriefs: __schemaPillars,
+          assessmentTitles: titles,
+          doneWhenChecklist: checklist
+        };
+      })()
+    : null;
+
+  // Roadmap derivation when override is active. Same priority logic
+  // BriefService.deriveRoadmapFromAssessments uses.
+  const __overriddenRoadmap = __schemaPillars
+    ? (() => {
+        const titles = __schemaPillars.map(p => p.weight ? `${p.title} (${p.weight})` : p.title);
+        const finalMatch =
+          titles.find(t => /\bfinal\b/i.test(t)) ||
+          [...titles].reverse().find(t => /\bexam\b/i.test(t));
+        return {
+          currentTask: titles[0] || null,
+          nextAssessment: titles[1] || null,
+          finalMilestone: finalMatch || (titles.length >= 3 ? titles[titles.length - 1] : null)
+        };
+      })()
+    : null;
+
   const activeCourse = {
     ...rawActiveCourse,
-    roadmap: { ...DEFAULT_ROADMAP, ...(rawActiveCourse.roadmap || {}) },
+    roadmap: __overriddenRoadmap || { ...DEFAULT_ROADMAP, ...(rawActiveCourse.roadmap || {}) },
     sprintDrafts: rawActiveCourse.sprintDrafts || {},
     activeAssessmentTitle: __activeTitle,
-    activeAssessmentBrief: __resolveBrief(__activeTitle)
+    activeAssessmentBrief: __resolveBrief(__activeTitle),
+    extractionData: __overriddenExtractionData || rawActiveCourse.extractionData,
+    schemaLocked: !!__schemaPillars
   };
   const { tasks, extractionData, activeTask, project } = activeCourse;
 
