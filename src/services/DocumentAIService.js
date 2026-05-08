@@ -69,17 +69,22 @@ const extractWithPdfJs = async (fileBlob) => {
     // items in reading order but joins them with whitespace by default,
     // which collapses assessment lists and learning outcomes into a
     // single wall of words. The downstream regex then has nothing to
-    // anchor on. We watch each item's transform[5] (Y baseline) and
-    // each item's hasEOL flag (when present) and insert a newline
-    // whenever the baseline shifts up by more than 2 px or hasEOL
-    // is true. This recovers the visual line structure the parser
-    // needs without altering content.
+    // anchor on.
+    //
+    // Strategy: trust item.hasEOL when set (newer pdfjs builds emit it
+    // reliably), otherwise insert a newline only when the Y baseline
+    // shifts down by more than 6 px. The previous 2 px threshold was
+    // too tight: kerning, subscript, superscript, and ligature glyph
+    // splits routinely produce 3 to 5 px Y deltas WITHIN a visual
+    // line, which the old code mistook for line breaks. The result
+    // was words like 'Biology' splitting into 'Biolo' + newline +
+    // 'gy' and learning outcomes rendering as fragments.
     let lastY = null;
     let pageText = '';
     for (const item of content.items) {
       const y = item.transform ? item.transform[5] : null;
-      const yJumped = y !== null && lastY !== null && (lastY - y) > 2;
-      if (item.hasEOL || yJumped) {
+      const yJumpedDown = y !== null && lastY !== null && (lastY - y) > 6;
+      if (item.hasEOL || yJumpedDown) {
         pageText += '\n';
       } else if (pageText.length > 0 && !/\s$/.test(pageText)) {
         pageText += ' ';

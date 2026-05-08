@@ -181,52 +181,67 @@ export const extractDeepCourseData = (text) => {
   // We capture the title (40 chars max) plus any percentage weighting that
   // sits within the same logical line, so the DoD reads as
   //   "Assessment 1: Lab Report (25%)"
-  // assessmentLineRegex: requires a DIGIT between the keyword and the
-  // separator (Assessment 1:, Task 2:, AT3:). The previous version made
-  // both the digit and the separator optional, which caused two-letter
-  // match seeds like 'AT' to land inside ordinary prose. On a real
-  // BABS1201 brief that match strategy captured 'URE REVIEW RUBRIC' (a
-  // word fragment from 'LITERATURE REVIEW RUBRIC' split mid-glyph by
-  // pdfjs) and 'Item Weight Relevant Dates Details' (a row of rubric
-  // table headers).
-  const assessmentLineRegex = /(?:Assessment(?:\s+Task)?|Task|AT)\s*\d+\s*[:\-\u2014]\s*([A-Z][A-Za-z0-9 '&/\-]{3,40}?)(?=[,;.\n]|\s+(?:due|weighting|worth|deadline|\(?\d{1,3}\s*%))/g;
-  // examLineRegex: requires a percentage within 80 chars of the named
-  // exam phrase, so a topic mention of 'Literature Review' inside a
-  // lecture schedule no longer registers as an assessment.
-  const examLineRegex = /\b(Final Exam|Mid-?semester Exam|Mid-?term Exam|Final Assessment|Take-home Exam|Oral Presentation|Practical Exam|Lab Report\s*\d*|Reflective Journal|Literature Review|Annotated Bibliography|Portfolio|Research Proposal|Research Report|Critical Review|Essay)\b[^\n]{0,80}?(\d{1,3})\s*%/gi;
-  // Navigation copy filter. The assessment regex sometimes catches the
-  // sentence that follows an Assessment heading rather than the heading
-  // itself ('Assessment 1: Hub on Moodle for more details'). Reject any
-  // title that contains LMS navigation tokens; the next regex match
-  // surfaces the real assessment name.
+  // Two-pass extraction. Real syllabi format assessments in many ways:
+  //
+  //   "Assessment 1: Lab Report (25%)"      single-line, colon separator
+  //   "Task 2 - Reflective Journal, 15%"    single-line, dash separator
+  //   "Assessment 1                          multi-line, no separator
+  //    Literature Review
+  //    Length: 1500 words
+  //    Weighting: 5%"
+  //   "Final Exam (50%)"                     no numbering, named exam only
+  //
+  // Pass 1 (numbered): find every 'Assessment N' / 'Task N' / 'AT N'
+  // anchor, then peek the next 200 chars for the title and the
+  // weighting independently. The block-and-extract approach handles
+  // both single-line and multi-line layouts without needing the title
+  // to share a line with the digit.
+  //
+  // Pass 2 (named): match named exams (Final Exam, Lab Report, etc.)
+  // ONLY when a percentage sits within 80 chars, so a lecture-schedule
+  // mention of 'Literature Review' as a topic word stays out.
+  //
+  // Both passes apply NAV_NOISE (LMS navigation copy) and GENERIC_NOISE
+  // (single-token rubric / table headers) filters before adding.
+
   const NAV_NOISE = /\b(moodle|canvas|blackboard|hub|portal|click(?: here)?|see (?:the|your|moodle|canvas)|more details|further information|via the link|the link below|see\s*\w*\s*for|url)\b/i;
-  // GENERIC_NOISE: rejects single-word matches that are obviously rubric
-  // table headers or topic words rather than assessment titles. Only
-  // applies when the captured title is exactly one of these tokens
-  // (case-insensitive, full match), so multi-word titles that happen to
-  // contain one of these words still pass.
-  const GENERIC_NOISE = /^(item|structure|details|overview|description|length|information|topics|tasks|lecture|content|brief|outline|rubric|page|section|figure|notes|comments|criteria|requirement|requirements)$/i;
+  const GENERIC_NOISE = /^(item|structure|details|overview|description|length|information|topics|tasks|lecture|content|brief|outline|rubric|page|section|figure|notes|comments|criteria|requirement|requirements|delivery mode|due date|weight|weighting|format|submission)$/i;
   const isAssessmentNoise = (title) => NAV_NOISE.test(title) || GENERIC_NOISE.test(title.trim());
 
   const seen = new Set();
   const assessmentTitles = [];
-  for (const m of text.matchAll(assessmentLineRegex)) {
-    const title = m[1].trim().replace(/\s+/g, ' ');
-    const weight = m[2] ? `${m[2]}%` : '';
-    const key = title.toLowerCase();
-    if (key.length < 4 || seen.has(key)) continue;
+
+  // Pass 1: numbered anchors with 200-char block lookahead.
+  const anchorRegex = /(?:Assessment(?:\s+Task)?|Task|AT)\s*(\d+)/gi;
+  for (const anchor of text.matchAll(anchorRegex)) {
+    const start = anchor.index + anchor[0].length;
+    const block = text.slice(start, start + 220);
+    // First capitalised phrase after the anchor, stopping at any
+    // structural punctuation, hyphen, em-dash, or weighting marker.
+    const titleMatch = block.match(/[\s:\-\u2014\n]+([A-Z][A-Za-z0-9 '&/\-]{3,50}?)(?=[,;.\-\u2014\n]|\s+(?:due|weighting|worth|deadline|length|word\s+count|\(?\d{1,3}\s*%)|\s*$)/);
+    if (!titleMatch) continue;
+    const title = titleMatch[1].trim().replace(/\s+/g, ' ');
+    if (title.length < 4) continue;
     if (isAssessmentNoise(title)) continue;
+    const weightMatch = block.match(/(\d{1,3})\s*%/);
+    const display = weightMatch ? `${title} (${weightMatch[1]}%)` : title;
+    const key = display.toLowerCase();
+    if (seen.has(key)) continue;
     seen.add(key);
-    assessmentTitles.push(weight ? `${title} (${weight})` : title);
+    assessmentTitles.push(display);
   }
+
+  // Pass 2: named exams that have a percentage within 80 chars.
+  const examLineRegex = /\b(Final Exam|Mid-?semester Exam|Mid-?term Exam|Final Assessment|Take-home Exam|Oral Presentation|Practical Exam|Lab Report\s*\d*|Reflective Journal|Literature Review|Annotated Bibliography|Portfolio|Research Proposal|Research Report|Critical Review|Essay)\b[^\n]{0,80}?(\d{1,3})\s*%/gi;
   for (const m of text.matchAll(examLineRegex)) {
     const title = m[1].replace(/\s+/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).replace(/-Semester/i, '-semester');
     const weight = m[2] ? `${m[2]}%` : '';
-    const key = title.toLowerCase();
+    const display = weight ? `${title} (${weight})` : title;
+    const key = display.toLowerCase();
     if (seen.has(key)) continue;
     if (isAssessmentNoise(title)) continue;
     seen.add(key);
-    assessmentTitles.push(weight ? `${title} (${weight})` : title);
+    assessmentTitles.push(display);
   }
 
   // Build the Definition of Done checklist. Prefer assessment titles so the
@@ -326,7 +341,10 @@ export const mergeExtractionData = (prev, next) => {
 //                     insensitive); otherwise the last title
 export const deriveRoadmapFromAssessments = (assessmentTitles = []) => {
   if (!Array.isArray(assessmentTitles) || assessmentTitles.length === 0) return null;
-  const titles = assessmentTitles.filter(Boolean);
+  // Defensive: drop empties and any title under 4 chars (e.g. 'Item').
+  // The upstream extractor already filters generic noise, this is the
+  // last line in case a stray short token slipped through.
+  const titles = assessmentTitles.filter(t => typeof t === 'string' && t.trim().length >= 4);
   if (titles.length === 0) return null;
 
   const currentTask = titles[0];

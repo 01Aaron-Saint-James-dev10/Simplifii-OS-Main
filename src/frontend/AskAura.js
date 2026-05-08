@@ -1,7 +1,27 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, X, Sparkles } from 'lucide-react';
+import { Send, Loader2, X, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import { askAura } from '../services/ChatService';
+import { speakSystemMessage } from '../services/MessagingHub';
 import { useProject } from './ProjectContext';
+
+const SPEAK_KEY = 'simplifii_aura_chat_speech';
+const safeReadLS = (key, fallback) => {
+  try { return window.localStorage.getItem(key) ?? fallback; } catch { return fallback; }
+};
+const safeWriteLS = (key, value) => {
+  try { window.localStorage.setItem(key, value); } catch { /* storage unavailable */ }
+};
+
+// Reduce a long reply to the first 1-2 sentences, capped at 280 chars, so
+// the AURA voice stays punchy. The full reply still renders in the
+// transcript above the input.
+const firstSentences = (text, max = 280) => {
+  if (!text) return '';
+  const trimmed = text.trim().replace(/\s+/g, ' ');
+  const sentenceMatch = trimmed.match(/^.+?[.!?](?:\s|$)(?:.+?[.!?](?:\s|$))?/);
+  const candidate = sentenceMatch ? sentenceMatch[0].trim() : trimmed;
+  return candidate.length > max ? candidate.slice(0, max - 1) + '.' : candidate;
+};
 
 /**
  * AskAura. Floating chat bar pinned to the bottom of the canvas. Click the
@@ -20,8 +40,11 @@ export default function AskAura() {
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState([]); // {role, content}
   const [error, setError] = useState('');
+  const [speakReplies, setSpeakReplies] = useState(() => safeReadLS(SPEAK_KEY, 'true') !== 'false');
   const inputRef = useRef(null);
   const scrollRef = useRef(null);
+
+  useEffect(() => { safeWriteLS(SPEAK_KEY, String(speakReplies)); }, [speakReplies]);
 
   useEffect(() => {
     if (open && inputRef.current) inputRef.current.focus();
@@ -43,6 +66,9 @@ export default function AskAura() {
     try {
       const reply = await askAura(message, activeCourse, history);
       setHistory(prev => [...prev, { role: 'assistant', content: reply }]);
+      if (speakReplies) {
+        try { speakSystemMessage(firstSentences(reply)); } catch { /* speech unavailable */ }
+      }
     } catch (err) {
       setError(err.message || 'Something went wrong.');
     } finally {
@@ -111,6 +137,15 @@ export default function AskAura() {
               className="flex-1 bg-transparent text-white placeholder-zinc-600 text-sm outline-none px-2 py-1"
               aria-label="Message AURA"
             />
+            <button
+              type="button"
+              onClick={() => setSpeakReplies(v => !v)}
+              className={`p-2 rounded-lg transition-all ${speakReplies ? 'text-emerald-400 hover:text-emerald-300' : 'text-zinc-500 hover:text-white'}`}
+              title={speakReplies ? 'Mute AURA voice' : 'Speak AURA replies aloud'}
+              aria-label={speakReplies ? 'Mute AURA voice' : 'Unmute AURA voice'}
+            >
+              {speakReplies ? <Volume2 size={14} /> : <VolumeX size={14} />}
+            </button>
             {history.length > 0 && (
               <button
                 type="button"
