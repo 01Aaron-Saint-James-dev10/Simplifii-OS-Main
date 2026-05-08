@@ -7,6 +7,7 @@ import TaskCard from './TaskCard';
 import AccessibilityVault from './AccessibilityVault';
 import ConfirmDialog from './ConfirmDialog';
 import AskAura from './AskAura';
+import SimplifiiStudio from './SimplifiiStudio';
 import { StartIgnition, IdentityGate, TemporalBaseline, CourseDefinition, Grounding } from './UniversalOnboarding';
 import LinearCanvas from './LinearCanvas';
 import MathsStepEditor from './MathsStepEditor';
@@ -53,6 +54,17 @@ export default function MasterDashboard() {
   // which previously left no path to ingest a second syllabus. Now the
   // '+ Add Course' button mounts Grounding in an overlay.
   const [showAddCourseModal, setShowAddCourseModal] = useState(false);
+  // Tri-column Studio toggle. When true, the post-onboarding canvas
+  // renders the SimplifiiStudio layout (NotebookLM-style: nav rail,
+  // sources, cockpit, AURA chat) instead of the classic LinearCanvas.
+  // Persists to localStorage so the student's preferred view survives
+  // reloads.
+  const [showStudio, setShowStudio] = useState(() => {
+    try { return localStorage.getItem('simplifii_view') === 'studio'; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('simplifii_view', showStudio ? 'studio' : 'classic'); } catch { /* storage unavailable */ }
+  }, [showStudio]);
   // Inline course editor state. Replaces the legacy window.prompt() flow so
   // the cockpit no longer breaks the AURA Pulse with a native popup.
   // Used now only for the Edit (rename) action; new courses come in via
@@ -423,6 +435,13 @@ export default function MasterDashboard() {
       default:
         const activeCourseName = (courses[activeCourseId]?.name || '').toLowerCase();
         const isMaths = activeCourseName.includes('maths') || activeCourseName.includes('hsc');
+        if (showStudio && !isMaths) {
+          return (
+            <div className="flex-1 overflow-hidden animate-fade-in relative z-0">
+              <SimplifiiStudio onExit={() => setShowStudio(false)} />
+            </div>
+          );
+        }
         return (
           <div className="flex-1 flex overflow-hidden animate-fade-in relative z-0">
             {isMaths ? (
@@ -494,6 +513,15 @@ export default function MasterDashboard() {
         </div>
 
         <div className="flex items-center gap-5 relative z-[1300]">
+          {/* Studio toggle: switch between classic LinearCanvas and the
+              tri-column SimplifiiStudio (NotebookLM-style) layout */}
+          <button
+            onClick={() => setShowStudio(v => !v)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${showStudio ? 'bg-emerald-500 border-emerald-500 text-black' : 'bg-transparent border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10'}`}
+            title={showStudio ? 'Switch to Classic Cockpit' : 'Switch to Studio (tri-column)'}
+          >
+            <Sparkles size={14} /> {showStudio ? 'Classic' : 'Studio'}
+          </button>
           {/* View as Speech Button */}
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('toggle-view-mode'))}
