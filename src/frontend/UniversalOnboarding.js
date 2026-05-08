@@ -166,8 +166,26 @@ export function Grounding({ onComplete, profile }) {
     theme: 'General'
   });
 
+  // Master-Schema priority: process files in a fixed order regardless of
+  // the order the student dropped them. Course Outline is the canonical
+  // source of the assessment list (the table on page 4). Brief zooms in
+  // on one task. Rubric is criteria for grading. By processing Outline
+  // first, the merged rawText starts with the outline content, so:
+  //   - the Ollama extractor's first 25k char window includes the outline
+  //     assessment table early
+  //   - the AURA chat context's first 8k chars open with the outline
+  //   - regex pre-extraction sees outline weightings before brief
+  //     component weightings
+  const classifyFile = (file) => {
+    const n = (file.name || '').toLowerCase();
+    if (/outline|course[ _-]?info|co[_-]/i.test(n)) return 0; // master
+    if (/brief|assess|task|instruction/i.test(n)) return 1;
+    if (/rubric|criteria|marking/i.test(n)) return 2;
+    return 3; // unknown, last
+  };
+
   const handleFileUpload = async (e) => {
-    const files = Array.from(e.target.files);
+    const files = Array.from(e.target.files).sort((a, b) => classifyFile(a) - classifyFile(b));
     if (files.length === 0) return;
 
     setExtractionError(null);
@@ -175,6 +193,7 @@ export function Grounding({ onComplete, profile }) {
     try {
       let next = aggregated || baseFromProfile();
       for (const file of files) {
+        if (typeof console !== 'undefined') console.info('[Grounding] processing', file.name, 'class=', classifyFile(file));
         const text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
         const deepData = extractDeepCourseData(text);
         next = mergeExtractionData(next, { ...deepData, rawText: text });
