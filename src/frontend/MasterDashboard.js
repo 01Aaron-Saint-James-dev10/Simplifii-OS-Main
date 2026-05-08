@@ -3,8 +3,8 @@ import { Brain, RefreshCw, Sparkles, CheckCircle2, Layout, FileText, Download, T
 import { useSettings } from './SettingsContext';
 import { useProject } from './ProjectContext';
 import { useInstitution } from './InstitutionalContext';
-import CourseTrack from './CourseTrack';
 import TaskCard from './TaskCard';
+import AccessibilityVault from './AccessibilityVault';
 import { StartIgnition, IdentityGate, TemporalBaseline, CourseDefinition, Grounding } from './UniversalOnboarding';
 import LinearCanvas from './LinearCanvas';
 import MathsStepEditor from './MathsStepEditor';
@@ -25,7 +25,8 @@ export default function MasterDashboard() {
     overlayTint, isRulerActive, isBionicActive,
     isZenMode, setIsZenMode,
     isLeftCollapsed, setIsLeftCollapsed,
-    isRightCollapsed, setIsRightCollapsed
+    isRightCollapsed, setIsRightCollapsed,
+    isLiteralMode, setIsLiteralMode
   } = useSettings();
   const {
     project, updateBlock, appendToBlock, receiveMessage, clearMessage, setBlocks, logEffort,
@@ -40,6 +41,13 @@ export default function MasterDashboard() {
   const [currentStage, setCurrentStage] = useState(0);
   const [globalGhostAssets, setGlobalGhostAssets] = useState([]);
   const [showSupportBridge, setShowSupportBridge] = useState(false);
+  const [showAccessibilityVault, setShowAccessibilityVault] = useState(false);
+
+  useEffect(() => {
+    const handleToggleAccessibility = () => setShowAccessibilityVault(prev => !prev);
+    window.addEventListener('toggle-accessibility', handleToggleAccessibility);
+    return () => window.removeEventListener('toggle-accessibility', handleToggleAccessibility);
+  }, []);
 
   // Metacognitive reflection on Zen Mode exit
   const prevZenModeRef = useRef(isZenMode);
@@ -267,11 +275,9 @@ export default function MasterDashboard() {
             <Sparkles size={14} /> View as Speech
           </button>
           {/* UDL Overrides Button */}
-          <button 
+          <button
             onClick={() => {
-              if (!isBooting) {
-                if (!window.showAccessibilityVault) window.dispatchEvent(new CustomEvent('toggle-accessibility'));
-              }
+              if (!isBooting) window.dispatchEvent(new CustomEvent('toggle-accessibility'));
             }}
             disabled={isBooting}
             className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all ${isBionicActive || overlayTint !== 'none' || isRulerActive ? 'bg-amber-500/10 border-amber-500/50 text-amber-500' : 'bg-transparent border-zinc-700 text-zinc-400'} hover:text-white hover:border-zinc-500 ${isBooting ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -280,14 +286,20 @@ export default function MasterDashboard() {
           </button>
 
           {/* Literal Mode Toggle */}
-          <div className={`flex items-center gap-3 bg-zinc-900/50 px-4 py-2 rounded-full border border-zinc-800 transition-opacity ${isBooting ? 'opacity-50' : ''}`}>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isLiteralMode}
+            aria-label="Toggle Literal Mode"
+            onClick={() => { if (!isBooting) setIsLiteralMode(prev => !prev); }}
+            disabled={isBooting}
+            className={`flex items-center gap-3 bg-zinc-900/50 px-4 py-2 rounded-full border border-zinc-800 transition-opacity ${isBooting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-zinc-600'}`}
+          >
             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Literal Mode</span>
-            <div 
-              className={`w-10 h-5 rounded-full relative cursor-pointer ${isBooting ? 'cursor-not-allowed' : ''} ${profile?.neuroTypes?.includes('Autism') ? 'bg-indigo-500' : 'bg-zinc-700'}`}
-            >
-              <div className={`w-3 h-3 bg-white rounded-full absolute top-1 transition-transform ${profile?.neuroTypes?.includes('Autism') ? 'translate-x-6' : 'translate-x-1'}`}></div>
-            </div>
-          </div>
+            <span className={`w-10 h-5 rounded-full relative transition-colors ${isLiteralMode ? 'bg-indigo-500' : 'bg-zinc-700'}`}>
+              <span className={`w-3 h-3 bg-white rounded-full absolute top-1 transition-transform ${isLiteralMode ? 'translate-x-6' : 'translate-x-1'}`}></span>
+            </span>
+          </button>
 
           <button 
             onClick={() => {
@@ -313,13 +325,14 @@ export default function MasterDashboard() {
                    setShowSupportBridge(true);
                 }
              }} 
-             isLiteralMode={profile?.neuroTypes?.includes('Autism') || true} 
+             isLiteralMode={isLiteralMode} 
              isOnboardingMode={isBooting}
           />
         </div>
       </div>
 
-      {showSupportBridge && <SupportBridge onClose={() => setShowSupportBridge(false)} isLiteralMode={profile?.neuroTypes?.includes('Autism') || true} />}
+      {showSupportBridge && <SupportBridge onClose={() => setShowSupportBridge(false)} isLiteralMode={isLiteralMode} />}
+      {showAccessibilityVault && <AccessibilityVault onClose={() => setShowAccessibilityVault(false)} />}
 
       {/* Body row: sidebar + main + right archive share the height below the nav */}
       <div className="flex-1 flex overflow-hidden min-h-0">

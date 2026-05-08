@@ -61,7 +61,7 @@ export const getPersonaResponse = (personaKey, eventType) => {
     return `I'm looking at your timeline. I see the ${eventName} deadline approaching on ${eventDate}. I've adjusted your 'Friction Map' to prioritize high-impact drafting today. Is this the sprint we're focusing on, or are we starting something fresh?`;
   }
   if (eventType === 'ignition_stage3') {
-    return `Understood. Mapping the ${courseName} context. Whether this is a high school lab or a doctoral thesis, I'm locking the grounding sensors to this specific academic level. I've initialized the 'Knowledge Graph' for this subject—let's feed it some data.`;
+    return `Understood. Mapping the ${courseName} context. Whether this is a high school lab or a doctoral thesis, I'm locking the grounding sensors to this specific academic level. I've initialised the Knowledge Graph for this subject. Let's feed it some data.`;
   }
   if (eventType === 'ignition_stage4') {
     return `This is the critical phase. Drop your Outline, Brief, and Rubric here. I'm going to use Document AI to 'see' exactly what your markers are looking for. Once I've parsed the metadata, I'll unlock your linear canvas and we can begin the 'Vibe Check'.`;

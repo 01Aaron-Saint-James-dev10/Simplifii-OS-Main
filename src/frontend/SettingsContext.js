@@ -23,6 +23,7 @@ export const SettingsProvider = ({ children }) => {
   const [isZenMode, setIsZenMode] = useState(localStorage.getItem('isZenMode') === 'true');
   const [isLeftCollapsed, setIsLeftCollapsed] = useState(localStorage.getItem('isLeftCollapsed') === 'true');
   const [isRightCollapsed, setIsRightCollapsed] = useState(localStorage.getItem('isRightCollapsed') === 'true');
+  const [isLiteralMode, setIsLiteralMode] = useState(localStorage.getItem('isLiteralMode') === 'true');
 
   useEffect(() => {
     localStorage.setItem('mode', mode);
@@ -41,7 +42,8 @@ export const SettingsProvider = ({ children }) => {
     localStorage.setItem('isZenMode', isZenMode);
     localStorage.setItem('isLeftCollapsed', isLeftCollapsed);
     localStorage.setItem('isRightCollapsed', isRightCollapsed);
-  }, [mode, eduLevel, highContrast, reducedMotion, darkMode, persona, overlayTint, fontScale, lineSpacing, isRulerActive, isBionicActive, bionicIntensity, isDriveAttached, isZenMode, isLeftCollapsed, isRightCollapsed]);
+    localStorage.setItem('isLiteralMode', isLiteralMode);
+  }, [mode, eduLevel, highContrast, reducedMotion, darkMode, persona, overlayTint, fontScale, lineSpacing, isRulerActive, isBionicActive, bionicIntensity, isDriveAttached, isZenMode, isLeftCollapsed, isRightCollapsed, isLiteralMode]);
 
   const rules = {
     sequential: { font: 'Inter', spacing: 'normal', lineHeight: 'normal', letterSpacing: 'normal' },
@@ -67,6 +69,7 @@ export const SettingsProvider = ({ children }) => {
       isZenMode, setIsZenMode,
       isLeftCollapsed, setIsLeftCollapsed,
       isRightCollapsed, setIsRightCollapsed,
+      isLiteralMode, setIsLiteralMode,
       activeRules: rules[mode]
     }}>
       <div 
