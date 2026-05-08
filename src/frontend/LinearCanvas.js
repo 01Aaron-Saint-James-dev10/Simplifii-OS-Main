@@ -249,8 +249,8 @@ export default function LinearCanvas({
   }, [sections, profile?.courseName]);
   const [activeSectionId, setActiveSectionId] = useState('intro');
   const [bloomedSectionId, setBloomedSectionId] = useState(null);
-  const [isDyslexic, setIsDyslexic] = useState(profile?.neuroTypes?.includes('Dyslexia') || false);
-  const [isLiteralMode, setIsLiteralMode] = useState(profile?.neuroTypes?.includes('Autism') || false);
+  const [isDyslexic, setIsDyslexic] = useState(profile?.processingStyles?.includes('Visual Scaffolding') || false);
+  const [isLiteralMode, setIsLiteralMode] = useState(profile?.processingStyles?.includes('Audio-Augmented') || false);
   const [viewMode, setViewMode] = useState('academic'); // 'academic' or 'presentation'
   const [isProofing, setIsProofing] = useState(false);
   const [checklist, setChecklist] = useState(extractionData?.doneWhenChecklist || []);

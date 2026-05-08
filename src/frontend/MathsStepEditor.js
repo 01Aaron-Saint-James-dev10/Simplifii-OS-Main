@@ -13,8 +13,8 @@ export default function MathsStepEditor({ extractionData, profile }) {
   const [hintStyleIndex, setHintStyleIndex] = useState(0);
   const hintStyles = ['Step-by-Step', 'Visual Storyboard', 'Simple Language'];
 
-  const isADHD = profile?.neuroTypes?.includes('ADHD');
-  const isProcessingDiff = profile?.neuroTypes?.includes('Processing Differences');
+  const isADHD = profile?.processingStyles?.includes('Deep-Focus Layout');
+  const isProcessingDiff = profile?.processingStyles?.includes('Non-Linear Navigation');
 
   // Mock Question Context
   const questionContext = "If a train travels at 120km/h for 2.5 hours, how far does it travel?";

@@ -24,7 +24,7 @@ const DEFAULT_PROFILE = {
   deadline: 'Friday',
   courseName: '',
   level: 'university',
-  neuroTypes: ['ADHD', 'Autism']
+  processingStyles: []
 };
 
 const loadJSON = (key, fallback) => {

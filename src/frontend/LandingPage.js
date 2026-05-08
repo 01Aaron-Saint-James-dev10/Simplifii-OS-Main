@@ -51,36 +51,44 @@ export default function LandingPage({ onGetStarted }) {
             </div>
           </div>
           <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-8 leading-tight">
-            The World's First<br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500">Cognitive Partner.</span>
+            Simplifii<br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500">The Universal Sovereign OS.</span>
           </h1>
           <p className="text-xl text-zinc-400 font-medium leading-relaxed mb-12 max-w-2xl mx-auto">
-            Not just an app. A neuro-adaptive operating system that syncs with your digital brain.
+            A local-first research environment that adapts to your processing style.
           </p>
-          <button 
+          <button
             onClick={() => setStep(1)}
             className="px-10 py-5 rounded-full bg-emerald-500 text-black font-black text-lg uppercase tracking-widest hover:shadow-glow-emerald-lg hover:bg-emerald-400 transition-all flex items-center gap-3 mx-auto group cursor-pointer"
           >
-            Initiate Cognitive Sync 
+            Initiate Local Handshake
             <ArrowRight className="transform group-hover:translate-x-1 transition-transform" />
           </button>
+          <div className="mt-10 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/60 border border-zinc-800 text-[10px] font-black uppercase tracking-widest text-emerald-400">
+            <Shield size={12} /> Local-First. Zero Disclosure.
+          </div>
         </div>
       )}
 
       {step === 1 && (
         <div className="text-center max-w-2xl mx-auto z-10 animate-fade-in">
-          <h2 className="text-4xl font-black mb-6">Step 1: Digital Context</h2>
+          <h2 className="text-4xl font-black mb-6">Step 1: Sync by Permission</h2>
           <p className="text-zinc-400 mb-10 text-lg">
-            Connect your Google account to allow the MasterEngine to pre-scan your YouTube research history and calendar. 
-            We pull context so you don't have to fill forms.
+            Optional. Connect your Google account to import existing files and calendar entries you choose to share. Sync runs only when you click. Nothing is scraped autonomously, nothing leaves your device without consent.
           </p>
-          <button 
+          <button
             onClick={handleGoogleSync}
             disabled={isSyncing}
             className="w-full bg-white text-black hover:bg-gray-100 font-black uppercase tracking-widest py-4 rounded-2xl transition-all flex items-center justify-center gap-3 text-lg"
           >
             {isSyncing ? <Loader2 className="animate-spin" /> : <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google" className="w-6 h-6" />}
-            {isSyncing ? 'Scraping YouTube & Calendar...' : 'Sync with Google'}
+            {isSyncing ? 'Reading what you authorised...' : 'Sync with Google (Optional)'}
+          </button>
+          <button
+            onClick={onGetStarted}
+            className="mt-6 text-zinc-500 hover:text-emerald-400 text-sm font-bold uppercase tracking-widest transition-colors"
+          >
+            Skip and work locally only
           </button>
         </div>
       )}

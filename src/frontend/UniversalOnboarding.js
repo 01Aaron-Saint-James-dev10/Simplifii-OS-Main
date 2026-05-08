@@ -27,14 +27,18 @@ export function StartIgnition({ onStart }) {
 }
 
 export function IdentityGate({ onComplete, profile, setProfile }) {
-  const neuroOptions = ['ADHD', 'Dyslexia', 'Processing Differences'];
+  const styleOptions = [
+    { key: 'Deep-Focus Layout', hint: 'Single task in view, distractions dimmed.' },
+    { key: 'Non-Linear Navigation', hint: 'Jump between sections without losing your place.' },
+    { key: 'Visual Scaffolding', hint: 'Larger fonts, generous spacing, optional tints.' },
+    { key: 'Audio-Augmented', hint: 'Read-aloud and plain-language defaults.' }
+  ];
 
-  const toggleNeuroType = (type) => {
-    const isSelected = profile.neuroTypes?.includes(type);
-    let newTypes = isSelected 
-      ? profile.neuroTypes.filter(t => t !== type) 
-      : [...(profile.neuroTypes || []), type];
-    setProfile({ ...profile, neuroTypes: newTypes });
+  const toggleStyle = (key) => {
+    const current = profile.processingStyles || [];
+    const isSelected = current.includes(key);
+    const next = isSelected ? current.filter(t => t !== key) : [...current, key];
+    setProfile({ ...profile, processingStyles: next });
   };
 
   return (
@@ -42,24 +46,29 @@ export function IdentityGate({ onComplete, profile, setProfile }) {
       <div className="w-full max-w-2xl z-10 text-center animate-fade-in bg-zinc-900/50 border border-zinc-800 p-12 rounded-3xl backdrop-blur-xl shadow-2xl">
         <User size={48} className="text-emerald-500 mx-auto mb-6" />
         <h2 className="text-3xl font-black mb-4">Identity Gate</h2>
-        <p className="text-zinc-400 mb-8 text-lg">People API synced. Welcome, <strong className="text-emerald-400">{profile.name}</strong>.</p>
-        
+        <p className="text-zinc-400 mb-8 text-lg">Welcome, <strong className="text-emerald-400">{profile.name}</strong>. Pick the processing styles you want the OS to default to. You can change these any time.</p>
+
         <div className="mb-8">
-          <p className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-4">Cognitive Profile</p>
+          <p className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-4">Processing Styles</p>
           <div className="flex flex-wrap justify-center gap-3">
-            {neuroOptions.map(opt => (
-              <button
-                key={opt}
-                onClick={() => toggleNeuroType(opt)}
-                className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all ${profile.neuroTypes?.includes(opt) ? 'bg-emerald-500 text-black shadow-[0_0_15px_rgba(16,185,129,0.3)] border-emerald-500' : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:border-zinc-500 hover:text-white'}`}
-              >
-                {opt}
-              </button>
-            ))}
+            {styleOptions.map(opt => {
+              const selected = profile.processingStyles?.includes(opt.key);
+              return (
+                <button
+                  key={opt.key}
+                  onClick={() => toggleStyle(opt.key)}
+                  title={opt.hint}
+                  className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all ${selected ? 'bg-emerald-500 text-black shadow-[0_0_15px_rgba(16,185,129,0.3)] border-emerald-500' : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:border-zinc-500 hover:text-white'}`}
+                >
+                  {opt.key}
+                </button>
+              );
+            })}
           </div>
+          <p className="text-[10px] uppercase tracking-widest text-zinc-600 mt-4 font-bold">No diagnoses required. Pick what helps you read and write.</p>
         </div>
 
-        <button 
+        <button
           onClick={onComplete}
           className="w-full py-4 rounded-xl bg-white text-black font-black uppercase tracking-widest hover:bg-zinc-200 transition-all"
         >
@@ -145,12 +154,14 @@ export function CourseDefinition({ onComplete, profile, setProfile }) {
 
 export function Grounding({ onComplete, profile }) {
   const [parsingFiles, setParsingFiles] = useState(false);
+  const [extractionError, setExtractionError] = useState(null);
   const fileInputRef = useRef(null);
 
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
-    
+
+    setExtractionError(null);
     setParsingFiles(true);
     let combinedExtractedData = { 
       unitCode: profile.courseName, 
@@ -181,6 +192,7 @@ export function Grounding({ onComplete, profile }) {
       
     } catch (error) {
       console.error("Critical extraction failure:", error);
+      setExtractionError(error?.message || 'Could not read that file. Try another PDF.');
     } finally {
       setParsingFiles(false);
     }
@@ -208,11 +220,20 @@ export function Grounding({ onComplete, profile }) {
           disabled={parsingFiles}
           className="w-full py-8 rounded-3xl bg-zinc-900 border-2 border-dashed border-zinc-700 hover:border-emerald-500 hover:bg-emerald-500/5 transition-all flex flex-col items-center justify-center gap-4 group cursor-pointer disabled:opacity-50"
         >
-          {parsingFiles ? <Loader2 size={48} className="animate-spin text-emerald-500" /> : <UploadCloud size={48} className="text-zinc-600 group-hover:text-emerald-500 transition-colors" />} 
+          {parsingFiles ? <Loader2 size={48} className="animate-spin text-emerald-500" /> : <UploadCloud size={48} className="text-zinc-600 group-hover:text-emerald-500 transition-colors" />}
           <span className="text-xl font-black uppercase tracking-widest text-zinc-400 group-hover:text-emerald-400 transition-colors">
             {parsingFiles ? 'Extracting Metadata...' : 'Drop Documents Here'}
           </span>
         </button>
+        {extractionError && (
+          <div role="alert" className="mt-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-left">
+            <p className="text-red-400 text-sm font-bold mb-1">Extraction failed</p>
+            <p className="text-red-300/80 text-xs font-medium leading-relaxed">{extractionError}</p>
+          </div>
+        )}
+        <p className="mt-6 text-[10px] uppercase tracking-widest text-zinc-600 font-bold">
+          Parsed locally on your Mac. The file does not leave this device.
+        </p>
       </div>
     </div>
   );

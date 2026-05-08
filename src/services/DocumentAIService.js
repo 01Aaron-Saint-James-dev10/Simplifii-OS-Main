@@ -69,11 +69,13 @@ const callGcpDocumentAi = async (fileBlob, liveToken) => {
   return data.document.text;
 };
 
-const mockDocumentAI = async (file) => new Promise((resolve) => {
-  setTimeout(() => {
-    resolve(`[SIMULATED DOCUMENT AI EXTRACTION FOR ${file.name}]\n\nUnit Code: BABS1201\nTheme: Molecules\nTier: mres\nLength: 2000 words\nRequirements: Primary sources required.`);
-  }, 1500);
-});
+export class PdfExtractionError extends Error {
+  constructor(message, cause) {
+    super(message);
+    this.name = 'PdfExtractionError';
+    this.cause = cause;
+  }
+}
 
 export const processDocumentWithGCP = async (fileBlob, authToken) => {
   const liveToken = localStorage.getItem('gcp_access_token') || authToken;
@@ -89,16 +91,23 @@ export const processDocumentWithGCP = async (fileBlob, authToken) => {
     }
   }
 
-  // Tier 2: Sovereign local parse via pdfjs-dist.
+  // Tier 2: Sovereign local parse via pdfjs-dist. No silent mock fallback.
+  // If pdfjs cannot extract real text (corrupt file, scan-only PDF without an
+  // OCR layer), throw a typed error the UI can surface to the student.
   try {
     console.info('[DocumentAI] Sovereign mode: parsing PDF locally with pdfjs-dist.');
     const text = await extractWithPdfJs(fileBlob);
-    if (text && text.trim().length > 0) return text;
-    throw new Error('pdfjs returned empty text (likely scanned PDF without OCR layer).');
+    if (!text || text.trim().length === 0) {
+      throw new PdfExtractionError(
+        'No text layer found. This PDF may be a scan or image-only document. Try a text-based PDF or run OCR first.'
+      );
+    }
+    return text;
   } catch (pdfErr) {
-    console.warn('[DocumentAI] Local pdfjs parse failed, falling back to canned mock:', pdfErr);
+    if (pdfErr instanceof PdfExtractionError) throw pdfErr;
+    throw new PdfExtractionError(
+      'Could not read this PDF locally. The file may be encrypted, corrupt, or use an unsupported format.',
+      pdfErr
+    );
   }
-
-  // Tier 3: Canned mock so the UI never blocks in dev.
-  return await mockDocumentAI(fileBlob);
 };
