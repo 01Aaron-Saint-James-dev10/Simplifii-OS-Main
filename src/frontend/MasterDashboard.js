@@ -368,6 +368,9 @@ export default function MasterDashboard() {
 
       {showSupportBridge && <SupportBridge onClose={() => setShowSupportBridge(false)} isLiteralMode={profile?.neuroTypes?.includes('Autism') || true} />}
 
+      {/* Body row: sidebar + main + right archive share the height below the nav */}
+      <div className="flex-1 flex overflow-hidden min-h-0">
+
       {/* Global Sprints Sidebar (Left) */}
       <aside className={`${leftSidebarClass} border-r border-zinc-800/50 bg-black/40 backdrop-blur-xl flex flex-col shrink-0 transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] z-10 relative overflow-hidden pt-44`}>
         {!isZenMode && (
@@ -511,6 +514,7 @@ export default function MasterDashboard() {
           )}
         </aside>
       )}
+      </div>
 
       {/* Zen Mode Indicator */}
       {isZenMode && (
