@@ -85,7 +85,13 @@ const buildContextBlock = (course) => {
     if (roadmapParts.length) parts.push(`SEMESTER ROADMAP:\n${roadmapParts.join('\n')}`);
   }
   if (typeof ed.rawText === 'string' && ed.rawText.length > 0) {
-    parts.push(`SYLLABUS EXCERPT (first 1500 chars):\n${ed.rawText.slice(0, 1500)}`);
+    // 8000 char window. Previous 1500 cap was clipping right after
+    // the course description, leaving AURA blind to the assessment
+    // table and rubric criteria buried later in the document.
+    // llama3.2 has 128k context so 8000 is comfortable. AURA can
+    // now answer 'what is the weighting for the lit review' without
+    // referring the student back to the original PDF.
+    parts.push(`SYLLABUS EXCERPT (first 8000 chars):\n${ed.rawText.slice(0, 8000)}`);
   }
   return parts.join('\n\n');
 };

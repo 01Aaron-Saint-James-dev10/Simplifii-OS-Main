@@ -230,21 +230,44 @@ export default function MasterDashboard() {
       }
     }
 
-    // Source-of-truth decision. Ollama wins only when it produced at
-    // least one brief. Empty Ollama output -> use regex as the safety
-    // net so the cockpit always shows something the student can act
-    // on, even when the LLM whiffed.
-    let assessmentTitles;
-    if (assessmentBriefs.length > 0) {
-      assessmentTitles = assessmentBriefs.map(b => b.weight ? `${b.title} (${b.weight})` : b.title);
-    } else {
-      if (typeof console !== 'undefined' && regexTitles.length > 0) {
-        console.info('[handleSprintCreation] Ollama returned 0 briefs, using', regexTitles.length, 'regex titles as safety net');
-      }
-      assessmentTitles = regexTitles;
+    // Source-of-truth decision: MERGE Ollama briefs with regex titles.
+    // Previous logic treated them as exclusive sources, so a real
+    // Lit Review pillar that only the regex caught (because Ollama
+    // anchored on the outline assessment table and missed the brief
+    // PDF) got lost. Now we union the two case-insensitively.
+    const ollamaTitles = assessmentBriefs.map(b => b.weight ? `${b.title} (${b.weight})` : b.title);
+    const merged = [];
+    const seen = new Set();
+    for (const t of [...ollamaTitles, ...regexTitles]) {
+      if (!t || typeof t !== 'string') continue;
+      const trimmed = t.trim();
+      if (trimmed.length < 4) continue;
+      // Dedup on the title-without-weighting so 'Literature Review'
+      // and 'Literature Review (25%)' do not both land.
+      const stem = trimmed.replace(/\s*\(\d+%\)\s*$/, '').toLowerCase();
+      if (seen.has(stem)) continue;
+      seen.add(stem);
+      merged.push(trimmed);
+    }
+    const assessmentTitles = merged;
+    if (typeof console !== 'undefined') {
+      console.info('[handleSprintCreation] merged extraction:', assessmentTitles.length, 'titles (ollama:', ollamaTitles.length, ', regex:', regexTitles.length, ')');
     }
 
-    const enrichedData = { ...data, assessmentTitles, assessmentBriefs };
+    // Rebuild doneWhenChecklist from the merged list. The version that
+    // BriefService produced was based only on the regex output, so when
+    // Ollama added new pillars they never reached the DoD column. The
+    // shape matches BriefService's slugify+map structure so checklist
+    // ids stay stable across courses.
+    const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '').slice(0, 40) || 'item';
+    const doneWhenChecklist = assessmentTitles.slice(0, 12).map((entry, i) => ({
+      id: `assess_${i}_${slugify(entry)}`,
+      text: entry,
+      checked: false,
+      triggerWord: entry.split(/\s+/).slice(0, 3).join(' ').toLowerCase()
+    }));
+
+    const enrichedData = { ...data, assessmentTitles, assessmentBriefs, doneWhenChecklist };
 
     // Task name is derived from real syllabus data: prefer the first
     // extracted assessment title, fall back to the unit code, then to a
