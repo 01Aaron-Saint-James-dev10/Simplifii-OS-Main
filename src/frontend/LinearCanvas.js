@@ -261,6 +261,20 @@ export default function LinearCanvas({
   const [viewMode, setViewMode] = useState('academic'); // 'academic' or 'presentation'
   const [isProofing, setIsProofing] = useState(false);
   const [checklist, setChecklist] = useState(extractionData?.doneWhenChecklist || []);
+  // Sync checklist when extractionData arrives or changes after mount.
+  // useState above only reads on first render; a fresh handshake that
+  // populates extractionData after mount needs this effect to push the
+  // new doneWhenChecklist into state. Guard: only seed when the new
+  // list is non-empty and has more items than the current one, so a
+  // student's checked-off progress is not clobbered by a stale empty
+  // re-render.
+  useEffect(() => {
+    const incoming = extractionData?.doneWhenChecklist;
+    if (Array.isArray(incoming) && incoming.length > 0 && incoming.length > checklist.length) {
+      setChecklist(incoming);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [extractionData]);
   const [hoveredBlockId, setHoveredBlockId] = useState(null);
   const [ghostAssets, setGhostAssets] = useState({});
   const [justCheckedId, setJustCheckedId] = useState(null);
