@@ -263,24 +263,18 @@ export default function MasterDashboard() {
           </div>
         </div>
 
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-5 relative z-[1300]">
           {/* View as Speech Button */}
-          <button 
-            onClick={() => {
-              if (!isBooting) window.dispatchEvent(new CustomEvent('toggle-view-mode'));
-            }}
-            disabled={isBooting}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all bg-transparent border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 ${isBooting ? 'opacity-50 cursor-not-allowed' : ''}`}
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('toggle-view-mode'))}
+            className="flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all bg-transparent border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 cursor-pointer"
           >
             <Sparkles size={14} /> View as Speech
           </button>
           {/* UDL Overrides Button */}
           <button
-            onClick={() => {
-              if (!isBooting) window.dispatchEvent(new CustomEvent('toggle-accessibility'));
-            }}
-            disabled={isBooting}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all ${isBionicActive || overlayTint !== 'none' || isRulerActive ? 'bg-amber-500/10 border-amber-500/50 text-amber-500' : 'bg-transparent border-zinc-700 text-zinc-400'} hover:text-white hover:border-zinc-500 ${isBooting ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => window.dispatchEvent(new CustomEvent('toggle-accessibility'))}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${isBionicActive || overlayTint !== 'none' || isRulerActive ? 'bg-amber-500/10 border-amber-500/50 text-amber-500' : 'bg-transparent border-zinc-700 text-zinc-400'} hover:text-white hover:border-zinc-500`}
           >
             <Sparkles size={14} /> UDL Overrides
           </button>
@@ -291,9 +285,8 @@ export default function MasterDashboard() {
             role="switch"
             aria-checked={isLiteralMode}
             aria-label="Toggle Literal Mode"
-            onClick={() => { if (!isBooting) setIsLiteralMode(prev => !prev); }}
-            disabled={isBooting}
-            className={`flex items-center gap-3 bg-zinc-900/50 px-4 py-2 rounded-full border border-zinc-800 transition-opacity ${isBooting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-zinc-600'}`}
+            onClick={() => setIsLiteralMode(prev => !prev)}
+            className="flex items-center gap-3 bg-zinc-900/50 px-4 py-2 rounded-full border border-zinc-800 cursor-pointer hover:border-zinc-600 transition-colors"
           >
             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Literal Mode</span>
             <span className={`w-10 h-5 rounded-full relative transition-colors ${isLiteralMode ? 'bg-indigo-500' : 'bg-zinc-700'}`}>
@@ -301,12 +294,9 @@ export default function MasterDashboard() {
             </span>
           </button>
 
-          <button 
-            onClick={() => {
-               if (!isBooting) setShowSupportBridge(true);
-            }}
-            disabled={isBooting}
-            className={`flex items-center gap-2 px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all ${isBooting ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed' : 'bg-rose-500/10 border border-rose-500/30 text-rose-500 hover:bg-rose-500 hover:text-white shadow-glow-rose'}`}
+          <button
+            onClick={() => setShowSupportBridge(true)}
+            className="flex items-center gap-2 px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all bg-rose-500/10 border border-rose-500/30 text-rose-500 hover:bg-rose-500 hover:text-white shadow-glow-rose cursor-pointer"
           >
             <AlertTriangle size={14} /> SOS
           </button>
@@ -462,14 +452,38 @@ export default function MasterDashboard() {
                 <Shield size={24} className="shrink-0" />
                 <h3 className="font-black tracking-widest uppercase text-sm">Cognitive Archive</h3>
               </div>
-              <div className="flex-1 overflow-y-auto px-6 pb-6 whitespace-nowrap custom-scrollbar">
+              <div
+                className="flex-1 overflow-y-auto px-6 pb-6 whitespace-nowrap custom-scrollbar"
+                onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('ring-1', 'ring-blue-500/40'); }}
+                onDragLeave={(e) => { e.currentTarget.classList.remove('ring-1', 'ring-blue-500/40'); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.remove('ring-1', 'ring-blue-500/40');
+                  const textData = e.dataTransfer.getData('text/plain') || e.dataTransfer.getData('text/uri-list');
+                  if (!textData) return;
+                  const isUrl = /^https?:\/\//.test(textData);
+                  const newAsset = {
+                    id: Date.now().toString(),
+                    blockId: 'archive',
+                    source: isUrl ? new URL(textData).hostname : textData.slice(0, 50),
+                    text: isUrl ? `Extracted Insight from ${new URL(textData).hostname}: pending semantic mapping.` : textData,
+                    author: 'Manual capture',
+                    year: new Date().getFullYear().toString(),
+                    isPrimary: false
+                  };
+                  handleAddGhostAsset(newAsset);
+                }}
+              >
                 {globalGhostAssets.length === 0 ? (
-                  <p className="text-zinc-500 text-xs font-bold mt-10">No embedded assets yet.</p>
+                  <div className="text-zinc-500 text-xs font-bold mt-10 px-2">
+                    <p>No embedded assets yet.</p>
+                    <p className="mt-2 font-medium normal-case text-[11px] leading-relaxed text-zinc-600">Drag a research URL or text snippet directly here, or drop it on a section in the Canvas.</p>
+                  </div>
                 ) : (
                   <div className="space-y-4">
                     {globalGhostAssets.map(asset => (
                       <div key={asset.id} className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl max-w-full">
-                        <p className="text-[10px] font-black uppercase text-emerald-500 mb-2 truncate">Block: {asset.blockId}</p>
+                        <p className="text-[10px] font-black uppercase text-emerald-500 mb-2 truncate">{asset.blockId === 'archive' ? `Source: ${asset.source}` : `Block: ${asset.blockId}`}</p>
                         <p className="text-xs text-zinc-300 whitespace-normal line-clamp-3">{asset.text}</p>
                       </div>
                     ))}

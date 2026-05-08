@@ -249,6 +249,7 @@ export default function LinearCanvas({
   }, [sections, profile?.courseName]);
   const [activeSectionId, setActiveSectionId] = useState('intro');
   const [bloomedSectionId, setBloomedSectionId] = useState(null);
+  const [activeLogicMode, setActiveLogicMode] = useState(null);
   const [isDyslexic, setIsDyslexic] = useState(profile?.processingStyles?.includes('Visual Scaffolding') || false);
   const [isLiteralMode, setIsLiteralMode] = useState(profile?.processingStyles?.includes('Audio-Augmented') || false);
   const [viewMode, setViewMode] = useState('academic'); // 'academic' or 'presentation'
@@ -417,14 +418,45 @@ export default function LinearCanvas({
       mentorNotes: "How does removing the filler words change the impact of your argument? Try to apply this logic to the next sentence.",
       isPrimary: true
     };
-    
+
     setGhostAssets(prev => ({
       ...prev,
       [section.id]: [mirrorDraft, ...(prev[section.id] || [])]
     }));
-    
+
     setSemanticGaps(prev => [...prev, section.id]);
     speakSystemMessage("Mirror draft generated in your Ghost Layer. Review the reflection question.", "Precision Scaffolding active.");
+  };
+
+  // Deterministic preview transforms. These are baseline edits that show the
+  // tool intent until a real LLM rewrite path lands. The avatar speech makes
+  // the action audible; the section content visibly changes so the student
+  // sees the click did something.
+  const handleElevateRigour = (section) => {
+    const trimmed = (section.content || '').trim();
+    if (!trimmed) {
+      speakSystemMessage("Write something first, then I can elevate the rigour.", "No content yet.");
+      return;
+    }
+    const elevated = `Drawing on the peer-reviewed literature, ${trimmed.charAt(0).toLowerCase()}${trimmed.slice(1)}`;
+    handleContentChange(section.id, elevated);
+    speakSystemMessage("Tone elevated to academic register. Review the opening clause.", "Rigour preview applied.");
+  };
+
+  const handleSynthesise = (section) => {
+    const trimmed = (section.content || '').trim();
+    if (!trimmed) {
+      speakSystemMessage("Add at least one source insight before synthesising.", "Nothing to synthesise yet.");
+      return;
+    }
+    const synthesised = `Synthesising the evidence reviewed above: ${trimmed}`;
+    handleContentChange(section.id, synthesised);
+    speakSystemMessage("Synthesis frame applied. Tighten the argument by removing repeated claims.", "Synthesis preview applied.");
+  };
+
+  const handleLogicBlockClick = (inst) => {
+    setActiveLogicMode(inst.id);
+    speakSystemMessage(`Logic mode set to ${inst.label}. Future drafts in the active section will be primed for this mode.`, `${inst.label} mode active.`);
   };
 
   const renderDensityScanner = (content) => {
@@ -798,23 +830,30 @@ export default function LinearCanvas({
               <h3 className="font-black tracking-widest uppercase text-sm">Logic Blocks</h3>
             </div>
             <div className="space-y-6 flex-1 whitespace-nowrap">
-              {ASSESSMENT_INSTRUCTIONS.map(inst => (
-                <div 
-                  id={`block-${inst.id}`}
-                  key={inst.id}
-                  draggable
-                  onDragStart={(e) => e.dataTransfer.setData('application/json', JSON.stringify(inst))}
-                  onMouseEnter={() => setHoveredBlockId(inst.id)}
-                  onMouseLeave={() => setHoveredBlockId(null)}
-                  className="p-5 bg-[#0A0A0A] border border-zinc-800 rounded-2xl cursor-grab hover:border-emerald-500 transition-all group relative z-10 max-w-full"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-black uppercase tracking-widest text-zinc-300 group-hover:text-emerald-400 truncate pr-2">{inst.label}</span>
-                    <GripVertical size={16} className="text-zinc-700 group-hover:text-emerald-500 shrink-0" />
+              {ASSESSMENT_INSTRUCTIONS.map(inst => {
+                const isActiveMode = activeLogicMode === inst.id;
+                return (
+                  <div
+                    id={`block-${inst.id}`}
+                    key={inst.id}
+                    draggable
+                    onDragStart={(e) => e.dataTransfer.setData('application/json', JSON.stringify(inst))}
+                    onClick={() => handleLogicBlockClick(inst)}
+                    onMouseEnter={() => setHoveredBlockId(inst.id)}
+                    onMouseLeave={() => setHoveredBlockId(null)}
+                    className={`p-5 rounded-2xl cursor-pointer hover:border-emerald-500 transition-all group relative z-10 max-w-full border ${isActiveMode ? 'bg-emerald-500/10 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.25)]' : 'bg-[#0A0A0A] border-zinc-800'}`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className={`text-xs font-black uppercase tracking-widest truncate pr-2 ${isActiveMode ? 'text-emerald-400' : 'text-zinc-300 group-hover:text-emerald-400'}`}>{inst.label}</span>
+                      <GripVertical size={16} className={`shrink-0 ${isActiveMode ? 'text-emerald-400' : 'text-zinc-700 group-hover:text-emerald-500'}`} />
+                    </div>
+                    <p className="text-[11px] text-zinc-500 font-medium whitespace-normal">{inst.detail}</p>
+                    {isActiveMode && (
+                      <p className="mt-3 text-[9px] uppercase tracking-widest font-black text-emerald-400">Logic mode active. Drag to apply, or write in this frame.</p>
+                    )}
                   </div>
-                  <p className="text-[11px] text-zinc-500 font-medium whitespace-normal">{inst.detail}</p>
-                </div>
-              ))}
+                );
+              })}
               
               <div 
                 draggable 
@@ -1002,10 +1041,16 @@ export default function LinearCanvas({
                         <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mr-2 flex items-center gap-1 shrink-0">
                           <Zap size={12} /> {isUni ? 'Academic Tools' : 'Clear Tools'}
                         </span>
-                        <button className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:border-emerald-500 hover:text-emerald-400 text-zinc-400 text-xs font-black uppercase tracking-widest transition-all">
+                        <button
+                          onClick={() => handleSynthesise(section)}
+                          className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:border-emerald-500 hover:text-emerald-400 text-zinc-400 text-xs font-black uppercase tracking-widest transition-all"
+                        >
                           {isUni ? 'Synthesise' : 'Summarise'}
                         </button>
-                        <button className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:border-emerald-500 hover:text-emerald-400 text-zinc-400 text-xs font-black uppercase tracking-widest transition-all">
+                        <button
+                          onClick={() => handleElevateRigour(section)}
+                          className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:border-emerald-500 hover:text-emerald-400 text-zinc-400 text-xs font-black uppercase tracking-widest transition-all"
+                        >
                           {isUni ? 'Elevate Rigour' : 'Improve Clarity'}
                         </button>
                         <button onClick={() => avatarSpeak("AI Declaration Exported. You may attach it to your submission.", "AI Usage Declaration saved.")} className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:border-indigo-500 hover:text-indigo-400 text-zinc-400 text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2">

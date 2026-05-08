@@ -73,8 +73,11 @@ export default function LandingPage({ onGetStarted }) {
       {step === 1 && (
         <div className="text-center max-w-2xl mx-auto z-10 animate-fade-in">
           <h2 className="text-4xl font-black mb-6">Step 1: Sync by Permission</h2>
-          <p className="text-zinc-400 mb-10 text-lg">
-            Optional. Connect your Google account to import existing files and calendar entries you choose to share. Sync runs only when you click. Nothing is scraped autonomously, nothing leaves your device without consent.
+          <p className="text-zinc-400 mb-6 text-lg">
+            Optional. The live sync surface is sandboxed in this build. Real-time Google Context import lands in a future release.
+          </p>
+          <p className="text-amber-400/80 mb-10 text-xs font-bold uppercase tracking-widest border border-amber-500/30 bg-amber-500/5 rounded-xl py-3 px-4">
+            Preview Sync. No data is being moved. Nothing leaves your device.
           </p>
           <button
             onClick={handleGoogleSync}
@@ -82,7 +85,7 @@ export default function LandingPage({ onGetStarted }) {
             className="w-full bg-white text-black hover:bg-gray-100 font-black uppercase tracking-widest py-4 rounded-2xl transition-all flex items-center justify-center gap-3 text-lg"
           >
             {isSyncing ? <Loader2 className="animate-spin" /> : <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google" className="w-6 h-6" />}
-            {isSyncing ? 'Reading what you authorised...' : 'Sync with Google (Optional)'}
+            {isSyncing ? 'Loading sandboxed preview...' : 'Preview Context Sync (Demo Only)'}
           </button>
           <button
             onClick={onGetStarted}

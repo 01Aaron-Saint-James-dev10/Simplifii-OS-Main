@@ -172,6 +172,16 @@ export const extractDeepCourseData = (text) => {
   if (udlPrinciples.includes('action_expression')) udlSuggestions.push('viewAsSpeech', 'literalMode');
   if (udlPrinciples.includes('engagement')) udlSuggestions.push('zenMode', 'readingRuler');
 
+  // Build the Definition of Done checklist directly from extracted Learning
+  // Outcomes so a real PDF actually populates the cockpit's DoD column.
+  const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '').slice(0, 40) || 'lo';
+  const doneWhenChecklist = learningOutcomes.slice(0, 12).map((lo, i) => ({
+    id: `lo_${i}_${slugify(lo)}`,
+    text: lo,
+    checked: false,
+    triggerWord: lo.split(/\s+/).slice(0, 3).join(' ').toLowerCase()
+  }));
+
   return {
     learningOutcomes,
     referencingStyle,
@@ -185,6 +195,7 @@ export const extractDeepCourseData = (text) => {
     udlRequirements,
     udlPrinciples,
     udlSuggestions,
+    doneWhenChecklist,
     theme: 'Molecules'
   };
 };
