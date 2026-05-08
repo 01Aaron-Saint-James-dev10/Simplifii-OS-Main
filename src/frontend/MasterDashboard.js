@@ -14,7 +14,7 @@ import AIAvatar from './AIAvatar';
 import SupportBridge from './SupportBridge';
 import { fetchLMSData } from '../backend/LMSConnector';
 import { mapToWorkspace, deriveRoadmapFromAssessments } from '../services/BriefService';
-import { nameCourse, pingOllama, getProviderName, REASONING_START_EVENT, REASONING_END_EVENT } from '../services/RewriteService';
+import { nameCourse, pingOllama, getProviderName, extractAssessmentsWithOllama, REASONING_START_EVENT, REASONING_END_EVENT } from '../services/RewriteService';
 import { jsPDF } from 'jspdf';
 import FloatingResourceCard from './FloatingResourceCard';
 import ResourceIngestor from './ResourceIngestor';
@@ -194,14 +194,37 @@ export default function MasterDashboard() {
   //      Academic Tools use, so the student hears 'Course X identified.
   //      Your semester is now mapped.'
   const handleSprintCreation = async (data) => {
+    // Ollama assessment fallback. The regex finds clean cases but fails
+    // on syllabi with creative formatting, scanned tables, or split
+    // glyphs. When fewer than 2 assessments come out of the regex pass,
+    // we ask the model to re-read the rawText and return a JSON list.
+    // The result replaces the regex output for downstream consumers
+    // (Roadmap, DoD, AURA Chat context).
+    let assessmentTitles = Array.isArray(data.assessmentTitles) ? data.assessmentTitles.slice() : [];
+    if (assessmentTitles.length < 2 && data.rawText) {
+      window.dispatchEvent(new CustomEvent(REASONING_START_EVENT));
+      try {
+        const ollamaTitles = await extractAssessmentsWithOllama(data.rawText);
+        if (ollamaTitles.length >= assessmentTitles.length) {
+          assessmentTitles = ollamaTitles;
+        }
+      } catch (err) {
+        if (typeof console !== 'undefined') console.warn('[handleSprintCreation] Ollama assessment extraction failed:', err.message);
+      } finally {
+        window.dispatchEvent(new CustomEvent(REASONING_END_EVENT));
+      }
+    }
+
+    const enrichedData = { ...data, assessmentTitles };
+
     // Task name is derived from real syllabus data: prefer the first
     // extracted assessment title, fall back to the unit code, then to a
     // neutral 'Course Brief'. No 'Mini Literature Review' placeholder.
-    const firstAssessment = (data.assessmentTitles || [])[0];
+    const firstAssessment = assessmentTitles[0];
     const taskName = firstAssessment || data.unitCode || 'Course Brief';
     const newTask = { course: data.unitCode || 'Extracted', task: taskName, level: data.level, rawText: data.rawText };
     const generatedBlocks = mapToWorkspace(data.rawText || '', data.level || 'Tertiary');
-    const derivedRoadmap = deriveRoadmapFromAssessments(data.assessmentTitles || []);
+    const derivedRoadmap = deriveRoadmapFromAssessments(assessmentTitles);
 
     setInstitutionalData({
       learningOutcomes: data.learningOutcomes || [],
@@ -224,7 +247,7 @@ export default function MasterDashboard() {
     const payload = {
       tasks: [newTask],
       activeTask: newTask,
-      extractionData: data,
+      extractionData: enrichedData,
       project: { blocks: generatedBlocks }
     };
     if (derivedRoadmap) payload.roadmap = derivedRoadmap;

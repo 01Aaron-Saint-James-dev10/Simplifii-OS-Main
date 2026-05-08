@@ -409,6 +409,95 @@ export const nameCourse = async (text) => {
   }
 };
 
+// extractAssessmentsWithOllama: fallback assessment extractor for syllabi
+// the regex misses. Sends a tight JSON-only prompt with a chunk of the
+// rawText and asks the model to return an array of {title, weight}.
+// Used by BriefService when the regex finds fewer than 2 assessments.
+//
+// Returns [] on any failure (network, parse, empty). Caller falls through
+// to whatever the regex produced. Bypasses the reason() wrapper because
+// this is a quiet metadata pass, not a writing aid.
+const ASSESSMENT_SYSTEM_PROMPT = [
+  'You are an extraction tool. Read a course syllabus and return ONLY the graded assessments.',
+  '',
+  'OUTPUT FORMAT: A JSON array of objects. Each object has two keys:',
+  '  "title": short name of the assessment (3 to 50 chars, capital first letter)',
+  '  "weight": percentage as a string like "30%", or "" if no weighting is given',
+  'Example: [{"title":"Lab Report 1","weight":"15%"},{"title":"Final Exam","weight":"50%"}]',
+  '',
+  'ABSOLUTE RULES:',
+  '1. Australian English only.',
+  '2. Never use em-dashes or en-dashes.',
+  '3. Return ONLY the JSON array. No preamble, no markdown fence, no commentary.',
+  '4. Exclude topics, lecture titles, learning outcomes, rubric column headers, and navigation copy (Moodle, Hub, etc.).',
+  '5. Each title must appear ONLY ONCE in the array. Do not repeat the same assessment.',
+  '6. If the syllabus does not list assessments, return [].'
+].join('\n');
+
+export const extractAssessmentsWithOllama = async (rawText) => {
+  if (!rawText || rawText.trim().length < 200) return [];
+  if (getProviderName() !== 'ollama') return [];
+  try {
+    const endpoint = getOllamaEndpoint().replace(/\/$/, '');
+    const model = getOllamaModel();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 25000);
+    const response = await fetch(`${endpoint}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        stream: false,
+        format: 'json',
+        options: { temperature: 0.1, num_predict: 500 },
+        messages: [
+          { role: 'system', content: ASSESSMENT_SYSTEM_PROMPT },
+          { role: 'user', content: `SYLLABUS:\n${rawText.slice(0, 6000)}\n\nReturn the JSON array.` }
+        ]
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+    if (!response.ok) return [];
+    const data = await response.json().catch(() => ({}));
+    const raw = data?.message?.content || '';
+    // Try parsing as JSON, with two fallbacks: direct parse, and stripped
+    // markdown fence parse, and array-substring parse.
+    let parsed = null;
+    try { parsed = JSON.parse(raw); } catch { /* try fallbacks */ }
+    if (!parsed) {
+      const stripped = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+      try { parsed = JSON.parse(stripped); } catch { /* try next */ }
+    }
+    if (!parsed) {
+      const arrayMatch = raw.match(/\[[\s\S]*\]/);
+      if (arrayMatch) { try { parsed = JSON.parse(arrayMatch[0]); } catch { /* give up */ } }
+    }
+    if (!Array.isArray(parsed)) return [];
+    const seen = new Set();
+    const titles = [];
+    for (const item of parsed) {
+      if (!item || typeof item !== 'object') continue;
+      const title = String(item.title || '').trim().replace(/\s+/g, ' ');
+      const weight = String(item.weight || '').trim();
+      if (title.length < 4 || title.length > 60) continue;
+      if (!/^[A-Z]/.test(title)) continue;
+      const key = title.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const display = weight ? `${title} (${weight})` : title;
+      titles.push(display);
+    }
+    if (typeof console !== 'undefined') {
+      console.info('[RewriteService] Ollama extracted', titles.length, 'assessments');
+    }
+    return titles.slice(0, 12);
+  } catch (err) {
+    if (typeof console !== 'undefined') console.warn('[RewriteService] extractAssessmentsWithOllama failed:', err.message);
+    return [];
+  }
+};
+
 // pingOllama: 3 second health check against the active endpoint. Returns
 // true when /api/tags responds 2xx, false on any failure (network, abort,
 // non-2xx). Lets the cockpit confirm the Neural Link is alive on boot

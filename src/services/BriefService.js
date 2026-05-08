@@ -117,8 +117,16 @@ export const extractDeepCourseData = (text) => {
   
   const tier = TierParameters[detectedLevel] || TierParameters['tertiary'] || TierParameters['Undergrad'];
   
-  const loRegex = /(?:LO|Outcome|CLO)\s*\d*[:\-]?\s*([A-Za-z0-9\s,]+)/gi;
-  const learningOutcomes = [...text.matchAll(loRegex)].map(m => m[1].trim());
+  // Bounded LO regex. Previous version captured [A-Za-z0-9\s,]+ which is
+  // greedy and unbounded, so a CLO heading would absorb every following
+  // word until a non-alphanumeric char like a full stop or paren. The
+  // result was learning outcome fragments stretching across paragraphs.
+  // Now: capture must start with a capital letter, runs 10 to 240 chars,
+  // and stops at the first sentence boundary.
+  const loRegex = /(?:LO|Outcome|CLO)\s*\d+\s*[:\-]?\s*([A-Z][A-Za-z0-9 ,'&/\-]{10,240}?)(?=[.;\n]|\s*$)/g;
+  const learningOutcomes = [...text.matchAll(loRegex)]
+    .map(m => m[1].trim().replace(/\s+/g, ' '))
+    .filter(lo => lo.length >= 10);
 
   let referencingStyle = 'Harvard';
   if (lowerText.includes('apa')) referencingStyle = 'APA';

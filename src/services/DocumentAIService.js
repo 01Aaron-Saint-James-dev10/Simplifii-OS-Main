@@ -119,7 +119,11 @@ const callGcpDocumentAi = async (fileBlob, liveToken) => {
   });
 
   if (response.status === 401) {
-    speakSystemMessage("I need you to re-authenticate to access the Research Engine.");
+    // Clear the stale token so subsequent uploads skip the GCP path
+    // entirely and go straight to local pdfjs. Without this, every
+    // Grounding upload attempt produces three 401 round-trips and
+    // three duplicate 're-authenticate' speech messages.
+    try { localStorage.removeItem('gcp_access_token'); } catch { /* storage unavailable */ }
     throw new Error('Document AI: 401 Unauthorized. Token expired or invalid.');
   }
   if (!response.ok) {

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Loader2, X, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import { askAura } from '../services/ChatService';
-import { speakSystemMessage } from '../services/MessagingHub';
+import { speakSystemMessage, stopSpeaking } from '../services/MessagingHub';
 import { useProject } from './ProjectContext';
 
 const SPEAK_KEY = 'simplifii_aura_chat_speech';
@@ -58,6 +58,8 @@ export default function AskAura() {
     if (e) e.preventDefault();
     const message = input.trim();
     if (!message || loading) return;
+    // Interrupt any speech in-flight when a new question is sent.
+    stopSpeaking();
     setLoading(true);
     setError('');
     const nextHistory = [...history, { role: 'user', content: message }];

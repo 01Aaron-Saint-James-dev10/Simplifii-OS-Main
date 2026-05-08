@@ -33,11 +33,63 @@ export const simulateIncomingWebhook = (payload, dispatchToState) => {
   }, 1000); 
 };
 
-// speakSystemMessage. Backwards compatible: many callsites pass a subtitle
-// string as the second arg (legacy avatarSpeak pattern), so we now ignore
-// non-function values rather than wiring them to onend (which would silently
-// no-op). All speech attempts log to console so the student can verify the
-// path even when the OS volume or Chrome autoplay policy is blocking audio.
+// Speech queue. Previous version called speechSynthesis.cancel() at the
+// top of every speak call, which clipped boot-pulse + handshake messages
+// in flight and produced a wall of 'utterance error canceled' lines.
+// Now utterances are queued; each finishes before the next starts. The
+// caller can interrupt explicitly via stopSpeaking() (used when the
+// student sends a new chat message and wants the previous reply muted).
+const __speechQueue = [];
+let __speechSpeaking = false;
+
+const __pickVoice = () => {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return null;
+  const voices = window.speechSynthesis.getVoices();
+  return (
+    voices.find(v => v.lang === 'en-AU') ||
+    voices.find(v => v.name && v.name.toLowerCase().includes('karen')) ||
+    voices.find(v => v.name && (v.name.includes('Google') || v.name.includes('Siri'))) ||
+    voices.find(v => v.lang && v.lang.startsWith('en')) ||
+    null
+  );
+};
+
+const __dequeue = () => {
+  if (__speechSpeaking) return;
+  if (typeof window === 'undefined' || !window.speechSynthesis) return;
+  const job = __speechQueue.shift();
+  if (!job) return;
+  __speechSpeaking = true;
+  const { utterance, onEnd } = job;
+  utterance.onend = () => {
+    __speechSpeaking = false;
+    if (typeof onEnd === 'function') { try { onEnd(); } catch { /* swallow */ } }
+    __dequeue();
+  };
+  utterance.onerror = (e) => {
+    __speechSpeaking = false;
+    if (e?.error && e.error !== 'canceled' && e.error !== 'interrupted') {
+      if (typeof console !== 'undefined') console.warn('[Speech] utterance error', e.error);
+    }
+    __dequeue();
+  };
+  try {
+    window.speechSynthesis.speak(utterance);
+  } catch (err) {
+    __speechSpeaking = false;
+    if (typeof console !== 'undefined') console.warn('[Speech] speak() threw', err);
+    __dequeue();
+  }
+};
+
+export const stopSpeaking = () => {
+  __speechQueue.length = 0;
+  __speechSpeaking = false;
+  if (typeof window !== 'undefined' && window.speechSynthesis) {
+    try { window.speechSynthesis.cancel(); } catch { /* ignore */ }
+  }
+};
+
 export const speakSystemMessage = (text, onEndOrSubtitle, rate = 1.05, pitch = 0.9, onBoundaryCallback) => {
   if (typeof window === 'undefined' || !window.speechSynthesis) {
     if (typeof console !== 'undefined') console.warn('[Speech] speechSynthesis unavailable');
@@ -45,50 +97,23 @@ export const speakSystemMessage = (text, onEndOrSubtitle, rate = 1.05, pitch = 0
   }
   if (!text || typeof text !== 'string') return;
 
-  try { window.speechSynthesis.cancel(); } catch { /* ignore */ }
-
   const utterance = new SpeechSynthesisUtterance(text);
-
-  // Voice picking. The voices list is populated asynchronously on Chromium;
-  // first call after a hard reload returns []. We attempt synchronously, then
-  // re-attempt once on the voiceschanged event for the next utterance.
-  const pickVoice = () => {
-    const voices = window.speechSynthesis.getVoices();
-    return (
-      voices.find(v => v.lang === 'en-AU') ||
-      voices.find(v => v.name && v.name.toLowerCase().includes('karen')) ||
-      voices.find(v => v.name && (v.name.includes('Google') || v.name.includes('Siri'))) ||
-      voices.find(v => v.lang && v.lang.startsWith('en')) ||
-      null
-    );
-  };
-  const preferred = pickVoice();
+  const preferred = __pickVoice();
   if (preferred) utterance.voice = preferred;
-
   utterance.rate = rate;
   utterance.pitch = pitch;
 
-  // onEndOrSubtitle: only wire as a callback when it is a function. A
-  // string here is the legacy subtitle pattern; we just ignore it.
-  if (typeof onEndOrSubtitle === 'function') {
-    utterance.onend = onEndOrSubtitle;
-    utterance.onerror = onEndOrSubtitle;
-  }
   if (typeof onBoundaryCallback === 'function') {
     utterance.onboundary = onBoundaryCallback;
   }
 
-  utterance.onerror = utterance.onerror || ((e) => {
-    if (typeof console !== 'undefined') console.warn('[Speech] utterance error', e?.error || e);
-  });
-
   if (typeof console !== 'undefined') {
-    console.info('[Speech] speak ->', text.length > 80 ? text.slice(0, 80) + '...' : text);
+    console.info('[Speech] queue ->', text.length > 80 ? text.slice(0, 80) + '...' : text);
   }
 
-  try {
-    window.speechSynthesis.speak(utterance);
-  } catch (err) {
-    if (typeof console !== 'undefined') console.warn('[Speech] speak() threw', err);
-  }
+  __speechQueue.push({
+    utterance,
+    onEnd: typeof onEndOrSubtitle === 'function' ? onEndOrSubtitle : null
+  });
+  __dequeue();
 };
