@@ -135,6 +135,8 @@ export const ProjectProvider = ({ children }) => {
     learningOutcomes: extractionData?.learningOutcomes || [],
     assessmentDates: extractionData?.assessmentDates || [],
     udlRequirements: extractionData?.udlRequirements || [],
+    udlPrinciples: extractionData?.udlPrinciples || [],
+    udlSuggestions: extractionData?.udlSuggestions || [],
     referencingStyle: extractionData?.referencingStyle || null,
     rubricCriteria: extractionData?.rubricCriteria || [],
     evidenceFormula: extractionData?.evidenceFormula || [],

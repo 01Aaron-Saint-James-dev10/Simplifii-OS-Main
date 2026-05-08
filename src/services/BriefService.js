@@ -154,6 +154,24 @@ export const extractDeepCourseData = (text) => {
   const udlRegex = /UDL\s*(?:\d+(?:\.\d+)?)?\s*[:\-]?\s*([A-Za-z][^.;\n]{5,160})/gi;
   const udlRequirements = [...new Set([...text.matchAll(udlRegex)].map(m => m[1].trim()))].slice(0, 10);
 
+  // UDL 3.0 principle detection. Looks for the three networks in the text and
+  // suggests overrides the cockpit can pre-enable for the student.
+  const udlPrincipleSignals = {
+    engagement: /\bengagement\b|\bself[-\s]?regulation\b|\baffective\b|\bsustain(?:ing)?\s+effort\b/i,
+    representation: /\brepresentation\b|\brecognition\b|\bperception\b|\bcomprehension\b|\blanguage\s*&\s*symbols\b/i,
+    action_expression: /\baction\s*(?:&|and)\s*expression\b|\bstrategic\b|\bphysical\s*action\b|\bexecutive\s*function\b/i
+  };
+  const udlPrinciples = Object.entries(udlPrincipleSignals)
+    .filter(([, regex]) => regex.test(text))
+    .map(([principle]) => principle);
+
+  // Suggest cockpit overrides per detected principle. The student can accept
+  // or override; this is just a hint surface, not a hard switch.
+  const udlSuggestions = [];
+  if (udlPrinciples.includes('representation')) udlSuggestions.push('bionicReading', 'overlayTint:cream');
+  if (udlPrinciples.includes('action_expression')) udlSuggestions.push('viewAsSpeech', 'literalMode');
+  if (udlPrinciples.includes('engagement')) udlSuggestions.push('zenMode', 'readingRuler');
+
   return {
     learningOutcomes,
     referencingStyle,
@@ -165,6 +183,8 @@ export const extractDeepCourseData = (text) => {
     weighting,
     assessmentDates,
     udlRequirements,
+    udlPrinciples,
+    udlSuggestions,
     theme: 'Molecules'
   };
 };
