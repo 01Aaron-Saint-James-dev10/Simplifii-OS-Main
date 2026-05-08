@@ -14,17 +14,43 @@ const PROJECT_ID = process.env.REACT_APP_GCP_PROJECT_ID || 'simplifii-os-product
 const LOCATION = 'us';
 const PROCESSOR_ID = process.env.REACT_APP_DOCUMENT_AI_PROCESSOR_ID || 'c79a8ed226a1576e';
 
-// PDF.js worker. Served from the cockpit's own origin so the parser works
-// offline and never touches unpkg.com at runtime. The worker file is copied
-// into public/ at install time by scripts/copy-pdf-worker.js (registered
-// as the postinstall hook in package.json), so a fresh `npm install`
-// always populates it. Your PDF content is parsed entirely in the browser
-// and never leaves the device.
-if (typeof window !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+// PDF.js worker. Served from the cockpit's own origin. The copy script
+// (scripts/copy-pdf-worker.js) emits one of two filenames depending on
+// which pdfjs-dist version is installed:
+//   3.x and earlier  -> public/pdf.worker.min.js   (UMD, classic script)
+//   4.x              -> public/pdf.worker.min.mjs  (ESM, module script)
+// We probe HEAD on the .js variant first; if missing, fall back to .mjs.
+// The result is cached in a module-scoped promise so repeat parses do
+// not re-probe.
+let workerInitPromise = null;
+const initWorker = async () => {
+  if (typeof window === 'undefined') return;
+  if (pdfjsLib.GlobalWorkerOptions.workerSrc) return;
+  const candidates = ['/pdf.worker.min.js', '/pdf.worker.min.mjs'];
+  for (const url of candidates) {
+    try {
+      const r = await fetch(url, { method: 'HEAD' });
+      if (r.ok) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = url;
+        console.info('[DocumentAI] PDF worker resolved at', url);
+        return;
+      }
+    } catch { /* try next */ }
+  }
+  throw new Error("PDF worker not found in /public. Run 'npm install' to populate it (postinstall hook), or 'npm run copy-pdf-worker' manually.");
+};
+if (typeof window !== 'undefined') {
+  workerInitPromise = initWorker().catch(err => {
+    console.error('[DocumentAI]', err.message);
+    return Promise.reject(err);
+  });
 }
 
 const extractWithPdfJs = async (fileBlob) => {
+  // Wait for the worker probe to settle before kicking off the parse.
+  // If the probe rejected (no worker file found), surface that so the
+  // caller can show the breach banner instead of the generic catch-all.
+  if (workerInitPromise) await workerInitPromise;
   const arrayBuffer = await fileBlob.arrayBuffer();
   // Disable the font fetch so a missing standard-font URL does not abort
   // the parse; the cockpit only needs the text layer, not glyph rendering.
