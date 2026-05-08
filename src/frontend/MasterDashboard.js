@@ -12,12 +12,12 @@ import MathsStepEditor from './MathsStepEditor';
 import AIAvatar from './AIAvatar';
 import SupportBridge from './SupportBridge';
 import { fetchLMSData } from '../backend/LMSConnector';
-import { mapToWorkspace } from '../services/BriefService';
-import { nameCourse } from '../services/RewriteService';
+import { mapToWorkspace, deriveRoadmapFromAssessments } from '../services/BriefService';
+import { nameCourse, REASONING_START_EVENT, REASONING_END_EVENT } from '../services/RewriteService';
 import { jsPDF } from 'jspdf';
 import FloatingResourceCard from './FloatingResourceCard';
 import ResourceIngestor from './ResourceIngestor';
-import { simulateIncomingWebhook } from '../services/MessagingHub';
+import { simulateIncomingWebhook, speakSystemMessage } from '../services/MessagingHub';
 import { auditProjectContext } from '../services/VerificationService';
 import { saveGhostAsset, getAllGhostAssets } from '../services/IndexedDBService';
 
@@ -36,7 +36,7 @@ export default function MasterDashboard() {
     tasks, setTasks,
     extractionData, setExtractionData,
     activeTask, setActiveTask,
-    courses, activeCourse, activeCourseId, setActiveCourseId, addCourse, renameCourse, removeCourse
+    courses, activeCourse, activeCourseId, setActiveCourseId, addCourse, addCourseWithData, renameCourse, removeCourse
   } = useProject();
   const { setInstitutionalData } = useInstitution();
 
@@ -146,38 +146,55 @@ export default function MasterDashboard() {
     setCurrentStage(nextStage);
   };
 
-  // Smart Handshake. The cockpit derives the course name itself instead of
-  // popping a 'Name this course' prompt at the student. We:
-  //   1. Build initial state from the extracted data immediately (no waiting)
-  //   2. Ask Ollama for a clean canonical name in the background
-  //   3. Auto-create a new course with that name and switch to it
-  // If Ollama is unreachable or the provider is local-mock, the regex
-  // fallback inside nameCourse() returns a deterministic name based on the
-  // unit code and the first heading in the syllabus.
+  // Smart Handshake. Atomic create-and-fill so course name, tasks,
+  // extraction data, blocks, and roadmap all land in a single new course
+  // in one transition. No data leaks into the previous active course.
+  //
+  // Flow:
+  //   1. Build all derived state synchronously: blocks, tasks, roadmap.
+  //   2. Dispatch reasoning-start so the AURA dot pulses faster while
+  //      we wait for Ollama to canonicalise the course name.
+  //   3. await nameCourse(rawText). 8 second timeout inside RewriteService;
+  //      regex fallback if Ollama is unreachable.
+  //   4. addCourseWithData(name, payload). Single setCourses transition.
+  //   5. Speak the success greeting through the same channel the
+  //      Academic Tools use, so the student hears 'Course X identified.
+  //      Your semester is now mapped.'
   const handleSprintCreation = async (data) => {
     const newTask = { course: data.unitCode || 'Extracted', task: 'Mini Literature Review', level: data.level, rawText: data.rawText };
-    setTasks(prev => [...prev, newTask]);
-    setActiveTask(newTask);
-    setExtractionData(data);
+    const generatedBlocks = mapToWorkspace(data.rawText || '', data.level || 'Tertiary');
+    const derivedRoadmap = deriveRoadmapFromAssessments(data.assessmentTitles || []);
+
     setInstitutionalData({
       learningOutcomes: data.learningOutcomes || [],
       referencingStyle: data.referencingStyle || 'Harvard',
       rubricCriteria: data.rubricCriteria || []
     });
-    const generatedBlocks = mapToWorkspace(data.rawText || '', data.level || 'Tertiary');
-    setBlocks(generatedBlocks);
 
+    let derivedName = 'New Course';
     if (data?.rawText && data.rawText.trim().length > 50) {
+      window.dispatchEvent(new CustomEvent(REASONING_START_EVENT));
       try {
-        const derivedName = await nameCourse(data.rawText);
-        if (derivedName && derivedName !== 'New Course') {
-          const id = addCourse(derivedName);
-          if (id) setActiveCourseId(id);
-        }
+        derivedName = await nameCourse(data.rawText);
       } catch (err) {
         if (typeof console !== 'undefined') console.warn('[handleSprintCreation] nameCourse failed:', err.message);
+      } finally {
+        window.dispatchEvent(new CustomEvent(REASONING_END_EVENT));
       }
     }
+
+    const payload = {
+      tasks: [newTask],
+      activeTask: newTask,
+      extractionData: data,
+      project: { blocks: generatedBlocks }
+    };
+    if (derivedRoadmap) payload.roadmap = derivedRoadmap;
+
+    addCourseWithData(derivedName, payload);
+
+    const greetingName = derivedName && derivedName !== 'New Course' ? derivedName : (data.unitCode || 'this course');
+    speakSystemMessage(`Course ${greetingName} identified. Your semester is now mapped.`, `${greetingName} ready.`);
   };
 
   const generatePremiumPDF = () => {

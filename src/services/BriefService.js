@@ -270,3 +270,32 @@ export const mergeExtractionData = (prev, next) => {
     rawText: [prev.rawText, next.rawText].filter(Boolean).join('\n\n')
   };
 };
+
+// Map an array of extracted assessment titles into the three Semester
+// Roadmap slots. The student sees the actual graded artefacts in the left
+// sidebar instead of the generic 'Literature Review / Oral Presentation /
+// Final Exam' defaults. Returns null when titles is empty so the caller
+// can keep the per-course defaults intact.
+//
+// Rules:
+//   currentTask    -> first title (the next thing they will be graded on)
+//   nextAssessment -> second title, falling back to first if only one
+//   finalMilestone -> any title containing 'final' or 'exam' (case
+//                     insensitive); otherwise the last title
+export const deriveRoadmapFromAssessments = (assessmentTitles = []) => {
+  if (!Array.isArray(assessmentTitles) || assessmentTitles.length === 0) return null;
+  const titles = assessmentTitles.filter(Boolean);
+  if (titles.length === 0) return null;
+
+  const currentTask = titles[0];
+  const nextAssessment = titles[1] || titles[0];
+  // Prefer 'Final' first; if no Final, take the last 'Exam' title (so a
+  // Final Exam beats a Mid-semester Exam); else fall back to the last
+  // title in the list.
+  const finalMatch =
+    titles.find(t => /\bfinal\b/i.test(t)) ||
+    [...titles].reverse().find(t => /\bexam\b/i.test(t));
+  const finalMilestone = finalMatch || titles[titles.length - 1];
+
+  return { currentTask, nextAssessment, finalMilestone };
+};

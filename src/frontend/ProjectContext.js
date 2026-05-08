@@ -128,6 +128,32 @@ export const ProjectProvider = ({ children }) => {
     setActiveCourseId(id);
     return id;
   };
+
+  // Atomic create-and-fill. The Smart Handshake calls this with the full
+  // payload extracted from the syllabus so course name, tasks, extraction
+  // data, blocks, and roadmap all land in the new course in a single
+  // setCourses transition. Avoids the race where setExtractionData/setTasks
+  // fire against the previous activeCourseId before setActiveCourseId
+  // commits on the next tick.
+  const addCourseWithData = (name = 'New Course', payload = {}) => {
+    const id = `course_${Date.now()}`;
+    const base = makeEmptyCourse(name);
+    const merged = {
+      ...base,
+      ...payload,
+      // Roadmap is a nested object; merge the defaults so a partial
+      // payload (e.g. only currentTask) does not blank the other slots.
+      roadmap: { ...base.roadmap, ...(payload.roadmap || {}) },
+      // Project must keep its blocks structure; allow caller to override
+      // blocks specifically without losing the rest.
+      project: payload.project
+        ? { ...base.project, ...payload.project }
+        : base.project
+    };
+    setCourses(prev => ({ ...prev, [id]: merged }));
+    setActiveCourseId(id);
+    return id;
+  };
   const removeCourse = (id) => {
     // Purge per-course localStorage keys before dropping the course record.
     // Add new prefixes here when future per-course storage lands.
@@ -225,7 +251,7 @@ export const ProjectProvider = ({ children }) => {
       activeTask, setActiveTask,
       grounding,
       // CourseManager
-      courses, activeCourse, activeCourseId, setActiveCourseId, addCourse, removeCourse, renameCourse
+      courses, activeCourse, activeCourseId, setActiveCourseId, addCourse, addCourseWithData, removeCourse, renameCourse
     }}>{children}</ProjectContext.Provider>
   );
 };
