@@ -378,7 +378,11 @@ export const nameCourse = async (text) => {
     const endpoint = getOllamaEndpoint();
     const model = getOllamaModel();
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 8000);
+    // 20s ceiling. Naming is a one-shot warm-up call against a possibly
+    // cold model; 8s was clipping the response before llama3.2 finished
+    // generating even 60 tokens, leaving the regex fallback to ship the
+    // bare unit code (e.g. 'BABS1201') without the title that follows.
+    const timer = setTimeout(() => controller.abort(), 20000);
     const response = await fetch(`${endpoint.replace(/\/$/, '')}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

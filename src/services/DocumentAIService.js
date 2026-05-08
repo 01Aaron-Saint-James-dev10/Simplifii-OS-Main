@@ -65,7 +65,29 @@ const extractWithPdfJs = async (fileBlob) => {
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
-    pageTexts.push(content.items.map(item => item.str).join(' '));
+    // Reconstruct line breaks from item geometry. pdfjs returns text
+    // items in reading order but joins them with whitespace by default,
+    // which collapses assessment lists and learning outcomes into a
+    // single wall of words. The downstream regex then has nothing to
+    // anchor on. We watch each item's transform[5] (Y baseline) and
+    // each item's hasEOL flag (when present) and insert a newline
+    // whenever the baseline shifts up by more than 2 px or hasEOL
+    // is true. This recovers the visual line structure the parser
+    // needs without altering content.
+    let lastY = null;
+    let pageText = '';
+    for (const item of content.items) {
+      const y = item.transform ? item.transform[5] : null;
+      const yJumped = y !== null && lastY !== null && (lastY - y) > 2;
+      if (item.hasEOL || yJumped) {
+        pageText += '\n';
+      } else if (pageText.length > 0 && !/\s$/.test(pageText)) {
+        pageText += ' ';
+      }
+      pageText += item.str || '';
+      if (y !== null) lastY = y;
+    }
+    pageTexts.push(pageText);
   }
   return pageTexts.join('\n\n');
 };

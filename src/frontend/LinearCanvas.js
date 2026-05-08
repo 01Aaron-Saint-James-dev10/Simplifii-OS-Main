@@ -1205,8 +1205,13 @@ export default function LinearCanvas({
   )}
 </main>
       
-      {/* Done When Right Sidebar */}
-      {visibleChecklist.length > 0 && (
+      {/* Done When Right Sidebar. We render even when the checklist is
+          empty AFTER a handshake (extractionData is set), so the student
+          gets explicit feedback that the syllabus parsed but no
+          assessments were detected, rather than a silently missing
+          panel. Pre-handshake the panel stays hidden to keep the
+          empty cockpit clean. */}
+      {(visibleChecklist.length > 0 || extractionData) && (
         <aside className={`${rightSidebarClass} border-l border-zinc-900 bg-black/80 backdrop-blur-md flex flex-col shrink-0 transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] z-10 pt-24 relative overflow-y-auto custom-scrollbar overflow-x-hidden`}>
           {!isZenMode && (
             <button 
@@ -1228,6 +1233,12 @@ export default function LinearCanvas({
                 <h3 className="font-black tracking-widest uppercase text-xs">Definition of Done</h3>
               </div>
               
+              {visibleChecklist.length === 0 && extractionData && (
+                <div className="p-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 text-amber-300 text-xs leading-relaxed font-medium whitespace-normal">
+                  <p className="font-black uppercase tracking-widest text-[10px] mb-2 text-amber-400">No assessments detected</p>
+                  <p>The syllabus parsed but the extractor could not find an Assessment, Task, or named exam in the text. Check the browser console for the extraction summary, then try a more complete brief or rubric.</p>
+                </div>
+              )}
               <div className="space-y-4 whitespace-nowrap">
                 {visibleChecklist.map(item => {
                   const isPulsing = justCheckedId === item.id;

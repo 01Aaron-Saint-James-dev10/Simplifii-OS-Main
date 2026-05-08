@@ -215,6 +215,21 @@ export const extractDeepCourseData = (text) => {
     triggerWord: entry.split(/\s+/).slice(0, 3).join(' ').toLowerCase()
   }));
 
+  // Visibility for the student. When the cockpit can extract assessments
+  // and outcomes the panels light up; when it cannot, this trace shows
+  // exactly what the syllabus surfaced so we can iterate on the regex
+  // rather than guessing in the dark.
+  if (typeof console !== 'undefined') {
+    console.info('[BriefService] extraction summary', {
+      detectedLevel,
+      learningOutcomes: learningOutcomes.length,
+      assessmentTitles: assessmentTitles.length,
+      assessmentTitlesPreview: assessmentTitles.slice(0, 5),
+      learningOutcomesPreview: learningOutcomes.slice(0, 3),
+      rawTextChars: text.length
+    });
+  }
+
   return {
     learningOutcomes,
     assessmentTitles,
