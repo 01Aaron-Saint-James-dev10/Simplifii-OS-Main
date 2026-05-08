@@ -26,7 +26,15 @@ if (typeof window !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
 
 const extractWithPdfJs = async (fileBlob) => {
   const arrayBuffer = await fileBlob.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  // Disable the font fetch so a missing standard-font URL does not abort
+  // the parse; the cockpit only needs the text layer, not glyph rendering.
+  const loadingTask = pdfjsLib.getDocument({
+    data: arrayBuffer,
+    disableFontFace: true,
+    useSystemFonts: false,
+    isEvalSupported: false
+  });
+  const pdf = await loadingTask.promise;
   const pageTexts = [];
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
@@ -94,19 +102,49 @@ export const processDocumentWithGCP = async (fileBlob, authToken) => {
   // Tier 2: Sovereign local parse via pdfjs-dist. No silent mock fallback.
   // If pdfjs cannot extract real text (corrupt file, scan-only PDF without an
   // OCR layer), throw a typed error the UI can surface to the student.
+  // We log the underlying error to console so the student can self-diagnose
+  // when the surface message is too generic; the worker version mismatch
+  // and 'PasswordException' both surface as distinct console traces.
   try {
     console.info('[DocumentAI] Sovereign mode: parsing PDF locally with pdfjs-dist.');
     const text = await extractWithPdfJs(fileBlob);
     if (!text || text.trim().length === 0) {
       throw new PdfExtractionError(
-        'No text layer found. This PDF may be a scan or image-only document. Try a text-based PDF or run OCR first.'
+        'No text layer found. This PDF looks like a scan or image-only document. Try a text-based PDF, or OCR the file first (Preview app: File menu, Export as PDF after running text recognition).'
       );
     }
     return text;
   } catch (pdfErr) {
     if (pdfErr instanceof PdfExtractionError) throw pdfErr;
+    console.error('[DocumentAI] pdfjs-dist parse failed:', pdfErr);
+    const name = pdfErr?.name || '';
+    const msg = pdfErr?.message || '';
+    if (/PasswordException|password/i.test(name + ' ' + msg)) {
+      throw new PdfExtractionError(
+        'This PDF is password-protected. Remove the password (Preview app: Export, uncheck Encrypt) and try again.',
+        pdfErr
+      );
+    }
+    if (/InvalidPDFException|invalid pdf|missing pdf/i.test(name + ' ' + msg)) {
+      throw new PdfExtractionError(
+        'This file is not a valid PDF. Confirm the extension matches the contents, or re-export the file.',
+        pdfErr
+      );
+    }
+    if (/MissingPDFException/i.test(name)) {
+      throw new PdfExtractionError(
+        'PDF stream missing or empty. The file may have been truncated during upload.',
+        pdfErr
+      );
+    }
+    if (/worker|Setting up fake worker/i.test(msg)) {
+      throw new PdfExtractionError(
+        'PDF worker did not load. Run `npm run copy-pdf-worker` then refresh the page.',
+        pdfErr
+      );
+    }
     throw new PdfExtractionError(
-      'Could not read this PDF locally. The file may be encrypted, corrupt, or use an unsupported format.',
+      `Could not read this PDF locally (${name || 'unknown error'}: ${msg.slice(0, 120) || 'no detail'}). Check the browser console for the full trace.`,
       pdfErr
     );
   }
