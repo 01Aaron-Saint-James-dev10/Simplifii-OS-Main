@@ -14,14 +14,14 @@ const PROJECT_ID = process.env.REACT_APP_GCP_PROJECT_ID || 'simplifii-os-product
 const LOCATION = 'us';
 const PROCESSOR_ID = process.env.REACT_APP_DOCUMENT_AI_PROCESSOR_ID || 'c79a8ed226a1576e';
 
-// PDF.js worker. The worker file is the parser code, fetched once from unpkg.
-// Your PDF *content* is parsed entirely in the browser and never leaves the
-// device. To go fully offline, copy
-//   node_modules/pdfjs-dist/legacy/build/pdf.worker.min.js
-// into public/, then change the workerSrc to '/pdf.worker.min.js'.
+// PDF.js worker. Served from the cockpit's own origin so the parser works
+// offline and never touches unpkg.com at runtime. The worker file is copied
+// into public/ at install time by scripts/copy-pdf-worker.js (registered
+// as the postinstall hook in package.json), so a fresh `npm install`
+// always populates it. Your PDF content is parsed entirely in the browser
+// and never leaves the device.
 if (typeof window !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/legacy/build/pdf.worker.min.js`;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
 }
 
 const extractWithPdfJs = async (fileBlob) => {
