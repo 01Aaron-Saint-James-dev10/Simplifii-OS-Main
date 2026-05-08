@@ -252,14 +252,15 @@ export const extractDeepCourseData = (text) => {
     assessmentTitles.push(display);
   }
 
-  // Build the Definition of Done checklist. Prefer assessment titles so the
-  // student sees what they will be graded on; fall back to Learning Outcomes
-  // when the syllabus does not surface explicit assessments.
+  // Build the Definition of Done checklist. Assessments only. Learning
+  // Outcomes are not graded artefacts; mixing them into the DoD when no
+  // assessments are extracted produced a column full of LO fragments
+  // instead of work. If no assessments are found, the DoD stays empty
+  // and the empty-state banner in the canvas tells the student to drop
+  // a more complete syllabus.
   const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '').slice(0, 40) || 'item';
-  const doneSource = assessmentTitles.length > 0 ? assessmentTitles : learningOutcomes;
-  const doneSourceTag = assessmentTitles.length > 0 ? 'assess' : 'lo';
-  const doneWhenChecklist = doneSource.slice(0, 12).map((entry, i) => ({
-    id: `${doneSourceTag}_${i}_${slugify(entry)}`,
+  const doneWhenChecklist = assessmentTitles.slice(0, 12).map((entry, i) => ({
+    id: `assess_${i}_${slugify(entry)}`,
     text: entry,
     checked: false,
     triggerWord: entry.split(/\s+/).slice(0, 3).join(' ').toLowerCase()
@@ -349,21 +350,39 @@ export const mergeExtractionData = (prev, next) => {
 //                     insensitive); otherwise the last title
 export const deriveRoadmapFromAssessments = (assessmentTitles = []) => {
   if (!Array.isArray(assessmentTitles) || assessmentTitles.length === 0) return null;
-  // Defensive: drop empties and any title under 4 chars (e.g. 'Item').
-  // The upstream extractor already filters generic noise, this is the
-  // last line in case a stray short token slipped through.
-  const titles = assessmentTitles.filter(t => typeof t === 'string' && t.trim().length >= 4);
+  // Drop empties, short tokens, and exact duplicates so the slots only
+  // ever fill with distinct legitimate titles. With one valid title the
+  // Roadmap shows just Current Task; the Next and Final slots stay
+  // null and the panel rows hide entirely (LinearCanvas guards each
+  // row on its own value).
+  const seen = new Set();
+  const titles = [];
+  for (const t of assessmentTitles) {
+    if (typeof t !== 'string') continue;
+    const trimmed = t.trim();
+    if (trimmed.length < 4) continue;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    titles.push(trimmed);
+  }
   if (titles.length === 0) return null;
 
-  const currentTask = titles[0];
-  const nextAssessment = titles[1] || titles[0];
+  const currentTask = titles[0] || null;
+  const nextAssessment = titles.length >= 2 ? titles[1] : null;
   // Prefer 'Final' first; if no Final, take the last 'Exam' title (so a
   // Final Exam beats a Mid-semester Exam); else fall back to the last
-  // title in the list.
-  const finalMatch =
-    titles.find(t => /\bfinal\b/i.test(t)) ||
-    [...titles].reverse().find(t => /\bexam\b/i.test(t));
-  const finalMilestone = finalMatch || titles[titles.length - 1];
+  // title in the list when there are at least three distinct titles.
+  let finalMilestone = null;
+  if (titles.length >= 3) {
+    finalMilestone =
+      titles.find(t => /\bfinal\b/i.test(t)) ||
+      [...titles].reverse().find(t => /\bexam\b/i.test(t)) ||
+      titles[titles.length - 1];
+  } else if (titles.length === 2) {
+    // Only promote a Final-flavoured second title to the final slot.
+    finalMilestone = /\bfinal\b|\bexam\b/i.test(titles[1]) ? titles[1] : null;
+  }
 
   return { currentTask, nextAssessment, finalMilestone };
 };

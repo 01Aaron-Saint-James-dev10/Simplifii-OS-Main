@@ -75,15 +75,23 @@ export const markSpeechUnlocked = () => {
   __dequeue();
 };
 
+// Voice picker. Strict en-AU preference, then Australian-named voices,
+// then any English voice. We deliberately do NOT return null when an
+// AU voice is missing; falling back to en-US, en-GB, or any other
+// English locale guarantees AURA is audible rather than silent.
 const __pickVoice = () => {
   if (typeof window === 'undefined' || !window.speechSynthesis) return null;
   const voices = window.speechSynthesis.getVoices();
+  if (!voices || voices.length === 0) return null;
   return (
     voices.find(v => v.lang === 'en-AU') ||
-    voices.find(v => v.name && v.name.toLowerCase().includes('karen')) ||
+    voices.find(v => v.lang && v.lang.toLowerCase().startsWith('en-au')) ||
+    voices.find(v => v.name && /karen|catherine|lee|matilda|olivia/i.test(v.name)) ||
     voices.find(v => v.name && (v.name.includes('Google') || v.name.includes('Siri'))) ||
-    voices.find(v => v.lang && v.lang.startsWith('en')) ||
-    null
+    voices.find(v => v.lang === 'en-GB') ||
+    voices.find(v => v.lang === 'en-US') ||
+    voices.find(v => v.lang && v.lang.toLowerCase().startsWith('en')) ||
+    voices[0]
   );
 };
 
@@ -124,7 +132,11 @@ export const stopSpeaking = () => {
   }
 };
 
-export const speakSystemMessage = (text, onEndOrSubtitle, rate = 1.05, pitch = 0.9, onBoundaryCallback) => {
+// Hardwired audio defaults. Volume, rate, and pitch are pinned so a
+// per-call override does not silently drop volume to zero or push the
+// pitch into 'demonic' territory. Callers can still pass explicit
+// rate/pitch but the volume is always 1.0.
+export const speakSystemMessage = (text, onEndOrSubtitle, rate = 1.0, pitch = 1.0, onBoundaryCallback) => {
   if (typeof window === 'undefined' || !window.speechSynthesis) {
     if (typeof console !== 'undefined') console.warn('[Speech] speechSynthesis unavailable');
     return;
@@ -144,6 +156,7 @@ export const speakSystemMessage = (text, onEndOrSubtitle, rate = 1.05, pitch = 0
     console.warn('[Speech] no English voice available. Total voices loaded:', total, '. macOS users: System Settings > Accessibility > Spoken Content > System Voice.');
     __loggedVoice = true;
   }
+  utterance.volume = 1.0;
   utterance.rate = rate;
   utterance.pitch = pitch;
 

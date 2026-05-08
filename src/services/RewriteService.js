@@ -439,9 +439,9 @@ const ASSESSMENT_SYSTEM_PROMPT = [
 ].join('\n');
 
 // Internal: send the prompt and parse the JSON response. Returns an array
-// of normalised brief objects. Used by both the legacy
-// extractAssessmentsWithOllama (string list) and the richer
-// extractAssessmentBriefs (full objects).
+// of normalised brief objects on success (possibly empty). THROWS on
+// hard failures (network unreachable, non-2xx HTTP, abort) so the
+// caller can decide whether to fall back to regex.
 //
 // Logs every early exit so a silent zero is diagnosable. Set
 // localStorage.simplifii_extract_debug = 'true' to also dump the raw
@@ -455,12 +455,13 @@ const __callAssessmentExtractor = async (rawText) => {
     if (typeof console !== 'undefined') console.info('[RewriteService] extractor skipped: provider is', getProviderName());
     return [];
   }
+  const endpoint = getOllamaEndpoint().replace(/\/$/, '');
+  const model = getOllamaModel();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 45000);
+  let response;
   try {
-    const endpoint = getOllamaEndpoint().replace(/\/$/, '');
-    const model = getOllamaModel();
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 30000);
-    const response = await fetch(`${endpoint}/api/chat`, {
+    response = await fetch(`${endpoint}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -470,17 +471,23 @@ const __callAssessmentExtractor = async (rawText) => {
         options: { temperature: 0.1, num_predict: 800 },
         messages: [
           { role: 'system', content: ASSESSMENT_SYSTEM_PROMPT },
-          { role: 'user', content: `SYLLABUS:\n${rawText.slice(0, 8000)}\n\nReturn the JSON array.` }
+          { role: 'user', content: `SYLLABUS:\n${rawText.slice(0, 10000)}\n\nReturn the JSON array.` }
         ]
       }),
       signal: controller.signal
     });
+  } catch (networkErr) {
     clearTimeout(timer);
-    if (!response.ok) {
-      const body = await response.text().catch(() => '');
-      if (typeof console !== 'undefined') console.warn('[RewriteService] extractor HTTP', response.status, body.slice(0, 160));
-      return [];
-    }
+    if (typeof console !== 'undefined') console.warn('[RewriteService] extractor network error:', networkErr?.name, networkErr?.message);
+    throw new Error('extractor: ollama unreachable');
+  }
+  clearTimeout(timer);
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    if (typeof console !== 'undefined') console.warn('[RewriteService] extractor HTTP', response.status, body.slice(0, 160));
+    throw new Error(`extractor: HTTP ${response.status}`);
+  }
+  try {
     const data = await response.json().catch(() => ({}));
     const raw = data?.message?.content || '';
     const debug = (() => {

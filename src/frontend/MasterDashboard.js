@@ -210,31 +210,31 @@ export default function MasterDashboard() {
   //      Academic Tools use, so the student hears 'Course X identified.
   //      Your semester is now mapped.'
   const handleSprintCreation = async (data) => {
-    // LLM-first extraction. Ollama reads the syllabus and returns a
-    // structured list of assessment briefs (title, weight,
-    // wordCountGoal, dueDate). The regex pass remains a fallback for
-    // when Ollama is unreachable or returns nothing usable. The
-    // model output is the source of truth for the Roadmap, DoD, AURA
-    // Chat context, and the per-sprint word count goals that drive
-    // the Logic Block stage progression.
+    // LLM-first extraction. When Ollama is reachable, it is the SOLE
+    // source of truth for assessments. The regex pass is preserved
+    // only as a fallback when Ollama is unreachable (network error,
+    // HTTP 5xx, or the active provider is local-mock). An Ollama
+    // call that succeeds but returns an empty list is respected as
+    // an empty list; we do NOT pad the DoD with regex noise just to
+    // make it look full.
     const regexTitles = Array.isArray(data.assessmentTitles) ? data.assessmentTitles.slice() : [];
     let assessmentBriefs = [];
-    if (data?.rawText && data.rawText.trim().length > 200) {
+    let ollamaSucceeded = false;
+    if (data?.rawText && data.rawText.trim().length > 200 && getProviderName() === 'ollama') {
       window.dispatchEvent(new CustomEvent(REASONING_START_EVENT));
       try {
         assessmentBriefs = await extractAssessmentBriefs(data.rawText);
+        ollamaSucceeded = true;
       } catch (err) {
-        if (typeof console !== 'undefined') console.warn('[handleSprintCreation] Ollama assessment extraction failed:', err.message);
+        if (typeof console !== 'undefined') console.warn('[handleSprintCreation] Ollama extraction error, falling back to regex:', err.message);
       } finally {
         window.dispatchEvent(new CustomEvent(REASONING_END_EVENT));
       }
     }
 
-    // Decide which list wins. Ollama briefs are preferred whenever they
-    // produced at least one valid result. Regex output is a defensive
-    // fallback for offline / mock-provider runs.
+    // Source-of-truth decision.
     let assessmentTitles;
-    if (assessmentBriefs.length > 0) {
+    if (ollamaSucceeded) {
       assessmentTitles = assessmentBriefs.map(b => b.weight ? `${b.title} (${b.weight})` : b.title);
     } else {
       assessmentTitles = regexTitles;
