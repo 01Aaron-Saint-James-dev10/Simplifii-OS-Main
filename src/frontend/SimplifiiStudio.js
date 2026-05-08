@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import './simplifii-studio.css';
 import { useProject } from './ProjectContext';
 import { askAura } from '../services/ChatService';
+import { generateMicroSteps } from '../services/MicroStepService';
 import { speakSystemMessage, stopSpeaking } from '../services/MessagingHub';
 
 /**
@@ -586,6 +587,47 @@ function Cockpit({ pillar, pillars, drafts, setDraft, activeBlockId, setActiveBl
 
   const activeBlock = pillar.blocks.find((b) => b.id === activeBlockId) || pillar.blocks[0];
 
+  // Micro-steps panel state. Generated on demand per pillar; cached in
+  // memory so re-clicking the button does not regenerate on every
+  // mount, but a fresh handshake or pillar switch clears them.
+  const [microSteps, setMicroSteps] = useState([]);
+  const [microLoading, setMicroLoading] = useState(false);
+  const [microError, setMicroError] = useState('');
+  useEffect(() => { setMicroSteps([]); setMicroError(''); }, [pillar.id]);
+
+  const briefForPillar = useMemo(() => ({
+    title: pillar.name,
+    weight: pillar.weight ? `${pillar.weight}%` : '',
+    wordCountGoal: pillar.wordTarget,
+    dueDate: pillar.due
+  }), [pillar]);
+
+  const onGenerateSteps = async () => {
+    if (microLoading) return;
+    setMicroLoading(true);
+    setMicroError('');
+    try {
+      const steps = await generateMicroSteps(briefForPillar, pillar.name);
+      setMicroSteps(steps);
+    } catch (err) {
+      setMicroError(err?.message || 'Could not generate steps.');
+    } finally {
+      setMicroLoading(false);
+    }
+  };
+
+  const onInsertSteps = () => {
+    if (microSteps.length === 0) return;
+    const block = activeBlock;
+    const heading = `Study plan steps (generated ${new Date().toLocaleString('en-AU')})`;
+    const body = microSteps.map((s) => `${s.step}. ${s.title}: ${s.action}`).join('\n');
+    const existing = drafts[block.id] || '';
+    const next = existing.trim()
+      ? `${existing.trim()}\n\n${heading}\n${body}\n`
+      : `${heading}\n${body}\n`;
+    setDraft(block.id, next);
+  };
+
   // Mastery stage derived from total progress: 0% -> introduce, <33% -> drill,
   // <66% -> recognise, else simulate. Maps the pedagogical loop to the
   // student's actual draft state so the bar doesn't lie.
@@ -663,6 +705,50 @@ function Cockpit({ pillar, pillars, drafts, setDraft, activeBlockId, setActiveBl
           placeholder={`Start the ${activeBlock.name.toLowerCase()} block. ${activeBlock.desc}`}
           spellCheck={false}
         />
+
+        {/* Micro-steps panel: UDL Action and Expression scaffold. Click the
+            generate button, Ollama returns 5 literal next-actions for the
+            active pillar, then the student can insert them into the active
+            block as a numbered list. ADHD-friendly: replaces 'do research'
+            with 'Open Google Scholar. Search for X. Save 3 PDFs to ...'. */}
+        <div className="rubric-strip" style={{ marginTop: 12, padding: '12px 16px', background: 'var(--bg-elev)', border: '1px solid var(--line)', borderRadius: 'var(--r-md)', flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-mute)' }}>
+              UDL Micro-steps  ·  {pillar.name}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn-pill primary" onClick={onGenerateSteps} disabled={microLoading}>
+                {microLoading ? 'Generating...' : (microSteps.length > 0 ? 'Regenerate' : 'Generate steps')}
+              </button>
+              {microSteps.length > 0 && (
+                <button className="btn-pill" onClick={onInsertSteps} title="Insert steps into the current block">
+                  Insert into draft
+                </button>
+              )}
+            </div>
+          </div>
+          {microError && (
+            <div style={{ color: '#ff7c7c', fontSize: 12, fontFamily: 'var(--f-mono)' }}>{microError}</div>
+          )}
+          {microSteps.length === 0 && !microLoading && !microError && (
+            <div style={{ color: 'var(--ink-mute)', fontSize: 12, lineHeight: 1.5 }}>
+              Generate the first 5 literal actions for this pillar. Replaces vague academic prose with observable steps you can actually start.
+            </div>
+          )}
+          {microSteps.length > 0 && (
+            <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {microSteps.map((s) => (
+                <li key={s.step} style={{ display: 'grid', gridTemplateColumns: '28px 1fr', gap: 10, alignItems: 'flex-start', padding: '8px 0', borderBottom: '1px solid var(--line)' }}>
+                  <span style={{ fontFamily: 'var(--f-mono)', fontSize: 12, color: 'var(--emerald)' }}>0{s.step}</span>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--ink)' }}>{s.title}</div>
+                    <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.5 }}>{s.action}</div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
 
         <div className="rubric-strip swap-in" key={pillar.id + '-rubric'}>
           {pillar.rubric.map((r, i) => (

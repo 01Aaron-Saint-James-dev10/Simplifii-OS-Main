@@ -159,12 +159,40 @@ export function Grounding({ onComplete, profile }) {
   const [aggregated, setAggregated] = useState(null);
   const [fileNames, setFileNames] = useState([]);
   const fileInputRef = useRef(null);
+  // Paste-as-text path. Some students do not have a clean PDF (the
+  // brief lives in their Canvas page text, or they're typing it from
+  // a printout). The textarea accepts pasted assessment text and feeds
+  // it through the same extractDeepCourseData pipeline as a PDF.
+  const [pasteMode, setPasteMode] = useState(false);
+  const [pastedText, setPastedText] = useState('');
 
   const baseFromProfile = () => ({
     unitCode: profile.courseName,
     level: profile.level,
     theme: 'General'
   });
+
+  const handlePasteSubmit = () => {
+    const text = (pastedText || '').trim();
+    if (text.length < 100) {
+      setExtractionError('Paste at least 100 characters of assessment text so the extractor has something to work with.');
+      return;
+    }
+    setExtractionError(null);
+    setParsingFiles(true);
+    try {
+      const next = aggregated || baseFromProfile();
+      const deepData = extractDeepCourseData(text);
+      const merged = mergeExtractionData(next, { ...deepData, rawText: text });
+      setAggregated(merged);
+      setFileNames(prev => [...prev, 'Pasted text']);
+      setPastedText('');
+    } catch (err) {
+      setExtractionError(err?.message || 'Could not parse the pasted text.');
+    } finally {
+      setParsingFiles(false);
+    }
+  };
 
   // Master-Schema priority: process files in a fixed order regardless of
   // the order the student dropped them. Course Outline is the canonical
@@ -225,8 +253,46 @@ export function Grounding({ onComplete, profile }) {
           <Brain size={64} className="text-emerald-500 mx-auto drop-shadow-[0_0_20px_rgba(52,211,153,0.5)]" />
         </div>
         <h2 className="text-4xl font-black text-white tracking-tight mb-4">Triple-Stage Grounding</h2>
-        <p className="text-zinc-400 font-medium mb-12 text-lg">Drop your Outline, Brief, and Rubric here.</p>
-        
+        <p className="text-zinc-400 font-medium mb-8 text-lg">Drop your Outline, Brief, and Rubric, or paste assessment text directly.</p>
+
+        <div className="flex justify-center gap-2 mb-6">
+          <button
+            type="button"
+            onClick={() => setPasteMode(false)}
+            className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest border transition-all ${!pasteMode ? 'bg-emerald-500 text-black border-emerald-500' : 'bg-transparent text-zinc-400 border-zinc-700 hover:text-white'}`}
+          >
+            Drop PDF
+          </button>
+          <button
+            type="button"
+            onClick={() => setPasteMode(true)}
+            className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest border transition-all ${pasteMode ? 'bg-emerald-500 text-black border-emerald-500' : 'bg-transparent text-zinc-400 border-zinc-700 hover:text-white'}`}
+          >
+            Paste Text
+          </button>
+        </div>
+
+        {pasteMode && (
+          <div className="mb-8">
+            <textarea
+              value={pastedText}
+              onChange={(e) => setPastedText(e.target.value)}
+              placeholder="Paste the assessment description, brief, or rubric text here. The cockpit will run the same extraction it does on a PDF."
+              className="w-full h-48 bg-zinc-900 border border-zinc-700 focus:border-emerald-500 rounded-2xl p-4 text-sm text-white placeholder-zinc-500 outline-none font-mono leading-relaxed resize-none"
+              spellCheck={false}
+            />
+            <div className="flex justify-end mt-3">
+              <button
+                onClick={handlePasteSubmit}
+                disabled={parsingFiles || pastedText.trim().length < 100}
+                className="px-6 py-3 rounded-2xl bg-emerald-500 text-black font-black uppercase tracking-widest hover:bg-emerald-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed text-sm"
+              >
+                {parsingFiles ? 'Parsing...' : 'Process pasted text'}
+              </button>
+            </div>
+          </div>
+        )}
+
         <input
           type="file"
           accept=".pdf"
