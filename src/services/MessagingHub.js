@@ -39,8 +39,40 @@ export const simulateIncomingWebhook = (payload, dispatchToState) => {
 // Now utterances are queued; each finishes before the next starts. The
 // caller can interrupt explicitly via stopSpeaking() (used when the
 // student sends a new chat message and wants the previous reply muted).
+//
+// Audio unlock gate. Chrome (and Safari) silently drop speechSynthesis
+// calls that fire before the page has received a user gesture. The boot
+// pulse and handshake greeting both fire on mount, before any click, so
+// they never produced sound even though the queue logged them. We now
+// hold pre-interaction speech in a separate buffer; the first user
+// click anywhere on the document drains the buffer into the live queue
+// and flips the gate so all subsequent speech plays normally.
 const __speechQueue = [];
+const __preInteractionBuffer = [];
 let __speechSpeaking = false;
+let __userHasInteracted = false;
+
+export const markSpeechUnlocked = () => {
+  if (__userHasInteracted) return;
+  __userHasInteracted = true;
+  if (typeof console !== 'undefined') console.info('[Speech] unlocked by user gesture; draining', __preInteractionBuffer.length, 'queued');
+  // Prime the synthesizer with a near-silent utterance so the first real
+  // utterance does not get clipped on browsers that lazy-init the engine.
+  if (typeof window !== 'undefined' && window.speechSynthesis) {
+    try {
+      const primer = new SpeechSynthesisUtterance(' ');
+      primer.volume = 0;
+      primer.rate = 1;
+      window.speechSynthesis.speak(primer);
+    } catch { /* ignore */ }
+  }
+  // Drain the pre-interaction buffer through the normal queue.
+  while (__preInteractionBuffer.length) {
+    const job = __preInteractionBuffer.shift();
+    __speechQueue.push(job);
+  }
+  __dequeue();
+};
 
 const __pickVoice = () => {
   if (typeof window === 'undefined' || !window.speechSynthesis) return null;
@@ -84,6 +116,7 @@ const __dequeue = () => {
 
 export const stopSpeaking = () => {
   __speechQueue.length = 0;
+  __preInteractionBuffer.length = 0;
   __speechSpeaking = false;
   if (typeof window !== 'undefined' && window.speechSynthesis) {
     try { window.speechSynthesis.cancel(); } catch { /* ignore */ }
@@ -107,13 +140,20 @@ export const speakSystemMessage = (text, onEndOrSubtitle, rate = 1.05, pitch = 0
     utterance.onboundary = onBoundaryCallback;
   }
 
+  const job = {
+    utterance,
+    onEnd: typeof onEndOrSubtitle === 'function' ? onEndOrSubtitle : null
+  };
+
+  if (!__userHasInteracted) {
+    if (typeof console !== 'undefined') console.info('[Speech] buffer (waiting for first click) ->', text.length > 80 ? text.slice(0, 80) + '...' : text);
+    __preInteractionBuffer.push(job);
+    return;
+  }
+
   if (typeof console !== 'undefined') {
     console.info('[Speech] queue ->', text.length > 80 ? text.slice(0, 80) + '...' : text);
   }
-
-  __speechQueue.push({
-    utterance,
-    onEnd: typeof onEndOrSubtitle === 'function' ? onEndOrSubtitle : null
-  });
+  __speechQueue.push(job);
   __dequeue();
 };

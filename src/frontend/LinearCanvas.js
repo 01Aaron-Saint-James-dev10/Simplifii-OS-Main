@@ -5,6 +5,7 @@ import { getPersonaResponse } from '../services/PersonaEngine';
 import { elevateRigour as rewriteElevateRigour, synthesise as rewriteSynthesise, applyLogicMode as rewriteApplyLogicMode } from '../services/RewriteService';
 import { saveBlockSnapshot, getBlockHistory } from '../services/IndexedDBService';
 import ZenTools from './ZenTools';
+import { useProject } from './ProjectContext';
 import SupportBridge from './SupportBridge';
 import AccessibilityVault from './AccessibilityVault';
 import DevInsightsPanel from './DevInsightsPanel';
@@ -236,6 +237,8 @@ export default function LinearCanvas({
   extractionData, profile, courseId, onAddGhostAsset,
   isZenMode, setIsZenMode, isLeftCollapsed, setIsLeftCollapsed, isRightCollapsed, setIsRightCollapsed
 }) {
+  const { activeCourse, switchSprint } = useProject();
+  const activeSprintTitle = activeCourse?.activeAssessmentTitle || null;
   const [sections, setSections] = useState(() => {
     try { return recoverSections(localStorage.getItem(linearStorageKey(courseId))); }
     catch { return DEFAULT_LINEAR_SECTIONS; }
@@ -959,6 +962,20 @@ export default function LinearCanvas({
               {extractionData?.unitCode || 'Universal OS'}
             </h1>
             <p className="text-2xl text-emerald-500 font-bold uppercase tracking-widest drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]">Advanced Authoring Cockpit</p>
+            {activeSprintTitle && (
+              <div className="mt-4 inline-flex items-center gap-3 px-4 py-2 rounded-full bg-emerald-500/15 border border-emerald-400/40 shadow-[0_0_18px_rgba(16,185,129,0.3)]">
+                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Active Sprint</span>
+                <span className="text-sm font-bold text-white">{activeSprintTitle}</span>
+                <button
+                  type="button"
+                  onClick={() => switchSprint(null)}
+                  className="text-[10px] font-black uppercase tracking-widest text-emerald-300 hover:text-white transition-all"
+                  title="Return to the default canvas"
+                >
+                  Exit
+                </button>
+              </div>
+            )}
           </div>
 
           {sections.map((section) => {
@@ -1242,20 +1259,35 @@ export default function LinearCanvas({
               <div className="space-y-4 whitespace-nowrap">
                 {visibleChecklist.map(item => {
                   const isPulsing = justCheckedId === item.id;
+                  const isActiveSprint = activeSprintTitle === item.text;
                   return (
-                    <div 
+                    <div
                       id={`dw-${item.id}`}
-                      key={item.id} 
-                      onClick={() => {
-                        const newChecked = !item.checked;
-                        setChecklist(prev => prev.map(c => c.id === item.id ? { ...c, checked: newChecked } : c));
-                        if (newChecked) {
-                          setJustCheckedId(item.id);
-                          setTimeout(() => setJustCheckedId(null), 1500);
-                        }
-                      }}
-                      className={`p-4 rounded-2xl border transition-all duration-300 cursor-pointer max-w-full group/checklist ${isPulsing ? 'bg-emerald-500 border-emerald-400 scale-[1.02] shadow-[0_0_30px_rgba(16,185,129,0.6)]' : item.checked ? 'bg-emerald-500/10 border-emerald-500/50' : 'bg-zinc-900 border-zinc-800 hover:border-zinc-600 hover:bg-zinc-800/80'}`}
+                      key={item.id}
+                      className={`p-4 rounded-2xl border transition-all duration-300 max-w-full group/checklist relative ${isPulsing ? 'bg-emerald-500 border-emerald-400 scale-[1.02] shadow-[0_0_30px_rgba(16,185,129,0.6)]' : isActiveSprint ? 'bg-emerald-500/15 border-emerald-400 shadow-[0_0_18px_rgba(16,185,129,0.35)]' : item.checked ? 'bg-emerald-500/10 border-emerald-500/50' : 'bg-zinc-900 border-zinc-800 hover:border-zinc-600 hover:bg-zinc-800/80'}`}
                     >
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          switchSprint(isActiveSprint ? null : item.text);
+                        }}
+                        className={`absolute top-2 right-2 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${isActiveSprint ? 'bg-emerald-500 text-black' : 'bg-zinc-800 text-zinc-400 hover:bg-emerald-500 hover:text-black opacity-0 group-hover/checklist:opacity-100'}`}
+                        title={isActiveSprint ? 'Return to default sprint' : 'Focus this assessment as the active sprint'}
+                      >
+                        {isActiveSprint ? 'Active' : 'Focus'}
+                      </button>
+                      <div
+                        onClick={() => {
+                          const newChecked = !item.checked;
+                          setChecklist(prev => prev.map(c => c.id === item.id ? { ...c, checked: newChecked } : c));
+                          if (newChecked) {
+                            setJustCheckedId(item.id);
+                            setTimeout(() => setJustCheckedId(null), 1500);
+                          }
+                        }}
+                        className="cursor-pointer"
+                      >
                       <div className="flex gap-3">
                         <div className="mt-0.5 shrink-0 transition-transform duration-300 group-active/checklist:scale-90">
                           {item.checked ? <CheckCircle size={16} className={isPulsing ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'text-emerald-500'} /> : <Circle size={16} className="text-zinc-600 group-hover/checklist:text-zinc-400" />}
@@ -1263,6 +1295,7 @@ export default function LinearCanvas({
                         <p className={`text-sm font-medium leading-snug whitespace-normal transition-colors ${isPulsing ? 'text-white font-black' : item.checked ? 'text-emerald-400' : 'text-zinc-400'}`}>
                           {item.text}
                         </p>
+                      </div>
                       </div>
                     </div>
                   );

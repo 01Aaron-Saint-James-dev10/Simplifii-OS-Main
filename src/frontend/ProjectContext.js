@@ -68,7 +68,14 @@ const makeEmptyCourse = (name = 'New Course') => ({
   extractionData: null,
   activeTask: null,
   roadmap: { ...DEFAULT_ROADMAP },
-  project: { ...initialProjectState, blocks: initialProjectState.blocks.map(b => ({ ...b })) }
+  project: { ...initialProjectState, blocks: initialProjectState.blocks.map(b => ({ ...b })) },
+  // Sprint state. activeAssessmentTitle scopes the LinearCanvas to a
+  // specific assessment (e.g. 'Literature Review (5%)'). sprintDrafts
+  // stashes per-assessment block snapshots so a student can dip in and
+  // out of multiple tasks without losing their place. Empty by default;
+  // populated lazily as the student switches sprints.
+  activeAssessmentTitle: null,
+  sprintDrafts: {}
 });
 
 const DEFAULT_COURSES = { [DEFAULT_COURSE_ID]: makeEmptyCourse('My First Course') };
@@ -145,7 +152,12 @@ export const ProjectProvider = ({ children }) => {
   // default milestones so consumers can always read activeCourse.roadmap.x
   // without optional chaining sprinkled through every panel.
   const rawActiveCourse = courses[activeCourseId] || makeEmptyCourse('(Missing course)');
-  const activeCourse = { ...rawActiveCourse, roadmap: { ...DEFAULT_ROADMAP, ...(rawActiveCourse.roadmap || {}) } };
+  const activeCourse = {
+    ...rawActiveCourse,
+    roadmap: { ...DEFAULT_ROADMAP, ...(rawActiveCourse.roadmap || {}) },
+    sprintDrafts: rawActiveCourse.sprintDrafts || {},
+    activeAssessmentTitle: rawActiveCourse.activeAssessmentTitle || null
+  };
   const { tasks, extractionData, activeTask, project } = activeCourse;
 
   const updateActiveCourse = (mutator) => {
@@ -159,6 +171,38 @@ export const ProjectProvider = ({ children }) => {
   const setExtractionData = (next) => updateActiveCourse(c => ({ ...c, extractionData: typeof next === 'function' ? next(c.extractionData) : next }));
   const setActiveTask = (next) => updateActiveCourse(c => ({ ...c, activeTask: typeof next === 'function' ? next(c.activeTask) : next }));
   const setProject = (next) => updateActiveCourse(c => ({ ...c, project: typeof next === 'function' ? next(c.project) : next }));
+
+  // Sprint switching. Each course tracks per-assessment drafts in
+  // sprintDrafts keyed on assessment title. switchSprint(title):
+  //   1. Stashes the current project.blocks under the current
+  //      activeAssessmentTitle so the student does not lose their place.
+  //   2. Loads the target sprint's blocks if one exists; otherwise
+  //      starts a fresh slate sized to the course level.
+  //   3. Updates activeAssessmentTitle so the canvas header reflects
+  //      the current sprint.
+  // Pass null to return to the default 'no specific assessment' view.
+  const switchSprint = (title) => {
+    updateActiveCourse(c => {
+      const drafts = { ...(c.sprintDrafts || {}) };
+      const currentTitle = c.activeAssessmentTitle;
+      const currentBlocks = (c.project?.blocks || []).map(b => ({ ...b }));
+      // Snapshot whatever blocks the student was just on. Use a stable
+      // key for the unscoped state so the student can return to it.
+      const stashKey = currentTitle || '__default__';
+      drafts[stashKey] = { blocks: currentBlocks };
+      // Load destination blocks. Fresh slate if no draft exists yet.
+      const targetKey = title || '__default__';
+      const targetBlocks = drafts[targetKey]?.blocks
+        ? drafts[targetKey].blocks.map(b => ({ ...b }))
+        : initialProjectState.blocks.map(b => ({ ...b, content: '' }));
+      return {
+        ...c,
+        activeAssessmentTitle: title || null,
+        sprintDrafts: drafts,
+        project: { ...c.project, blocks: targetBlocks, integrityLog: [], verifications: [], inbox: [] }
+      };
+    });
+  };
 
   // CourseManager API
   const addCourse = (name = 'New Course') => {
@@ -290,7 +334,7 @@ export const ProjectProvider = ({ children }) => {
       activeTask, setActiveTask,
       grounding,
       // CourseManager
-      courses, activeCourse, activeCourseId, setActiveCourseId, addCourse, addCourseWithData, removeCourse, renameCourse
+      courses, activeCourse, activeCourseId, setActiveCourseId, addCourse, addCourseWithData, removeCourse, renameCourse, switchSprint
     }}>{children}</ProjectContext.Provider>
   );
 };

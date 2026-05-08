@@ -18,7 +18,7 @@ import { nameCourse, pingOllama, getProviderName, extractAssessmentsWithOllama, 
 import { jsPDF } from 'jspdf';
 import FloatingResourceCard from './FloatingResourceCard';
 import ResourceIngestor from './ResourceIngestor';
-import { simulateIncomingWebhook, speakSystemMessage } from '../services/MessagingHub';
+import { simulateIncomingWebhook, speakSystemMessage, markSpeechUnlocked } from '../services/MessagingHub';
 import { auditProjectContext } from '../services/VerificationService';
 import { saveGhostAsset, getAllGhostAssets } from '../services/IndexedDBService';
 
@@ -94,6 +94,22 @@ export default function MasterDashboard() {
     }
     prevZenModeRef.current = isZenMode;
   }, [isZenMode]);
+
+  // Audio unlock. Chrome and Safari silently drop speechSynthesis calls
+  // that fire before the page has received a user gesture. The boot pulse
+  // and handshake greeting both fire on mount; without this listener they
+  // get logged but never play. We listen for the very first pointer or
+  // key event anywhere on the document, flip the gate in MessagingHub,
+  // and the buffered utterances drain into the live queue.
+  useEffect(() => {
+    const unlock = () => markSpeechUnlocked();
+    document.addEventListener('pointerdown', unlock, { once: true, capture: true });
+    document.addEventListener('keydown', unlock, { once: true, capture: true });
+    return () => {
+      document.removeEventListener('pointerdown', unlock, { capture: true });
+      document.removeEventListener('keydown', unlock, { capture: true });
+    };
+  }, []);
 
   // Hardwired Neural Link boot check. On mount, if the active provider is
   // Ollama, ping /api/tags to confirm the brain is reachable. On success
