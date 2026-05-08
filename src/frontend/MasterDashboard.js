@@ -13,7 +13,7 @@ import AIAvatar from './AIAvatar';
 import SupportBridge from './SupportBridge';
 import { fetchLMSData } from '../backend/LMSConnector';
 import { mapToWorkspace, deriveRoadmapFromAssessments } from '../services/BriefService';
-import { nameCourse, REASONING_START_EVENT, REASONING_END_EVENT } from '../services/RewriteService';
+import { nameCourse, pingOllama, getProviderName, REASONING_START_EVENT, REASONING_END_EVENT } from '../services/RewriteService';
 import { jsPDF } from 'jspdf';
 import FloatingResourceCard from './FloatingResourceCard';
 import ResourceIngestor from './ResourceIngestor';
@@ -85,6 +85,30 @@ export default function MasterDashboard() {
     }
     prevZenModeRef.current = isZenMode;
   }, [isZenMode]);
+
+  // Hardwired Neural Link boot check. On mount, if the active provider is
+  // Ollama, ping /api/tags to confirm the brain is reachable. On success
+  // we trigger a 2 second emerald pulse on the AURA dot (via the existing
+  // reasoning-start/end events) and speak a short confirmation so the
+  // student knows the link is alive without needing the console.
+  // Silent on failure: the rewrite calls themselves will surface a clear
+  // error toast if the student tries to use them while Ollama is down.
+  useEffect(() => {
+    let cancelled = false;
+    if (getProviderName() !== 'ollama') return;
+    (async () => {
+      const ok = await pingOllama();
+      if (cancelled || !ok) return;
+      window.dispatchEvent(new CustomEvent(REASONING_START_EVENT));
+      setTimeout(() => {
+        if (!cancelled) window.dispatchEvent(new CustomEvent(REASONING_END_EVENT));
+      }, 2000);
+      try {
+        speakSystemMessage('Neural Link active. Sovereign brain connected.', 'Neural Link active.');
+      } catch { /* speech unavailable */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // Cognitive Archive: per-course scoping. On first mount we run a one-time
   // backfill that tags any pre-CourseManager assets with the current active

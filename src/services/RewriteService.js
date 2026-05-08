@@ -20,10 +20,28 @@
 const PROVIDER_KEY = 'simplifii_rewrite_provider';
 const OLLAMA_ENDPOINT_KEY = 'simplifii_ollama_endpoint';
 const OLLAMA_MODEL_KEY = 'simplifii_ollama_model';
-const DEFAULT_PROVIDER = 'local-mock';
+// Hardwired Neural Link. Ollama is the default brain; local-mock is now an
+// opt-in fallback selected explicitly via localStorage. The student gets the
+// real brain on boot, no console toggling required.
+const DEFAULT_PROVIDER = 'ollama';
 const DEFAULT_OLLAMA_ENDPOINT = 'http://localhost:11434';
 const DEFAULT_OLLAMA_MODEL = 'llama3.2';
 const REASONING_MIN_MS = 2000;
+
+// Safe localStorage read. Some sandboxed iframes and browser security modes
+// throw a SecurityError on any access, which previously killed the provider
+// resolver and stranded the cockpit on the local-mock. We swallow the throw
+// and return the fallback so the brain stays connected regardless of where
+// the page is rendered.
+const safeReadLocalStorage = (key, fallback = null) => {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const value = window.localStorage.getItem(key);
+    return value === null || value === undefined ? fallback : value;
+  } catch {
+    return fallback;
+  }
+};
 
 export const REASONING_START_EVENT = 'simplifii:reasoning-start';
 export const REASONING_END_EVENT = 'simplifii:reasoning-end';
@@ -209,15 +227,9 @@ const cleanModelOutput = (raw) => {
   return out;
 };
 
-const getOllamaEndpoint = () => {
-  if (typeof window === 'undefined') return DEFAULT_OLLAMA_ENDPOINT;
-  return localStorage.getItem(OLLAMA_ENDPOINT_KEY) || DEFAULT_OLLAMA_ENDPOINT;
-};
+const getOllamaEndpoint = () => safeReadLocalStorage(OLLAMA_ENDPOINT_KEY, DEFAULT_OLLAMA_ENDPOINT) || DEFAULT_OLLAMA_ENDPOINT;
 
-const getOllamaModel = () => {
-  if (typeof window === 'undefined') return DEFAULT_OLLAMA_MODEL;
-  return localStorage.getItem(OLLAMA_MODEL_KEY) || DEFAULT_OLLAMA_MODEL;
-};
+const getOllamaModel = () => safeReadLocalStorage(OLLAMA_MODEL_KEY, DEFAULT_OLLAMA_MODEL) || DEFAULT_OLLAMA_MODEL;
 
 async function callOllama(userPrompt) {
   const endpoint = getOllamaEndpoint().replace(/\/$/, '');
@@ -272,10 +284,7 @@ const ollama = {
 
 const PROVIDERS = { 'local-mock': localMock, ollama };
 
-export const getProviderName = () => {
-  if (typeof window === 'undefined') return DEFAULT_PROVIDER;
-  return localStorage.getItem(PROVIDER_KEY) || DEFAULT_PROVIDER;
-};
+export const getProviderName = () => safeReadLocalStorage(PROVIDER_KEY, DEFAULT_PROVIDER) || DEFAULT_PROVIDER;
 
 const getProvider = () => {
   const name = getProviderName();
@@ -366,8 +375,8 @@ export const nameCourse = async (text) => {
   if (getProviderName() !== 'ollama') return fallback;
 
   try {
-    const endpoint = (typeof window !== 'undefined' ? localStorage.getItem(OLLAMA_ENDPOINT_KEY) : null) || DEFAULT_OLLAMA_ENDPOINT;
-    const model = (typeof window !== 'undefined' ? localStorage.getItem(OLLAMA_MODEL_KEY) : null) || DEFAULT_OLLAMA_MODEL;
+    const endpoint = getOllamaEndpoint();
+    const model = getOllamaModel();
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 8000);
     const response = await fetch(`${endpoint.replace(/\/$/, '')}/api/chat`, {
@@ -396,5 +405,22 @@ export const nameCourse = async (text) => {
   }
 };
 
+// pingOllama: 3 second health check against the active endpoint. Returns
+// true when /api/tags responds 2xx, false on any failure (network, abort,
+// non-2xx). Lets the cockpit confirm the Neural Link is alive on boot
+// without surfacing a noisy error when it is not.
+export const pingOllama = async () => {
+  try {
+    const endpoint = getOllamaEndpoint().replace(/\/$/, '');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3000);
+    const response = await fetch(`${endpoint}/api/tags`, { method: 'GET', signal: controller.signal });
+    clearTimeout(timer);
+    return response.ok;
+  } catch {
+    return false;
+  }
+};
+
 // Exported for unit tests and DevTools poking.
-export const __internals = { SYSTEM_PROMPT, buildElevatePrompt, buildSynthesisePrompt, buildLogicModePrompt, cleanModelOutput, LOGIC_LENSES, fallbackCourseName, buildNameCoursePrompt };
+export const __internals = { SYSTEM_PROMPT, buildElevatePrompt, buildSynthesisePrompt, buildLogicModePrompt, cleanModelOutput, LOGIC_LENSES, fallbackCourseName, buildNameCoursePrompt, safeReadLocalStorage };
