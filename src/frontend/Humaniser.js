@@ -25,7 +25,7 @@ export default function Humaniser() {
           </div>
           <div>
             <h2 className="text-4xl font-black text-white tracking-tight">Humaniser Engine</h2>
-            <p className="text-zinc-400 font-medium mt-1 tracking-wide">Synthesize text to minimize false positives.</p>
+            <p className="text-zinc-400 font-medium mt-1 tracking-wide">Synthesise text to minimise false positives.</p>
           </div>
         </div>
 

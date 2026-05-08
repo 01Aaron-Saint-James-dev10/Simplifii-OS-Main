@@ -35,7 +35,7 @@ export default function MasterDashboard() {
     tasks, setTasks,
     extractionData, setExtractionData,
     activeTask, setActiveTask,
-    courses, activeCourseId, setActiveCourseId, addCourse, renameCourse, removeCourse
+    courses, activeCourse, activeCourseId, setActiveCourseId, addCourse, renameCourse, removeCourse
   } = useProject();
   const { setInstitutionalData } = useInstitution();
 
@@ -450,17 +450,17 @@ export default function MasterDashboard() {
                   <div className="relative pl-4 group">
                     <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
                     <p className="text-[10px] font-black uppercase text-emerald-500">Current Task</p>
-                    <p className="text-xs text-white font-bold">Literature Review</p>
+                    <p className="text-xs text-white font-bold">{activeCourse.roadmap.currentTask}</p>
                   </div>
                   <div className="relative pl-4 group opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
                     <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-zinc-700 border border-zinc-600"></div>
                     <p className="text-[10px] font-black uppercase text-zinc-500">Next Assessment</p>
-                    <p className="text-xs text-zinc-300 font-bold">Oral Presentation</p>
+                    <p className="text-xs text-zinc-300 font-bold">{activeCourse.roadmap.nextAssessment}</p>
                   </div>
                   <div className="relative pl-4 group opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
                     <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-zinc-700 border border-zinc-600"></div>
                     <p className="text-[10px] font-black uppercase text-zinc-500">Final Milestone</p>
-                    <p className="text-xs text-zinc-300 font-bold">Final Exam</p>
+                    <p className="text-xs text-zinc-300 font-bold">{activeCourse.roadmap.finalMilestone}</p>
                   </div>
                 </div>
               </>

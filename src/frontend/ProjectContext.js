@@ -26,11 +26,22 @@ const DEFAULT_PROFILE = {
 
 const DEFAULT_COURSE_ID = 'course_default';
 
+// Default Semester Roadmap milestones. Per-course override lives on the
+// course's `roadmap` field. The CourseManager editor for these labels is a
+// follow-up; for now they ship as sane defaults so the panel never goes
+// blank when a fresh course is created.
+const DEFAULT_ROADMAP = {
+  currentTask: 'Literature Review',
+  nextAssessment: 'Oral Presentation',
+  finalMilestone: 'Final Exam'
+};
+
 const makeEmptyCourse = (name = 'New Course') => ({
   name,
   tasks: [],
   extractionData: null,
   activeTask: null,
+  roadmap: { ...DEFAULT_ROADMAP },
   project: { ...initialProjectState, blocks: initialProjectState.blocks.map(b => ({ ...b })) }
 });
 
@@ -91,7 +102,11 @@ export const ProjectProvider = ({ children }) => {
     }
   }, [activeCourseId, courses]);
 
-  const activeCourse = courses[activeCourseId] || makeEmptyCourse('(Missing course)');
+  // Merge legacy courses (stored before the roadmap field existed) with the
+  // default milestones so consumers can always read activeCourse.roadmap.x
+  // without optional chaining sprinkled through every panel.
+  const rawActiveCourse = courses[activeCourseId] || makeEmptyCourse('(Missing course)');
+  const activeCourse = { ...rawActiveCourse, roadmap: { ...DEFAULT_ROADMAP, ...(rawActiveCourse.roadmap || {}) } };
   const { tasks, extractionData, activeTask, project } = activeCourse;
 
   const updateActiveCourse = (mutator) => {
@@ -210,7 +225,7 @@ export const ProjectProvider = ({ children }) => {
       activeTask, setActiveTask,
       grounding,
       // CourseManager
-      courses, activeCourseId, setActiveCourseId, addCourse, removeCourse, renameCourse
+      courses, activeCourse, activeCourseId, setActiveCourseId, addCourse, removeCourse, renameCourse
     }}>{children}</ProjectContext.Provider>
   );
 };

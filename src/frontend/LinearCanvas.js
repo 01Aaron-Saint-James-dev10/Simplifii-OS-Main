@@ -14,7 +14,7 @@ import { useSettings } from './SettingsContext';
 const ASSESSMENT_INSTRUCTIONS = [
   { id: 'inst1', label: 'Analyse Methodologies', detail: 'Critically compare the primary sources.', template: 'Start by comparing the methodologies to the primary literature...', dwTarget: 'dw2' },
   { id: 'inst2', label: 'Identify Gap', detail: 'Highlight what remains unknown in the field.', template: 'This highlights a significant gap in our understanding of...', dwTarget: 'dw3' },
-  { id: 'inst3', label: 'Synthesize Findings', detail: 'Combine evidence to support thesis.', template: 'By synthesizing these findings, it becomes evident that...', dwTarget: 'dw1' },
+  { id: 'inst3', label: 'Synthesise Findings', detail: 'Combine evidence to support thesis.', template: 'By synthesising these findings, it becomes evident that...', dwTarget: 'dw1' },
 ];
 
 const MOCK_TYPOS = ['teh', 'recieve', 'thier', 'definitly', 'cool', 'stuff', 'things'];
@@ -717,7 +717,7 @@ export default function LinearCanvas({
     switch (blockId) {
       case 'inst1': return `Since your brief mentions '${concepts}', start by comparing [Source A] to the data in [Source B]...`;
       case 'inst2': return `Identify the critical gap regarding ${concepts} in the literature...`;
-      case 'inst3': return `Synthesize the findings on ${concepts} to form a cohesive conclusion...`;
+      case 'inst3': return `Synthesise the findings on ${concepts} to form a cohesive conclusion...`;
       default: return 'Start writing here...';
     }
   };
