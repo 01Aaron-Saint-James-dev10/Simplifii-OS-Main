@@ -603,7 +603,7 @@ export default function LinearCanvas({
         const r2 = el2.getBoundingClientRect();
         gaps.push({
           id: 'gap-1',
-          msg: "Introduction mentions 'ATP', but Methodology is missing context. Bridge them?",
+          msg: "Introduction names a key concept that Methodology does not yet ground. Bridge them?",
           startX: r1.left - cRect.left - 20,
           startY: r1.bottom - cRect.top,
           endX: r2.left - cRect.left - 20,
@@ -711,7 +711,7 @@ export default function LinearCanvas({
   };
 
   const getDynamicTemplate = (blockId, data) => {
-    const defaultConcept = data?.unitCode?.includes('BABS') ? 'Cellular Metabolism' : 'the core topic';
+    const defaultConcept = 'the core topic';
     const concepts = data?.rubricCriteria?.length > 0 ? data.rubricCriteria[0].substring(0, 30) : defaultConcept;
     
     switch (blockId) {
@@ -749,7 +749,7 @@ export default function LinearCanvas({
         year: '2026',
         isPrimary: isPrimary,
         mentorNotes: isPrimary
-          ? "This is a Primary source because it's an original empirical study on ATP synthesis, noted by its 'Methods' and 'Results' sections."
+          ? "This is a Primary source because it presents an original empirical study, identifiable by its 'Methods' and 'Results' sections."
           : "This is a Secondary source. It is a literature review summarising other studies, rather than providing original experimental data."
       };
       setGhostAssets(prev => ({ ...prev, [sectionId]: [...(prev[sectionId] || []), newAsset] }));

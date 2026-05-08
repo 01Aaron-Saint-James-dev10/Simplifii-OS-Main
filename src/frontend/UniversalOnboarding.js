@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { ArrowRight, User, Calendar, BookOpen, Brain, UploadCloud, Loader2 } from 'lucide-react';
 import { processDocumentWithGCP } from '../services/DocumentAIService';
 import { extractDeepCourseData, mergeExtractionData } from '../services/BriefService';
+import { speakSystemMessage } from '../services/MessagingHub';
 
 export function StartIgnition({ onStart }) {
   return (
@@ -182,7 +183,11 @@ export function Grounding({ onComplete, profile }) {
       setFileNames(prev => [...prev, ...files.map(f => f.name)]);
     } catch (error) {
       console.error("Critical extraction failure:", error);
-      setExtractionError(error?.message || 'Could not read that file. Try another PDF.');
+      const msg = error?.message || '';
+      if (/worker/i.test(msg)) {
+        try { speakSystemMessage('System breach. PDF engine offline.', 'PDF engine offline.'); } catch { /* speech unavailable */ }
+      }
+      setExtractionError(msg || 'Could not read that file. Try another PDF.');
     } finally {
       setParsingFiles(false);
       // Reset the input so the same filename can be re-selected.

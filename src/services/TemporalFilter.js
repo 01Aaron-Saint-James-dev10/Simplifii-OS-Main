@@ -1,12 +1,13 @@
 // src/services/TemporalFilter.js
+//
+// Schedule alignment surface. Returns empty until a real syllabus parser
+// populates the weekly schedule. The previous version shipped a hardcoded
+// BABS1201 mock (Lecture, Laboratory: Osmosis, Literature Review, Final
+// Exam) which leaked false 'verified at week N' badges onto every block
+// regardless of which course the student was actually working on. Empty
+// schedule = no false positives = sovereign clean state.
 
-// Mock parsed schedule for BABS1201 (this would be scraped from the outline in reality)
-const MOCK_SCHEDULE = [
-  { week: 1, type: 'Lecture', topic: 'Scientific Literature', timestamp: Date.now() - 86400000 * 7 }, 
-  { week: 4, type: 'Laboratory', topic: 'Osmosis', timestamp: Date.now() - 86400000 }, 
-  { week: 5, type: 'Literature Review', topic: 'Drafting', timestamp: Date.now() }, 
-  { week: 10, type: 'Final Exam', topic: 'Review', timestamp: Date.now() + 86400000 * 35 } 
-];
+const MOCK_SCHEDULE = [];
 
 export const buildWeeklySchedule = (rawText) => {
   return MOCK_SCHEDULE;

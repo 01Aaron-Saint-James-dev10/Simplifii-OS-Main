@@ -26,14 +26,40 @@ const DEFAULT_PROFILE = {
 
 const DEFAULT_COURSE_ID = 'course_default';
 
-// Default Semester Roadmap milestones. Per-course override lives on the
-// course's `roadmap` field. The CourseManager editor for these labels is a
-// follow-up; for now they ship as sane defaults so the panel never goes
-// blank when a fresh course is created.
+// Semester Roadmap. Slots are null until a syllabus handshake derives real
+// assessment titles via deriveRoadmapFromAssessments. The previous version
+// shipped 'Literature Review / Oral Presentation / Final Exam' as defaults,
+// which leaked hardcoded placeholders into every fresh course. The cockpit
+// now stays empty until the student's actual data lands. The Roadmap panel
+// in MasterDashboard hides when every slot is null.
 const DEFAULT_ROADMAP = {
+  currentTask: null,
+  nextAssessment: null,
+  finalMilestone: null
+};
+
+// One-time migration. Old courses created before the placeholder purge have
+// the legacy strings stored in localStorage. Wipe them where they exactly
+// match the old defaults so the cockpit reads as clean state. Tracked via
+// a versioned flag so the loop never repeats.
+const LEGACY_ROADMAP = {
   currentTask: 'Literature Review',
   nextAssessment: 'Oral Presentation',
   finalMilestone: 'Final Exam'
+};
+const purgeLegacyRoadmap = (courses) => {
+  let mutated = false;
+  const next = {};
+  for (const [id, c] of Object.entries(courses || {})) {
+    const r = c?.roadmap;
+    if (r && r.currentTask === LEGACY_ROADMAP.currentTask && r.nextAssessment === LEGACY_ROADMAP.nextAssessment && r.finalMilestone === LEGACY_ROADMAP.finalMilestone) {
+      next[id] = { ...c, roadmap: { ...DEFAULT_ROADMAP } };
+      mutated = true;
+    } else {
+      next[id] = c;
+    }
+  }
+  return mutated ? next : courses;
 };
 
 const makeEmptyCourse = (name = 'New Course') => ({
@@ -93,6 +119,19 @@ export const ProjectProvider = ({ children }) => {
   useEffect(() => { localStorage.setItem('simplifii_profile', JSON.stringify(profile)); }, [profile]);
   useEffect(() => { localStorage.setItem('simplifii_courses_v1', JSON.stringify(courses)); }, [courses]);
   useEffect(() => { localStorage.setItem('simplifii_activeCourseId', activeCourseId); }, [activeCourseId]);
+
+  // Roadmap legacy purge. One-time: any course whose roadmap exactly matches
+  // the pre-purge defaults gets wiped to nulls so the cockpit shows empty
+  // state on first reload after upgrade. Flag prevents the loop from re-
+  // running, so a student who later sets 'Literature Review' as a real
+  // currentTask does not lose it.
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('simplifii_roadmap_purged_v1') === 'true') return;
+      setCourses(prev => purgeLegacyRoadmap(prev));
+      localStorage.setItem('simplifii_roadmap_purged_v1', 'true');
+    } catch { /* storage unavailable */ }
+  }, []);
 
   // Defensive: if active id ever points at a missing course, retarget.
   useEffect(() => {

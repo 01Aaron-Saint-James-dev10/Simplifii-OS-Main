@@ -193,7 +193,12 @@ export default function MasterDashboard() {
   //      Academic Tools use, so the student hears 'Course X identified.
   //      Your semester is now mapped.'
   const handleSprintCreation = async (data) => {
-    const newTask = { course: data.unitCode || 'Extracted', task: 'Mini Literature Review', level: data.level, rawText: data.rawText };
+    // Task name is derived from real syllabus data: prefer the first
+    // extracted assessment title, fall back to the unit code, then to a
+    // neutral 'Course Brief'. No 'Mini Literature Review' placeholder.
+    const firstAssessment = (data.assessmentTitles || [])[0];
+    const taskName = firstAssessment || data.unitCode || 'Course Brief';
+    const newTask = { course: data.unitCode || 'Extracted', task: taskName, level: data.level, rawText: data.rawText };
     const generatedBlocks = mapToWorkspace(data.rawText || '', data.level || 'Tertiary');
     const derivedRoadmap = deriveRoadmapFromAssessments(data.assessmentTitles || []);
 
@@ -583,25 +588,31 @@ export default function MasterDashboard() {
               )}
             </div>
 
-            {!isBooting && (
+            {!isBooting && (activeCourse.roadmap.currentTask || activeCourse.roadmap.nextAssessment || activeCourse.roadmap.finalMilestone) && (
               <>
                 <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-4 px-2 whitespace-nowrap">Semester Roadmap</p>
                 <div className="mb-8 px-2 border-l border-zinc-800 ml-2 space-y-4 relative">
-                  <div className="relative pl-4 group">
-                    <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-                    <p className="text-[10px] font-black uppercase text-emerald-500">Current Task</p>
-                    <p className="text-xs text-white font-bold">{activeCourse.roadmap.currentTask}</p>
-                  </div>
-                  <div className="relative pl-4 group opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
-                    <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-zinc-700 border border-zinc-600"></div>
-                    <p className="text-[10px] font-black uppercase text-zinc-500">Next Assessment</p>
-                    <p className="text-xs text-zinc-300 font-bold">{activeCourse.roadmap.nextAssessment}</p>
-                  </div>
-                  <div className="relative pl-4 group opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
-                    <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-zinc-700 border border-zinc-600"></div>
-                    <p className="text-[10px] font-black uppercase text-zinc-500">Final Milestone</p>
-                    <p className="text-xs text-zinc-300 font-bold">{activeCourse.roadmap.finalMilestone}</p>
-                  </div>
+                  {activeCourse.roadmap.currentTask && (
+                    <div className="relative pl-4 group">
+                      <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+                      <p className="text-[10px] font-black uppercase text-emerald-500">Current Task</p>
+                      <p className="text-xs text-white font-bold">{activeCourse.roadmap.currentTask}</p>
+                    </div>
+                  )}
+                  {activeCourse.roadmap.nextAssessment && (
+                    <div className="relative pl-4 group opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
+                      <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-zinc-700 border border-zinc-600"></div>
+                      <p className="text-[10px] font-black uppercase text-zinc-500">Next Assessment</p>
+                      <p className="text-xs text-zinc-300 font-bold">{activeCourse.roadmap.nextAssessment}</p>
+                    </div>
+                  )}
+                  {activeCourse.roadmap.finalMilestone && (
+                    <div className="relative pl-4 group opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
+                      <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-zinc-700 border border-zinc-600"></div>
+                      <p className="text-[10px] font-black uppercase text-zinc-500">Final Milestone</p>
+                      <p className="text-xs text-zinc-300 font-bold">{activeCourse.roadmap.finalMilestone}</p>
+                    </div>
+                  )}
                 </div>
               </>
             )}
