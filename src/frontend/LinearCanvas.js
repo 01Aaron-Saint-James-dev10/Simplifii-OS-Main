@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Save, AlertCircle, FileText, CheckCircle2, GripVertical, Network, Activity, CheckCircle, Circle, Type, Mic, Edit3, MessageSquare, Zap, Clock, BookOpen, ArrowRight, Wand2, Target, Flag, ChevronLeft, ChevronRight, BrainCircuit, Volume2, LifeBuoy, Shield, Maximize2, Minimize2, Eye, HardDrive, Code } from 'lucide-react';
+import { Save, AlertCircle, FileText, CheckCircle2, GripVertical, Network, Activity, CheckCircle, Circle, Type, Mic, Edit3, MessageSquare, Zap, Clock, BookOpen, ArrowRight, Wand2, Target, Flag, ChevronLeft, ChevronRight, BrainCircuit, Volume2, LifeBuoy, Shield, Maximize2, Minimize2, Eye, HardDrive, Code, Loader2 } from 'lucide-react';
 import { speakSystemMessage } from '../services/MessagingHub';
 import { getPersonaResponse } from '../services/PersonaEngine';
+import { elevateRigour as rewriteElevateRigour, synthesise as rewriteSynthesise, applyLogicMode as rewriteApplyLogicMode } from '../services/RewriteService';
 import { saveBlockSnapshot, getBlockHistory } from '../services/IndexedDBService';
 import ZenTools from './ZenTools';
 import SupportBridge from './SupportBridge';
@@ -11,7 +12,7 @@ import BionicText from './BionicText';
 import { useSettings } from './SettingsContext';
 
 const ASSESSMENT_INSTRUCTIONS = [
-  { id: 'inst1', label: 'Analyze Methodologies', detail: 'Critically compare the primary sources.', template: 'Start by comparing the methodologies to the primary literature...', dwTarget: 'dw2' },
+  { id: 'inst1', label: 'Analyse Methodologies', detail: 'Critically compare the primary sources.', template: 'Start by comparing the methodologies to the primary literature...', dwTarget: 'dw2' },
   { id: 'inst2', label: 'Identify Gap', detail: 'Highlight what remains unknown in the field.', template: 'This highlights a significant gap in our understanding of...', dwTarget: 'dw3' },
   { id: 'inst3', label: 'Synthesize Findings', detail: 'Combine evidence to support thesis.', template: 'By synthesizing these findings, it becomes evident that...', dwTarget: 'dw1' },
 ];
@@ -251,6 +252,7 @@ export default function LinearCanvas({
   const [activeSectionId, setActiveSectionId] = useState('intro');
   const [bloomedSectionId, setBloomedSectionId] = useState(null);
   const [activeLogicMode, setActiveLogicMode] = useState(null);
+  const [rewritingSectionId, setRewritingSectionId] = useState(null);
   const [isDyslexic, setIsDyslexic] = useState(profile?.processingStyles?.includes('Visual Scaffolding') || false);
   const [isLiteralMode, setIsLiteralMode] = useState(profile?.processingStyles?.includes('Audio-Augmented') || false);
   const [viewMode, setViewMode] = useState('academic'); // 'academic' or 'presentation'
@@ -429,54 +431,66 @@ export default function LinearCanvas({
     speakSystemMessage("Mirror draft generated in your Ghost Layer. Review the reflection question.", "Precision Scaffolding active.");
   };
 
-  // Academic Augmentation preview transforms.
-  // Text mutation is deterministic local (academic synonym swap + framing)
-  // until a real LLM rewrite ships. Avatar feedback routes through
-  // PersonaEngine.getPersonaResponse so the message is persona-styled.
-  const ACADEMIC_SYNONYMS = {
-    'a lot of': 'a substantial body of',
-    'really': 'particularly',
-    'big': 'significant',
-    'shows': 'demonstrates',
-    'gets': 'obtains',
-    'uses': 'employs',
-    'helps': 'facilitates',
-    'looks at': 'examines',
-    'finds': 'identifies',
-    'thinks': 'argues',
-    'so': 'therefore',
-    'also': 'furthermore',
-    'but': 'however'
-  };
-  const swapAcademicSynonyms = (text) =>
-    Object.entries(ACADEMIC_SYNONYMS).reduce(
-      (acc, [from, to]) => acc.replace(new RegExp(`\\b${from}\\b`, 'gi'), to),
-      text
-    );
-
-  const handleElevateRigour = (section) => {
+  // Academic Augmentation. Routes through RewriteService so the cockpit can
+  // swap providers (local-mock today, Ollama next) without touching consumers.
+  // The avatar pulses faster while reasoning via reasoning-start/end events
+  // dispatched by RewriteService.
+  const handleElevateRigour = async (section) => {
     const trimmed = (section.content || '').trim();
     if (!trimmed) {
       speakSystemMessage("Write something first, then I can elevate the rigour.", "No content yet.");
       return;
     }
-    const swapped = swapAcademicSynonyms(trimmed);
-    const elevated = `Drawing on the peer-reviewed literature, ${swapped.charAt(0).toLowerCase()}${swapped.slice(1)}`;
-    handleContentChange(section.id, elevated);
-    const personaMsg = getPersonaResponse(persona, 'elevate_rigour');
-    speakSystemMessage(personaMsg, "Rigour preview applied.");
+    setRewritingSectionId(section.id);
+    try {
+      const elevated = await rewriteElevateRigour(trimmed, { level: profile?.level, persona, logicMode: activeLogicMode });
+      handleContentChange(section.id, elevated);
+      speakSystemMessage(getPersonaResponse(persona, 'elevate_rigour'), "Rigour preview applied.");
+    } catch (err) {
+      speakSystemMessage(`Rewrite failed: ${err.message}`, "Rewrite error.");
+    } finally {
+      setRewritingSectionId(null);
+    }
   };
 
-  const handleSynthesise = (section) => {
+  const handleSynthesise = async (section) => {
     const trimmed = (section.content || '').trim();
     if (!trimmed) {
       speakSystemMessage("Add at least one source insight before synthesising.", "Nothing to synthesise yet.");
       return;
     }
-    const synthesised = `Synthesising the evidence reviewed above: ${trimmed}`;
-    handleContentChange(section.id, synthesised);
-    const personaMsg = getPersonaResponse(persona, 'synthesise');
-    speakSystemMessage(personaMsg, "Synthesis preview applied.");
+    setRewritingSectionId(section.id);
+    try {
+      const synthesised = await rewriteSynthesise(trimmed, { level: profile?.level, persona });
+      handleContentChange(section.id, synthesised);
+      speakSystemMessage(getPersonaResponse(persona, 'synthesise'), "Synthesis preview applied.");
+    } catch (err) {
+      speakSystemMessage(`Rewrite failed: ${err.message}`, "Rewrite error.");
+    } finally {
+      setRewritingSectionId(null);
+    }
+  };
+
+  const handleApplyLogicMode = async (section) => {
+    if (!activeLogicMode) {
+      speakSystemMessage("Pick a logic block first, then apply it to this section.", "No logic mode set.");
+      return;
+    }
+    const trimmed = (section.content || '').trim();
+    if (!trimmed) {
+      speakSystemMessage("Write something first to apply this logic frame.", "No content yet.");
+      return;
+    }
+    setRewritingSectionId(section.id);
+    try {
+      const reframed = await rewriteApplyLogicMode(trimmed, activeLogicMode, { level: profile?.level, persona });
+      handleContentChange(section.id, reframed);
+      speakSystemMessage(getPersonaResponse(persona, 'logic_mode'), "Logic frame applied.");
+    } catch (err) {
+      speakSystemMessage(`Rewrite failed: ${err.message}`, "Rewrite error.");
+    } finally {
+      setRewritingSectionId(null);
+    }
   };
 
   const handleLogicBlockClick = (inst) => {
@@ -1069,16 +1083,31 @@ export default function LinearCanvas({
                         </span>
                         <button
                           onClick={() => handleSynthesise(section)}
-                          className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:border-emerald-500 hover:text-emerald-400 text-zinc-400 text-xs font-black uppercase tracking-widest transition-all"
+                          disabled={rewritingSectionId === section.id}
+                          className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:border-emerald-500 hover:text-emerald-400 text-zinc-400 text-xs font-black uppercase tracking-widest transition-all disabled:opacity-60 disabled:cursor-wait flex items-center gap-2"
                         >
+                          {rewritingSectionId === section.id && <Loader2 size={12} className="animate-spin" />}
                           {isUni ? 'Synthesise' : 'Summarise'}
                         </button>
                         <button
                           onClick={() => handleElevateRigour(section)}
-                          className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:border-emerald-500 hover:text-emerald-400 text-zinc-400 text-xs font-black uppercase tracking-widest transition-all"
+                          disabled={rewritingSectionId === section.id}
+                          className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:border-emerald-500 hover:text-emerald-400 text-zinc-400 text-xs font-black uppercase tracking-widest transition-all disabled:opacity-60 disabled:cursor-wait flex items-center gap-2"
                         >
+                          {rewritingSectionId === section.id && <Loader2 size={12} className="animate-spin" />}
                           {isUni ? 'Elevate Rigour' : 'Improve Clarity'}
                         </button>
+                        {activeLogicMode && (
+                          <button
+                            onClick={() => handleApplyLogicMode(section)}
+                            disabled={rewritingSectionId === section.id}
+                            className="px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500 hover:text-black text-emerald-400 text-xs font-black uppercase tracking-widest transition-all disabled:opacity-60 disabled:cursor-wait flex items-center gap-2"
+                            title="Apply the active Logic Block frame to this section"
+                          >
+                            {rewritingSectionId === section.id && <Loader2 size={12} className="animate-spin" />}
+                            Apply Logic Mode
+                          </button>
+                        )}
                         <button onClick={() => avatarSpeak("AI Declaration Exported. You may attach it to your submission.", "AI Usage Declaration saved.")} className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:border-indigo-500 hover:text-indigo-400 text-zinc-400 text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2">
                           <Shield size={12} /> AI Declaration
                         </button>

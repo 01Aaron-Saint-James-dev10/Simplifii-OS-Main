@@ -149,18 +149,38 @@ export default function AIAvatar({ eventType, isLiteralMode, onClick }) {
     catch { /* storage unavailable, ignore */ }
   }, [minimised]);
 
+  // Reasoning pulse. RewriteService dispatches simplifii:reasoning-start and
+  // simplifii:reasoning-end on window. While reasoning is active we double
+  // the pulse rate on the Neural Dot and add a glow ring on the expanded
+  // avatar so the student feels the OS is thinking.
+  const [isReasoning, setIsReasoning] = useState(false);
+  useEffect(() => {
+    const onStart = () => setIsReasoning(true);
+    const onEnd = () => setIsReasoning(false);
+    window.addEventListener('simplifii:reasoning-start', onStart);
+    window.addEventListener('simplifii:reasoning-end', onEnd);
+    return () => {
+      window.removeEventListener('simplifii:reasoning-start', onStart);
+      window.removeEventListener('simplifii:reasoning-end', onEnd);
+    };
+  }, []);
+
   if (minimised) {
     return (
       <button
         type="button"
-        aria-label="Expand AURA Assistant"
+        aria-label={isReasoning ? 'AURA Assistant reasoning' : 'Expand AURA Assistant'}
         onClick={(e) => { e.stopPropagation(); setMinimised(false); }}
-        className="relative w-4 h-4 rounded-full bg-emerald-500 shadow-[0_0_14px_rgba(16,185,129,0.9)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400 group"
+        className={`relative w-4 h-4 rounded-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400 group ${isReasoning ? 'bg-emerald-400 shadow-[0_0_22px_rgba(16,185,129,1)]' : 'bg-emerald-500 shadow-[0_0_14px_rgba(16,185,129,0.9)]'}`}
       >
-        <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" aria-hidden="true"></span>
-        <span className="sr-only">Neural Dot. Click to restore the assistant.</span>
+        <span
+          className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75"
+          style={{ animationDuration: isReasoning ? '0.5s' : '1s' }}
+          aria-hidden="true"
+        ></span>
+        <span className="sr-only">{isReasoning ? 'AURA is reasoning.' : 'Neural Dot. Click to restore the assistant.'}</span>
         <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-zinc-900/90 border border-zinc-800 text-[8px] font-black uppercase tracking-widest text-emerald-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-          AURA
+          {isReasoning ? 'THINKING' : 'AURA'}
         </span>
       </button>
     );
@@ -177,7 +197,8 @@ export default function AIAvatar({ eventType, isLiteralMode, onClick }) {
         <Minimize2 size={12} />
       </button>
       <div onClick={onClick} className="flex flex-col items-center justify-center w-full cursor-pointer hover:scale-105 transition-transform">
-        <div className="relative w-full h-32 border border-zinc-800/50 rounded-xl overflow-hidden bg-black shadow-2xl group-hover:border-emerald-500/50 transition-colors">
+        <div className={`relative w-full h-32 border rounded-xl overflow-hidden bg-black shadow-2xl transition-colors ${isReasoning ? 'border-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.6)] animate-pulse' : 'border-zinc-800/50 group-hover:border-emerald-500/50'}`}
+          style={isReasoning ? { animationDuration: '1s' } : undefined}>
           <Canvas camera={{ position: [0, 0, 4] }}>
             <ambientLight intensity={0.5} />
             <pointLight position={[10, 10, 10]} intensity={1} />

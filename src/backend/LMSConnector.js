@@ -7,7 +7,7 @@ export const fetchLMSData = async (courseCode) => {
     taskName: 'Foundations Essay',
     wordLimit: 2000,
     objectives: [
-      "Critically analyze the methodological frameworks presented in the reading.",
+      "Critically analyse the methodological frameworks presented in the reading.",
       "Compare at least two distinct approaches."
     ],
     rubric: [

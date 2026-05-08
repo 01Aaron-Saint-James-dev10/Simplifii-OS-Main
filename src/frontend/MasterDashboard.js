@@ -66,8 +66,31 @@ export default function MasterDashboard() {
     prevZenModeRef.current = isZenMode;
   }, [isZenMode]);
 
+  // Cognitive Archive: per-course scoping. On first mount we run a one-time
+  // backfill that tags any pre-CourseManager assets with the current active
+  // course id so existing research does not vanish when we start filtering.
+  // Migration flag lives in localStorage so the loop never repeats.
   useEffect(() => {
-    getAllGhostAssets().then(setGlobalGhostAssets).catch(() => {});
+    let cancelled = false;
+    getAllGhostAssets().then(async (assets) => {
+      if (cancelled) return;
+      const migrated = localStorage.getItem('simplifii_archive_migrated_v1') === 'true';
+      if (!migrated) {
+        const fallback = activeCourseId || 'course_default';
+        const needs = (assets || []).filter(a => !a.courseId);
+        for (const a of needs) {
+          try { await saveGhostAsset({ ...a, courseId: fallback }); } catch { /* ignore */ }
+        }
+        try { localStorage.setItem('simplifii_archive_migrated_v1', 'true'); } catch { /* storage unavailable */ }
+        if (needs.length > 0) {
+          const refreshed = await getAllGhostAssets();
+          if (!cancelled) setGlobalGhostAssets(refreshed);
+          return;
+        }
+      }
+      if (!cancelled) setGlobalGhostAssets(assets);
+    }).catch(() => {});
+    return () => { cancelled = true; };
   }, []);
 
   // Cmd+F toggles Zen Mode globally; Shift+D dispatches the Dev Insights signal.
@@ -87,8 +110,9 @@ export default function MasterDashboard() {
   }, [setIsZenMode]);
 
   const handleAddGhostAsset = (asset) => {
-    saveGhostAsset(asset).then(() => {
-      setGlobalGhostAssets(prev => [...prev, asset]);
+    const tagged = { ...asset, courseId: asset.courseId || activeCourseId };
+    saveGhostAsset(tagged).then(() => {
+      setGlobalGhostAssets(prev => [...prev, tagged]);
     });
   };
 
@@ -540,21 +564,27 @@ export default function MasterDashboard() {
                   handleAddGhostAsset(newAsset);
                 }}
               >
-                {globalGhostAssets.length === 0 ? (
-                  <div className="text-zinc-500 text-xs font-bold mt-10 px-2">
-                    <p>No embedded assets yet.</p>
-                    <p className="mt-2 font-medium normal-case text-[11px] leading-relaxed text-zinc-600">Drag a research URL or text snippet directly here, or drop it on a section in the Canvas.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {globalGhostAssets.map(asset => (
-                      <div key={asset.id} className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl max-w-full">
-                        <p className="text-[10px] font-black uppercase text-emerald-500 mb-2 truncate">{asset.blockId === 'archive' ? `Source: ${asset.source}` : `Block: ${asset.blockId}`}</p>
-                        <p className="text-xs text-zinc-300 whitespace-normal line-clamp-3">{asset.text}</p>
+                {(() => {
+                  const courseAssets = globalGhostAssets.filter(a => a.courseId === activeCourseId);
+                  if (courseAssets.length === 0) {
+                    return (
+                      <div className="text-zinc-500 text-xs font-bold mt-10 px-2">
+                        <p>No embedded assets for this course yet.</p>
+                        <p className="mt-2 font-medium normal-case text-[11px] leading-relaxed text-zinc-600">Drag a research URL or text snippet directly here, or drop it on a section in the Canvas. Assets stay scoped to the active course.</p>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    );
+                  }
+                  return (
+                    <div className="space-y-4">
+                      {courseAssets.map(asset => (
+                        <div key={asset.id} className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl max-w-full">
+                          <p className="text-[10px] font-black uppercase text-emerald-500 mb-2 truncate">{asset.blockId === 'archive' ? `Source: ${asset.source}` : `Block: ${asset.blockId}`}</p>
+                          <p className="text-xs text-zinc-300 whitespace-normal line-clamp-3">{asset.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             </>
           )}
