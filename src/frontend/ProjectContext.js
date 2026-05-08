@@ -78,7 +78,15 @@ const makeEmptyCourse = (name = 'New Course') => ({
   sprintDrafts: {}
 });
 
-const DEFAULT_COURSES = { [DEFAULT_COURSE_ID]: makeEmptyCourse('My First Course') };
+// Zero-state by default. The cockpit boots with NO placeholder course so
+// the student sees an empty cockpit until they drop a syllabus. The
+// previous 'My First Course' default was a zombie that the founder kept
+// confusing with extracted assessment data. Courses now exist only when
+// the student creates one (via Add Course or via the onboarding
+// handshake). activeCourseId may be set to a course that does not exist
+// (after migration or a cleared course); the activeCourse computed
+// value handles that case gracefully.
+const DEFAULT_COURSES = {};
 
 const loadJSON = (key, fallback) => {
   try {
@@ -263,7 +271,9 @@ export const ProjectProvider = ({ children }) => {
     setCourses(prev => {
       const next = { ...prev };
       delete next[id];
-      if (Object.keys(next).length === 0) next[DEFAULT_COURSE_ID] = makeEmptyCourse('My First Course');
+      // No auto-recreated placeholder. If the student deletes the last
+      // course, the cockpit returns to zero-state until they drop a new
+      // syllabus or click Add Course manually.
       return next;
     });
     if (activeCourseId === id) {

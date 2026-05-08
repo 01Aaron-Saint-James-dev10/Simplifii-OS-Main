@@ -506,13 +506,21 @@ const __callAssessmentExtractor = async (rawText) => {
       if (arrayMatch) { try { parsed = JSON.parse(arrayMatch[0]); } catch { /* give up */ } }
     }
 
-    // Some models wrap the array under a key. Look for the first array
-    // value on the parsed object before declaring failure.
+    // Reshape into an array. Three paths:
+    //   1. Already an array - use directly.
+    //   2. Object with an array-valued key (e.g. {assessments: [...]}) -
+    //      unwrap that key.
+    //   3. Single assessment object with assessment-like keys (title,
+    //      name, assessment) - wrap in a one-element array. This is the
+    //      common case when the syllabus only has one graded artefact.
     if (parsed && !Array.isArray(parsed) && typeof parsed === 'object') {
       const arrayKey = Object.keys(parsed).find(k => Array.isArray(parsed[k]));
       if (arrayKey) {
         if (typeof console !== 'undefined') console.info('[RewriteService] unwrapping object key', arrayKey);
         parsed = parsed[arrayKey];
+      } else if (parsed.title || parsed.name || parsed.assessment) {
+        if (typeof console !== 'undefined') console.info('[RewriteService] wrapping single assessment object in array');
+        parsed = [parsed];
       }
     }
 

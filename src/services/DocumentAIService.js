@@ -94,7 +94,16 @@ const extractWithPdfJs = async (fileBlob) => {
     }
     pageTexts.push(pageText);
   }
-  return pageTexts.join('\n\n');
+  let combined = pageTexts.join('\n\n');
+  // De-hyphenate words split across line breaks. Academic PDFs frequently
+  // wrap on hyphenation: 'communi-\ncation', 'biolo-\ngy', 'methodo-\nlogy'.
+  // pdfjs preserves the hyphen and the newline literally, so the
+  // downstream regex sees fragments like 'cation' or 'gy' as if they
+  // were standalone words. We only join when the second half starts
+  // with a lowercase letter, so genuine compound terms like
+  // 'self-evaluation' on a single line are preserved.
+  combined = combined.replace(/([A-Za-z]{2,})-\s*\n\s*([a-z]{2,})/g, '$1$2');
+  return combined;
 };
 
 const callGcpDocumentAi = async (fileBlob, liveToken) => {
