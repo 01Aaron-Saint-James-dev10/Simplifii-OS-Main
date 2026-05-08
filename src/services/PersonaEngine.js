@@ -71,7 +71,7 @@ export const getPersonaResponse = (personaKey, eventType) => {
   }
 
   if (eventType === 'ignition') {
-    return `Systems online, ${userName}. I have merged the Research Engine and the Cognitive Ledger. I've found 3 new connections between your BABS1201 brief and your 2025 Inclusive Education notes. Cockpit is live.`;
+    return `Systems online, ${userName}. The Research Engine and Cognitive Ledger are merged. Cockpit is live.`;
   }
 
   if (eventType === 'greeting') {

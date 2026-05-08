@@ -46,7 +46,7 @@ function ToneHUD({ content, onRigorDrop, isTyping }) {
   useEffect(() => {
     if (isLocked && !hasLocked) {
       setHasLocked(true);
-      speakSystemMessage("Strong logic, Adonis. That anchors your methodology perfectly.", "Rigor locked. Excellent structure.");
+      speakSystemMessage("Strong logic. That anchors your methodology perfectly.", "Rigour locked. Excellent structure.");
     }
   }, [isLocked, hasLocked]);
 
@@ -377,7 +377,7 @@ export default function LinearCanvas({
     
     if (isStrenuous) {
       setShowConfetti(true);
-      speakSystemMessage("You did the heavy lifting there, Adonis. That's a major milestone done.", "Strenuous Victory!");
+      speakSystemMessage("You did the heavy lifting there. That's a major milestone done.", "Strenuous Victory!");
       setTimeout(() => setShowConfetti(false), 5000); // 5 seconds of confetti
     }
     
@@ -415,7 +415,7 @@ export default function LinearCanvas({
       source: "Mirror-Draft Tool",
       author: "Precision Scaffolder",
       year: "Now",
-      text: "Notice how removing 'actually' and 'basically' makes the methodology feel more rigorous? Why do you think the second version is more persuasive for a BABS1201 marker?",
+      text: "Notice how removing 'actually' and 'basically' makes the methodology feel more rigorous? Why do you think the second version is more persuasive for the marker of your unit?",
       mentorNotes: "How does removing the filler words change the impact of your argument? Try to apply this logic to the next sentence.",
       isPrimary: true
     };
@@ -505,7 +505,7 @@ export default function LinearCanvas({
       if (section) {
         setTimeout(() => {
           avatarSpeak(
-            `Adonis, based on the Rubric's ${weights[highestId]}% weighting for ${section.title}, I recommend we start here.`,
+            `Based on the rubric's ${weights[highestId]}% weighting for ${section.title}, I recommend we start here.`,
             `The ${section.title} is worth ${weights[highestId]}% of the grade. Start writing this section now.`
           );
           setActiveSectionId(highestId);
@@ -609,7 +609,7 @@ export default function LinearCanvas({
         if (hiddenTimeRef.current > 0) {
           const driftSeconds = (Date.now() - hiddenTimeRef.current) / 1000;
           if (driftSeconds > 120 && !isZenMode) {
-            avatarSpeak("Adonis, I've kept your place. Ready to bridge that insight?", "Welcome back. Re-engaging cognitive flow.");
+            avatarSpeak("I've kept your place. Ready to bridge that insight?", "Welcome back. Re-engaging cognitive flow.");
           }
         }
         hiddenTimeRef.current = 0;
@@ -643,7 +643,7 @@ export default function LinearCanvas({
         if (backspaceCount.current > 50 && !showSosPulse && !isZenMode) {
           setShowSosPulse(true);
           avatarSpeak(
-            "Adonis, I'm noticing a lot of friction. I've prepared a brief extension request in the Support Bridge, or we can pivot to a Voice Note.",
+            "I'm noticing a lot of friction. I've prepared a brief extension request in the Support Bridge, or we can pivot to a Voice Note.",
             "High fragmentation detected. Click SOS for self-advocacy scripts or use Voice input."
           );
           backspaceCount.current = 0;
@@ -659,7 +659,7 @@ export default function LinearCanvas({
           setHasBurnoutWarned(true);
         } else if (keystrokeCount.current > 600) {
           avatarSpeak(
-            "Adonis, your heavy thinking is peaking. Let's take a 2-minute brain break to prevent burnout.",
+            "Your heavy thinking is peaking. Let's take a 2-minute brain break to prevent burnout.",
             "Cognitive load critical. Pause typing for 2 minutes."
           );
           keystrokeCount.current = 0; 

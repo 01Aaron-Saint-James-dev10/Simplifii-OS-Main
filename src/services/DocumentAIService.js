@@ -58,7 +58,7 @@ const callGcpDocumentAi = async (fileBlob, liveToken) => {
   });
 
   if (response.status === 401) {
-    speakSystemMessage("Adonis, I need you to re-authenticate to access the Research Engine.");
+    speakSystemMessage("I need you to re-authenticate to access the Research Engine.");
     throw new Error('Document AI: 401 Unauthorized. Token expired or invalid.');
   }
   if (!response.ok) {

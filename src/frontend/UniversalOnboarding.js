@@ -119,7 +119,7 @@ export function CourseDefinition({ onComplete, profile, setProfile }) {
           <div>
             <input 
               type="text" 
-              placeholder="Subject Name (e.g., BABS1201)" 
+              placeholder="Subject Name (e.g. BABS1201, Year 12 English, MATH3000)"
               required
               value={profile.courseName || ''}
               onChange={(e) => setProfile({...profile, courseName: e.target.value})}

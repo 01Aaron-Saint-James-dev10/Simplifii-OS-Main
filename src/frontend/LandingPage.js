@@ -143,7 +143,7 @@ export default function LandingPage({ onGetStarted }) {
             </div>
             <div className="flex justify-between items-center">
               <span className="text-xs font-black uppercase text-zinc-500 tracking-widest">Upcoming Deadline</span>
-              <span className="text-emerald-400 font-bold">{syncData.history.calendarScrape[0]?.event}</span>
+              <span className="text-emerald-400 font-bold">{syncData.history.calendarScrape[0]?.event || 'None synced'}</span>
             </div>
           </div>
 

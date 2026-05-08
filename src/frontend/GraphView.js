@@ -2,12 +2,12 @@ import React from 'react';
 import { Network, Database, Calendar, Search } from 'lucide-react';
 
 export default function GraphView({ syncData }) {
-  // Simulated Map of Thought based on syncData
+  // Demo nodes shown until real entities arrive from KnowledgeGraphService.
   const nodes = [
-    { id: 'n1', label: 'BABS1201 Brief', icon: Database, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-    { id: 'n2', label: 'Cellular Metabolism', icon: Search, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    { id: 'n3', label: 'Lab 3 Deadline', icon: Calendar, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-    { id: 'n4', label: 'Inclusive Education 2025', icon: Database, color: 'text-purple-500', bg: 'bg-purple-500/10' }
+    { id: 'n1', label: 'Active Course Brief', icon: Database, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    { id: 'n2', label: 'Key Concept', icon: Search, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    { id: 'n3', label: 'Upcoming Deadline', icon: Calendar, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+    { id: 'n4', label: 'Linked Notes', icon: Database, color: 'text-purple-500', bg: 'bg-purple-500/10' }
   ];
 
   return (

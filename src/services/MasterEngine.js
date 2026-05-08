@@ -28,7 +28,7 @@ export const verifyClaim = async (text, authToken) => {
         resolve({
           status: 'verified',
           confidence: 0.98,
-          message: 'Claim verified against Drive Vault (BABS1201_Lecture3.pdf).',
+          message: 'Claim verified against the active course Drive Vault.',
           source: 'vault'
         });
       } else if (lowerText.includes('always') || lowerText.includes('never') || lowerText.includes('prove')) {

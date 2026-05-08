@@ -3,6 +3,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { Minimize2 } from 'lucide-react';
 import { speakSystemMessage } from '../services/MessagingHub';
 import { useSettings } from './SettingsContext';
+import { useProject } from './ProjectContext';
 import { getPersonaResponse, Personas } from '../services/PersonaEngine';
 
 const AVATAR_MINIMISED_KEY = 'simplifii_avatar_minimised';
@@ -89,13 +90,17 @@ function RobotHead({ isSpeaking, personaKey, boundarySignal, isLiteralMode }) {
 
 export default function AIAvatar({ eventType, isLiteralMode, onClick }) {
   const { persona } = useSettings();
+  const { profile } = useProject();
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [displayMessage, setDisplayMessage] = useState('');
   const [boundarySignal, setBoundarySignal] = useState(0);
 
-  // Emergency Directive Mount Speech
+  // Mount speech. Reads the current profile name; falls back to 'Sovereign
+  // User' so a fresh install never says 'Adonis'. 'device' instead of 'Mac'
+  // for cross-platform honesty.
   useEffect(() => {
-    const msg = "Sovereign engine active, Adonis. My neural loops are now running 100% locally on your Mac, no trials, no timeouts.";
+    const displayName = (profile?.name || '').trim() || 'Sovereign User';
+    const msg = `Sovereign engine active, ${displayName}. My neural loops are running locally on your device, no trials, no timeouts.`;
     setDisplayMessage(msg);
     setIsSpeaking(true);
     

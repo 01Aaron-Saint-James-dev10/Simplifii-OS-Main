@@ -16,7 +16,7 @@ export default function DevInsightsPanel({ onClose }) {
     },
     {
       id: 'insight2',
-      point: 'Cognitive Fatigue in BABS1201',
+      point: 'Cognitive Fatigue in Long-Form Assessments',
       source: 'r/ADHD',
       fix: 'focus-pulse-js (Haptic focus reminders)',
       description: 'The 2000-word limit is causing executive paralysis. They need micro-milestones.'

@@ -1,33 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, LifeBuoy, X, Shield, Send, ArrowRight, BrainCircuit } from 'lucide-react';
 import { speakSystemMessage } from '../services/MessagingHub';
+import { useProject } from './ProjectContext';
 
 export default function SupportBridge({ onClose, isLiteralMode }) {
-  const [recipient, setRecipient] = useState('BABS1201@unsw.edu.au');
+  const { courses, activeCourseId } = useProject();
+  const courseName = (courses?.[activeCourseId]?.name || 'this course').trim() || 'this course';
+  const [recipient, setRecipient] = useState('convenor@example.edu');
 
   const templates = [
     {
       id: 'extension',
       title: '3-Day Extension',
-      subject: 'BABS1201 Assessment - Equitable Learning Plan Extension Request - [Your ZID]',
-      body: `Dear Course Convenor,\n\nI am writing to formally request a 3-day extension for the upcoming BABS1201 assessment, in alignment with the reasonable adjustments outlined in my active Equitable Learning Plan (ELP).\n\nDue to current neuro-cognitive load (as reflected in the attached cognitive telemetry), I require this adjustment to ensure my submission accurately reflects my understanding of the course learning outcomes, rather than being a measure of processing speed.\n\nThank you for your ongoing flexibility and for facilitating these institutional adjustments.\n\nKind regards,\n[Your Name]\n[Your ZID]\n\n---\n[UDL Attachment: View My Verified Effort Log: simplifii.link/log-94827]\n*This verified link proves 4.2 hours of Heavy Thinking on this assessment block.*`
+      subject: `${courseName} Assessment: Equitable Learning Plan Extension Request - [Your ZID]`,
+      body: `Dear Course Convenor,\n\nI am writing to formally request a 3-day extension for the upcoming ${courseName} assessment, in alignment with the reasonable adjustments outlined in my active Equitable Learning Plan (ELP).\n\nDue to current cognitive load (as reflected in the attached effort log), I require this adjustment to ensure my submission accurately reflects my understanding of the course learning outcomes, rather than being a measure of processing speed.\n\nThank you for your ongoing flexibility and for facilitating these institutional adjustments.\n\nKind regards,\n[Your Name]\n[Your ZID]\n\n[UDL Attachment: View My Verified Effort Log: simplifii.link/log-94827]\n*This verified link proves 4.2 hours of focused work on this assessment block.*`
     },
     {
       id: 'format',
       title: 'Format Adjustment',
-      subject: 'BABS1201 Assessment - ELP Format Adjustment Request - [Your ZID]',
-      body: `Dear Course Convenor,\n\nI am contacting you to request a format adjustment for the upcoming BABS1201 assessment, as supported by my Equitable Learning Plan (ELP) under the Universal Design for Learning (UDL) framework.\n\nTo best demonstrate my achievement of the course learning outcomes without the barrier of executive dysfunction, I propose submitting a multi-modal presentation instead of the standard written format.\n\nPlease let me know a suitable time to briefly discuss the logistical implementation of this reasonable adjustment.\n\nKind regards,\n[Your Name]\n[Your ZID]\n\n---\n[UDL Attachment: View My Verified Effort Log: simplifii.link/log-94827]\n*This verified link proves sustained engagement with the learning material.*`
+      subject: `${courseName} Assessment: ELP Format Adjustment Request - [Your ZID]`,
+      body: `Dear Course Convenor,\n\nI am contacting you to request a format adjustment for the upcoming ${courseName} assessment, as supported by my Equitable Learning Plan (ELP) under the Universal Design for Learning (UDL) framework.\n\nTo best demonstrate my achievement of the course learning outcomes without the barrier of executive dysfunction, I propose submitting a multi-modal presentation instead of the standard written format.\n\nPlease let me know a suitable time to briefly discuss the logistical implementation of this reasonable adjustment.\n\nKind regards,\n[Your Name]\n[Your ZID]\n\n[UDL Attachment: View My Verified Effort Log: simplifii.link/log-94827]\n*This verified link proves sustained engagement with the learning material.*`
     },
     {
       id: 'checkin',
       title: 'Clarification Check-in',
-      subject: 'BABS1201 - Progress Update & Clarification - [Your ZID]',
-      body: `Dear Course Convenor,\n\nI am providing a brief update on my progress for the BABS1201 assessment. I have successfully mapped the core methodologies but require clarification on one specific rubric criterion to proceed effectively.\n\nCould you please confirm the exact expectations regarding the methodology section?\n\nThank you for your time and guidance.\n\nKind regards,\n[Your Name]\n[Your ZID]\n\n---\n[UDL Attachment: View My Verified Effort Log: simplifii.link/log-94827]\n*This verified link provides context on my current drafting bottlenecks.*`
+      subject: `${courseName}: Progress Update & Clarification - [Your ZID]`,
+      body: `Dear Course Convenor,\n\nI am providing a brief update on my progress for the ${courseName} assessment. I have successfully mapped the core methodologies but require clarification on one specific rubric criterion to proceed effectively.\n\nCould you please confirm the exact expectations regarding the methodology section?\n\nThank you for your time and guidance.\n\nKind regards,\n[Your Name]\n[Your ZID]\n\n[UDL Attachment: View My Verified Effort Log: simplifii.link/log-94827]\n*This verified link provides context on my current drafting bottlenecks.*`
     }
   ];
 
   useEffect(() => {
-    speakSystemMessage("Adonis, I've noticed the friction. Here are 3 drafts based on your current progress. Which one feels right?", "Assistant Activated");
+    speakSystemMessage("I've noticed the friction. Here are 3 drafts based on your current progress. Which one feels right?", "Assistant Activated");
   }, []);
 
   const handleSend = (template) => {
@@ -66,7 +69,7 @@ export default function SupportBridge({ onClose, isLiteralMode }) {
           onChange={(e) => setRecipient(e.target.value)}
           className="bg-black border border-zinc-700 text-zinc-300 text-[10px] font-bold p-2 rounded-lg outline-none"
         >
-          <option value="BABS1201@unsw.edu.au">Course Convenor</option>
+          <option value="convenor@example.edu">Course Convenor</option>
           <option value="els@unsw.edu.au">Equitable Learning (ELS)</option>
         </select>
       </div>
@@ -74,7 +77,7 @@ export default function SupportBridge({ onClose, isLiteralMode }) {
       {/* Content Feed */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
         <p className="text-xs text-emerald-500/80 mb-2 leading-relaxed font-bold">
-          "Adonis, I've noticed the friction. Here are 3 drafts for an extension based on your current progress. Which one feels right?"
+          "I've noticed the friction. Here are 3 drafts for an extension based on your current progress. Which one feels right?"
         </p>
         
         {templates.map((template) => (

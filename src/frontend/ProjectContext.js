@@ -4,23 +4,20 @@ import { appendThinkingLog } from '../services/SheetsService';
 
 const ProjectContext = createContext();
 
+// Blocks intentionally start empty. Once a brief is grounded, mapToWorkspace
+// generates the right blocks for the detected academic level (school /
+// undergrad / honours / phd). No level-specific defaults baked in here.
 const initialProjectState = {
-  blocks: [
-    { id: 1, type: 'Informative Title', content: '' },
-    { id: 2, type: 'Introduction & Context', content: '' },
-    { id: 3, type: 'Primary Article 1 Summary', content: '' },
-    { id: 4, type: 'Primary Article 2 Summary', content: '' },
-    { id: 5, type: 'Review Article Synthesis', content: '' },
-    { id: 6, type: 'Conclusion & Future Directions', content: '' },
-    { id: 7, type: 'Research Process Documentation', content: '' }
-  ],
+  blocks: [],
   integrityLog: [],
   verifications: [],
   inbox: []
 };
 
+// Profile collected during onboarding. Empty name falls back to a neutral
+// 'Sovereign User' label at display time so the OS never assumes who you are.
 const DEFAULT_PROFILE = {
-  name: 'Adonis',
+  name: '',
   deadline: 'Friday',
   courseName: '',
   level: 'university',
@@ -117,6 +114,13 @@ export const ProjectProvider = ({ children }) => {
     return id;
   };
   const removeCourse = (id) => {
+    // Purge per-course localStorage keys before dropping the course record.
+    // Add new prefixes here when future per-course storage lands.
+    const PER_COURSE_PREFIXES = ['simplifii_linear_canvas_'];
+    PER_COURSE_PREFIXES.forEach(prefix => {
+      try { localStorage.removeItem(prefix + id); } catch { /* storage unavailable */ }
+    });
+
     setCourses(prev => {
       const next = { ...prev };
       delete next[id];

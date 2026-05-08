@@ -2,10 +2,10 @@ export const mockGoogleAuth = async () => {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve({
-        token: 'mock_jwt_token_xyz123',
+        token: 'sandbox_demo_token',
         user: {
-          name: 'Adonis',
-          email: 'adonis@student.unsw.edu.au',
+          name: 'Demo Student',
+          email: 'demo@simplifii.local',
           picture: 'https://via.placeholder.com/150'
         }
       });
@@ -13,19 +13,17 @@ export const mockGoogleAuth = async () => {
   });
 };
 
+// Sandbox-only mock. The 'preview' label on the LandingPage tells the user
+// this is canned data; once real Google OAuth is wired, this entire file
+// becomes a thin wrapper around the live People / Calendar / Drive APIs.
 export const fetchContextualHistory = async (token) => {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve({
-        youtubeScrape: [
-          { query: 'Cellular Metabolism basics', timestamp: Date.now() - 86400000 },
-          { query: 'BABS1201 Lab Report structure', timestamp: Date.now() - 172800000 }
-        ],
-        calendarScrape: [
-          { event: 'BABS1201 Lab 3', date: new Date(Date.now() + 86400000).toISOString() }
-        ],
+        youtubeScrape: [],
+        calendarScrape: [],
         inferredTier: 'tertiary',
-        inferredFocus: 'Cellular Metabolism'
+        inferredFocus: 'General Studies'
       });
     }, 2000);
   });

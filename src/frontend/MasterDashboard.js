@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Brain, RefreshCw, Sparkles, CheckCircle2, Layout, FileText, Download, Target, AlertTriangle, Shield, ChevronLeft, ChevronRight, Eye, HardDrive } from 'lucide-react';
+import { Brain, RefreshCw, Sparkles, CheckCircle2, Layout, FileText, Download, Target, AlertTriangle, Shield, ChevronLeft, ChevronRight, Eye, HardDrive, Trash2 } from 'lucide-react';
 import { useSettings } from './SettingsContext';
 import { useProject } from './ProjectContext';
 import { useInstitution } from './InstitutionalContext';
 import TaskCard from './TaskCard';
 import AccessibilityVault from './AccessibilityVault';
+import ConfirmDialog from './ConfirmDialog';
 import { StartIgnition, IdentityGate, TemporalBaseline, CourseDefinition, Grounding } from './UniversalOnboarding';
 import LinearCanvas from './LinearCanvas';
 import MathsStepEditor from './MathsStepEditor';
@@ -34,7 +35,7 @@ export default function MasterDashboard() {
     tasks, setTasks,
     extractionData, setExtractionData,
     activeTask, setActiveTask,
-    courses, activeCourseId, setActiveCourseId, addCourse, renameCourse
+    courses, activeCourseId, setActiveCourseId, addCourse, renameCourse, removeCourse
   } = useProject();
   const { setInstitutionalData } = useInstitution();
 
@@ -43,6 +44,7 @@ export default function MasterDashboard() {
   const [globalGhostAssets, setGlobalGhostAssets] = useState([]);
   const [showSupportBridge, setShowSupportBridge] = useState(false);
   const [showAccessibilityVault, setShowAccessibilityVault] = useState(false);
+  const [pendingDeleteCourseId, setPendingDeleteCourseId] = useState(null);
 
   useEffect(() => {
     const handleToggleAccessibility = () => setShowAccessibilityVault(prev => !prev);
@@ -56,7 +58,7 @@ export default function MasterDashboard() {
     if (prevZenModeRef.current === true && isZenMode === false) {
       if (window.speechSynthesis) {
         window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance("Adonis, you spent 80% of your time in High-Rigor analysis today. Your Focus peaked during the Methodology block.");
+        const utterance = new SpeechSynthesisUtterance("You spent 80% of your time in high-rigour analysis today. Your focus peaked during the methodology block.");
         utterance.rate = 0.9;
         window.speechSynthesis.speak(utterance);
       }
@@ -157,7 +159,9 @@ export default function MasterDashboard() {
       yPos += (lines.length * 5) + 15;
     });
 
-    doc.save(`${profile.name}_BABS1201_Export.pdf`);
+    const safeName = (profile.name || 'Student').replace(/[^A-Za-z0-9]+/g, '_');
+    const safeCourse = (courses[activeCourseId]?.name || 'Course').replace(/[^A-Za-z0-9]+/g, '_');
+    doc.save(`${safeName}_${safeCourse}_Export.pdf`);
     avatarSpeak("Premium PDF compiled. Your structural scaffolding is ready.", "PDF Exported.");
   };
 
@@ -195,7 +199,8 @@ export default function MasterDashboard() {
         }} profile={profile} />;
       case 5:
       default:
-        const isMaths = profile.courseName.toLowerCase().includes('maths') || profile.courseName.toLowerCase().includes('hsc');
+        const activeCourseName = (courses[activeCourseId]?.name || '').toLowerCase();
+        const isMaths = activeCourseName.includes('maths') || activeCourseName.includes('hsc');
         return (
           <div className="flex-1 flex overflow-hidden animate-fade-in relative z-0">
             {isMaths ? (
@@ -326,6 +331,19 @@ export default function MasterDashboard() {
 
       {showSupportBridge && <SupportBridge onClose={() => setShowSupportBridge(false)} isLiteralMode={isLiteralMode} />}
       {showAccessibilityVault && <AccessibilityVault onClose={() => setShowAccessibilityVault(false)} />}
+      <ConfirmDialog
+        open={!!pendingDeleteCourseId}
+        title="Delete Course"
+        body={`Delete "${courses[pendingDeleteCourseId]?.name || 'this course'}"? This wipes its tasks, canvas, archive, and brief. This cannot be undone.`}
+        confirmLabel="Delete Course"
+        cancelLabel="Keep Course"
+        destructive
+        onConfirm={() => {
+          if (pendingDeleteCourseId) removeCourse(pendingDeleteCourseId);
+          setPendingDeleteCourseId(null);
+        }}
+        onCancel={() => setPendingDeleteCourseId(null)}
+      />
 
       {/* Body row: sidebar + main + right archive share the height below the nav */}
       <div className="flex-1 flex overflow-hidden min-h-0">
@@ -371,7 +389,7 @@ export default function MasterDashboard() {
               <div className="flex gap-2 mt-2">
                 <button
                   onClick={() => {
-                    const name = window.prompt('Name this course (e.g. BABS1201, MRes Research):');
+                    const name = window.prompt('Name this course:');
                     if (name && name.trim()) addCourse(name.trim());
                   }}
                   className="flex-1 text-[10px] font-black text-emerald-500 hover:text-black hover:bg-emerald-500 uppercase tracking-widest border border-emerald-500/30 hover:border-emerald-500 py-2 rounded-lg transition-all"
@@ -388,6 +406,15 @@ export default function MasterDashboard() {
                   title="Rename active course"
                 >
                   Edit
+                </button>
+                <button
+                  onClick={() => setPendingDeleteCourseId(activeCourseId)}
+                  disabled={Object.keys(courses).length <= 1}
+                  className="text-[10px] font-black text-zinc-500 hover:text-rose-400 uppercase tracking-widest border border-zinc-800 hover:border-rose-500 py-2 px-3 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-zinc-500 disabled:hover:border-zinc-800"
+                  title={Object.keys(courses).length <= 1 ? 'Cannot delete the only course' : 'Delete active course'}
+                  aria-label="Delete active course"
+                >
+                  <Trash2 size={12} />
                 </button>
               </div>
             </div>

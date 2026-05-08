@@ -17,7 +17,7 @@ export default function AccessibilityVault({ onClose }) {
     const nextState = !isBionicActive;
     setIsBionicActive(nextState);
     if (nextState) {
-      speakSystemMessage("Bionic fixation points active, Adonis. Your visual load is now optimized for the BABS1201 sprint.", "Bionic reading engaged.");
+      speakSystemMessage("Bionic fixation points active. Your visual load is now optimised for the active sprint.", "Bionic reading engaged.");
     }
   };
 
