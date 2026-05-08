@@ -53,13 +53,35 @@ let __speechSpeaking = false;
 let __userHasInteracted = false;
 let __loggedVoice = false;
 
+// Voices on Chromium load asynchronously; getVoices() returns [] on
+// first call and only populates after a 'voiceschanged' event. We
+// register a one-shot listener so the first time voices arrive we
+// log the picker's choice. If voices never arrive (rare but possible
+// in headless or fully-stripped builds), the synth still has a
+// system default to fall back on; we just don't set utterance.voice.
+if (typeof window !== 'undefined' && window.speechSynthesis) {
+  const onVoicesChanged = () => {
+    if (__loggedVoice) return;
+    const v = window.speechSynthesis.getVoices();
+    if (!v || v.length === 0) return;
+    if (typeof console !== 'undefined') console.info('[Speech] voices loaded:', v.length, 'available');
+  };
+  // Set the listener before checking, in case voices arrive between checks.
+  window.speechSynthesis.onvoiceschanged = onVoicesChanged;
+  // Also try a one-time getVoices() on next tick to nudge the engine.
+  setTimeout(() => { try { window.speechSynthesis.getVoices(); } catch { /* ignore */ } }, 0);
+}
+
 export const markSpeechUnlocked = () => {
   if (__userHasInteracted) return;
   __userHasInteracted = true;
   if (typeof console !== 'undefined') console.info('[Speech] unlocked by user gesture; draining', __preInteractionBuffer.length, 'queued');
   // Prime the synthesizer with a near-silent utterance so the first real
   // utterance does not get clipped on browsers that lazy-init the engine.
+  // Also force getVoices() here under a real user gesture, which is what
+  // some Chrome builds wait for before populating the voices list.
   if (typeof window !== 'undefined' && window.speechSynthesis) {
+    try { window.speechSynthesis.getVoices(); } catch { /* ignore */ }
     try {
       const primer = new SpeechSynthesisUtterance(' ');
       primer.volume = 0;
@@ -144,6 +166,11 @@ export const speakSystemMessage = (text, onEndOrSubtitle, rate = 1.0, pitch = 1.
   if (!text || typeof text !== 'string') return;
 
   const utterance = new SpeechSynthesisUtterance(text);
+  // Voice is best-effort. If voices have not loaded yet (cold start on
+  // Chromium), we deliberately do NOT set utterance.voice; the synth
+  // falls back to the system default voice which IS audible. Once the
+  // voiceschanged event fires the next utterance will pick our preferred
+  // voice on its own.
   const preferred = __pickVoice();
   if (preferred) {
     utterance.voice = preferred;
@@ -152,9 +179,7 @@ export const speakSystemMessage = (text, onEndOrSubtitle, rate = 1.0, pitch = 1.
       if (typeof console !== 'undefined') console.info('[Speech] using voice:', preferred.name, '(', preferred.lang, ')');
     }
   } else if (!__loggedVoice && typeof console !== 'undefined') {
-    const total = window.speechSynthesis.getVoices().length;
-    console.warn('[Speech] no English voice available. Total voices loaded:', total, '. macOS users: System Settings > Accessibility > Spoken Content > System Voice.');
-    __loggedVoice = true;
+    console.info('[Speech] voices not loaded yet; using system default for this utterance');
   }
   utterance.volume = 1.0;
   utterance.rate = rate;
