@@ -147,7 +147,8 @@ function NavRail({ onExit }) {
 // Sources Panel
 // ============================================================
 
-function SourcesPanel({ docs, pillars, activePillar, activeDoc, onPickPillar, onPickDoc, onAddSource }) {
+function SourcesPanel({ docs, pillars, activePillar, activeDoc, onPickPillar, onPickDoc, onAddSource, courses, activeCourseId, onPickCourse }) {
+  const courseEntries = Object.entries(courses || {});
   return (
     <div className="col" id="sources-col">
       <div className="col-head">
@@ -159,6 +160,36 @@ function SourcesPanel({ docs, pillars, activePillar, activeDoc, onPickPillar, on
       </div>
 
       <div className="col-body">
+        {courseEntries.length > 0 && (
+          <>
+            <div className="sources-section-label">Active Course</div>
+            <div style={{ padding: '0 14px 14px' }}>
+              <select
+                value={activeCourseId || ''}
+                onChange={(e) => onPickCourse && onPickCourse(e.target.value)}
+                style={{
+                  width: '100%',
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--line-strong)',
+                  color: 'var(--ink)',
+                  fontFamily: 'var(--f-mono)',
+                  fontSize: 12,
+                  padding: '10px 12px',
+                  borderRadius: 'var(--r-md)',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+                title="Switch the active course (e.g. between BABS1201 and MRes)"
+              >
+                {courseEntries.map(([id, c]) => (
+                  <option key={id} value={id}>{c.name || '(unnamed)'}</option>
+                ))}
+              </select>
+            </div>
+            <div className="divider-soft" />
+          </>
+        )}
+
         <div className="sources-section-label">Course Grounding</div>
 
         {docs.length === 0 ? (
@@ -559,7 +590,7 @@ function AuraPanel({ activeCourse, pillar }) {
 // ============================================================
 
 export default function SimplifiiStudio({ onExit }) {
-  const { activeCourse } = useProject();
+  const { activeCourse, courses, activeCourseId, setActiveCourseId } = useProject();
 
   // Build pillars from the active course's assessment briefs. When the
   // student has no briefs yet (no syllabus dropped) we render an empty
@@ -657,6 +688,9 @@ export default function SimplifiiStudio({ onExit }) {
         onPickPillar={setActivePillarId}
         onPickDoc={setActiveDocId}
         onAddSource={onExit}
+        courses={courses}
+        activeCourseId={activeCourseId}
+        onPickCourse={setActiveCourseId}
       />
       <Cockpit
         pillar={pillar}
