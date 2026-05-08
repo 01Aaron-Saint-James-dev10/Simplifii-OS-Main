@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Save, AlertCircle, FileText, CheckCircle2, GripVertical, Network, Activity, CheckCircle, Circle, Type, Mic, Edit3, MessageSquare, Zap, Clock, BookOpen, ArrowRight, Wand2, Target, Flag, ChevronLeft, ChevronRight, BrainCircuit, Volume2, LifeBuoy, Shield, Maximize2, Minimize2, Eye, HardDrive, Code, Loader2 } from 'lucide-react';
 import { speakSystemMessage } from '../services/MessagingHub';
 import { getPersonaResponse } from '../services/PersonaEngine';
@@ -532,23 +532,40 @@ export default function LinearCanvas({
     }
   }, [extractionData, hasWhisperedStart, sections, isZenMode, isLiteralMode]);
 
-  // Update Roadmap Stage based on checklist completion
+  // Stage progression. Two ratios drive it:
+  //   wordRatio: total drafted words / activeAssessmentBrief.wordCountGoal,
+  //              if a goal is set on the focused sprint
+  //   checklistRatio: existing completed / total
+  // The higher of the two advances the stage. So the student sees Stage A
+  // light up at 33 percent of the goal, Stage B at 66 percent, Stage C at
+  // 100 percent, and Stage D when every DoD item is ticked. With no
+  // active sprint the original checklist-only logic applies.
+  const totalWords = useMemo(() => {
+    return sections.reduce((sum, s) => sum + (s?.content || '').trim().split(/\s+/).filter(Boolean).length, 0);
+  }, [sections]);
+  const sprintGoal = activeCourse?.activeAssessmentBrief?.wordCountGoal || 0;
   useEffect(() => {
-    if (checklist.length === 0) return;
-    const completed = checklist.filter(c => c.checked).length;
-    const ratio = completed / checklist.length;
-    
+    let stageRatio = 0;
+    if (checklist.length > 0) {
+      const completed = checklist.filter(c => c.checked).length;
+      stageRatio = Math.max(stageRatio, completed / checklist.length);
+    }
+    if (sprintGoal > 0) {
+      stageRatio = Math.max(stageRatio, totalWords / sprintGoal);
+    }
+    if (stageRatio === 0) return;
+
     let newStage = 0;
-    if (ratio >= 1.0) newStage = 3;
-    else if (ratio >= 0.66) newStage = 2;
-    else if (ratio >= 0.33) newStage = 1;
+    if (stageRatio >= 1.0) newStage = 3;
+    else if (stageRatio >= 0.66) newStage = 2;
+    else if (stageRatio >= 0.33) newStage = 1;
 
     if (newStage > currentStageIndex) {
       setCurrentStageIndex(newStage);
       avatarSpeak(`Excellent. Advancing to ${roadmapStages[newStage].label}.`, `Progress saved. Stage ${newStage + 1} initiated.`);
-      keystrokeCount.current = 0; // Reset burnout tracker on stage progression
+      keystrokeCount.current = 0;
     }
-  }, [checklist, isZenMode, isLiteralMode]);
+  }, [checklist, totalWords, sprintGoal, isZenMode, isLiteralMode]);
 
   const updateLineCoords = () => {
     if (!containerRef.current || isZenMode || isLeftCollapsed || isRightCollapsed) {
@@ -966,6 +983,16 @@ export default function LinearCanvas({
               <div className="mt-4 inline-flex items-center gap-3 px-4 py-2 rounded-full bg-emerald-500/15 border border-emerald-400/40 shadow-[0_0_18px_rgba(16,185,129,0.3)]">
                 <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Active Sprint</span>
                 <span className="text-sm font-bold text-white">{activeSprintTitle}</span>
+                {sprintGoal > 0 && (
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-300/80">
+                    {totalWords} / {sprintGoal} words
+                  </span>
+                )}
+                {activeCourse?.activeAssessmentBrief?.dueDate && (
+                  <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                    Due: {activeCourse.activeAssessmentBrief.dueDate}
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => switchSprint(null)}

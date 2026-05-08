@@ -152,11 +152,26 @@ export const ProjectProvider = ({ children }) => {
   // default milestones so consumers can always read activeCourse.roadmap.x
   // without optional chaining sprinkled through every panel.
   const rawActiveCourse = courses[activeCourseId] || makeEmptyCourse('(Missing course)');
+  // Resolve the currently focused assessment brief (if any). The brief
+  // carries the title, weight, wordCountGoal, and dueDate, which the
+  // canvas uses for its Logic Block progression and AURA Chat context.
+  const __activeTitle = rawActiveCourse.activeAssessmentTitle || null;
+  const __briefs = Array.isArray(rawActiveCourse.extractionData?.assessmentBriefs)
+    ? rawActiveCourse.extractionData.assessmentBriefs
+    : [];
+  const __resolveBrief = (title) => {
+    if (!title) return null;
+    return __briefs.find(b => {
+      const display = b.weight ? `${b.title} (${b.weight})` : b.title;
+      return display === title || b.title === title;
+    }) || null;
+  };
   const activeCourse = {
     ...rawActiveCourse,
     roadmap: { ...DEFAULT_ROADMAP, ...(rawActiveCourse.roadmap || {}) },
     sprintDrafts: rawActiveCourse.sprintDrafts || {},
-    activeAssessmentTitle: rawActiveCourse.activeAssessmentTitle || null
+    activeAssessmentTitle: __activeTitle,
+    activeAssessmentBrief: __resolveBrief(__activeTitle)
   };
   const { tasks, extractionData, activeTask, project } = activeCourse;
 

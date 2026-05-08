@@ -420,28 +420,36 @@ export const nameCourse = async (text) => {
 const ASSESSMENT_SYSTEM_PROMPT = [
   'You are an extraction tool. Read a course syllabus and return ONLY the graded assessments.',
   '',
-  'OUTPUT FORMAT: A JSON array of objects. Each object has two keys:',
-  '  "title": short name of the assessment (3 to 50 chars, capital first letter)',
+  'OUTPUT FORMAT: A JSON array of objects. Each object has these keys:',
+  '  "title": short name of the assessment (3 to 60 chars, capital first letter)',
   '  "weight": percentage as a string like "30%", or "" if no weighting is given',
-  'Example: [{"title":"Lab Report 1","weight":"15%"},{"title":"Final Exam","weight":"50%"}]',
+  '  "wordCountGoal": integer target word count (e.g. 1500), or 0 if not specified',
+  '  "dueDate": short due date string (e.g. "Friday Week 5", "12 May 2026"), or "" if not specified',
+  'Example:',
+  '  [{"title":"Literature Review","weight":"30%","wordCountGoal":1500,"dueDate":"Friday Week 5"},',
+  '   {"title":"Final Exam","weight":"50%","wordCountGoal":0,"dueDate":"Exam Period"}]',
   '',
   'ABSOLUTE RULES:',
   '1. Australian English only.',
   '2. Never use em-dashes or en-dashes.',
   '3. Return ONLY the JSON array. No preamble, no markdown fence, no commentary.',
-  '4. Exclude topics, lecture titles, learning outcomes, rubric column headers, and navigation copy (Moodle, Hub, etc.).',
-  '5. Each title must appear ONLY ONCE in the array. Do not repeat the same assessment.',
+  '4. Exclude topics, lecture titles, learning outcomes, rubric column headers, navigation copy (Moodle, Hub), and word fragments (cation, p 2, Item).',
+  '5. Each title must appear ONLY ONCE. Deduplicate aggressively.',
   '6. If the syllabus does not list assessments, return [].'
 ].join('\n');
 
-export const extractAssessmentsWithOllama = async (rawText) => {
+// Internal: send the prompt and parse the JSON response. Returns an array
+// of normalised brief objects. Used by both the legacy
+// extractAssessmentsWithOllama (string list) and the richer
+// extractAssessmentBriefs (full objects).
+const __callAssessmentExtractor = async (rawText) => {
   if (!rawText || rawText.trim().length < 200) return [];
   if (getProviderName() !== 'ollama') return [];
   try {
     const endpoint = getOllamaEndpoint().replace(/\/$/, '');
     const model = getOllamaModel();
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 25000);
+    const timer = setTimeout(() => controller.abort(), 30000);
     const response = await fetch(`${endpoint}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -449,10 +457,10 @@ export const extractAssessmentsWithOllama = async (rawText) => {
         model,
         stream: false,
         format: 'json',
-        options: { temperature: 0.1, num_predict: 500 },
+        options: { temperature: 0.1, num_predict: 800 },
         messages: [
           { role: 'system', content: ASSESSMENT_SYSTEM_PROMPT },
-          { role: 'user', content: `SYLLABUS:\n${rawText.slice(0, 6000)}\n\nReturn the JSON array.` }
+          { role: 'user', content: `SYLLABUS:\n${rawText.slice(0, 8000)}\n\nReturn the JSON array.` }
         ]
       }),
       signal: controller.signal
@@ -461,8 +469,6 @@ export const extractAssessmentsWithOllama = async (rawText) => {
     if (!response.ok) return [];
     const data = await response.json().catch(() => ({}));
     const raw = data?.message?.content || '';
-    // Try parsing as JSON, with two fallbacks: direct parse, and stripped
-    // markdown fence parse, and array-substring parse.
     let parsed = null;
     try { parsed = JSON.parse(raw); } catch { /* try fallbacks */ }
     if (!parsed) {
@@ -474,29 +480,54 @@ export const extractAssessmentsWithOllama = async (rawText) => {
       if (arrayMatch) { try { parsed = JSON.parse(arrayMatch[0]); } catch { /* give up */ } }
     }
     if (!Array.isArray(parsed)) return [];
+
+    // Some models wrap the array under a key like {assessments: [...]}.
+    if (parsed.length === 0 && typeof parsed === 'object') return [];
+
+    // Quality threshold: discard junk before it ever lands. Title must
+    // start with a capital letter, run 4 to 60 chars, and not match
+    // the noise words even if the LLM ignored the instruction.
+    const NOISE_WORDS = /^(item|cation|p\s*\d+|figure|table|page|section|lecture|topic|content|outline|rubric|details|overview|description|length|information|notes|comments|criteria)$/i;
     const seen = new Set();
-    const titles = [];
+    const briefs = [];
     for (const item of parsed) {
       if (!item || typeof item !== 'object') continue;
       const title = String(item.title || '').trim().replace(/\s+/g, ' ');
-      const weight = String(item.weight || '').trim();
       if (title.length < 4 || title.length > 60) continue;
       if (!/^[A-Z]/.test(title)) continue;
+      if (NOISE_WORDS.test(title)) continue;
       const key = title.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
-      const display = weight ? `${title} (${weight})` : title;
-      titles.push(display);
+      const weightRaw = String(item.weight || '').trim();
+      const weight = weightRaw && /\d/.test(weightRaw) ? weightRaw : '';
+      const wcRaw = item.wordCountGoal;
+      const wordCountGoal = (typeof wcRaw === 'number' && wcRaw > 0 && wcRaw < 50000)
+        ? wcRaw
+        : (typeof wcRaw === 'string' && /^\d+$/.test(wcRaw.trim())) ? parseInt(wcRaw.trim(), 10) : 0;
+      const dueDate = String(item.dueDate || '').trim().slice(0, 60);
+      briefs.push({ title, weight, wordCountGoal, dueDate });
     }
     if (typeof console !== 'undefined') {
-      console.info('[RewriteService] Ollama extracted', titles.length, 'assessments');
+      console.info('[RewriteService] Ollama extracted', briefs.length, 'assessment briefs');
     }
-    return titles.slice(0, 12);
+    return briefs.slice(0, 12);
   } catch (err) {
-    if (typeof console !== 'undefined') console.warn('[RewriteService] extractAssessmentsWithOllama failed:', err.message);
+    if (typeof console !== 'undefined') console.warn('[RewriteService] assessment extraction failed:', err.message);
     return [];
   }
 };
+
+// Backwards-compat wrapper: returns array of display strings.
+export const extractAssessmentsWithOllama = async (rawText) => {
+  const briefs = await __callAssessmentExtractor(rawText);
+  return briefs.map(b => b.weight ? `${b.title} (${b.weight})` : b.title);
+};
+
+// Rich brief extractor: returns the full {title, weight, wordCountGoal,
+// dueDate} objects so downstream consumers (sprint switcher, Logic Block
+// progression, AURA Chat context) can use the structured data.
+export const extractAssessmentBriefs = async (rawText) => __callAssessmentExtractor(rawText);
 
 // pingOllama: 3 second health check against the active endpoint. Returns
 // true when /api/tags responds 2xx, false on any failure (network, abort,

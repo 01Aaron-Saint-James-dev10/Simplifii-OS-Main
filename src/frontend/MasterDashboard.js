@@ -14,7 +14,7 @@ import AIAvatar from './AIAvatar';
 import SupportBridge from './SupportBridge';
 import { fetchLMSData } from '../backend/LMSConnector';
 import { mapToWorkspace, deriveRoadmapFromAssessments } from '../services/BriefService';
-import { nameCourse, pingOllama, getProviderName, extractAssessmentsWithOllama, REASONING_START_EVENT, REASONING_END_EVENT } from '../services/RewriteService';
+import { nameCourse, pingOllama, getProviderName, extractAssessmentBriefs, REASONING_START_EVENT, REASONING_END_EVENT } from '../services/RewriteService';
 import { jsPDF } from 'jspdf';
 import FloatingResourceCard from './FloatingResourceCard';
 import ResourceIngestor from './ResourceIngestor';
@@ -210,20 +210,19 @@ export default function MasterDashboard() {
   //      Academic Tools use, so the student hears 'Course X identified.
   //      Your semester is now mapped.'
   const handleSprintCreation = async (data) => {
-    // Ollama assessment fallback. The regex finds clean cases but fails
-    // on syllabi with creative formatting, scanned tables, or split
-    // glyphs. When fewer than 2 assessments come out of the regex pass,
-    // we ask the model to re-read the rawText and return a JSON list.
-    // The result replaces the regex output for downstream consumers
-    // (Roadmap, DoD, AURA Chat context).
-    let assessmentTitles = Array.isArray(data.assessmentTitles) ? data.assessmentTitles.slice() : [];
-    if (assessmentTitles.length < 2 && data.rawText) {
+    // LLM-first extraction. Ollama reads the syllabus and returns a
+    // structured list of assessment briefs (title, weight,
+    // wordCountGoal, dueDate). The regex pass remains a fallback for
+    // when Ollama is unreachable or returns nothing usable. The
+    // model output is the source of truth for the Roadmap, DoD, AURA
+    // Chat context, and the per-sprint word count goals that drive
+    // the Logic Block stage progression.
+    const regexTitles = Array.isArray(data.assessmentTitles) ? data.assessmentTitles.slice() : [];
+    let assessmentBriefs = [];
+    if (data?.rawText && data.rawText.trim().length > 200) {
       window.dispatchEvent(new CustomEvent(REASONING_START_EVENT));
       try {
-        const ollamaTitles = await extractAssessmentsWithOllama(data.rawText);
-        if (ollamaTitles.length >= assessmentTitles.length) {
-          assessmentTitles = ollamaTitles;
-        }
+        assessmentBriefs = await extractAssessmentBriefs(data.rawText);
       } catch (err) {
         if (typeof console !== 'undefined') console.warn('[handleSprintCreation] Ollama assessment extraction failed:', err.message);
       } finally {
@@ -231,7 +230,17 @@ export default function MasterDashboard() {
       }
     }
 
-    const enrichedData = { ...data, assessmentTitles };
+    // Decide which list wins. Ollama briefs are preferred whenever they
+    // produced at least one valid result. Regex output is a defensive
+    // fallback for offline / mock-provider runs.
+    let assessmentTitles;
+    if (assessmentBriefs.length > 0) {
+      assessmentTitles = assessmentBriefs.map(b => b.weight ? `${b.title} (${b.weight})` : b.title);
+    } else {
+      assessmentTitles = regexTitles;
+    }
+
+    const enrichedData = { ...data, assessmentTitles, assessmentBriefs };
 
     // Task name is derived from real syllabus data: prefer the first
     // extracted assessment title, fall back to the unit code, then to a
