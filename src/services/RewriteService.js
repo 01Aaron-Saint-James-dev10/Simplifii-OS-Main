@@ -440,10 +440,12 @@ const ASSESSMENT_SYSTEM_PROMPT = [
   '1. Australian English only.',
   '2. Never use em-dashes or en-dashes.',
   '3. Return ONLY the JSON array. No preamble, no markdown fence, no commentary.',
-  '4. Exclude topics, lecture titles, learning outcomes, rubric column headers, navigation copy (Moodle, Hub), and word fragments (cation, p 2, Item).',
-  '5. Each title must appear ONLY ONCE. Deduplicate aggressively across documents.',
-  '6. The weightings of the returned assessments should sum to approximately 100% if the syllabus is complete. If your output sums to far less than 100%, scan the input again for assessments you missed.',
-  '7. If the syllabus genuinely lists no assessments, return [].'
+  '4. EXCLUDE all of the following, even when they appear in tables: lecture titles, lecture topics, tutorial topics, weekly schedule entries, learning outcomes, course themes, week numbers, dates without an associated graded task, rubric column headers (Item / Weight / Length / Information), navigation copy (Moodle, Hub), and word fragments (cation, p 2). A row whose "type" is Lecture, Tutorial, Workshop, Topic, or Theme is NOT an assessment and must be excluded.',
+  '5. INCLUDE only items that are explicitly graded (have a percentage weighting OR are listed in an Assessment Tasks / Assessments section).',
+  '6. Each title must appear ONLY ONCE. Deduplicate aggressively across documents.',
+  '7. The weightings of the returned assessments should sum to approximately 100% if the syllabus is complete. If your output sums to far less than 100%, scan the input again for assessments you missed (but do not invent ones that are not there).',
+  '8. Keep the output compact. Brief titles. Short due dates. Do not pad strings. The whole array should fit in 1500 tokens.',
+  '9. If the syllabus genuinely lists no assessments, return [].'
 ].join('\n');
 
 // Internal: send the prompt and parse the JSON response. Returns an array
@@ -481,7 +483,7 @@ const __callAssessmentExtractor = async (rawText) => {
         // model output it as prose; our parser extracts the array
         // substring. Restored 25k char window (down from 30k) so the
         // model has more attention budget per token.
-        options: { temperature: 0.1, num_predict: 800 },
+        options: { temperature: 0.1, num_predict: 2000 },
         messages: [
           { role: 'system', content: ASSESSMENT_SYSTEM_PROMPT },
           { role: 'user', content: `SYLLABUS (may include multiple documents joined together):\n\n${rawText.slice(0, 25000)}\n\nReturn the JSON array of every graded assessment across all documents. Output ONLY the JSON array, nothing else.` }
@@ -516,7 +518,23 @@ const __callAssessmentExtractor = async (rawText) => {
     }
     if (!parsed) {
       const arrayMatch = raw.match(/\[[\s\S]*\]/);
-      if (arrayMatch) { try { parsed = JSON.parse(arrayMatch[0]); } catch { /* give up */ } }
+      if (arrayMatch) { try { parsed = JSON.parse(arrayMatch[0]); } catch { /* fall through to truncation recovery */ } }
+    }
+    // Truncation recovery. When num_predict cuts the response mid-element,
+    // the result starts with '[' and a few complete '{...}' objects but
+    // ends mid-string, so JSON.parse rejects the whole thing. Walk back
+    // from the end, find the last '},' or '}', truncate there, append ']',
+    // and try again. Saves the partial extraction instead of returning [].
+    if (!parsed && raw.trim().startsWith('[')) {
+      const head = raw.trim();
+      const lastClose = Math.max(head.lastIndexOf('},'), head.lastIndexOf('}'));
+      if (lastClose > 0) {
+        const recovered = head.slice(0, lastClose + 1) + ']';
+        try {
+          parsed = JSON.parse(recovered);
+          if (typeof console !== 'undefined') console.info('[RewriteService] recovered truncated array, kept', Array.isArray(parsed) ? parsed.length : 0, 'objects');
+        } catch { /* genuinely unsalvageable */ }
+      }
     }
 
     // Reshape into an array. Three paths:
@@ -575,10 +593,27 @@ const __callAssessmentExtractor = async (rawText) => {
     let droppedNoLetter = 0, droppedShort = 0, droppedNoise = 0, droppedDup = 0;
     for (const item of parsed) {
       if (!item || typeof item !== 'object') continue;
+      // Type filter. Some models emit a 'type' or 'category' field that
+      // says 'Lecture' / 'Tutorial' / 'Workshop' / 'Topic' / 'Theme' on
+      // entries that are NOT graded. Reject those at the source, before
+      // the title check, so a lecture titled 'Cell signalling' does not
+      // sneak through as an assessment.
+      const itemType = String(item.type || item.category || item.kind || '').toLowerCase();
+      if (/^(lecture|tutorial|workshop|topic|theme|reading|module)\b/.test(itemType)) {
+        droppedNoise++;
+        continue;
+      }
       const title = pickTitle(item);
       if (title.length < 4 || title.length > 60) { droppedShort++; continue; }
       if (!/^[A-Z]/.test(title)) { droppedNoLetter++; continue; }
       if (NOISE_WORDS.test(title)) { droppedNoise++; continue; }
+      // Title-prefix filter for the same case: titles like 'Lecture 3'
+      // or 'Topic 2 ...' should not survive even when there is no type
+      // field.
+      if (/^(lecture|tutorial|workshop|week\s*\d|topic|theme|module|reading)\b/i.test(title)) {
+        droppedNoise++;
+        continue;
+      }
       const key = title.toLowerCase();
       if (seen.has(key)) { droppedDup++; continue; }
       seen.add(key);

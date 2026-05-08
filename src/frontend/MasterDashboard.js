@@ -8,6 +8,7 @@ import AccessibilityVault from './AccessibilityVault';
 import ConfirmDialog from './ConfirmDialog';
 import AskAura from './AskAura';
 import SimplifiiStudio from './SimplifiiStudio';
+import Scaffolder from './Scaffolder';
 import { StartIgnition, IdentityGate, TemporalBaseline, CourseDefinition, Grounding } from './UniversalOnboarding';
 import LinearCanvas from './LinearCanvas';
 import MathsStepEditor from './MathsStepEditor';
@@ -65,6 +66,10 @@ export default function MasterDashboard() {
   useEffect(() => {
     try { localStorage.setItem('simplifii_view', showStudio ? 'studio' : 'classic'); } catch { /* storage unavailable */ }
   }, [showStudio]);
+  // Scaffolder overlay state. When open it renders fullscreen above
+  // everything else (Classic AND Studio) until the student dismisses it.
+  // Profile.level picks the default tier inside the overlay.
+  const [showScaffolder, setShowScaffolder] = useState(false);
   // Inline course editor state. Replaces the legacy window.prompt() flow so
   // the cockpit no longer breaks the AURA Pulse with a native popup.
   // Used now only for the Edit (rename) action; new courses come in via
@@ -513,6 +518,17 @@ export default function MasterDashboard() {
         </div>
 
         <div className="flex items-center gap-5 relative z-[1300]">
+          {/* Scaffolder overlay: tiered support engine (Primary / Secondary
+              / Tertiary). Re-renders the active assessment as a quest,
+              checklist, or skeleton timeline depending on the learner's
+              profile.level. */}
+          <button
+            onClick={() => setShowScaffolder(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all cursor-pointer bg-transparent border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+            title="Open Sovereign Scaffolder (tiered support overlay)"
+          >
+            <Sparkles size={14} /> Scaffolder
+          </button>
           {/* Studio toggle: switch between classic LinearCanvas and the
               tri-column SimplifiiStudio (NotebookLM-style) layout */}
           <button
@@ -581,6 +597,11 @@ export default function MasterDashboard() {
 
       {showSupportBridge && <SupportBridge onClose={() => setShowSupportBridge(false)} isLiteralMode={isLiteralMode} />}
       {showAccessibilityVault && <AccessibilityVault onClose={() => setShowAccessibilityVault(false)} />}
+      {showScaffolder && (
+        <div className="fixed inset-0 z-[2000] overflow-y-auto" role="dialog" aria-modal="true" aria-label="Sovereign Scaffolder">
+          <Scaffolder onClose={() => setShowScaffolder(false)} />
+        </div>
+      )}
       {showAddCourseModal && (
         <div
           className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-stretch justify-center animate-fade-in"
