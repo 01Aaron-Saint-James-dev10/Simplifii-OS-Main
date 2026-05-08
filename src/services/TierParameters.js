@@ -15,7 +15,7 @@ export const TierParameters = {
     },
     structure: 'chapters'
   },
-  MRes: {
+  Tertiary: {
     heuristics: {
       gap: /(?:research gap|gap in literature)[:\-]?\s*([A-Za-z0-9\s,.]+)/gi,
       framework: /(?:theoretical framework|conceptual framework)[:\-]?\s*([A-Za-z0-9\s,.]+)/gi,

@@ -1,0 +1,1155 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Save, AlertCircle, FileText, CheckCircle2, GripVertical, Network, Activity, CheckCircle, Circle, Type, Mic, Edit3, MessageSquare, Zap, Clock, BookOpen, ArrowRight, Wand2, Target, Flag, ChevronLeft, ChevronRight, BrainCircuit, Volume2, LifeBuoy, Shield, Maximize2, Minimize2, Eye, HardDrive, Code } from 'lucide-react';
+import { speakSystemMessage } from '../services/MessagingHub';
+import { saveBlockSnapshot, getBlockHistory } from '../services/IndexedDBService';
+import ZenTools from './ZenTools';
+import SupportBridge from './SupportBridge';
+import AccessibilityVault from './AccessibilityVault';
+import DevInsightsPanel from './DevInsightsPanel';
+import BionicText from './BionicText';
+import { useSettings } from './SettingsContext';
+
+const ASSESSMENT_INSTRUCTIONS = [
+  { id: 'inst1', label: 'Analyze Methodologies', detail: 'Critically compare the primary sources.', template: 'Start by comparing the methodologies to the primary literature...', dwTarget: 'dw2' },
+  { id: 'inst2', label: 'Identify Gap', detail: 'Highlight what remains unknown in the field.', template: 'This highlights a significant gap in our understanding of...', dwTarget: 'dw3' },
+  { id: 'inst3', label: 'Synthesize Findings', detail: 'Combine evidence to support thesis.', template: 'By synthesizing these findings, it becomes evident that...', dwTarget: 'dw1' },
+];
+
+const MOCK_TYPOS = ['teh', 'recieve', 'thier', 'definitly', 'cool', 'stuff', 'things'];
+
+function ToneHUD({ content, onRigorDrop, isTyping }) {
+  const wordCount = (content.match(/\S+/g) || []).length;
+  const longWords = (content.match(/\b\w{8,}\b/g) || []).length;
+  const rigor = Math.min(Math.max((longWords / (wordCount || 1)) * 300, 20), 98);
+  
+  const words = content.toLowerCase().match(/\b[a-z]{4,}\b/g) || [];
+  const uniqueWords = new Set(words).size;
+  const semanticDensity = Math.min(Math.max((uniqueWords / (words.length || 1)) * 150, 10), 95);
+
+  const [hasLocked, setHasLocked] = useState(false);
+  const isLocked = rigor > 85;
+  const isDensityWarning = wordCount > 50 && semanticDensity < 40;
+
+  useEffect(() => {
+    if (wordCount > 10 && rigor < 50) {
+      onRigorDrop();
+    }
+  }, [rigor, wordCount]);
+
+  useEffect(() => {
+    if (isDensityWarning && isTyping) {
+      speakSystemMessage("We've hit a word-count bottleneck. Let's look for filler words together.", "Semantic density low.");
+    }
+  }, [isDensityWarning]);
+
+  useEffect(() => {
+    if (isLocked && !hasLocked) {
+      setHasLocked(true);
+      speakSystemMessage("Strong logic, Adonis. That anchors your methodology perfectly.", "Rigor locked. Excellent structure.");
+    }
+  }, [isLocked, hasLocked]);
+
+  return (
+    <div className={`mt-6 flex items-center gap-8 border-t border-zinc-800/50 pt-4 w-full transition-all duration-300 ${isTyping ? 'opacity-100 shadow-[0_-10px_20px_rgba(16,185,129,0.05)]' : 'opacity-50'}`}>
+      <div className="flex items-center gap-2 shrink-0 relative">
+        <Activity size={14} className={`transition-all duration-300 ${isTyping ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.8)] scale-110' : 'text-emerald-500'}`} />
+        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Vibe Meter</span>
+        {isTyping && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-emerald-500/30 animate-ping"></div>}
+      </div>
+      <div className="flex-1 max-w-[200px]">
+        <div className="flex justify-between mb-1 items-center">
+          <span className="text-[9px] font-black uppercase text-zinc-400">Academic Rigor</span>
+          <div className="flex items-center gap-1">
+            {isLocked && <span className="text-[8px] font-black uppercase bg-emerald-500/20 text-emerald-400 px-1 rounded animate-pulse">Locked</span>}
+            <span className={`text-[9px] font-black ${isLocked ? 'text-emerald-400 shadow-glow-emerald' : 'text-emerald-500'}`}>{Math.round(rigor)}%</span>
+          </div>
+        </div>
+        <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden relative">
+          <div className={`h-full transition-all duration-500 ${isLocked ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]' : 'bg-emerald-500'}`} style={{ width: `${rigor}%` }}></div>
+        </div>
+      </div>
+      <div className="flex-1 max-w-[200px]">
+        <div className="flex justify-between mb-1 items-center">
+          <span className="text-[9px] font-black uppercase text-zinc-400">Semantic Density</span>
+          <span className={`text-[9px] font-black ${isDensityWarning ? 'text-amber-500' : 'text-blue-500'}`}>{Math.round(semanticDensity)}%</span>
+        </div>
+        <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+          <div className={`h-full transition-all duration-500 ${isDensityWarning ? 'bg-amber-500' : 'bg-blue-500'}`} style={{ width: `${semanticDensity}%` }}></div>
+        </div>
+      </div>
+      <div className="ml-auto">
+        <button className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-white transition-all">
+          <Network size={12} /> Branch Version
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const SectionHealth = ({ content, target = 200 }) => {
+  const wordCount = (content.match(/\S+/g) || []).length;
+  const percentage = Math.min((wordCount / target) * 100, 100);
+  const strokeDasharray = 113; 
+  const strokeDashoffset = strokeDasharray - (percentage / 100) * strokeDasharray;
+  
+  return (
+    <div className="absolute top-8 right-8 flex items-center justify-center group/health cursor-help">
+      <svg width="40" height="40" className="transform -rotate-90">
+        <circle cx="20" cy="20" r="18" fill="transparent" stroke="#27272a" strokeWidth="3" />
+        <circle 
+          cx="20" cy="20" r="18" 
+          fill="transparent" 
+          stroke="#10b981" 
+          strokeWidth="3" 
+          strokeDasharray={strokeDasharray} 
+          strokeDashoffset={strokeDashoffset} 
+          strokeLinecap="round"
+          className="transition-all duration-1000 ease-out"
+        />
+      </svg>
+      <span className="absolute text-[9px] font-black text-emerald-500">{wordCount}</span>
+      <div className="absolute top-12 right-0 opacity-0 group-hover/health:opacity-100 transition-opacity bg-black border border-zinc-800 p-2 rounded text-[10px] whitespace-nowrap z-50">
+        Section Health: {wordCount} / {target} words
+      </div>
+    </div>
+  );
+};
+
+function SectionHistory({ blockId, currentContent, isActive, onRevert }) {
+  const [history, setHistory] = useState([]);
+  const [sliderVal, setSliderVal] = useState(0);
+  const [isScrubbing, setIsScrubbing] = useState(false);
+  const scrubTimer = useRef(null);
+
+  useEffect(() => {
+    getBlockHistory(blockId).then(data => {
+      setHistory(data);
+      if (data.length > 0) setSliderVal(data.length - 1);
+    });
+  }, [blockId]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (currentContent && (history.length === 0 || history[history.length - 1].content !== currentContent)) {
+        saveBlockSnapshot(blockId, currentContent).then(() => {
+          getBlockHistory(blockId).then(data => {
+            setHistory(data);
+            setSliderVal(data.length - 1);
+          });
+        });
+      }
+    }, 15000); 
+    return () => clearTimeout(timer);
+  }, [currentContent, history, blockId]);
+
+  const handleSliderChange = (e) => {
+    setSliderVal(Number(e.target.value));
+    setIsScrubbing(true);
+    if (scrubTimer.current) clearTimeout(scrubTimer.current);
+    scrubTimer.current = setTimeout(() => setIsScrubbing(false), 2000);
+  };
+
+  const handleSliderHover = () => {
+    if (history[sliderVal]) {
+      const minsAgo = Math.max(1, Math.round((Date.now() - history[sliderVal].timestamp) / 60000));
+      speakSystemMessage(`${minsAgo} minutes ago.`);
+    }
+  };
+
+  if (!isActive || history.length < 2) return null;
+
+  const historicalText = history[sliderVal]?.content || '';
+  const currentWords = currentContent.split(' ');
+  const historyWords = historicalText.split(' ');
+
+  return (
+    <>
+      {isScrubbing && sliderVal < history.length - 1 && (
+        <div className="absolute inset-0 pointer-events-none p-10 -mx-10 z-20">
+          <div className="mt-14 w-full h-[200px] text-2xl leading-loose font-medium opacity-90 transition-opacity duration-300">
+            {historyWords.map((word, i) => {
+              const isDifferent = currentWords[i] !== word;
+              return (
+                <span key={i} className={`transition-colors duration-500 ${isDifferent ? 'text-emerald-400 bg-emerald-500/10 rounded px-1 shadow-[0_0_10px_rgba(16,185,129,0.2)]' : 'text-zinc-400'}`}>
+                  {word}{' '}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-4 border-t border-zinc-800/50 pt-4 flex items-center gap-4 animate-fade-in relative z-30">
+        <Clock size={14} className="text-blue-500" />
+        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Neural Rewind</span>
+        <input 
+          type="range" 
+          min="0" 
+          max={Math.max(0, history.length - 1)} 
+          value={sliderVal}
+          onChange={handleSliderChange}
+          onMouseEnter={() => setTimeout(handleSliderHover, 1000)}
+          className="flex-1 accent-emerald-500 h-1 bg-zinc-800 rounded-full appearance-none cursor-pointer"
+        />
+        {sliderVal < history.length - 1 && (
+          <button 
+            onClick={() => onRevert(historicalText)}
+            className="text-[10px] font-black uppercase text-emerald-500 hover:text-emerald-400"
+          >
+            Restore
+          </button>
+        )}
+      </div>
+    </>
+  );
+}
+
+const DEFAULT_LINEAR_SECTIONS = [
+  { id: 'intro', title: 'Introduction', content: '', neuralTemplate: '' },
+  { id: 'body_1', title: 'Main Body Paragraph 1', content: '', neuralTemplate: '' },
+  { id: 'body_2', title: 'Main Body Paragraph 2', content: '', neuralTemplate: '' },
+  { id: 'conclusion', title: 'Conclusion', content: '', neuralTemplate: '' }
+];
+
+const linearStorageKey = (profile) => `simplifii_linear_canvas_${profile?.courseName || 'default'}`;
+
+// Best-effort partial recovery: keep what parses cleanly, drop malformed sections.
+function recoverSections(raw) {
+  if (!raw) return DEFAULT_LINEAR_SECTIONS;
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch { return DEFAULT_LINEAR_SECTIONS; }
+  if (!Array.isArray(parsed)) return DEFAULT_LINEAR_SECTIONS;
+  const cleaned = parsed
+    .filter(s => s && typeof s === 'object' && typeof s.id === 'string' && typeof s.title === 'string')
+    .map(s => ({
+      id: s.id,
+      title: s.title,
+      content: typeof s.content === 'string' ? s.content : '',
+      neuralTemplate: typeof s.neuralTemplate === 'string' ? s.neuralTemplate : ''
+    }));
+  return cleaned.length > 0 ? cleaned : DEFAULT_LINEAR_SECTIONS;
+}
+
+export default function LinearCanvas({
+  extractionData, profile, onAddGhostAsset,
+  isZenMode, setIsZenMode, isLeftCollapsed, setIsLeftCollapsed, isRightCollapsed, setIsRightCollapsed
+}) {
+  const [sections, setSections] = useState(() => {
+    try { return recoverSections(localStorage.getItem(linearStorageKey(profile))); }
+    catch { return DEFAULT_LINEAR_SECTIONS; }
+  });
+
+  useEffect(() => {
+    const key = linearStorageKey(profile);
+    const t = setTimeout(() => {
+      try { localStorage.setItem(key, JSON.stringify(sections)); }
+      catch { /* quota exceeded or storage unavailable */ }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [sections, profile?.courseName]);
+  const [activeSectionId, setActiveSectionId] = useState('intro');
+  const [bloomedSectionId, setBloomedSectionId] = useState(null);
+  const [isDyslexic, setIsDyslexic] = useState(profile?.neuroTypes?.includes('Dyslexia') || false);
+  const [isLiteralMode, setIsLiteralMode] = useState(profile?.neuroTypes?.includes('Autism') || false);
+  const [viewMode, setViewMode] = useState('academic'); // 'academic' or 'presentation'
+  const [isProofing, setIsProofing] = useState(false);
+  const [checklist, setChecklist] = useState(extractionData?.doneWhenChecklist || []);
+  const [hoveredBlockId, setHoveredBlockId] = useState(null);
+  const [ghostAssets, setGhostAssets] = useState({}); 
+  const [justCheckedId, setJustCheckedId] = useState(null);
+  
+  const containerRef = useRef(null);
+  const [mappedBlocks, setMappedBlocks] = useState([]); 
+  const [lineCoordsArray, setLineCoordsArray] = useState([]);
+  const [hoverThread, setHoverThread] = useState(null); 
+  const [semanticGaps, setSemanticGaps] = useState([]);
+  
+  const [showSupportBridge, setShowSupportBridge] = useState(false);
+  const [showAccessibilityVault, setShowAccessibilityVault] = useState(false);
+  const [showSosPulse, setShowSosPulse] = useState(false);
+  const { fontScale, lineSpacing, isBionicActive, bionicIntensity, isDriveAttached } = useSettings();
+  const [showDevInsights, setShowDevInsights] = useState(false);
+
+  const [showSuccessPulse, setShowSuccessPulse] = useState(false);
+  const lastPulseCount = useRef(0);
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    const handleToggleViewMode = () => setViewMode(prev => prev === 'academic' ? 'presentation' : 'academic');
+    const handleToggleDevInsights = () => setShowDevInsights(prev => !prev);
+    
+    window.addEventListener('toggle-view-mode', handleToggleViewMode);
+    window.addEventListener('toggle-dev-insights', handleToggleDevInsights);
+    
+    return () => {
+      window.removeEventListener('toggle-view-mode', handleToggleViewMode);
+      window.removeEventListener('toggle-dev-insights', handleToggleDevInsights);
+    };
+  }, []);
+
+  // Procedural Roadmap tracking
+  const [currentStageIndex, setCurrentStageIndex] = useState(0);
+  const roadmapStages = [
+    { label: 'Stage A: Foundation', targetRatio: 0 },
+    { label: 'Stage B: Core Build', targetRatio: 0.33 },
+    { label: 'Stage C: Polish', targetRatio: 0.66 },
+    { label: 'Stage D: Proof', targetRatio: 1.0 }
+  ];
+
+  // Cognitive Burnout & Telemetry tracking
+  const keystrokeCount = useRef(0);
+  const backspaceCount = useRef(0);
+  const [hasBurnoutWarned, setHasBurnoutWarned] = useState(false);
+  const [hasRigorWarned, setHasRigorWarned] = useState(false);
+
+  // Initial Whisperer State
+  const [hasWhisperedStart, setHasWhisperedStart] = useState(false);
+
+  const isUni = profile?.level === 'mres' || profile?.level === 'phd' || profile?.level === 'undergrad';
+
+  const avatarSpeak = (normalMsg, literalMsg) => {
+    if (isZenMode) return; // Suppress in Zen Mode
+    speakSystemMessage(isLiteralMode && literalMsg ? literalMsg : normalMsg);
+  };
+
+  const [activeWordIndex, setActiveWordIndex] = useState(-1);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const speechUtterance = useRef(null);
+
+  // Stop speaking on unmount
+  useEffect(() => {
+    return () => {
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+    };
+  }, []);
+
+  const handleReadToMe = (content) => {
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      setActiveWordIndex(-1);
+      return;
+    }
+
+    if (!window.speechSynthesis) return;
+
+    // Use Web Speech API
+    const utterance = new SpeechSynthesisUtterance(content);
+    // Find a good natural voice
+    const voices = window.speechSynthesis.getVoices();
+    const naturalVoice = voices.find(v => v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Siri')) || voices[0];
+    if (naturalVoice) utterance.voice = naturalVoice;
+
+    utterance.rate = 0.9;
+    utterance.pitch = 1.0;
+
+    let wordIndexCounter = 0;
+    utterance.onboundary = (event) => {
+      if (event.name === 'word') {
+        setActiveWordIndex(wordIndexCounter++);
+      }
+    };
+
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      setActiveWordIndex(-1);
+    };
+
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+      setActiveWordIndex(-1);
+    };
+
+    speechUtterance.current = utterance;
+    window.speechSynthesis.speak(utterance);
+    setIsSpeaking(true);
+  };
+
+  const [showConfetti, setShowConfetti] = useState(false);
+  const handleMarkFinal = (section) => {
+    const wordCount = (section.content.match(/\S+/g) || []).length;
+    const isStrenuous = keystrokeCount.current > (wordCount * 3) || keystrokeCount.current > 500;
+    
+    if (isStrenuous) {
+      setShowConfetti(true);
+      speakSystemMessage("You did the heavy lifting there, Adonis. That's a major milestone done.", "Strenuous Victory!");
+      setTimeout(() => setShowConfetti(false), 5000); // 5 seconds of confetti
+    }
+    
+    // Check off related checklist items visually
+    setChecklist(prev => prev.map(c => ({...c, checked: true})));
+    setJustCheckedId(checklist[0]?.id);
+    setTimeout(() => setJustCheckedId(null), 1500);
+  };
+
+  // Setup Confetti UI (simple DOM implementation)
+  const renderConfetti = () => {
+    if (!showConfetti) return null;
+    return (
+      <div className="fixed inset-0 pointer-events-none z-[2000] overflow-hidden flex justify-center items-start">
+        {Array.from({ length: 50 }).map((_, i) => (
+          <div 
+            key={i} 
+            className="w-3 h-6 absolute animate-confetti-fall"
+            style={{ 
+              left: `${Math.random() * 100}%`, 
+              top: `-20px`,
+              backgroundColor: ['#10B981', '#3B82F6', '#F59E0B', '#EF4444'][Math.floor(Math.random() * 4)],
+              animationDelay: `${Math.random() * 2}s`,
+              animationDuration: `${2 + Math.random() * 3}s`
+            }}
+          ></div>
+        ))}
+      </div>
+    );
+  };
+
+  const handleSimplifyLogic = (section) => {
+    const mirrorDraft = {
+      id: Date.now().toString(),
+      source: "Mirror-Draft Tool",
+      author: "Precision Scaffolder",
+      year: "Now",
+      text: "Notice how removing 'actually' and 'basically' makes the methodology feel more rigorous? Why do you think the second version is more persuasive for a BABS1201 marker?",
+      mentorNotes: "How does removing the filler words change the impact of your argument? Try to apply this logic to the next sentence.",
+      isPrimary: true
+    };
+    
+    setGhostAssets(prev => ({
+      ...prev,
+      [section.id]: [mirrorDraft, ...(prev[section.id] || [])]
+    }));
+    
+    setSemanticGaps(prev => [...prev, section.id]);
+    speakSystemMessage("Mirror draft generated in your Ghost Layer. Review the reflection question.", "Precision Scaffolding active.");
+  };
+
+  const renderDensityScanner = (content) => {
+    if (!content) return null;
+    let html = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const fillers = ['in order to', 'due to the fact that', 'it is important to note that', 'for the purpose of', 'with regards to', 'as a matter of fact', 'actually', 'basically', 'really', 'very'];
+    
+    fillers.forEach(filler => {
+      const regex = new RegExp(`\\b${filler}\\b`, 'gi');
+      html = html.replace(regex, match => `<span class="border-b-2 border-amber-500/50 group/filler relative cursor-help text-transparent">${match}<span class="absolute hidden group-hover/filler:flex text-xs bg-black text-amber-500 border border-amber-500/30 p-2 rounded-xl -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap z-50">You've used ${match.split(' ').length} words. Can you express this in fewer?</span></span>`);
+    });
+
+    return <div dangerouslySetInnerHTML={{ __html: html }} className="whitespace-pre-wrap" />;
+  };
+  useEffect(() => {
+    if (!hasWhisperedStart && !isZenMode && extractionData?.temporalMap?.weightings) {
+      const weights = extractionData.temporalMap.weightings;
+      const highestId = Object.keys(weights).reduce((a, b) => weights[a] > weights[b] ? a : b);
+      const section = sections.find(s => s.id === highestId);
+      if (section) {
+        setTimeout(() => {
+          avatarSpeak(
+            `Adonis, based on the Rubric's ${weights[highestId]}% weighting for ${section.title}, I recommend we start here.`,
+            `The ${section.title} is worth ${weights[highestId]}% of the grade. Start writing this section now.`
+          );
+          setActiveSectionId(highestId);
+        }, 1500);
+        setHasWhisperedStart(true);
+      }
+    }
+  }, [extractionData, hasWhisperedStart, sections, isZenMode, isLiteralMode]);
+
+  // Update Roadmap Stage based on checklist completion
+  useEffect(() => {
+    if (checklist.length === 0) return;
+    const completed = checklist.filter(c => c.checked).length;
+    const ratio = completed / checklist.length;
+    
+    let newStage = 0;
+    if (ratio >= 1.0) newStage = 3;
+    else if (ratio >= 0.66) newStage = 2;
+    else if (ratio >= 0.33) newStage = 1;
+
+    if (newStage > currentStageIndex) {
+      setCurrentStageIndex(newStage);
+      avatarSpeak(`Excellent. Advancing to ${roadmapStages[newStage].label}.`, `Progress saved. Stage ${newStage + 1} initiated.`);
+      keystrokeCount.current = 0; // Reset burnout tracker on stage progression
+    }
+  }, [checklist, isZenMode, isLiteralMode]);
+
+  const updateLineCoords = () => {
+    if (!containerRef.current || isZenMode || isLeftCollapsed || isRightCollapsed) {
+      setLineCoordsArray([]);
+      setHoverThread(null);
+      return;
+    }
+    const newCoords = [];
+    const cRect = containerRef.current.getBoundingClientRect();
+    
+    mappedBlocks.forEach(mapping => {
+      const sectionEl = document.getElementById(`section-${mapping.sectionId}`);
+      const blockEl = document.getElementById(`block-${mapping.blockId}`);
+      if (sectionEl && blockEl) {
+        const sRect = sectionEl.getBoundingClientRect();
+        const bRect = blockEl.getBoundingClientRect();
+        newCoords.push({
+          id: `${mapping.sectionId}-${mapping.blockId}`,
+          startX: bRect.right - cRect.left,
+          startY: bRect.top + (bRect.height / 2) - cRect.top,
+          endX: sRect.left - cRect.left,
+          endY: sRect.top + 60 - cRect.top
+        });
+      }
+    });
+    setLineCoordsArray(newCoords);
+
+    if (hoveredBlockId) {
+      const block = ASSESSMENT_INSTRUCTIONS.find(b => b.id === hoveredBlockId);
+      if (block) {
+        const blockEl = document.getElementById(`block-${block.id}`);
+        const dwEl = document.getElementById(`dw-${block.dwTarget}`);
+        if (blockEl && dwEl) {
+          const bRect = blockEl.getBoundingClientRect();
+          const dwRect = dwEl.getBoundingClientRect();
+          setHoverThread({
+            startX: bRect.right - cRect.left,
+            startY: bRect.top + (bRect.height / 2) - cRect.top,
+            endX: dwRect.left - cRect.left,
+            endY: dwRect.top + (dwRect.height / 2) - cRect.top
+          });
+        }
+      }
+    } else {
+      setHoverThread(null);
+    }
+
+    // Connective Tissue Mapping
+    const gaps = [];
+    if (sections[0].content.toLowerCase().includes('atp') && sections[1].content === '') {
+      const el1 = document.getElementById(`section-intro`);
+      const el2 = document.getElementById(`section-body_1`);
+      if (el1 && el2) {
+        const r1 = el1.getBoundingClientRect();
+        const r2 = el2.getBoundingClientRect();
+        gaps.push({
+          id: 'gap-1',
+          msg: "Introduction mentions 'ATP', but Methodology is missing context. Bridge them?",
+          startX: r1.left - cRect.left - 20,
+          startY: r1.bottom - cRect.top,
+          endX: r2.left - cRect.left - 20,
+          endY: r2.top - cRect.top
+        });
+      }
+    }
+    setSemanticGaps(gaps);
+  };
+
+  const hiddenTimeRef = useRef(0);
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenTimeRef.current = Date.now();
+      } else {
+        if (hiddenTimeRef.current > 0) {
+          const driftSeconds = (Date.now() - hiddenTimeRef.current) / 1000;
+          if (driftSeconds > 120 && !isZenMode) {
+            avatarSpeak("Adonis, I've kept your place. Ready to bridge that insight?", "Welcome back. Re-engaging cognitive flow.");
+          }
+        }
+        hiddenTimeRef.current = 0;
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isZenMode]);
+
+  useEffect(() => {
+    updateLineCoords();
+    window.addEventListener('resize', updateLineCoords);
+    const interval = setInterval(updateLineCoords, 500);
+    return () => {
+      window.removeEventListener('resize', updateLineCoords);
+      clearInterval(interval);
+    };
+  }, [mappedBlocks, activeSectionId, hoveredBlockId, checklist, isZenMode, isLeftCollapsed, isRightCollapsed]);
+
+  const handleKeyDown = (e) => {
+    if (e.key.length === 1 || e.key === 'Backspace') {
+      keystrokeCount.current += 1;
+      
+      setIsTyping(true);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 500);
+      
+      // Telemetry Engine: Fragmented Thinking Detection
+      if (e.key === 'Backspace') {
+        backspaceCount.current += 1;
+        if (backspaceCount.current > 50 && !showSosPulse && !isZenMode) {
+          setShowSosPulse(true);
+          avatarSpeak(
+            "Adonis, I'm noticing a lot of friction. I've prepared a brief extension request in the Support Bridge, or we can pivot to a Voice Note.",
+            "High fragmentation detected. Click SOS for self-advocacy scripts or use Voice input."
+          );
+          backspaceCount.current = 0;
+        }
+      }
+
+      if (!isZenMode) {
+        if (keystrokeCount.current > 400 && !hasBurnoutWarned) {
+          avatarSpeak(
+            "You've been typing heavily without hitting a new milestone. Would you like to do a quick Brain Dump to clarify your thoughts?",
+            "High keystroke volume detected without checklist progress. Stop and review your goals."
+          );
+          setHasBurnoutWarned(true);
+        } else if (keystrokeCount.current > 600) {
+          avatarSpeak(
+            "Adonis, your heavy thinking is peaking. Let's take a 2-minute brain break to prevent burnout.",
+            "Cognitive load critical. Pause typing for 2 minutes."
+          );
+          keystrokeCount.current = 0; 
+        }
+      }
+    }
+  };
+
+  const handleContentChange = (id, newContent) => {
+    const updatedSections = sections.map(s => s.id === id ? { ...s, content: newContent } : s);
+    setSections(updatedSections);
+    
+    const fullText = updatedSections.map(s => s.content).join(' ').toLowerCase();
+    
+    // Dopamine Success Loop logic (100 words)
+    const currentWordCount = fullText.split(/\s+/).filter(w => w.length > 0).length;
+    if (currentWordCount - lastPulseCount.current >= 100) {
+      lastPulseCount.current = currentWordCount;
+      setShowSuccessPulse(true);
+      setTimeout(() => setShowSuccessPulse(false), 2000);
+    }
+    
+    setChecklist(prev => prev.map(item => {
+      const newlyChecked = !item.checked && fullText.includes(item.triggerWord.toLowerCase());
+      if (newlyChecked) {
+        setJustCheckedId(item.id);
+        setTimeout(() => setJustCheckedId(null), 2000);
+        avatarSpeak("Excellent. That criteria is satisfied.", "Criteria met. Proceed to next item.");
+      }
+      return {
+        ...item,
+        checked: item.checked || newlyChecked
+      };
+    }));
+  };
+
+  const getDynamicTemplate = (blockId, data) => {
+    const defaultConcept = data?.unitCode?.includes('BABS') ? 'Cellular Metabolism' : 'the core topic';
+    const concepts = data?.rubricCriteria?.length > 0 ? data.rubricCriteria[0].substring(0, 30) : defaultConcept;
+    
+    switch (blockId) {
+      case 'inst1': return `Since your brief mentions '${concepts}', start by comparing [Source A] to the data in [Source B]...`;
+      case 'inst2': return `Identify the critical gap regarding ${concepts} in the literature...`;
+      case 'inst3': return `Synthesize the findings on ${concepts} to form a cohesive conclusion...`;
+      default: return 'Start writing here...';
+    }
+  };
+
+  const handleDrop = (e, sectionId) => {
+    e.preventDefault();
+    try {
+      const dataStr = e.dataTransfer.getData('application/json');
+      if (dataStr) {
+        const inst = JSON.parse(dataStr);
+        const dynamicTemplate = getDynamicTemplate(inst.id, extractionData);
+        setSections(sections.map(s => s.id === sectionId ? { ...s, neuralTemplate: dynamicTemplate } : s));
+        setMappedBlocks(prev => {
+          const filtered = prev.filter(m => m.blockId !== inst.id);
+          return [...filtered, { sectionId: sectionId, blockId: inst.id }];
+        });
+      }
+    } catch (err) {}
+
+    const textData = e.dataTransfer.getData('text/plain');
+    if (textData && !e.dataTransfer.getData('application/json')) {
+      const isPrimary = Math.random() > 0.5; // Mock analysis
+      const newAsset = {
+        id: Date.now().toString(),
+        blockId: id,
+        source: textData.substring(0, 50) + '...',
+        text: `Extracted Insight: The primary data indicates a strong correlation in ${textData.substring(0, 20)}...`,
+        author: 'Smith et al.',
+        year: '2026',
+        isPrimary: isPrimary,
+        mentorNotes: isPrimary 
+          ? "This is a Primary source because it’s an original empirical study on ATP synthesis, noted by its 'Methods' and 'Results' sections." 
+          : "This is a Secondary source. It is a literature review summarizing other studies, rather than providing original experimental data."
+      };
+      setGhostAssets(prev => ({ ...prev, [id]: [...(prev[id] || []), newAsset] }));
+      if (onAddGhostAsset) onAddGhostAsset(newAsset);
+      avatarSpeak("Asset extracted and embedded into the Ghost Layer.", "Source parsed. Metadata generated.");
+    }
+  };
+
+  const handleBridgeAsset = (sectionId, asset) => {
+    const section = sections.find(s => s.id === sectionId);
+    const bridgeText = ` As supported by recent findings, "${asset.text.replace('Extracted Insight: ', '')}" (${asset.author}, ${asset.year}). `;
+    handleContentChange(sectionId, section.content + bridgeText);
+    avatarSpeak("Semantically bridged asset into your draft with auto-citation.", "Citation inserted.");
+  };
+
+  const handleRigorDrop = () => {
+    if (!hasRigorWarned && !isZenMode) {
+      avatarSpeak("Your academic tone is dropping. Shall I elevate the rigour of this paragraph?", "Rigor below threshold. Suggest running Elevate tool.");
+      setHasRigorWarned(true);
+    }
+  };
+
+  const getPriorityBadge = (sectionId) => {
+    if (!extractionData?.temporalMap?.weightings) return null;
+    const weight = extractionData.temporalMap.weightings[sectionId] || 0;
+    
+    if (weight >= 40) return { label: 'High Priority', color: 'text-rose-500 bg-rose-500/10 border-rose-500/30' };
+    if (weight >= 20) return { label: 'Med Priority', color: 'text-amber-500 bg-amber-500/10 border-amber-500/30' };
+    return { label: 'Low Priority', color: 'text-blue-500 bg-blue-500/10 border-blue-500/30' };
+  };
+
+  const leftSidebarClass = isZenMode ? 'w-0 opacity-0 px-0' : isLeftCollapsed ? 'w-16 px-2' : 'w-72 p-6';
+  const rightSidebarClass = isZenMode ? 'w-0 opacity-0 px-0' : isRightCollapsed ? 'w-16 px-2' : 'w-80 p-6';
+
+  // Progressive Disclosure logic for Zen Mode
+  const visibleChecklist = isZenMode ? checklist.slice(0, 2) : checklist;
+
+  return (
+    <div className={`flex-1 flex bg-[#030303] text-white overflow-hidden relative ${isDyslexic ? 'font-[Comic_Sans_MS,sans-serif] tracking-wider leading-[2.5]' : 'font-sans'} transition-all`} ref={containerRef}>
+      {renderConfetti()}
+      {/* Dopamine Success Loop Overlay */}
+      <div className={`absolute inset-0 pointer-events-none z-0 transition-opacity duration-1000 ease-out shadow-[inset_0_0_150px_rgba(16,185,129,0.3)] ${showSuccessPulse ? 'opacity-100' : 'opacity-0'}`}></div>
+
+      {isZenMode && <ZenTools onClose={() => setIsZenMode(false)} />}
+
+      {showSupportBridge && <SupportBridge onClose={() => { setShowSupportBridge(false); setShowSosPulse(false); }} isLiteralMode={isLiteralMode} />}
+      {showAccessibilityVault && <AccessibilityVault onClose={() => setShowAccessibilityVault(false)} />}
+      {showDevInsights && <DevInsightsPanel onClose={() => setShowDevInsights(false)} />}
+
+      {/* Removed Top Navbar items per Stealth Dev Mode */}
+
+      {/* SVG Mapping Layer */}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 opacity-60">
+        {lineCoordsArray.map(coords => (
+          <path 
+            key={coords.id}
+            d={`M ${coords.startX} ${coords.startY} C ${coords.startX + 150} ${coords.startY}, ${coords.endX - 150} ${coords.endY}, ${coords.endX} ${coords.endY}`} 
+            fill="none" 
+            stroke="#10B981" 
+            strokeWidth="3" 
+            strokeDasharray="6,6" 
+            className="animate-pulse"
+          />
+        ))}
+        {hoverThread && (
+          <path 
+            d={`M ${hoverThread.startX} ${hoverThread.startY} C ${hoverThread.startX + 100} ${hoverThread.startY}, ${hoverThread.endX - 100} ${hoverThread.endY}, ${hoverThread.endX} ${hoverThread.endY}`} 
+            fill="none" 
+            stroke="#3B82F6" 
+            strokeWidth="2" 
+            strokeDasharray="4,4" 
+            className="animate-pulse opacity-80"
+          />
+        )}
+        {semanticGaps.map(gap => (
+          <path 
+            key={gap.id}
+            d={`M ${gap.startX} ${gap.startY} L ${gap.endX} ${gap.endY}`} 
+            fill="none" 
+            stroke="#F59E0B" 
+            strokeWidth="2" 
+            strokeDasharray="4,4" 
+            className="animate-pulse opacity-80"
+          />
+        ))}
+      </svg>
+
+      {/* Semantic Gap Prompts */}
+      {semanticGaps.map(gap => (
+        <div key={`prompt-${gap.id}`} className="absolute z-50 bg-amber-500/10 border border-amber-500 text-amber-500 p-2 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-2 cursor-pointer hover:bg-amber-500/20 transition-colors" style={{ left: gap.startX + 10, top: gap.startY + (gap.endY - gap.startY)/2 }}>
+          <Network size={12} /> {gap.msg}
+        </div>
+      ))}
+
+      {/* Logic Blocks Sidebar (Left) */}
+      <aside className={`${leftSidebarClass} border-r border-zinc-900 bg-black flex flex-col shrink-0 transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] z-10 pt-20 relative overflow-hidden`}>
+        {!isZenMode && (
+          <button 
+            onClick={() => setIsLeftCollapsed(!isLeftCollapsed)}
+            className="absolute -right-3 top-24 z-50 bg-zinc-800 border border-zinc-700 rounded-full p-1 text-zinc-400 hover:text-white hover:border-emerald-500 transition-all"
+          >
+            {isLeftCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+          </button>
+        )}
+
+        {isLeftCollapsed && !isZenMode ? (
+          <div className="flex flex-col items-center mt-5 space-y-8 pt-6">
+            <Network size={20} className="text-emerald-500" />
+            <GripVertical size={20} className="text-zinc-600" />
+          </div>
+        ) : !isZenMode && (
+          <>
+            <div className="flex items-center gap-3 mb-10 text-emerald-500 whitespace-nowrap">
+              <Network size={24} className="shrink-0" />
+              <h3 className="font-black tracking-widest uppercase text-sm">Logic Blocks</h3>
+            </div>
+            <div className="space-y-6 flex-1 whitespace-nowrap">
+              {ASSESSMENT_INSTRUCTIONS.map(inst => (
+                <div 
+                  id={`block-${inst.id}`}
+                  key={inst.id}
+                  draggable
+                  onDragStart={(e) => e.dataTransfer.setData('application/json', JSON.stringify(inst))}
+                  onMouseEnter={() => setHoveredBlockId(inst.id)}
+                  onMouseLeave={() => setHoveredBlockId(null)}
+                  className="p-5 bg-[#0A0A0A] border border-zinc-800 rounded-2xl cursor-grab hover:border-emerald-500 transition-all group relative z-10 max-w-full"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-black uppercase tracking-widest text-zinc-300 group-hover:text-emerald-400 truncate pr-2">{inst.label}</span>
+                    <GripVertical size={16} className="text-zinc-700 group-hover:text-emerald-500 shrink-0" />
+                  </div>
+                  <p className="text-[11px] text-zinc-500 font-medium whitespace-normal">{inst.detail}</p>
+                </div>
+              ))}
+              
+              <div 
+                draggable 
+                onDragStart={(e) => e.dataTransfer.setData('text/plain', 'https://pubmed.ncbi.nlm.nih.gov/mock_asset')}
+                className="mt-12 p-4 border border-dashed border-blue-500/50 rounded-xl bg-blue-500/5 cursor-grab group relative z-10 max-w-full"
+              >
+                <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-2 truncate">Drag Research URL</p>
+                <p className="text-xs text-zinc-400 whitespace-normal">Drag me into a block to test the Ghost Drawer.</p>
+              </div>
+            </div>
+          </>
+        )}
+      </aside>
+
+      {/* Main Canvas */}
+      <main className={`flex-1 overflow-y-auto ${isZenMode ? 'px-32' : 'px-16'} pt-24 relative scroll-smooth z-10 custom-scrollbar flex flex-col items-center transition-all duration-500 ease-out`}>
+        
+        {viewMode === 'presentation' ? (
+          <div className="w-full max-w-5xl pb-64 animate-fade-in text-center mt-10">
+            <div className="inline-block bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest mb-12">
+              Teleprompter Active: Speak Naturally
+            </div>
+            {sections.map(s => s.content.trim() && (
+              <div key={s.id} className="mb-20 text-left">
+                <h2 className="text-sm font-black text-indigo-500 uppercase tracking-widest mb-8 border-b border-zinc-800 pb-4">{s.title}</h2>
+                <ul className="space-y-8">
+                  {s.content.split('.').filter(sentence => sentence.trim().length > 5).map((sentence, i) => (
+                    <li key={i} className="text-4xl leading-tight font-medium text-zinc-200 flex gap-6 items-start">
+                      <span className="text-indigo-500 shrink-0 select-none opacity-30 mt-2">&bull;</span>
+                      {sentence.trim()}.
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <>
+            {/* Universal Timeline (Procedural Roadmap) */}
+            <div className="w-full max-w-4xl mb-16 relative transition-opacity duration-500">
+          <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-zinc-900 -translate-y-1/2 z-0"></div>
+          <div className="flex justify-between items-center relative z-10">
+            {roadmapStages.map((stage, idx) => {
+              const isActive = idx === currentStageIndex;
+              const isPast = idx < currentStageIndex;
+              return (
+                <div key={idx} className="flex flex-col items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black transition-all duration-700 ${isActive ? 'bg-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.5)] scale-110' : isPast ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/50' : 'bg-black border border-zinc-800 text-zinc-700'}`}>
+                    {isPast ? <CheckCircle2 size={16} /> : idx + 1}
+                  </div>
+                  <span className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-emerald-400' : isPast ? 'text-emerald-700' : 'text-zinc-600'}`}>
+                    {stage.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="max-w-4xl w-full pb-64 space-y-24">
+          <div className="text-left mb-16">
+            <h1 className="text-7xl font-black tracking-tighter mb-6 text-white">
+              {extractionData?.unitCode || 'Universal OS'}
+            </h1>
+            <p className="text-2xl text-emerald-500 font-bold uppercase tracking-widest drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]">Advanced Authoring Cockpit</p>
+          </div>
+
+          {sections.map((section) => {
+            const isActive = activeSectionId === section.id;
+            const isBloomed = bloomedSectionId === section.id;
+            const isDimmed = bloomedSectionId && !isBloomed;
+            const blockAssets = ghostAssets[section.id] || [];
+            const priorityBadge = getPriorityBadge(section.id);
+
+            // Dynamic Font Engine styles
+            const fontSizeClass = fontScale === 'xl' ? 'text-4xl' : fontScale === 'large' ? 'text-3xl' : 'text-2xl';
+            const leadingClass = lineSpacing === 'loose' ? 'leading-loose' : lineSpacing === 'relaxed' ? 'leading-relaxed' : 'leading-normal';
+
+            return (
+              <div key={section.id} className={`relative flex gap-8 transition-all duration-700 ${isBloomed ? 'fixed inset-0 m-auto w-[90vw] h-[90vh] z-[800] bg-[#0A0A0A] border border-emerald-500/50 shadow-[0_0_100px_rgba(0,0,0,0.9)] rounded-[2rem] p-16' : isDimmed ? 'opacity-10 blur-xl bg-white/5 backdrop-blur-3xl pointer-events-none' : ''}`}>
+                <section 
+                  id={`section-${section.id}`}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => handleDrop(e, section.id)}
+                  className={`flex-1 group transition-all duration-700 relative p-10 rounded-[2rem] ${isActive && !isBloomed ? 'opacity-100 bg-[#0A0A0A] border border-zinc-800 shadow-2xl' : !isBloomed ? 'opacity-40 hover:opacity-100 border border-transparent bg-zinc-900/10' : ''}`}
+                  onFocus={() => setActiveSectionId(section.id)}
+                  onClick={() => {
+                    if (!isActive && !bloomedSectionId) setActiveSectionId(section.id);
+                  }}
+                >
+                  <SectionHealth content={section.content} target={200} />
+
+                  <div className="flex items-center gap-6 mb-8 justify-between">
+                    <div className="flex items-center gap-6">
+                      <h3 className={`text-sm font-black uppercase tracking-widest flex items-center gap-6 transition-colors ${isActive ? 'text-emerald-500' : 'text-zinc-600'}`}>
+                        <span className={`w-12 h-px ${isActive ? 'bg-emerald-500' : 'bg-zinc-800'} block`}></span>
+                        {section.title}
+                      </h3>
+                      
+                      {/* Priority HUD Badge */}
+                      {priorityBadge && (
+                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${priorityBadge.color}`}>
+                          {priorityBadge.label}
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* Bloom Toggle */}
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isBloomed) setBloomedSectionId(null);
+                        else {
+                          setActiveSectionId(section.id);
+                          setBloomedSectionId(section.id);
+                        }
+                      }}
+                      className={`p-2 rounded-full border transition-all ${isBloomed ? 'bg-emerald-500 text-black border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'bg-zinc-900 border-zinc-700 text-zinc-500 hover:text-white hover:border-emerald-500'}`}
+                    >
+                      {isBloomed ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                    </button>
+                  </div>
+                  
+                  <div className="relative z-30">
+                    <textarea
+                      value={section.content}
+                      onChange={(e) => handleContentChange(section.id, e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      spellCheck={false}
+                      placeholder={`Draft ${section.title.toLowerCase()}...`}
+                      className={`w-full ${isBloomed ? 'h-[50vh]' : 'min-h-[200px]'} bg-transparent border-none outline-none resize-none ${fontSizeClass} ${leadingClass} font-medium relative z-30 transition-all duration-300 ${isActive ? (isBionicActive ? 'text-transparent caret-emerald-500' : 'text-zinc-200') : 'text-zinc-500'} placeholder-zinc-800 custom-scrollbar`}
+                    />
+                    
+                    {/* Density Scanner Overlay */}
+                    {isActive && section.content && (
+                      <div className={`absolute top-0 left-0 w-full h-full pointer-events-auto z-20 ${fontSizeClass} ${leadingClass} text-transparent overflow-hidden`}>
+                        {renderDensityScanner(section.content)}
+                      </div>
+                    )}
+                    
+                    {/* Bionic Reading Overlay */}
+                    {isBionicActive && isActive && section.content && (
+                      <div className={`absolute top-0 left-0 w-full h-full pointer-events-none z-20 ${fontSizeClass} ${leadingClass} text-zinc-200 overflow-hidden`}>
+                        <BionicText text={section.content} intensity={bionicIntensity} activeWordIndex={activeWordIndex} />
+                      </div>
+                    )}
+                    
+                    {/* Neural Proofing Glow Overlay */}
+                    {isProofing && isActive && (
+                      <div className="absolute inset-0 pointer-events-none p-0 z-20">
+                        <div className="w-full h-full text-2xl leading-loose font-medium">
+                          {section.content.split(' ').map((word, i) => {
+                            const isTypo = MOCK_TYPOS.includes(word.toLowerCase().replace(/[^a-z]/g, ''));
+                            return (
+                              <span key={i} className={isTypo ? 'text-transparent bg-purple-500/20 rounded shadow-[0_0_15px_rgba(168,85,247,0.5)]' : 'text-transparent'}>
+                                {word}{' '}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {section.content === '' && section.neuralTemplate && (
+                      <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden z-10">
+                        <span className="text-2xl leading-loose font-medium text-emerald-500/40 italic animate-pulse">
+                          {section.neuralTemplate}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {isActive && (
+                    <div className={`mt-6 flex flex-col gap-6 border-t border-zinc-800/50 pt-6 animate-fade-in relative z-40 w-full ${isBloomed ? 'absolute bottom-10 left-10 right-10 w-[calc(100%-100px)] bg-[#0A0A0A] pb-6' : ''}`}>
+                      
+                      {/* Adaptive Quick Actions */}
+                      <div className="flex flex-wrap items-center gap-3 w-full">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mr-2 flex items-center gap-1 shrink-0">
+                          <Zap size={12} /> {isUni ? 'Academic Tools' : 'Clear Tools'}
+                        </span>
+                        <button className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:border-emerald-500 hover:text-emerald-400 text-zinc-400 text-xs font-black uppercase tracking-widest transition-all">
+                          {isUni ? 'Synthesise' : 'Summarise'}
+                        </button>
+                        <button className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:border-emerald-500 hover:text-emerald-400 text-zinc-400 text-xs font-black uppercase tracking-widest transition-all">
+                          {isUni ? 'Elevate Rigour' : 'Improve Clarity'}
+                        </button>
+                        <button onClick={() => avatarSpeak("AI Declaration Exported. You may attach it to your submission.", "AI Usage Declaration saved.")} className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:border-indigo-500 hover:text-indigo-400 text-zinc-400 text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2">
+                          <Shield size={12} /> AI Declaration
+                        </button>
+                        <button 
+                          onClick={() => setIsProofing(!isProofing)}
+                          className={`px-4 py-2 rounded-xl border text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${isProofing ? 'bg-purple-500/10 border-purple-500 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.3)]' : 'bg-zinc-900 border-zinc-700 hover:border-purple-500 hover:text-purple-400 text-zinc-400'}`}
+                        >
+                          <Wand2 size={12} /> Neural Proof
+                        </button>
+                        <button 
+                          onClick={() => handleMarkFinal(section)}
+                          className={`px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all ${!section.content ? 'opacity-50 cursor-not-allowed bg-transparent border-zinc-800 text-zinc-600' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500 hover:text-white shadow-[0_0_15px_rgba(16,185,129,0.1)]'}`}
+                        >
+                          <CheckCircle size={14} /> Mark Final
+                        </button>
+                        <button 
+                          onClick={() => handleReadToMe(section.content)}
+                          className={`px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all ${isSpeaking ? 'bg-amber-500 border-amber-500 text-black shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'bg-transparent border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500'}`}
+                        >
+                          <Volume2 size={14} /> {isSpeaking ? 'Stop Reading' : 'Read to Me'}
+                        </button>
+                        <button 
+                          onClick={() => handleSimplifyLogic(section)}
+                          className={`px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all bg-transparent border-blue-500/30 text-blue-500 hover:bg-blue-500 hover:text-white shadow-[0_0_15px_rgba(59,130,246,0.1)]`}
+                        >
+                          <Zap size={14} /> Simplify Logic
+                        </button>
+                      </div>
+
+                      <ToneHUD content={section.content} onRigorDrop={handleRigorDrop} isTyping={isTyping} />
+                      <SectionHistory 
+                        blockId={section.id} 
+                        currentContent={section.content} 
+                        isActive={isActive} 
+                        onRevert={(text) => handleContentChange(section.id, text)} 
+                      />
+                    </div>
+                  )}
+                </section>
+
+                {/* Smart-Source Architecture: Retractable Ghost Rail */}
+                <div className={`shrink-0 transition-all duration-500 ease-out group/rail flex ${blockAssets.length > 0 && !isZenMode ? 'w-4 hover:w-72 opacity-100' : 'w-0 opacity-0 pointer-events-none hidden'}`}>
+                  {blockAssets.length > 0 && (
+                    <>
+                      {/* The Thin Neon Rail */}
+                      <div className="w-1 bg-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.3)] h-full rounded-full transition-all group-hover/rail:opacity-0 mr-4 cursor-help"></div>
+                      
+                      {/* The Expanded Drawer */}
+                      <div 
+                        className="bg-zinc-900/90 border border-zinc-800 p-5 rounded-2xl h-full backdrop-blur-xl absolute right-0 w-72 overflow-y-auto opacity-0 group-hover/rail:opacity-100 transition-opacity z-50 pointer-events-none group-hover/rail:pointer-events-auto"
+                        onScroll={() => { keystrokeCount.current += 0.5; }}
+                      >
+                        <div className="flex items-center gap-2 mb-4 text-blue-500">
+                          <BookOpen size={16} />
+                          <h4 className="text-[10px] font-black uppercase tracking-widest">Ghost Layer</h4>
+                        </div>
+                        <div className="space-y-4">
+                        {blockAssets.map(asset => (
+                          <div key={asset.id} className="p-4 bg-black border border-zinc-800 rounded-xl group/asset relative">
+                            {/* Primary/Secondary AI Mentor Badge */}
+                            <div className="absolute -top-2 -right-2 bg-zinc-900 border border-zinc-700 rounded-full p-1.5 cursor-help group/tooltip z-50">
+                              <BrainCircuit size={12} className={asset.isPrimary ? "text-emerald-500" : "text-amber-500"} />
+                              <div className="absolute right-0 top-6 w-48 bg-black border border-zinc-700 p-3 rounded-xl shadow-xl opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none">
+                                <p className="text-[10px] font-black uppercase tracking-widest mb-1 text-zinc-400 flex items-center gap-2">
+                                  {asset.isPrimary ? "Primary Source" : "Secondary Source"}
+                                  <Volume2 size={10} className="text-blue-500" />
+                                </p>
+                                <p className="text-xs text-zinc-300 leading-relaxed whitespace-normal">{asset.mentorNotes}</p>
+                              </div>
+                            </div>
+
+                            <p className="text-[10px] text-zinc-500 mb-2 truncate">{asset.source}</p>
+                            <p className="text-xs font-bold text-zinc-300 mb-1">{asset.author} ({asset.year})</p>
+                            <p className="text-xs text-zinc-400 leading-relaxed italic border-l-2 border-blue-500 pl-3 mb-4 line-clamp-4">
+                              "{asset.text}"
+                            </p>
+                            <button 
+                              onClick={() => handleBridgeAsset(section.id, asset)}
+                              className="w-full py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 text-[10px] font-black uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition-all opacity-0 group-hover/asset:opacity-100"
+                            >
+                              Bridge to Draft <ArrowRight size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  )}
+</main>
+      
+      {/* Done When Right Sidebar */}
+      {visibleChecklist.length > 0 && (
+        <aside className={`${rightSidebarClass} border-l border-zinc-900 bg-black/80 backdrop-blur-md flex flex-col shrink-0 transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] z-10 pt-24 relative overflow-y-auto custom-scrollbar overflow-x-hidden`}>
+          {!isZenMode && (
+            <button 
+              onClick={() => setIsRightCollapsed(!isRightCollapsed)}
+              className="absolute -left-3 top-24 z-50 bg-zinc-800 border border-zinc-700 rounded-full p-1 text-zinc-400 hover:text-white hover:border-emerald-500 transition-all"
+            >
+              {isRightCollapsed ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+            </button>
+          )}
+
+          {isRightCollapsed && !isZenMode ? (
+            <div className="flex flex-col items-center mt-5 space-y-8">
+              <CheckCircle2 size={20} className="text-blue-500" />
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 mb-8 text-blue-500 whitespace-nowrap">
+                <CheckCircle2 size={20} className="shrink-0" />
+                <h3 className="font-black tracking-widest uppercase text-xs">Definition of Done</h3>
+              </div>
+              
+              <div className="space-y-4 whitespace-nowrap">
+                {visibleChecklist.map(item => {
+                  const isPulsing = justCheckedId === item.id;
+                  return (
+                    <div 
+                      id={`dw-${item.id}`}
+                      key={item.id} 
+                      onClick={() => {
+                        const newChecked = !item.checked;
+                        setChecklist(prev => prev.map(c => c.id === item.id ? { ...c, checked: newChecked } : c));
+                        if (newChecked) {
+                          setJustCheckedId(item.id);
+                          setTimeout(() => setJustCheckedId(null), 1500);
+                        }
+                      }}
+                      className={`p-4 rounded-2xl border transition-all duration-300 cursor-pointer max-w-full group/checklist ${isPulsing ? 'bg-emerald-500 border-emerald-400 scale-[1.02] shadow-[0_0_30px_rgba(16,185,129,0.6)]' : item.checked ? 'bg-emerald-500/10 border-emerald-500/50' : 'bg-zinc-900 border-zinc-800 hover:border-zinc-600 hover:bg-zinc-800/80'}`}
+                    >
+                      <div className="flex gap-3">
+                        <div className="mt-0.5 shrink-0 transition-transform duration-300 group-active/checklist:scale-90">
+                          {item.checked ? <CheckCircle size={16} className={isPulsing ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'text-emerald-500'} /> : <Circle size={16} className="text-zinc-600 group-hover/checklist:text-zinc-400" />}
+                        </div>
+                        <p className={`text-sm font-medium leading-snug whitespace-normal transition-colors ${isPulsing ? 'text-white font-black' : item.checked ? 'text-emerald-400' : 'text-zinc-400'}`}>
+                          {item.text}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </aside>
+      )}
+
+    </div>
+  );
+}

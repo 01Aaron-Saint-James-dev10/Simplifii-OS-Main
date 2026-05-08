@@ -2,9 +2,24 @@ import React from 'react';
 import { Mic, Link as LinkIcon, FileImage, Sparkles } from 'lucide-react';
 
 export default function FloatingResourceCard({ resource, onSystemise }) {
+  const handleDragStart = (e) => {
+    e.dataTransfer.setData('resource_id', resource.id);
+    e.dataTransfer.setData('resource_content', resource.content);
+    e.currentTarget.style.opacity = '0.5';
+  };
+
+  const handleDragEnd = (e) => {
+    e.currentTarget.style.opacity = '1';
+  };
+
   return (
-    <div className="bg-zinc-900/80 backdrop-blur-md border border-emerald-500/30 p-4 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.15)] mb-3 relative overflow-hidden group">
-      <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+    <div 
+      className="bg-zinc-900/80 backdrop-blur-md border border-emerald-500/30 p-4 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.15)] mb-3 relative overflow-hidden group cursor-grab active:cursor-grabbing"
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
       
       <div className="flex items-start gap-3 relative z-10">
         <div className="p-2 bg-zinc-800 rounded-lg">

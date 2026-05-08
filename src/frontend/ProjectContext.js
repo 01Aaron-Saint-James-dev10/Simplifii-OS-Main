@@ -1,5 +1,6 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
 import { checkTemporalAlignment } from '../services/TemporalFilter';
+import { appendThinkingLog } from '../services/SheetsService';
 
 const ProjectContext = createContext();
 
@@ -34,6 +35,20 @@ export const ProjectProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('simplifii_project_state', JSON.stringify(project));
   }, [project]);
+
+  const lastSyncIndex = useRef(0);
+
+  useEffect(() => {
+    const syncInterval = setInterval(() => {
+      const logsToSync = project.integrityLog.slice(lastSyncIndex.current);
+      if (logsToSync.length > 0) {
+        appendThinkingLog(logsToSync, 'mock_jwt_token_xyz123');
+        lastSyncIndex.current = project.integrityLog.length;
+      }
+    }, 60000); // 60 seconds
+
+    return () => clearInterval(syncInterval);
+  }, [project.integrityLog]);
 
   const appendToBlock = (type, content) => {
     setProject(prev => {

@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import MasterDashboard from './frontend/MasterDashboard';
 import LandingPage from './frontend/LandingPage';
-import Onboarding from './frontend/Onboarding';
 import { SettingsProvider } from './frontend/SettingsContext';
 import { ProjectProvider } from './frontend/ProjectContext';
 import { InstitutionalProvider } from './frontend/InstitutionalContext';
 
-const VIEW = { LANDING: 'landing', ONBOARDING: 'onboarding', DASHBOARD: 'dashboard' };
+const VIEW = { LANDING: 'landing', DASHBOARD: 'dashboard' };
 
 class ViewBoundary extends React.Component {
   state = { failed: false };
@@ -49,20 +48,18 @@ function AppContent() {
     }
   }, []);
 
-  const finishOnboarding = () => {
+  const enterDashboard = () => {
     localStorage.setItem('simplifii_onboarding_complete', 'true');
     setCurrentView(VIEW.DASHBOARD);
   };
 
   switch (currentView) {
     case VIEW.LANDING:
-      return <LandingPage onGetStarted={() => setCurrentView(VIEW.ONBOARDING)} />;
-    case VIEW.ONBOARDING:
-      return <Onboarding onComplete={finishOnboarding} />;
+      return <LandingPage onGetStarted={enterDashboard} />;
     case VIEW.DASHBOARD:
       return <MasterDashboard />;
     default:
-      return <LandingPage onGetStarted={() => setCurrentView(VIEW.ONBOARDING)} />;
+      return <LandingPage onGetStarted={enterDashboard} />;
   }
 }
 
