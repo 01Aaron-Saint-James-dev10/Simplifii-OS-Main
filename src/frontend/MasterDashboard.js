@@ -284,7 +284,20 @@ export default function MasterDashboard() {
     addCourseWithData(derivedName, payload);
 
     const greetingName = derivedName && derivedName !== 'New Course' ? derivedName : (data.unitCode || 'this course');
-    speakSystemMessage(`Course ${greetingName} identified. Your semester is now mapped.`, `${greetingName} ready.`);
+    // Dynamic greeting reports the actual extracted count so the
+    // student hears immediately whether the LMS surfaced one pillar
+    // or four. Empty extraction is acknowledged honestly rather than
+    // claimed as 'mapped'.
+    let greeting;
+    const count = assessmentTitles.length;
+    if (count === 0) {
+      greeting = `Course ${greetingName} identified. No assessments detected. Drop a fuller syllabus to unlock the roadmap.`;
+    } else if (count === 1) {
+      greeting = `Course ${greetingName} identified. One pillar mapped. Drop the course outline if you have more.`;
+    } else {
+      greeting = `Course ${greetingName} identified. ${count} pillars mapped.`;
+    }
+    speakSystemMessage(greeting, `${greetingName} ready.`);
   };
 
   const generatePremiumPDF = () => {
