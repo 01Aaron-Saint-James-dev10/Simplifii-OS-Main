@@ -90,17 +90,23 @@ function RobotHead({ isSpeaking, personaKey, boundarySignal, isLiteralMode }) {
 
 export default function AIAvatar({ eventType, isLiteralMode, onClick }) {
   const { persona } = useSettings();
-  const { profile } = useProject();
+  const { profile, courses } = useProject();
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [displayMessage, setDisplayMessage] = useState('');
   const [boundarySignal, setBoundarySignal] = useState(0);
 
-  // Mount speech. Reads the current profile name; falls back to 'Sovereign
-  // User' so a fresh install never says 'Adonis'. 'device' instead of 'Mac'
-  // for cross-platform honesty.
+  // Mount speech. Two greetings:
+  //   - Zero state (no courses yet): 'Sovereign state cleared. Ready for
+  //     fresh Handshake.' so the student knows the cockpit is awaiting
+  //     a syllabus and not displaying stale data.
+  //   - Loaded state (one or more courses): the existing 'Sovereign
+  //     engine active' greeting with the student's name.
   useEffect(() => {
     const displayName = (profile?.name || '').trim() || 'Sovereign User';
-    const msg = `Sovereign engine active, ${displayName}. My neural loops are running locally on your device, no trials, no timeouts.`;
+    const hasCourses = courses && Object.keys(courses).length > 0;
+    const msg = hasCourses
+      ? `Sovereign engine active, ${displayName}. My neural loops are running locally on your device, no trials, no timeouts.`
+      : `Sovereign state cleared. Ready for fresh Handshake, ${displayName}.`;
     setDisplayMessage(msg);
     setIsSpeaking(true);
     
