@@ -19,6 +19,7 @@ import SupportBridge from './SupportBridge';
 import { fetchLMSData } from '../backend/LMSConnector';
 import { mapToWorkspace, deriveRoadmapFromAssessments } from '../services/BriefService';
 import { nameCourse, pingOllama, getProviderName, extractAssessmentBriefs, REASONING_START_EVENT, REASONING_END_EVENT } from '../services/RewriteService';
+import { reconcile as reconcileBriefs } from '../services/SovereignReconciler';
 import { jsPDF } from 'jspdf';
 import FloatingResourceCard from './FloatingResourceCard';
 import ResourceIngestor from './ResourceIngestor';
@@ -268,28 +269,30 @@ export default function MasterDashboard() {
       }
     }
 
-    // Source-of-truth decision: MERGE Ollama briefs with regex titles.
-    // Previous logic treated them as exclusive sources, so a real
-    // Lit Review pillar that only the regex caught (because Ollama
-    // anchored on the outline assessment table and missed the brief
-    // PDF) got lost. Now we union the two case-insensitively.
-    const ollamaTitles = assessmentBriefs.map(b => b.weight ? `${b.title} (${b.weight})` : b.title);
-    const merged = [];
-    const seen = new Set();
-    for (const t of [...ollamaTitles, ...regexTitles]) {
-      if (!t || typeof t !== 'string') continue;
-      const trimmed = t.trim();
-      if (trimmed.length < 4) continue;
-      // Dedup on the title-without-weighting so 'Literature Review'
-      // and 'Literature Review (25%)' do not both land.
-      const stem = trimmed.replace(/\s*\(\d+%\)\s*$/, '').toLowerCase();
-      if (seen.has(stem)) continue;
-      seen.add(stem);
-      merged.push(trimmed);
-    }
-    const assessmentTitles = merged;
+    // Sovereign Tie-Breaker: union Ollama briefs with regex titles,
+    // then run the reconciler to fuzzy-cluster equivalent titles
+    // ("Lit Review" vs "Literature Review", "Part 1" vs "Part A") and
+    // collapse them onto canonical assessment_alpha / beta / gamma ids.
+    // The Ollama briefs are tagged source:'outline' (they came from
+    // the canonical assessment table); the regex-only titles tag as
+    // source:'brief' so the reconciler's source priority kicks in
+    // when weights or dates conflict between the two views.
+    const candidateBriefs = [
+      ...assessmentBriefs.map(b => ({ ...b, source: b.source || 'outline' })),
+      ...regexTitles
+        .map(t => String(t || '').trim())
+        .filter(t => t.length >= 4)
+        .map(t => {
+          const stem = t.replace(/\s*\(\d+%\)\s*$/, '').trim();
+          const weightMatch = t.match(/\((\d+%)\)/);
+          return { title: stem, weight: weightMatch ? weightMatch[1] : '', wordCountGoal: 0, dueDate: '', source: 'brief' };
+        })
+    ];
+    const reconciledBriefs = reconcileBriefs(candidateBriefs);
+    const assessmentTitles = reconciledBriefs.map(b => b.weight ? `${b.title} (${b.weight})` : b.title);
     if (typeof console !== 'undefined') {
-      console.info('[handleSprintCreation] merged extraction:', assessmentTitles.length, 'titles (ollama:', ollamaTitles.length, ', regex:', regexTitles.length, ')');
+      const conflictCount = reconciledBriefs.reduce((n, b) => n + ((b.reconciled?.conflicts?.length) || 0), 0);
+      console.info('[handleSprintCreation] reconciled extraction:', reconciledBriefs.length, 'canonical assessments from', candidateBriefs.length, 'candidates (', conflictCount, 'cross-doc conflicts resolved)');
     }
 
     // Rebuild doneWhenChecklist from the merged list. The version that
@@ -305,7 +308,11 @@ export default function MasterDashboard() {
       triggerWord: entry.split(/\s+/).slice(0, 3).join(' ').toLowerCase()
     }));
 
-    const enrichedData = { ...data, assessmentTitles, assessmentBriefs, doneWhenChecklist };
+    // assessmentBriefs is replaced with the reconciled canonical set
+    // so every downstream view (Studio, Scaffolder, AURA) reads from
+    // the tie-broken truth. Each brief carries canonicalId and an
+    // optional reconciled.conflicts trail for the audit panel.
+    const enrichedData = { ...data, assessmentTitles, assessmentBriefs: reconciledBriefs, doneWhenChecklist };
 
     // Task name is derived from real syllabus data: prefer the first
     // extracted assessment title, fall back to the unit code, then to a
