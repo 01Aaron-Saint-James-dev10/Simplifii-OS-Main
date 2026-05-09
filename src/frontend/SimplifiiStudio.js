@@ -621,7 +621,7 @@ function Cockpit({ pillar, pillars, drafts, setDraft, activeBlockId, setActiveBl
     setMicroLoading(true);
     setMicroError('');
     try {
-      const steps = await generateMicroSteps(briefForPillar, pillar.name);
+      const steps = await generateMicroSteps(briefForPillar, pillar.name, pillar.rubric);
       setMicroSteps(steps);
       // One-click pre-fill: when the active block is empty, drop the
       // generated steps straight in. Section Health recomputes naturally
@@ -639,6 +639,18 @@ function Cockpit({ pillar, pillars, drafts, setDraft, activeBlockId, setActiveBl
   };
 
   const onInsertSteps = () => insertStepsIntoActiveBlock(microSteps);
+
+  // Pedagogical Why toggle. Each generated step carries a one-line
+  // intent linking it back to a rubric criterion. The student opens
+  // the why on demand; the closed default keeps cognitive load low.
+  // Tracked per step so opening one does not unfurl all five.
+  const [openWhys, setOpenWhys] = useState(new Set());
+  const toggleWhy = (stepNum) => setOpenWhys(prev => {
+    const next = new Set(prev);
+    if (next.has(stepNum)) next.delete(stepNum); else next.add(stepNum);
+    return next;
+  });
+  useEffect(() => { setOpenWhys(new Set()); }, [pillar.id, microSteps]);
 
   // Read-aloud: speak each micro-step in sequence with a short gap so
   // the student hears the action without it crashing into the next.
@@ -785,15 +797,65 @@ function Cockpit({ pillar, pillars, drafts, setDraft, activeBlockId, setActiveBl
           )}
           {microSteps.length > 0 && (
             <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {microSteps.map((s) => (
-                <li key={s.step} style={{ display: 'grid', gridTemplateColumns: '28px 1fr', gap: 10, alignItems: 'flex-start', padding: '8px 0', borderBottom: '1px solid var(--line)' }}>
-                  <span style={{ fontFamily: 'var(--f-mono)', fontSize: 12, color: 'var(--emerald)' }}>0{s.step}</span>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--ink)' }}>{s.title}</div>
-                    <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.5 }}>{s.action}</div>
-                  </div>
-                </li>
-              ))}
+              {microSteps.map((s) => {
+                const isOpen = openWhys.has(s.step);
+                const hasWhy = Boolean(s.why && s.why.length > 0);
+                return (
+                  <li key={s.step} style={{ display: 'grid', gridTemplateColumns: '28px 1fr', gap: 10, alignItems: 'flex-start', padding: '8px 0', borderBottom: '1px solid var(--line)' }}>
+                    <span style={{ fontFamily: 'var(--f-mono)', fontSize: 12, color: 'var(--emerald)' }}>0{s.step}</span>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, justifyContent: 'space-between' }}>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--ink)' }}>{s.title}</div>
+                        {hasWhy && (
+                          <button
+                            type="button"
+                            onClick={() => toggleWhy(s.step)}
+                            aria-expanded={isOpen}
+                            aria-controls={`why-${pillar.id}-${s.step}`}
+                            title={isOpen ? 'Hide pedagogical intent' : 'Show why this step matters'}
+                            style={{
+                              background: isOpen ? 'var(--emerald)' : 'transparent',
+                              color: isOpen ? '#0b1310' : 'var(--emerald)',
+                              border: '1px solid var(--emerald)',
+                              borderRadius: 999,
+                              fontFamily: 'var(--f-mono)',
+                              fontSize: 9,
+                              fontWeight: 800,
+                              letterSpacing: '0.18em',
+                              textTransform: 'uppercase',
+                              padding: '2px 8px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {isOpen ? 'Hide' : 'Why?'}
+                          </button>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.5 }}>{s.action}</div>
+                      {hasWhy && isOpen && (
+                        <div
+                          id={`why-${pillar.id}-${s.step}`}
+                          style={{
+                            marginTop: 8,
+                            padding: '8px 10px',
+                            borderLeft: '2px solid var(--emerald)',
+                            background: 'rgba(16, 185, 129, 0.06)',
+                            borderRadius: 4,
+                            fontSize: 12,
+                            color: 'var(--ink-soft)',
+                            lineHeight: 1.5
+                          }}
+                        >
+                          <span style={{ fontFamily: 'var(--f-mono)', fontSize: 9, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--emerald)', marginRight: 6 }}>
+                            Pedagogical intent
+                          </span>
+                          {s.why}
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ol>
           )}
         </div>

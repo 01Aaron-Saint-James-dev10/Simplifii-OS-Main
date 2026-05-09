@@ -31,7 +31,7 @@ const safeReadLS = (key, fallback) => {
 
 const SYSTEM_PROMPT = [
   'You are a UDL Action and Expression coach inside Simplifii OS, an Australian academic cockpit.',
-  'Your job: take an assessment brief and return the FIRST 5 literal micro-steps a student should do RIGHT NOW to start the work.',
+  'Your job: take an assessment brief and return the FIRST 5 literal micro-steps a student should do RIGHT NOW to start the work, AND for each step, name the rubric criterion it satisfies. The why turns the tool from a manager into a mentor.',
   '',
   'ABSOLUTE RULES:',
   '1. Australian English only. Never use US spellings.',
@@ -39,22 +39,41 @@ const SYSTEM_PROMPT = [
   '3. Each step starts with a concrete imperative verb (Open, Search, Download, Read, Outline, Write, Annotate, Sketch).',
   '4. Each step is 5 to 18 words, observable from outside (someone watching could check it off).',
   '5. Replace vague phrases ("conduct research", "engage with the literature") with literal actions ("Open Google Scholar", "Save three PDFs to a folder named pillar-1").',
-  '6. Return ONLY a JSON array of 5 objects, exact keys:',
-  '   [{"step": 1, "title": "Short label", "action": "Imperative one-line"}, ...]',
-  '7. No preamble, no markdown fence, no commentary.'
+  '6. The "why" field is one short sentence (8 to 22 words) that names the pedagogical intent. Prefer to quote or paraphrase a rubric criterion when one is supplied. Examples:',
+  '   "Builds the evidence base the rubric scores under Critical Synthesis."',
+  '   "Locks the argument scaffold the marker checks first under Structure."',
+  '   "Captures the citations the rubric requires for the Referencing band."',
+  '7. Return ONLY a JSON array of 5 objects, exact keys:',
+  '   [{"step": 1, "title": "Short label", "action": "Imperative one-line", "why": "Pedagogical intent."}, ...]',
+  '8. No preamble, no markdown fence, no commentary.'
 ].join('\n');
 
-const buildUserPrompt = (brief, courseContext) => [
-  'ASSESSMENT BRIEF:',
-  `Title: ${brief?.title || 'Unknown assessment'}`,
-  `Weight: ${brief?.weight || 'unknown'}`,
-  `Word target: ${brief?.wordCountGoal || 'not specified'}`,
-  `Due: ${brief?.dueDate || 'not specified'}`,
-  '',
-  courseContext ? `COURSE: ${courseContext}` : '',
-  '',
-  'Return the JSON array of 5 micro-steps the student should do first.'
-].filter(Boolean).join('\n');
+const buildUserPrompt = (brief, courseContext, rubricCriteria) => {
+  const rubricLines = Array.isArray(rubricCriteria) && rubricCriteria.length > 0
+    ? [
+        'RUBRIC CRITERIA (ground the why fields in these where possible):',
+        ...rubricCriteria.slice(0, 8).map((r, i) => {
+          if (typeof r === 'string') return `${i + 1}. ${r}`;
+          const title = r.title || r.name || r.criterion || '';
+          const detail = r.criteria || r.description || r.text || '';
+          return `${i + 1}. ${[title, detail].filter(Boolean).join(': ')}`.slice(0, 220);
+        })
+      ].filter(Boolean)
+    : [];
+  return [
+    'ASSESSMENT BRIEF:',
+    `Title: ${brief?.title || 'Unknown assessment'}`,
+    `Weight: ${brief?.weight || 'unknown'}`,
+    `Word target: ${brief?.wordCountGoal || 'not specified'}`,
+    `Due: ${brief?.dueDate || 'not specified'}`,
+    '',
+    courseContext ? `COURSE: ${courseContext}` : '',
+    '',
+    ...rubricLines,
+    '',
+    'Return the JSON array of 5 micro-steps the student should do first. Each must include a "why" field that names the rubric criterion it satisfies.'
+  ].filter(Boolean).join('\n');
+};
 
 const safeParseSteps = (raw) => {
   if (!raw) return [];
@@ -79,13 +98,14 @@ const safeParseSteps = (raw) => {
     .map((item, i) => ({
       step: Number(item?.step) || (i + 1),
       title: sanitise(item?.title || item?.name || `Step ${i + 1}`).slice(0, 60),
-      action: sanitise(item?.action || item?.text || item?.do || item?.description || '').slice(0, 220)
+      action: sanitise(item?.action || item?.text || item?.do || item?.description || '').slice(0, 220),
+      why: sanitise(item?.why || item?.intent || item?.rationale || item?.because || '').slice(0, 240)
     }))
     .filter(s => s.action.length >= 3)
     .slice(0, 5);
 };
 
-export const generateMicroSteps = async (brief, courseContext) => {
+export const generateMicroSteps = async (brief, courseContext, rubricCriteria) => {
   if (!brief || !brief.title) throw new Error('No assessment brief supplied.');
 
   const endpoint = (safeReadLS(OLLAMA_ENDPOINT_KEY, DEFAULT_OLLAMA_ENDPOINT) || DEFAULT_OLLAMA_ENDPOINT).replace(/\/$/, '');
@@ -101,10 +121,10 @@ export const generateMicroSteps = async (brief, courseContext) => {
       body: JSON.stringify({
         model,
         stream: false,
-        options: { temperature: 0.4, num_predict: 600 },
+        options: { temperature: 0.4, num_predict: 900 },
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: buildUserPrompt(brief, courseContext) }
+          { role: 'user', content: buildUserPrompt(brief, courseContext, rubricCriteria) }
         ]
       }),
       signal: controller.signal
