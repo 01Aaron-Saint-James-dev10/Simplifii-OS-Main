@@ -640,6 +640,33 @@ function Cockpit({ pillar, pillars, drafts, setDraft, activeBlockId, setActiveBl
 
   const onInsertSteps = () => insertStepsIntoActiveBlock(microSteps);
 
+  // Read-aloud: speak each micro-step in sequence with a short gap so
+  // the student hears the action without it crashing into the next.
+  // Uses the existing speech queue (MessagingHub) so the cockpit's
+  // global speak path stays the only audio surface. Cancel-and-restart
+  // semantics: clicking again while reading stops the current run.
+  const [reading, setReading] = useState(false);
+  const onReadSteps = () => {
+    if (microSteps.length === 0) return;
+    if (reading) {
+      try { stopSpeaking(); } catch { /* ignore */ }
+      setReading(false);
+      return;
+    }
+    setReading(true);
+    // Speak the heading once, then each step in turn. The browser's
+    // queue handles ordering; each utterance follows the previous.
+    speakSystemMessage(`Reading ${microSteps.length} micro-steps for ${pillar.name}.`);
+    microSteps.forEach((s) => {
+      speakSystemMessage(`Step ${s.step}. ${s.title}. ${s.action}`);
+    });
+    // Heuristic: the queue runs to completion in roughly 4 seconds per
+    // utterance. Re-enable the button after that window so the student
+    // can replay or stop without leaving stuck state.
+    const totalMs = (microSteps.length + 1) * 4500;
+    setTimeout(() => setReading(false), totalMs);
+  };
+
   // Mastery stage derived from total progress: 0% -> introduce, <33% -> drill,
   // <66% -> recognise, else simulate. Maps the pedagogical loop to the
   // student's actual draft state so the bar doesn't lie.
@@ -739,6 +766,11 @@ function Cockpit({ pillar, pillars, drafts, setDraft, activeBlockId, setActiveBl
               {microSteps.length > 0 && !isActiveBlockEmpty && (
                 <button className="btn-pill" onClick={onInsertSteps} title="Append steps to the current block">
                   Append to draft
+                </button>
+              )}
+              {microSteps.length > 0 && (
+                <button className="btn-pill" onClick={onReadSteps} title={reading ? 'Stop reading' : 'Karen reads each step in sequence'}>
+                  {reading ? 'Stop reading' : 'Read aloud'}
                 </button>
               )}
             </div>
