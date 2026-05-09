@@ -25,6 +25,17 @@ import ResourceIngestor from './ResourceIngestor';
 import { simulateIncomingWebhook, speakSystemMessage, markSpeechUnlocked } from '../services/MessagingHub';
 import { auditProjectContext } from '../services/VerificationService';
 import { saveGhostAsset, getAllGhostAssets } from '../services/IndexedDBService';
+import HomeschoolDashboard from '../streams/homeschool/Dashboard';
+import PrimaryDashboard from '../streams/primary/Dashboard';
+import SecondaryDashboard from '../streams/secondary/Dashboard';
+import TafeDashboard from '../streams/tafe/Dashboard';
+
+const STREAM_DASHBOARDS = {
+  primary: PrimaryDashboard,
+  secondary: SecondaryDashboard,
+  tafe: TafeDashboard,
+  homeschool: HomeschoolDashboard
+};
 
 export default function MasterDashboard() {
   const {
@@ -41,7 +52,8 @@ export default function MasterDashboard() {
     tasks, setTasks,
     extractionData, setExtractionData,
     activeTask, setActiveTask,
-    courses, activeCourse, activeCourseId, setActiveCourseId, addCourse, addCourseWithData, renameCourse, removeCourse
+    courses, activeCourse, activeCourseId, setActiveCourseId, addCourse, addCourseWithData, renameCourse, removeCourse,
+    stream
   } = useProject();
   const { setInstitutionalData } = useInstitution();
 
@@ -448,6 +460,19 @@ export default function MasterDashboard() {
       default:
         const activeCourseName = (courses[activeCourseId]?.name || '').toLowerCase();
         const isMaths = activeCourseName.includes('maths') || activeCourseName.includes('hsc');
+        // Stream-based default landing. Non-tertiary streams (primary,
+        // secondary, tafe, homeschool) render their own skeleton
+        // dashboard unless the student has explicitly toggled into the
+        // Studio cockpit. Tertiary keeps the existing studio/classic
+        // canvas flow.
+        const StreamDashboard = STREAM_DASHBOARDS[stream?.streamId];
+        if (StreamDashboard && !showStudio && !isMaths) {
+          return (
+            <div className="flex-1 overflow-auto animate-fade-in relative z-0">
+              <StreamDashboard />
+            </div>
+          );
+        }
         if (showStudio && !isMaths) {
           return (
             <div className="flex-1 overflow-hidden animate-fade-in relative z-0">
