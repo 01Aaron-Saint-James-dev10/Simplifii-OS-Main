@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import './scaffolder.css';
 import { useProject } from './ProjectContext';
+import { literalise, shouldLiteralise } from '../core/LiteralMode';
 
 /**
  * Scaffolder: Tiered Support Engine
@@ -37,11 +38,11 @@ const tierFromLevel = (level) => {
 // Primary: gamified quests
 // ============================================================
 
-function PrimaryQuest({ brief }) {
+function PrimaryQuest({ brief, lit = (s) => s }) {
   const quests = [
-    { state: 'done',   level: 'Level 1', title: 'Find the focus',     desc: `Look at the brief. Circle the words that say what you must do.`,           reward: 'star 5 XP' },
-    { state: 'active', level: 'Level 2', title: 'Match the messengers', desc: 'Drag each requirement to the spot in your plan that fits. Three matches.', reward: 'star 10 XP' },
-    { state: 'next',   level: 'Level 3', title: 'Tell the story',     desc: 'Record one voice note explaining what the assignment wants in your words.', reward: 'star 15 XP, Badge' }
+    { state: 'done',   level: 'Level 1', title: lit('Find the focus'),     desc: lit('Look at the brief. Circle the words that say what you must do.'),           reward: 'star 5 XP' },
+    { state: 'active', level: 'Level 2', title: lit('Match the messengers'), desc: lit('Drag each requirement to the spot in your plan that fits. Three matches.'), reward: 'star 10 XP' },
+    { state: 'next',   level: 'Level 3', title: lit('Tell the story'),     desc: lit('Record one voice note explaining what the assignment wants in your words.'), reward: 'star 15 XP, Badge' }
   ];
   return (
     <div data-fade>
@@ -75,15 +76,15 @@ function PrimaryQuest({ brief }) {
 // Secondary: body-doubled checklist
 // ============================================================
 
-function SecondaryCheckList({ brief }) {
+function SecondaryCheckList({ brief, lit = (s) => s }) {
   const [done, setDone] = useState({ 0: true, 1: true });
   const items = useMemo(() => ([
-    { time: 'Tonight',    tag: 'start', kind: 'start', title: `Open the ${brief.title || 'assessment'} brief and read the first page out loud.`, why: 'Activation energy is the hardest part. Reading aloud bypasses the wall of text.' },
-    { time: 'Tonight',    tag: 'start', kind: 'start', title: 'Highlight the three words you do not know.',                                       why: 'We will look those up together so the rest of the brief stops feeling foreign.' },
-    { time: 'Tomorrow',   tag: 'grind', kind: 'grind', title: 'Skim two of the linked sources. Note one sentence each.',                          why: 'Two sources is enough to feel the shape of the argument before committing.' },
-    { time: 'Wed eve',    tag: 'grind', kind: 'grind', title: 'Draft the foundation paragraph in plain English.',                                 why: 'Plain first, academic later. Editing is easier than starting.' },
-    { time: 'Friday 4pm', tag: 'ship',  kind: 'ship',  title: 'Send the draft to AURA for a critique pass.',                                      why: 'External eyes catch what your eyes cannot. Build that habit early.' }
-  ]), [brief.title]);
+    { time: 'Tonight',    tag: 'start', kind: 'start', title: lit(`Open the ${brief.title || 'assessment'} brief and read the first page out loud.`), why: lit('Activation energy is the hardest part. Reading aloud bypasses the wall of text.') },
+    { time: 'Tonight',    tag: 'start', kind: 'start', title: lit('Highlight the three words you do not know.'),                                       why: lit('We will look those up together so the rest of the brief stops feeling foreign.') },
+    { time: 'Tomorrow',   tag: 'grind', kind: 'grind', title: lit('Skim two of the linked sources. Note one sentence each.'),                          why: lit('Two sources is enough to feel the shape of the argument before committing.') },
+    { time: 'Wed eve',    tag: 'grind', kind: 'grind', title: lit('Draft the foundation paragraph in plain English.'),                                 why: lit('Plain first, academic later. Editing is easier than starting.') },
+    { time: 'Friday 4pm', tag: 'ship',  kind: 'ship',  title: lit('Send the draft to AURA for a critique pass.'),                                      why: lit('External eyes catch what your eyes cannot. Build that habit early.') }
+  ]), [brief.title, lit]);
   return (
     <div data-fade>
       <div className="checklist">
@@ -124,7 +125,7 @@ function SecondaryCheckList({ brief }) {
 // Tertiary: backwards-mapped skeleton timeline
 // ============================================================
 
-function TertiarySkeleton({ brief, allBriefs }) {
+function TertiarySkeleton({ brief, allBriefs, lit = (s) => s }) {
   // Build milestones from the active brief's rubric bands when possible;
   // fall back to a five-stage default keyed off the wordCountGoal.
   const target = brief.wordCountGoal || 2000;
@@ -236,7 +237,13 @@ function Toggle({ title, sub, initial = false }) {
 // ============================================================
 
 export default function Scaffolder({ onClose }) {
-  const { activeCourse, profile } = useProject();
+  const { activeCourse, profile, stream } = useProject();
+  // Layer 4 LiteralMode wiring. When the active stream defaults to
+  // literal mode (primary, secondary, homeschool) every text surface
+  // in the Scaffolder runs through the transformer. The transformer
+  // is render-time only; it never sees rubric data and never invents
+  // content (Blueprint hard rule).
+  const lit = (text) => shouldLiteralise(stream?.profile, profile?.literalModeEnabled) ? literalise(text) : text;
   const briefs = activeCourse?.extractionData?.assessmentBriefs || [];
   // Use the focused sprint's brief if any, else the first available, else
   // a placeholder so the overlay still renders.
@@ -314,7 +321,7 @@ Marked across rubric bands extracted from your uploaded brief.`;
               <div className="right">SUPPORT-ENGINE.JS · v0.4</div>
             </div>
             <div className="scaffold-body">
-              <Render brief={defaultBrief} allBriefs={briefs} />
+              <Render brief={defaultBrief} allBriefs={briefs} lit={lit} />
             </div>
           </section>
 
