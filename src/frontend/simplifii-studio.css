@@ -1603,7 +1603,9 @@ input, textarea { font-family: inherit; color: inherit; }
 
 html[data-focus-active="true"] [data-focus-locked="true"] {
   pointer-events: none;
-  opacity: 0.32;
+  /* 0.40 per the Sovereign design handoff (visually validated).
+     Previous 0.32 was a Blueprint draft placeholder. */
+  opacity: 0.40;
   filter: grayscale(0.4);
   transition: opacity var(--t-base), filter var(--t-base);
 }
