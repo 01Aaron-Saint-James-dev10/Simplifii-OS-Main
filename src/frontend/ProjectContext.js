@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect, useRef } from 'r
 import { checkTemporalAlignment } from '../services/TemporalFilter';
 import { appendThinkingLog } from '../services/SheetsService';
 import { hydrate as hydrateStream, applyTheme as applyStreamTheme, streamFromLevel } from '../core/SovereignRouter';
+import { startEventBus, stopEventBus } from '../core/EventBus';
 
 const ProjectContext = createContext();
 
@@ -466,6 +467,19 @@ export const ProjectProvider = ({ children }) => {
   const streamId = profile?.streamId || streamFromLevel(profile?.level);
   const stream = hydrateStream({ streamId, profile });
   useEffect(() => { applyStreamTheme(stream); }, [stream.streamId]);
+
+  // Event bus: bridges ExecutiveSpine window CustomEvents into the
+  // HistoryOfThought encrypted log. The bus drops events when the
+  // vault is locked (Blueprint hard rule); capture resumes the
+  // moment the student unlocks. Stream / user context is read via
+  // closure each event so a stream switch picks up immediately
+  // without rewiring listeners.
+  const __busCtxRef = useRef({ streamId: stream.streamId, userId: 'local' });
+  useEffect(() => { __busCtxRef.current = { streamId: stream.streamId, userId: 'local' }; }, [stream.streamId]);
+  useEffect(() => {
+    startEventBus(() => __busCtxRef.current);
+    return () => stopEventBus();
+  }, []);
 
   return (
     <ProjectContext.Provider value={{
