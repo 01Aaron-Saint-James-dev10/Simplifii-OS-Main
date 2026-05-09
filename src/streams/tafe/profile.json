@@ -1,0 +1,11 @@
+{
+  "id": "tafe",
+  "displayName": "TAFE",
+  "defaultLanding": "studio",
+  "themeVariant": "studio-trade",
+  "literalModeDefault": false,
+  "defaultFocusSessionMinutes": 25,
+  "defaultPlaytimeMinutes": 7,
+  "sectionHealthUnlockThreshold": 4,
+  "idleDetectionThresholdMs": 180000
+}

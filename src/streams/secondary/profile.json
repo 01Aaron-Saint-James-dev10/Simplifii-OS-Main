@@ -1,0 +1,11 @@
+{
+  "id": "secondary",
+  "displayName": "Secondary",
+  "defaultLanding": "scaffolder",
+  "themeVariant": "scaffolder-checklist",
+  "literalModeDefault": true,
+  "defaultFocusSessionMinutes": 20,
+  "defaultPlaytimeMinutes": 7,
+  "sectionHealthUnlockThreshold": 4,
+  "idleDetectionThresholdMs": 180000
+}

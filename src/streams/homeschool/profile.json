@@ -1,0 +1,11 @@
+{
+  "id": "homeschool",
+  "displayName": "Homeschool",
+  "defaultLanding": "scaffolder",
+  "themeVariant": "scaffolder-warm",
+  "literalModeDefault": true,
+  "defaultFocusSessionMinutes": 20,
+  "defaultPlaytimeMinutes": 7,
+  "sectionHealthUnlockThreshold": 4,
+  "idleDetectionThresholdMs": 180000
+}

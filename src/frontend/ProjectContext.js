@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
 import { checkTemporalAlignment } from '../services/TemporalFilter';
 import { appendThinkingLog } from '../services/SheetsService';
+import { hydrate as hydrateStream, applyTheme as applyStreamTheme, streamFromLevel } from '../core/SovereignRouter';
 
 const ProjectContext = createContext();
 
@@ -455,6 +456,17 @@ export const ProjectProvider = ({ children }) => {
     targetWords: extractionData?.words || null
   };
 
+  // Sovereign stream resolution. Profile carries an optional explicit
+  // streamId (set during onboarding); otherwise we derive from
+  // profile.level. Existing tertiary users who have never seen this
+  // field still land on the tertiary stream because LEVEL_TO_STREAM
+  // maps every tertiary-flavoured level there. Theme custom properties
+  // are pushed to <html> so existing CSS reading var(--bg) etc keeps
+  // working without per-component changes.
+  const streamId = profile?.streamId || streamFromLevel(profile?.level);
+  const stream = hydrateStream({ streamId, profile });
+  useEffect(() => { applyStreamTheme(stream); }, [stream.streamId]);
+
   return (
     <ProjectContext.Provider value={{
       project, updateBlock, appendToBlock, receiveMessage, clearMessage, setBlocks, logEffort,
@@ -464,7 +476,9 @@ export const ProjectProvider = ({ children }) => {
       activeTask, setActiveTask,
       grounding,
       // CourseManager
-      courses, activeCourse, activeCourseId, setActiveCourseId, addCourse, addCourseWithData, removeCourse, renameCourse, switchSprint
+      courses, activeCourse, activeCourseId, setActiveCourseId, addCourse, addCourseWithData, removeCourse, renameCourse, switchSprint,
+      // Sovereign stream resolver (Layer 1 of the Architecture Blueprint)
+      stream
     }}>{children}</ProjectContext.Provider>
   );
 };
