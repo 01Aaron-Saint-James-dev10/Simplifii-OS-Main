@@ -54,7 +54,7 @@ export default function MasterDashboard() {
     tasks, setTasks,
     extractionData, setExtractionData,
     activeTask, setActiveTask,
-    courses, activeCourse, activeCourseId, setActiveCourseId, addCourse, addCourseWithData, renameCourse, removeCourse,
+    courses, activeCourse, activeCourseId, setActiveCourseId, addCourse, addCourseWithData, upgradeCourseExtraction, renameCourse, removeCourse,
     stream
   } = useProject();
   const { setInstitutionalData } = useInstitution();
@@ -248,58 +248,13 @@ export default function MasterDashboard() {
   //   5. Speak the success greeting through the same channel the
   //      Academic Tools use, so the student hears 'Course X identified.
   //      Your semester is now mapped.'
-  const handleSprintCreation = async (data) => {
-    // LLM-first extraction with regex safety net. When Ollama is
-    // reachable AND returns at least one valid brief, that wins. If
-    // Ollama returns nothing usable (empty array, parse failure,
-    // or a generic empty '{}' which llama3.2 sometimes produces under
-    // format:json constraints), the regex output is used so the DoD
-    // is not punished by the model having a bad day. Hard network /
-    // HTTP failures also fall back to regex.
-    const regexTitles = Array.isArray(data.assessmentTitles) ? data.assessmentTitles.slice() : [];
-    let assessmentBriefs = [];
-    if (data?.rawText && data.rawText.trim().length > 200 && getProviderName() === 'ollama') {
-      window.dispatchEvent(new CustomEvent(REASONING_START_EVENT));
-      try {
-        assessmentBriefs = await extractAssessmentBriefs(data.rawText);
-      } catch (err) {
-        if (typeof console !== 'undefined') console.warn('[handleSprintCreation] Ollama extraction error, falling back to regex:', err.message);
-      } finally {
-        window.dispatchEvent(new CustomEvent(REASONING_END_EVENT));
-      }
-    }
-
-    // Sovereign Tie-Breaker: union Ollama briefs with regex titles,
-    // then run the reconciler to fuzzy-cluster equivalent titles
-    // ("Lit Review" vs "Literature Review", "Part 1" vs "Part A") and
-    // collapse them onto canonical assessment_alpha / beta / gamma ids.
-    // The Ollama briefs are tagged source:'outline' (they came from
-    // the canonical assessment table); the regex-only titles tag as
-    // source:'brief' so the reconciler's source priority kicks in
-    // when weights or dates conflict between the two views.
-    const candidateBriefs = [
-      ...assessmentBriefs.map(b => ({ ...b, source: b.source || 'outline' })),
-      ...regexTitles
-        .map(t => String(t || '').trim())
-        .filter(t => t.length >= 4)
-        .map(t => {
-          const stem = t.replace(/\s*\(\d+%\)\s*$/, '').trim();
-          const weightMatch = t.match(/\((\d+%)\)/);
-          return { title: stem, weight: weightMatch ? weightMatch[1] : '', wordCountGoal: 0, dueDate: '', source: 'brief' };
-        })
-    ];
+  // Reconcile a list of candidate briefs onto canonical assessments
+  // and build the standard derived state (titles, doneWhenChecklist,
+  // roadmap). Used by both the shadow draft path (regex-only) and the
+  // confirmed path (regex unioned with Ollama).
+  const buildDerived = (candidateBriefs) => {
     const reconciledBriefs = reconcileBriefs(candidateBriefs);
     const assessmentTitles = reconciledBriefs.map(b => b.weight ? `${b.title} (${b.weight})` : b.title);
-    if (typeof console !== 'undefined') {
-      const conflictCount = reconciledBriefs.reduce((n, b) => n + ((b.reconciled?.conflicts?.length) || 0), 0);
-      console.info('[handleSprintCreation] reconciled extraction:', reconciledBriefs.length, 'canonical assessments from', candidateBriefs.length, 'candidates (', conflictCount, 'cross-doc conflicts resolved)');
-    }
-
-    // Rebuild doneWhenChecklist from the merged list. The version that
-    // BriefService produced was based only on the regex output, so when
-    // Ollama added new pillars they never reached the DoD column. The
-    // shape matches BriefService's slugify+map structure so checklist
-    // ids stay stable across courses.
     const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '').slice(0, 40) || 'item';
     const doneWhenChecklist = assessmentTitles.slice(0, 12).map((entry, i) => ({
       id: `assess_${i}_${slugify(entry)}`,
@@ -307,21 +262,34 @@ export default function MasterDashboard() {
       checked: false,
       triggerWord: entry.split(/\s+/).slice(0, 3).join(' ').toLowerCase()
     }));
-
-    // assessmentBriefs is replaced with the reconciled canonical set
-    // so every downstream view (Studio, Scaffolder, AURA) reads from
-    // the tie-broken truth. Each brief carries canonicalId and an
-    // optional reconciled.conflicts trail for the audit panel.
-    const enrichedData = { ...data, assessmentTitles, assessmentBriefs: reconciledBriefs, doneWhenChecklist };
-
-    // Task name is derived from real syllabus data: prefer the first
-    // extracted assessment title, fall back to the unit code, then to a
-    // neutral 'Course Brief'. No 'Mini Literature Review' placeholder.
-    const firstAssessment = assessmentTitles[0];
-    const taskName = firstAssessment || data.unitCode || 'Course Brief';
-    const newTask = { course: data.unitCode || 'Extracted', task: taskName, level: data.level, rawText: data.rawText };
-    const generatedBlocks = mapToWorkspace(data.rawText || '', data.level || 'Tertiary');
     const derivedRoadmap = deriveRoadmapFromAssessments(assessmentTitles);
+    return { reconciledBriefs, assessmentTitles, doneWhenChecklist, derivedRoadmap };
+  };
+
+  const handleSprintCreation = async (data) => {
+    // Shadow State pattern. Cold-load the cockpit instantly with a
+    // regex-only "Draft Roadmap" so the student never stares at a
+    // spinner; the heavy LLM passes (extractAssessmentBriefs, nameCourse)
+    // run in the background and upgrade the same course in place when
+    // they settle. Loading anxiety breaks executive function. The
+    // shadow flag on extractionData lets downstream UI mark the data
+    // as DRAFT until ground truth lands.
+    const regexTitles = Array.isArray(data.assessmentTitles) ? data.assessmentTitles.slice() : [];
+    const regexCandidateBriefs = regexTitles
+      .map(t => String(t || '').trim())
+      .filter(t => t.length >= 4)
+      .map(t => {
+        const stem = t.replace(/\s*\(\d+%\)\s*$/, '').trim();
+        const weightMatch = t.match(/\((\d+%)\)/);
+        return { title: stem, weight: weightMatch ? weightMatch[1] : '', wordCountGoal: 0, dueDate: '', source: 'brief' };
+      });
+
+    const draft = buildDerived(regexCandidateBriefs);
+    const draftFirst = draft.assessmentTitles[0];
+    const draftTaskName = draftFirst || data.unitCode || 'Course Brief';
+    const draftTask = { course: data.unitCode || 'Extracted', task: draftTaskName, level: data.level, rawText: data.rawText };
+    const generatedBlocks = mapToWorkspace(data.rawText || '', data.level || 'Tertiary');
+    const draftName = data.unitCode || 'New Course';
 
     setInstitutionalData({
       learningOutcomes: data.learningOutcomes || [],
@@ -329,43 +297,79 @@ export default function MasterDashboard() {
       rubricCriteria: data.rubricCriteria || []
     });
 
-    let derivedName = 'New Course';
-    if (data?.rawText && data.rawText.trim().length > 50) {
+    const draftPayload = {
+      tasks: [draftTask],
+      activeTask: draftTask,
+      extractionData: { ...data, assessmentTitles: draft.assessmentTitles, assessmentBriefs: draft.reconciledBriefs, doneWhenChecklist: draft.doneWhenChecklist, shadow: true },
+      project: { blocks: generatedBlocks }
+    };
+    if (draft.derivedRoadmap) draftPayload.roadmap = draft.derivedRoadmap;
+
+    const courseId = addCourseWithData(draftName, draftPayload);
+
+    speakSystemMessage(
+      draft.assessmentTitles.length > 0
+        ? `Draft roadmap ready. ${draft.assessmentTitles.length} pillars detected. Refining in the background.`
+        : 'Draft cockpit ready. Refining the syllabus in the background.',
+      `${draftName} draft ready.`
+    );
+
+    // Background: run Ollama extraction and nameCourse in parallel,
+    // then upgrade the course in place. The student keeps interacting
+    // with the draft state during this window. If both LLM calls fail
+    // the draft remains as-is; no destructive overwrite.
+    if (data?.rawText && data.rawText.trim().length > 200 && getProviderName() === 'ollama') {
       window.dispatchEvent(new CustomEvent(REASONING_START_EVENT));
+      const briefsPromise = extractAssessmentBriefs(data.rawText)
+        .catch(err => { if (typeof console !== 'undefined') console.warn('[handleSprintCreation] Ollama extraction error:', err.message); return []; });
+      const namePromise = nameCourse(data.rawText)
+        .catch(err => { if (typeof console !== 'undefined') console.warn('[handleSprintCreation] nameCourse failed:', err.message); return null; });
+
       try {
-        derivedName = await nameCourse(data.rawText);
-      } catch (err) {
-        if (typeof console !== 'undefined') console.warn('[handleSprintCreation] nameCourse failed:', err.message);
+        const [llmBriefs, derivedName] = await Promise.all([briefsPromise, namePromise]);
+        const candidateBriefs = [
+          ...llmBriefs.map(b => ({ ...b, source: b.source || 'outline' })),
+          ...regexCandidateBriefs
+        ];
+        const confirmed = buildDerived(candidateBriefs);
+        const conflictCount = confirmed.reconciledBriefs.reduce((n, b) => n + ((b.reconciled?.conflicts?.length) || 0), 0);
+        if (typeof console !== 'undefined') {
+          console.info('[handleSprintCreation] confirmed extraction:', confirmed.reconciledBriefs.length, 'canonical assessments (', conflictCount, 'conflicts resolved)');
+        }
+        const confirmedFirst = confirmed.assessmentTitles[0];
+        const confirmedTask = { course: data.unitCode || 'Extracted', task: confirmedFirst || draftTaskName, level: data.level, rawText: data.rawText };
+        upgradeCourseExtraction(courseId, {
+          name: derivedName && derivedName !== 'New Course' ? derivedName : undefined,
+          tasks: [confirmedTask],
+          activeTask: confirmedTask,
+          extractionData: {
+            assessmentTitles: confirmed.assessmentTitles,
+            assessmentBriefs: confirmed.reconciledBriefs,
+            doneWhenChecklist: confirmed.doneWhenChecklist,
+            shadow: false
+          },
+          roadmap: confirmed.derivedRoadmap || undefined
+        });
+        const greetingName = derivedName && derivedName !== 'New Course' ? derivedName : (data.unitCode || 'this course');
+        const count = confirmed.assessmentTitles.length;
+        let greeting;
+        if (count === 0) {
+          greeting = `Course ${greetingName} confirmed. No assessments detected. Drop a fuller syllabus to unlock the roadmap.`;
+        } else if (count === 1) {
+          greeting = `Course ${greetingName} confirmed. One pillar mapped.`;
+        } else {
+          greeting = `Course ${greetingName} confirmed. ${count} pillars mapped.`;
+        }
+        speakSystemMessage(greeting, `${greetingName} confirmed.`);
       } finally {
         window.dispatchEvent(new CustomEvent(REASONING_END_EVENT));
       }
-    }
-
-    const payload = {
-      tasks: [newTask],
-      activeTask: newTask,
-      extractionData: enrichedData,
-      project: { blocks: generatedBlocks }
-    };
-    if (derivedRoadmap) payload.roadmap = derivedRoadmap;
-
-    addCourseWithData(derivedName, payload);
-
-    const greetingName = derivedName && derivedName !== 'New Course' ? derivedName : (data.unitCode || 'this course');
-    // Dynamic greeting reports the actual extracted count so the
-    // student hears immediately whether the LMS surfaced one pillar
-    // or four. Empty extraction is acknowledged honestly rather than
-    // claimed as 'mapped'.
-    let greeting;
-    const count = assessmentTitles.length;
-    if (count === 0) {
-      greeting = `Course ${greetingName} identified. No assessments detected. Drop a fuller syllabus to unlock the roadmap.`;
-    } else if (count === 1) {
-      greeting = `Course ${greetingName} identified. One pillar mapped. Drop the course outline if you have more.`;
     } else {
-      greeting = `Course ${greetingName} identified. ${count} pillars mapped.`;
+      // No LLM available: clear the shadow flag so the draft is
+      // treated as final. The student gets the same regex roadmap
+      // without a perpetual DRAFT badge.
+      upgradeCourseExtraction(courseId, { extractionData: { shadow: false } });
     }
-    speakSystemMessage(greeting, `${greetingName} ready.`);
   };
 
   const generatePremiumPDF = () => {
@@ -556,6 +560,15 @@ export default function MasterDashboard() {
           <div className="ml-2 flex items-center gap-2 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest transition-all bg-emerald-500/10 border-emerald-500/50 text-emerald-500 cursor-help" title="Sovereign Engine Active">
             <HardDrive size={10} /> Sovereign
           </div>
+          {/* Shadow State pill. Surfaces while the cockpit is showing
+              regex-derived draft data and the LLM Confirmed Truth pass
+              is still in flight. Disappears the moment the upgrade
+              lands or the no-LLM fallback clears the shadow flag. */}
+          {activeCourse?.extractionData?.shadow && (
+            <div className="ml-2 flex items-center gap-2 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest bg-amber-500/10 border-amber-500/40 text-amber-300 cursor-help" title="Draft roadmap from regex. Refining via Ollama; the cockpit will swap to confirmed truth automatically.">
+              <RefreshCw size={10} className="animate-spin" /> Draft  ·  refining
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-5 relative z-[1300]">

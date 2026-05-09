@@ -367,6 +367,40 @@ export const ProjectProvider = ({ children }) => {
     setActiveCourseId(id);
     return id;
   };
+
+  // Upgrade an existing course in place after the LLM Confirmed Truth
+  // arrives. Lets the Shadow State path land instant regex-derived
+  // data via addCourseWithData and then swap in the canonical version
+  // without a re-mount. Pass any subset of {name, extractionData,
+  // tasks, activeTask, roadmap, project, sourceContent}; supplied keys
+  // overwrite, omitted keys are preserved. extractionData and roadmap
+  // are merged shallow so a partial enrichment cannot blank fields.
+  // Safe to call against a course the student has since switched away
+  // from; the update lands on the original courseId regardless of
+  // active selection.
+  const upgradeCourseExtraction = (courseId, patch = {}) => {
+    if (!courseId || !patch) return;
+    setCourses(prev => {
+      const current = prev[courseId];
+      if (!current) return prev;
+      const next = { ...current };
+      if (patch.name) next.name = patch.name;
+      if (patch.tasks) next.tasks = patch.tasks;
+      if (patch.activeTask) next.activeTask = patch.activeTask;
+      if (patch.extractionData) {
+        next.extractionData = { ...(current.extractionData || {}), ...patch.extractionData };
+        if (patch.extractionData.shadow === false) delete next.extractionData.shadow;
+      }
+      if (patch.roadmap) {
+        next.roadmap = { ...(current.roadmap || {}), ...patch.roadmap };
+      }
+      if (patch.project) {
+        next.project = { ...(current.project || {}), ...patch.project };
+      }
+      if (patch.sourceContent) next.sourceContent = patch.sourceContent;
+      return { ...prev, [courseId]: next };
+    });
+  };
   const removeCourse = (id) => {
     // Purge per-course localStorage keys before dropping the course record.
     // Add new prefixes here when future per-course storage lands.
@@ -490,7 +524,7 @@ export const ProjectProvider = ({ children }) => {
       activeTask, setActiveTask,
       grounding,
       // CourseManager
-      courses, activeCourse, activeCourseId, setActiveCourseId, addCourse, addCourseWithData, removeCourse, renameCourse, switchSprint,
+      courses, activeCourse, activeCourseId, setActiveCourseId, addCourse, addCourseWithData, upgradeCourseExtraction, removeCourse, renameCourse, switchSprint,
       // Sovereign stream resolver (Layer 1 of the Architecture Blueprint)
       stream
     }}>{children}</ProjectContext.Provider>
