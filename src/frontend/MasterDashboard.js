@@ -25,6 +25,7 @@ import ResourceIngestor from './ResourceIngestor';
 import { simulateIncomingWebhook, speakSystemMessage, markSpeechUnlocked } from '../services/MessagingHub';
 import { auditProjectContext } from '../services/VerificationService';
 import { saveGhostAsset, getAllGhostAssets } from '../services/IndexedDBService';
+import IdleNudge from './IdleNudge';
 import HomeschoolDashboard from '../streams/homeschool/Dashboard';
 import PrimaryDashboard from '../streams/primary/Dashboard';
 import SecondaryDashboard from '../streams/secondary/Dashboard';
@@ -649,6 +650,8 @@ export default function MasterDashboard() {
           onGhost={() => { setVaultDismissed(true); setGhostMode(true); }}
         />
       )}
+      <IdleNudge />
+
       {showScaffolder && (
         <div className="fixed inset-0 z-[2000] overflow-y-auto" role="dialog" aria-modal="true" aria-label="Sovereign Scaffolder">
           <Scaffolder onClose={() => setShowScaffolder(false)} />
