@@ -128,18 +128,53 @@ export function CourseDefinition({ onComplete, profile, setProfile }) {
             />
           </div>
           <div>
-            <select 
+            <select
               required
               value={profile.level || ''}
               onChange={(e) => setProfile({...profile, level: e.target.value})}
               className="w-full bg-black/50 border border-zinc-800 rounded-xl px-6 py-4 text-white focus:border-blue-500 outline-none text-center text-lg font-bold appearance-none"
             >
               <option value="" disabled>Select Academic Level</option>
-              <option value="highschool">High School</option>
+              <option value="primary">Primary (K to 6)</option>
+              <option value="secondary">Secondary (Y7 to 10)</option>
+              <option value="highschool">High School (Y11 to 12)</option>
+              <option value="tafe">TAFE</option>
               <option value="undergrad">Undergraduate</option>
               <option value="mres">Masters / MRes</option>
               <option value="phd">Doctoral</option>
+              <option value="homeschool">Homeschool</option>
             </select>
+          </div>
+          {/* Sovereign stream picker. Explicitly answers 'Who are you
+              building today?' so profile.streamId is set instead of
+              derived. The router still falls back to deriving from
+              level when this field is empty. */}
+          <div>
+            <label className="block text-zinc-400 text-xs font-black uppercase tracking-widest mb-2">Stream</label>
+            <div className="grid grid-cols-5 gap-2">
+              {[
+                { id: 'primary',    label: 'Primary',    sub: 'K-6' },
+                { id: 'secondary',  label: 'Secondary',  sub: 'Y7-10' },
+                { id: 'tertiary',   label: 'Tertiary',   sub: 'Uni / MRes' },
+                { id: 'tafe',       label: 'TAFE',       sub: 'Trade' },
+                { id: 'homeschool', label: 'Homeschool', sub: 'Self-led' }
+              ].map((s) => {
+                const active = profile.streamId === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setProfile({ ...profile, streamId: s.id })}
+                    className={`px-3 py-3 rounded-xl border text-xs font-black uppercase tracking-widest transition-all ${active ? 'bg-emerald-500 text-black border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.4)]' : 'bg-black/40 text-zinc-400 border-zinc-800 hover:border-emerald-500/40 hover:text-white'}`}
+                    title={`Stream: ${s.label} (${s.sub})`}
+                  >
+                    <div>{s.label}</div>
+                    <div className="text-[9px] opacity-70 mt-1">{s.sub}</div>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-zinc-500 mt-2 text-center">Pick the brain you are building for. The cockpit re-skins itself: vocabulary, default landing, focus session length.</p>
           </div>
           <button 
             type="submit"
