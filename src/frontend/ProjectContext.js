@@ -3,6 +3,7 @@ import { checkTemporalAlignment } from '../services/TemporalFilter';
 import { appendThinkingLog } from '../services/SheetsService';
 import { hydrate as hydrateStream, applyTheme as applyStreamTheme, streamFromLevel } from '../core/SovereignRouter';
 import { startEventBus, stopEventBus } from '../core/EventBus';
+import { configureSpine } from '../core/ExecutiveSpine';
 
 const ProjectContext = createContext();
 
@@ -500,7 +501,13 @@ export const ProjectProvider = ({ children }) => {
   // working without per-component changes.
   const streamId = profile?.streamId || streamFromLevel(profile?.level);
   const stream = hydrateStream({ streamId, profile });
-  useEffect(() => { applyStreamTheme(stream); }, [stream.streamId]);
+  useEffect(() => {
+    applyStreamTheme(stream);
+    configureSpine({
+      sectionHealthUnlockThreshold: stream.profile?.sectionHealthUnlockThreshold,
+      defaultPlaytimeMinutes: stream.profile?.defaultPlaytimeMinutes
+    });
+  }, [stream.streamId]);
 
   // Event bus: bridges ExecutiveSpine window CustomEvents into the
   // HistoryOfThought encrypted log. The bus drops events when the

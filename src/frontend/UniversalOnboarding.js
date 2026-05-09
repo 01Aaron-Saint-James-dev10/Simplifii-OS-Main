@@ -176,11 +176,18 @@ export function CourseDefinition({ onComplete, profile, setProfile }) {
             </div>
             <p className="text-[10px] text-zinc-500 mt-2 text-center">Pick the brain you are building for. The cockpit re-skins itself: vocabulary, default landing, focus session length.</p>
           </div>
-          <button 
+          {/* Gate the submit on stream selection. The picker was
+              previously decorative; without an explicit streamId the
+              router fell back to streamFromLevel(level), which works
+              but never surfaces Primary / Secondary / TAFE / Homeschool
+              for users whose level field maps elsewhere. Requiring the
+              choice keeps Literal Mode and stream theming honest. */}
+          <button
             type="submit"
-            className="w-full py-4 rounded-xl bg-blue-500 text-black font-black uppercase tracking-widest hover:bg-blue-400 transition-all shadow-glow-blue"
+            disabled={!profile.streamId}
+            className="w-full py-4 rounded-xl bg-blue-500 text-black font-black uppercase tracking-widest hover:bg-blue-400 transition-all shadow-glow-blue disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
           >
-            Initialize Knowledge Graph
+            {profile.streamId ? 'Initialize Knowledge Graph' : 'Pick a stream above'}
           </button>
         </form>
       </div>

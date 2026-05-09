@@ -589,7 +589,13 @@ export default function MasterDashboard() {
               / Tertiary). Re-renders the active assessment as a quest,
               checklist, or skeleton timeline depending on the learner's
               profile.level. */}
+          {/* Peripheral toolbar. data-focus-locked dims these buttons
+              during an active FocusSession so the only visible action
+              surface is the cockpit + AURA + SOS. Setting the attribute
+              on each button (rather than a wrapping div) keeps the
+              flexbox layout untouched. */}
           <button
+            data-focus-locked="true"
             onClick={() => setShowScaffolder(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all cursor-pointer bg-transparent border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
             title="Open Sovereign Scaffolder (tiered support overlay)"
@@ -599,6 +605,7 @@ export default function MasterDashboard() {
           {/* Studio toggle: switch between classic LinearCanvas and the
               tri-column SimplifiiStudio (NotebookLM-style) layout */}
           <button
+            data-focus-locked="true"
             onClick={() => setShowStudio(v => !v)}
             className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${showStudio ? 'bg-emerald-500 border-emerald-500 text-black' : 'bg-transparent border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10'}`}
             title={showStudio ? 'Switch to Classic Cockpit' : 'Switch to Studio (tri-column)'}
@@ -607,6 +614,7 @@ export default function MasterDashboard() {
           </button>
           {/* View as Speech Button */}
           <button
+            data-focus-locked="true"
             onClick={() => window.dispatchEvent(new CustomEvent('toggle-view-mode'))}
             className="flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all bg-transparent border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 cursor-pointer"
           >
@@ -614,6 +622,7 @@ export default function MasterDashboard() {
           </button>
           {/* UDL Overrides Button */}
           <button
+            data-focus-locked="true"
             onClick={() => window.dispatchEvent(new CustomEvent('toggle-accessibility'))}
             className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${isBionicActive || overlayTint !== 'none' || isRulerActive ? 'bg-amber-500/10 border-amber-500/50 text-amber-500' : 'bg-transparent border-zinc-700 text-zinc-400'} hover:text-white hover:border-zinc-500`}
           >
@@ -622,6 +631,7 @@ export default function MasterDashboard() {
 
           {/* Literal Mode Toggle */}
           <button
+            data-focus-locked="true"
             type="button"
             role="switch"
             aria-checked={isLiteralMode}
@@ -724,8 +734,11 @@ export default function MasterDashboard() {
       {/* Body row: sidebar + main + right archive share the height below the nav */}
       <div className="flex-1 flex overflow-hidden min-h-0">
 
-      {/* Global Sprints Sidebar (Left) */}
-      <aside className={`${leftSidebarClass} border-r border-zinc-800/50 bg-black/40 backdrop-blur-xl flex flex-col shrink-0 transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] z-10 relative overflow-hidden pt-44`}>
+      {/* Global Sprints Sidebar (Left). data-focus-locked dims and
+          click-protects the rail when an ExecutiveSpine FocusSession
+          is active (CSS rule: simplifii-studio.css). The active task
+          column stays unlocked. */}
+      <aside data-focus-locked="true" className={`${leftSidebarClass} border-r border-zinc-800/50 bg-black/40 backdrop-blur-xl flex flex-col shrink-0 transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] z-10 relative overflow-hidden pt-44`}>
         {!isZenMode && (
           <button 
             onClick={() => setIsLeftCollapsed(!isLeftCollapsed)}

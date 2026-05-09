@@ -45,6 +45,22 @@ const HEALTH_KEY = `${STORAGE_PREFIX}section_health`;
 const CREDITS_KEY = `${STORAGE_PREFIX}sovereign_credits`;
 const PLAYTIME_KEY = `${STORAGE_PREFIX}playtime_until`;
 
+// Per-stream tunables. Set by configureSpine on stream hydrate.
+// Defaults match the Blueprint Layer 2.2d (4-of-5 dots unlocks 7
+// minutes of PlayTime); the homeschool stream typically wants a
+// lower threshold so the dopamine loop fires sooner.
+let __unlockThreshold = 4;
+let __playtimeMinutes = 7;
+
+export const configureSpine = ({ sectionHealthUnlockThreshold, defaultPlaytimeMinutes } = {}) => {
+  if (Number.isFinite(sectionHealthUnlockThreshold)) {
+    __unlockThreshold = Math.max(1, Math.min(5, sectionHealthUnlockThreshold));
+  }
+  if (Number.isFinite(defaultPlaytimeMinutes)) {
+    __playtimeMinutes = Math.max(1, Math.min(60, defaultPlaytimeMinutes));
+  }
+};
+
 const safeReadLS = (key, fallback) => {
   if (typeof window === 'undefined') return fallback;
   try { const v = window.localStorage.getItem(key); return v == null ? fallback : v; }
@@ -184,6 +200,15 @@ export const setSectionHealth = (sectionId, dots) => {
   map[sectionId] = clamped;
   safeWriteLS(HEALTH_KEY, JSON.stringify(map));
   dispatch('simplifii:section-health', { sectionId, fromDots: prev, toDots: clamped });
+  // Auto-grant PlayTime when crossing the active stream's unlock
+  // threshold. Configured via configureSpine({ sectionHealthUnlockThreshold,
+  // defaultPlaytimeMinutes }). Defaults match the Blueprint Layer 2.2d
+  // (4 of 5 dots, 7 minute reward). Only fires on the upward crossing;
+  // dropping back below and crossing again re-fires, which is the
+  // intended dopamine loop.
+  if (prev < __unlockThreshold && clamped >= __unlockThreshold) {
+    grantPlayTime({ minutes: __playtimeMinutes, reason: 'section-health' });
+  }
   return clamped;
 };
 
