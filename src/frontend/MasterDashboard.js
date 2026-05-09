@@ -9,6 +9,8 @@ import ConfirmDialog from './ConfirmDialog';
 import AskAura from './AskAura';
 import SimplifiiStudio from './SimplifiiStudio';
 import Scaffolder from './Scaffolder';
+import HistoryVaultUnlock, { isVaultGhostMode } from './HistoryVaultUnlock';
+import { isUnlocked as isVaultUnlocked } from '../core/HistoryOfThought';
 import { StartIgnition, IdentityGate, TemporalBaseline, CourseDefinition, Grounding } from './UniversalOnboarding';
 import LinearCanvas from './LinearCanvas';
 import MathsStepEditor from './MathsStepEditor';
@@ -70,6 +72,12 @@ export default function MasterDashboard() {
   // everything else (Classic AND Studio) until the student dismisses it.
   // Profile.level picks the default tier inside the overlay.
   const [showScaffolder, setShowScaffolder] = useState(false);
+  // Vault state: open the unlock modal once on first load if the vault
+  // is locked AND the student has not chosen Ghost Mode. After the
+  // student unlocks or skips, the modal stays dismissed for the
+  // session.
+  const [vaultDismissed, setVaultDismissed] = useState(() => isVaultGhostMode() || isVaultUnlocked());
+  const [ghostMode, setGhostMode] = useState(() => isVaultGhostMode());
   // Inline course editor state. Replaces the legacy window.prompt() flow so
   // the cockpit no longer breaks the AURA Pulse with a native popup.
   // Used now only for the Edit (rename) action; new courses come in via
@@ -518,6 +526,19 @@ export default function MasterDashboard() {
         </div>
 
         <div className="flex items-center gap-5 relative z-[1300]">
+          {/* NOT VERIFIED badge: appears when the student opted into
+              Ghost Mode (skipped the vault). Visible signal that
+              History of Thought is NOT capturing this session. */}
+          {ghostMode && (
+            <button
+              type="button"
+              onClick={() => { setGhostMode(false); setVaultDismissed(false); }}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer bg-rose-500/10 border-rose-500/40 text-rose-300 hover:bg-rose-500/20"
+              title="Ghost Mode: no events recorded. Click to unlock the vault."
+            >
+              <Shield size={11} /> NOT VERIFIED
+            </button>
+          )}
           {/* Scaffolder overlay: tiered support engine (Primary / Secondary
               / Tertiary). Re-renders the active assessment as a quest,
               checklist, or skeleton timeline depending on the learner's
@@ -597,6 +618,12 @@ export default function MasterDashboard() {
 
       {showSupportBridge && <SupportBridge onClose={() => setShowSupportBridge(false)} isLiteralMode={isLiteralMode} />}
       {showAccessibilityVault && <AccessibilityVault onClose={() => setShowAccessibilityVault(false)} />}
+      {!vaultDismissed && (
+        <HistoryVaultUnlock
+          onUnlocked={() => { setVaultDismissed(true); setGhostMode(false); }}
+          onGhost={() => { setVaultDismissed(true); setGhostMode(true); }}
+        />
+      )}
       {showScaffolder && (
         <div className="fixed inset-0 z-[2000] overflow-y-auto" role="dialog" aria-modal="true" aria-label="Sovereign Scaffolder">
           <Scaffolder onClose={() => setShowScaffolder(false)} />
