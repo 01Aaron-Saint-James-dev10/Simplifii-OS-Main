@@ -1592,3 +1592,38 @@ input, textarea { font-family: inherit; color: inherit; }
   color: var(--ink-mute);
   line-height: 1.5;
 }
+
+/* ============================================================
+   ExecutiveSpine: in-app focus session lock
+   When data-focus-active is on the html element, modules tagged
+   data-focus-locked are visually muted and click-protected. The
+   active task module keeps full opacity. NEVER blocks anything
+   outside Simplifii (Blueprint hard rule).
+   ============================================================ */
+
+html[data-focus-active="true"] [data-focus-locked="true"] {
+  pointer-events: none;
+  opacity: 0.32;
+  filter: grayscale(0.4);
+  transition: opacity var(--t-base), filter var(--t-base);
+}
+
+html[data-focus-active="true"]::after {
+  content: "";
+  position: fixed;
+  left: 0; right: 0; top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--emerald), transparent);
+  z-index: 9999;
+  pointer-events: none;
+  animation: focus-pulse 3s ease-in-out infinite;
+}
+
+@keyframes focus-pulse {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 1; }
+}
+
+html[data-playtime-active="true"]::after {
+  background: linear-gradient(90deg, transparent, #C9A24A, transparent);
+}
