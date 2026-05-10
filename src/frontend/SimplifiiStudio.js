@@ -5,6 +5,7 @@ import { askAura } from '../services/ChatService';
 import { generateMicroSteps } from '../services/MicroStepService';
 import { speakSystemMessage, stopSpeaking } from '../services/MessagingHub';
 import PreviewPane from './PreviewPane';
+import { reconcile as reconcileBriefs } from '../services/SovereignReconciler';
 
 /**
  * SimplifiiStudio
@@ -1030,7 +1031,10 @@ export default function SimplifiiStudio({ onExit }) {
   // student has no briefs yet (no syllabus dropped) we render an empty
   // shell with a single placeholder pillar so the layout stays intact.
   const pillars = useMemo(() => {
-    const briefs = activeCourse?.extractionData?.assessmentBriefs;
+    const rawBriefs = activeCourse?.extractionData?.assessmentBriefs;
+    const briefs = Array.isArray(rawBriefs) && rawBriefs.length > 0
+      ? reconcileBriefs(rawBriefs)
+      : rawBriefs;
     const built = buildPillarsFromBriefs(briefs);
     if (built.length > 0) return built;
     return [{

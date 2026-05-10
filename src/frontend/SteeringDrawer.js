@@ -1,6 +1,8 @@
 import React from 'react';
-import { X, Settings as SettingsIcon } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useSettings } from './SettingsContext';
+import { useProject } from './ProjectContext';
+import { getAvatarByStream } from './AvatarVault';
 
 /**
  * SteeringDrawer
@@ -76,6 +78,9 @@ export default function SteeringDrawer({ open, onClose }) {
     gritLevel, setGritLevel,
     lodLevel, setLodLevel
   } = useSettings();
+  const { stream } = useProject();
+  const StreamAvatar = getAvatarByStream(stream?.streamId || 'tertiary', { gritLevel });
+  const isHighGrit = gritLevel === 'socratic';
 
   return (
     <>
@@ -114,10 +119,19 @@ export default function SteeringDrawer({ open, onClose }) {
       >
         <header style={{ padding: '20px 20px 16px', borderBottom: '1px solid #27272a', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <SettingsIcon size={16} color="#10b981" />
+            <div style={{
+              animation: isHighGrit ? 'steering-grit-pulse 1.2s ease-in-out infinite' : 'none',
+              borderRadius: '50%'
+            }}>
+              <StreamAvatar size={32} />
+              <style>{`@keyframes steering-grit-pulse {
+                0%, 100% { box-shadow: 0 0 0 0 rgba(80, 200, 120, 0.5); }
+                50% { box-shadow: 0 0 16px 4px rgba(80, 200, 120, 0.7); }
+              }`}</style>
+            </div>
             <div>
               <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#10b981' }}>Steering</div>
-              <div style={{ fontSize: 12, color: '#a3a3a3', marginTop: 2 }}>You are the driver. AURA is the GPS.</div>
+              <div style={{ fontSize: 12, color: '#a3a3a3', marginTop: 2 }}>You are the driver. {stream?.getVocab?.('aura_avatar_name') || 'AURA'} is the GPS.</div>
             </div>
           </div>
           <button
