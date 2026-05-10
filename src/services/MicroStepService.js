@@ -29,9 +29,33 @@ const safeReadLS = (key, fallback) => {
   } catch { return fallback; }
 };
 
-const SYSTEM_PROMPT = [
+// Steering Drawer dials. Read at generation time so flipping a dial
+// between generates takes effect immediately. Scaffolding maps to
+// step count: heavy keeps the default 5; light collapses to 3.
+const readSteering = () => ({
+  isLiteralMode: safeReadLS('isLiteralMode', 'false') === 'true',
+  scaffoldingLevel: safeReadLS('scaffoldingLevel', 'balanced'),
+  gritLevel: safeReadLS('gritLevel', 'balanced')
+});
+
+const stepCountFor = (scaffoldingLevel) => {
+  if (scaffoldingLevel === 'heavy') return 5;
+  if (scaffoldingLevel === 'light') return 3;
+  return 4;
+};
+
+const buildSystemPrompt = ({ isLiteralMode, gritLevel }, stepCount) => [
   'You are a UDL Action and Expression coach inside Simplifii OS, an Australian academic cockpit.',
-  'Your job: take an assessment brief and return the FIRST 5 literal micro-steps a student should do RIGHT NOW to start the work, AND for each step, name the rubric criterion it satisfies. The why turns the tool from a manager into a mentor.',
+  `Your job: take an assessment brief and return the FIRST ${stepCount} literal micro-steps a student should do RIGHT NOW to start the work, AND for each step, name the rubric criterion it satisfies. The why turns the tool from a manager into a mentor.`,
+  '',
+  isLiteralMode
+    ? 'PERSONA DIAL: Literal. Plain English only. No academic jargon. Sentences under 18 words.'
+    : 'PERSONA DIAL: Academic. Discipline register intact.',
+  ({
+    literal:  'GRIT DIAL: Direct. Steps point straight at the action with no preamble.',
+    balanced: 'GRIT DIAL: Balanced. Steps lead with the action; the why field carries the rationale.',
+    socratic: 'GRIT DIAL: Socratic. Phrase the action as a probe ("Try opening Google Scholar; what filter would shrink this to 30 papers?") so the student has to think before doing.'
+  })[gritLevel] || '',
   '',
   'ABSOLUTE RULES:',
   '1. Australian English only. Never use US spellings.',
@@ -43,10 +67,10 @@ const SYSTEM_PROMPT = [
   '   "Builds the evidence base the rubric scores under Critical Synthesis."',
   '   "Locks the argument scaffold the marker checks first under Structure."',
   '   "Captures the citations the rubric requires for the Referencing band."',
-  '7. Return ONLY a JSON array of 5 objects, exact keys:',
+  `7. Return ONLY a JSON array of ${stepCount} objects, exact keys:`,
   '   [{"step": 1, "title": "Short label", "action": "Imperative one-line", "why": "Pedagogical intent."}, ...]',
   '8. No preamble, no markdown fence, no commentary.'
-].join('\n');
+].filter(Boolean).join('\n');
 
 const buildUserPrompt = (brief, courseContext, rubricCriteria) => {
   const rubricLines = Array.isArray(rubricCriteria) && rubricCriteria.length > 0
@@ -75,7 +99,7 @@ const buildUserPrompt = (brief, courseContext, rubricCriteria) => {
   ].filter(Boolean).join('\n');
 };
 
-const safeParseSteps = (raw) => {
+const safeParseSteps = (raw, stepCount = 5) => {
   if (!raw) return [];
   let parsed = null;
   try { parsed = JSON.parse(raw); } catch { /* try fallbacks */ }
@@ -102,7 +126,7 @@ const safeParseSteps = (raw) => {
       why: sanitise(item?.why || item?.intent || item?.rationale || item?.because || '').slice(0, 240)
     }))
     .filter(s => s.action.length >= 3)
-    .slice(0, 5);
+    .slice(0, stepCount);
 };
 
 export const generateMicroSteps = async (brief, courseContext, rubricCriteria) => {
@@ -110,6 +134,9 @@ export const generateMicroSteps = async (brief, courseContext, rubricCriteria) =
 
   const endpoint = (safeReadLS(OLLAMA_ENDPOINT_KEY, DEFAULT_OLLAMA_ENDPOINT) || DEFAULT_OLLAMA_ENDPOINT).replace(/\/$/, '');
   const model = safeReadLS(OLLAMA_MODEL_KEY, DEFAULT_OLLAMA_MODEL) || DEFAULT_OLLAMA_MODEL;
+  const steering = readSteering();
+  const stepCount = stepCountFor(steering.scaffoldingLevel);
+  const systemPrompt = buildSystemPrompt(steering, stepCount);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 30000);
 
@@ -123,7 +150,7 @@ export const generateMicroSteps = async (brief, courseContext, rubricCriteria) =
         stream: false,
         options: { temperature: 0.4, num_predict: 900 },
         messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'system', content: systemPrompt },
           { role: 'user', content: buildUserPrompt(brief, courseContext, rubricCriteria) }
         ]
       }),
@@ -141,7 +168,7 @@ export const generateMicroSteps = async (brief, courseContext, rubricCriteria) =
   }
   const data = await response.json().catch(() => ({}));
   const raw = data?.message?.content || '';
-  const steps = safeParseSteps(raw);
+  const steps = safeParseSteps(raw, stepCount);
   if (steps.length === 0) {
     throw new Error('Could not parse micro-steps from the model output. Try regenerating.');
   }

@@ -32,6 +32,47 @@ const safeReadLocalStorage = (key, fallback = null) => {
   }
 };
 
+// Steering Drawer integration. The four dials persist to localStorage
+// via SettingsContext; ChatService reads them directly each call so a
+// dial flip during a conversation takes effect on the next message.
+// CLAUDE.md "Steering and Transparency" rule 3 requires every AI prompt
+// to read these before composing output.
+const readSteering = () => ({
+  isLiteralMode: safeReadLocalStorage('isLiteralMode') === 'true',
+  scaffoldingLevel: safeReadLocalStorage('scaffoldingLevel') || 'balanced',
+  gritLevel: safeReadLocalStorage('gritLevel') || 'balanced',
+  lodLevel: safeReadLocalStorage('lodLevel') || 'compass'
+});
+
+const buildSteeringBlock = ({ isLiteralMode, scaffoldingLevel, gritLevel, lodLevel }) => {
+  const personaLine = isLiteralMode
+    ? 'PERSONA DIAL: Literal. Plain English only. No discipline jargon, no Latin abbreviations, no rhetorical flourishes. Sentences under 18 words.'
+    : 'PERSONA DIAL: Academic. Discipline register intact. Cite by author and year when relevant.';
+  const scaffoldLine = ({
+    heavy:    'SCAFFOLDING DIAL: Heavy. Break responses into many small concrete steps. Surface every sub-task.',
+    balanced: 'SCAFFOLDING DIAL: Balanced. A handful of next steps; bigger goals visible behind them.',
+    light:    'SCAFFOLDING DIAL: Light. Just the next big goal. Trust the student to fill in the in-between steps.'
+  })[scaffoldingLevel] || '';
+  const gritLine = ({
+    literal:  'GRIT DIAL: Direct. Lead with the answer in one sentence. One sentence of context after, then stop.',
+    balanced: 'GRIT DIAL: Balanced. Open with one Socratic probe ("What feels like the wall right now?"). If the student has named a block, answer literally. If not, escalate to direct help.',
+    socratic: 'GRIT DIAL: Hard Socratic. Do not give the literal answer until the student paraphrases the concept back. Use the three-layer pivot: Literal, Analogous, Technical. If they get stuck for two exchanges, lower the dial implicitly with a brief note.'
+  })[gritLevel] || '';
+  const lodLine = ({
+    compass: 'LOD DIAL: Compass. Surface only the immediate next micro-step. Do not list future tasks unless asked.',
+    sprint:  'LOD DIAL: Sprint. Today\'s tasks may be referenced; future weeks stay hidden.',
+    map:     'LOD DIAL: Map. Whole semester is fair game. Use sparingly; cognitive load is the cost.'
+  })[lodLevel] || '';
+  return [
+    'STEERING DIALS (the student set these in the Steering Drawer; respect them):',
+    personaLine,
+    scaffoldLine,
+    gritLine,
+    lodLine,
+    'If a dial setting blocks a useful response, surface the conflict ("Grit is on Socratic so I am not handing the answer over yet, want to flip it for one prompt?") rather than silently overriding.'
+  ].filter(Boolean).join('\n');
+};
+
 const PERSONA_SYSTEM = [
   'You are AURA, an Australian academic writing partner inside Simplifii OS.',
   'You support a student\'s research and writing by answering questions about their active course.',
@@ -126,7 +167,9 @@ export const askAura = async (message, course, history = []) => {
     const endpoint = getOllamaEndpoint().replace(/\/$/, '');
     const model = getOllamaModel();
     const contextBlock = buildContextBlock(course);
-    const systemPrompt = `${PERSONA_SYSTEM}\n\nCOURSE CONTEXT:\n${contextBlock}`;
+    const steering = readSteering();
+    const steeringBlock = buildSteeringBlock(steering);
+    const systemPrompt = `${PERSONA_SYSTEM}\n\n${steeringBlock}\n\nCOURSE CONTEXT:\n${contextBlock}`;
 
     const messages = [{ role: 'system', content: systemPrompt }];
     for (const turn of history.slice(-6)) {
