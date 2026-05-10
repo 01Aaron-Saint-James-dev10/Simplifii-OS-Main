@@ -43,3 +43,20 @@ The student is the driver. The AI is the GPS. Everything Claude generates must b
 5. **Single source of truth.** The Logic Blocks (left canvas / cockpit) own the document state. The Preview Pane is view-only; edits must always round-trip through the blocks so the History of Thought log stays canonical.
 6. **Systematic Debugging.** All code fixes follow a four-phase root-cause analysis before touching code: (1) reproduce the failure, (2) isolate the smallest input that triggers it, (3) name the root cause in one sentence, (4) propose the minimal fix. No "just add try/catch" patches; no fixing the symptom while the cause stays. If the root cause cannot be named after a reasonable look, surface that explicitly and ask, rather than guessing.
 
+## Skill Activation Triggers
+
+Guidance for when to invoke the seven Sovereign skills under `.claude/skills/`. These are conventions read by Claude Code; they do not configure Claude Code's hook system. To run shell scripts on real events, add entries to `.claude/settings.json`.
+
+| Skill | Invoke when |
+|---|---|
+| `socratic-concept-bridge` | Student asks a "What is" or "How does" question about course content; idle longer than 3 minutes during an active focus session. |
+| `burrito-pareto-optimizer` | A new `.pdf` or `.docx` lands under `/src/grounding/`; the reconciler emits a fresh canonical assessment set; the student asks "what should I work on next?". |
+| `lod-compass-scaffolder` | The student opens the cockpit on first load; switches streams; flips the LOD dial in the Steering Drawer. |
+| `authenticity-vault-manager` | A `text_edit`, `focus_session_start`, or `section_health_change` event would have been recorded but the vault is locked; the student asks for the Authenticity Report. |
+| `lms-harvester` | The student initiates a Moodle / Canvas / Brightspace harvest; a syllabus URL is pasted into the Add Course flow. |
+| `steering-dashboard` | Before composing any AI response. Read the four dials from `SettingsContext` first; if they conflict with the request, surface the conflict instead of overriding silently. |
+| `resilience-tester` | The student mentions being "behind" or "stressed"; time-to-deadline drops below 1.5x remaining workload; three or more idle nudges fire in a single focus session. |
+| (12) Systematic Debugging | Before any `git commit`; whenever a `ReferenceError`, `TypeError`, or unhandled promise rejection is observed in terminal output. |
+
+These triggers are descriptive, not enforced. If a trigger fires and the relevant skill cannot be applied (missing context, locked vault, ambiguous request), surface the gap to the student rather than guessing.
+

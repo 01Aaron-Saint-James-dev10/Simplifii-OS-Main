@@ -4,6 +4,7 @@ import { useProject } from './ProjectContext';
 import { askAura } from '../services/ChatService';
 import { generateMicroSteps } from '../services/MicroStepService';
 import { speakSystemMessage, stopSpeaking } from '../services/MessagingHub';
+import PreviewPane from './PreviewPane';
 
 /**
  * SimplifiiStudio
@@ -45,6 +46,13 @@ const Ico = {
   Shield: (p) => (
     <svg className="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" {...p}>
       <path d="M12 3 4 6v6c0 4.5 3.4 8.4 8 9 4.6-.6 8-4.5 8-9V6z" />
+    </svg>
+  ),
+  FileText: (p) => (
+    <svg className="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" {...p}>
+      <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+      <path d="M14 3v6h6" />
+      <path d="M9 13h6M9 17h6M9 9h2" />
     </svg>
   ),
   Settings: (p) => (
@@ -284,7 +292,7 @@ const SOURCE_CLUSTERS = [
 // Nav Rail
 // ============================================================
 
-function NavRail({ onExit }) {
+function NavRail({ onExit, showPreview, onTogglePreview }) {
   return (
     <div className="col rail">
       <div className="rail-mark">S</div>
@@ -292,6 +300,14 @@ function NavRail({ onExit }) {
       <button className="rail-btn" title="Library"><Ico.Bookmark /></button>
       <button className="rail-btn" title="Targets"><Ico.Target /></button>
       <button className="rail-btn" title="Integrity"><Ico.Shield /></button>
+      <button
+        className="rail-btn"
+        data-active={showPreview ? 'true' : undefined}
+        title={showPreview ? 'Hide A4 preview' : 'Show A4 preview (view-only)'}
+        onClick={onTogglePreview}
+      >
+        <Ico.FileText />
+      </button>
       <div className="rail-spacer" />
       <button className="rail-btn" title="Return to classic cockpit" onClick={onExit}><Ico.Settings /></button>
       <div className="rail-avatar">JM</div>
@@ -1000,6 +1016,15 @@ function AuraPanel({ activeCourse, pillar }) {
 
 export default function SimplifiiStudio({ onExit }) {
   const { activeCourse, courses, activeCourseId, setActiveCourseId } = useProject();
+  // PreviewPane toggle. View-only A4 render of the Logic Blocks.
+  // 60/40 split: cockpit stays dominant per the "writing canvas
+  // dominant" rule in the design handoff. Persists to localStorage.
+  const [showPreview, setShowPreview] = useState(() => {
+    try { return localStorage.getItem('simplifii_preview') === 'true'; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('simplifii_preview', showPreview ? 'true' : 'false'); } catch { /* storage unavailable */ }
+  }, [showPreview]);
 
   // Build pillars from the active course's assessment briefs. When the
   // student has no briefs yet (no syllabus dropped) we render an empty
@@ -1087,8 +1112,12 @@ export default function SimplifiiStudio({ onExit }) {
   }, [activePillarId]);
 
   return (
-    <div className="studio">
-      <NavRail onExit={onExit} />
+    <div className="studio" data-preview-open={showPreview ? 'true' : undefined}>
+      <NavRail
+        onExit={onExit}
+        showPreview={showPreview}
+        onTogglePreview={() => setShowPreview(v => !v)}
+      />
       <SourcesPanel
         docs={docs}
         pillars={pillars}
@@ -1101,15 +1130,30 @@ export default function SimplifiiStudio({ onExit }) {
         activeCourseId={activeCourseId}
         onPickCourse={setActiveCourseId}
       />
-      <Cockpit
-        pillar={pillar}
-        pillars={pillars}
-        drafts={pillarDrafts}
-        setDraft={setDraft}
-        activeBlockId={activeBlockId}
-        setActiveBlockId={setActiveBlockId}
-        onPickPillar={setActivePillarId}
-      />
+      {showPreview ? (
+        <div style={{ display: 'grid', gridTemplateColumns: '60% 40%', minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
+          <Cockpit
+            pillar={pillar}
+            pillars={pillars}
+            drafts={pillarDrafts}
+            setDraft={setDraft}
+            activeBlockId={activeBlockId}
+            setActiveBlockId={setActiveBlockId}
+            onPickPillar={setActivePillarId}
+          />
+          <PreviewPane activePillarId={activePillarId} onClose={() => setShowPreview(false)} />
+        </div>
+      ) : (
+        <Cockpit
+          pillar={pillar}
+          pillars={pillars}
+          drafts={pillarDrafts}
+          setDraft={setDraft}
+          activeBlockId={activeBlockId}
+          setActiveBlockId={setActiveBlockId}
+          onPickPillar={setActivePillarId}
+        />
+      )}
       <AuraPanel activeCourse={activeCourse} pillar={pillar} />
     </div>
   );
