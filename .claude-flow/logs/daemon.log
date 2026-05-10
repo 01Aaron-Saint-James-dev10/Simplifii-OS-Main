@@ -1,0 +1,19 @@
+[2026-05-10T12:41:22.635Z] [INFO] Scheduled map (interval: 900s, first run in 0s)
+[2026-05-10T12:41:22.635Z] [INFO] Scheduled audit (interval: 600s, first run in 120s)
+[2026-05-10T12:41:22.635Z] [INFO] Scheduled optimize (interval: 900s, first run in 240s)
+[2026-05-10T12:41:22.635Z] [INFO] Scheduled consolidate (interval: 1800s, first run in 360s)
+[2026-05-10T12:41:22.635Z] [INFO] Scheduled testgaps (interval: 1200s, first run in 480s)
+[2026-05-10T12:41:22.635Z] [INFO] Daemon started (PID: 94026, CPUs: 12, workers: 5, maxCpuLoad: 9.600000000000001, minFreeMemoryPercent: 5%)
+[2026-05-10T12:41:22.635Z] [INFO] Claude Code headless mode available - AI workers enabled
+[2026-05-10T12:41:22.636Z] [INFO] Worker map deferred: Memory too low: 3.6% free
+[2026-05-10T12:43:22.638Z] [INFO] Starting worker: audit (1/2 concurrent)
+[2026-05-10T12:43:22.639Z] [INFO] Running audit in headless mode (Claude Code AI)
+[2026-05-10T12:44:09.990Z] [INFO] Worker audit completed in 47354ms
+[2026-05-10T12:44:09.992Z] [INFO] Starting worker: map (1/2 concurrent)
+[2026-05-10T12:44:09.992Z] [INFO] Worker map completed in 1ms
+[2026-05-10T12:45:22.640Z] [INFO] Starting worker: optimize (1/2 concurrent)
+[2026-05-10T12:45:22.641Z] [INFO] Running optimize in headless mode (Claude Code AI)
+[2026-05-10T12:47:22.647Z] [INFO] Starting worker: consolidate (2/2 concurrent)
+[2026-05-10T12:47:22.651Z] [INFO] Worker consolidate completed in 11ms
+[2026-05-10T12:47:37.942Z] [INFO] Worker optimize completed in 135305ms
+[2026-05-10T12:49:22.636Z] [INFO] Worker testgaps deferred: Memory too low: 0.5% free

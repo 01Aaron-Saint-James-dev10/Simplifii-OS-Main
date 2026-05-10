@@ -30,12 +30,17 @@ export default function LandingPage({ onGetStarted }) {
     setStep(3);
   };
 
-  const handleLaunch = () => {
+  const [isLaunching, setIsLaunching] = useState(false);
+
+  const handleLaunch = async () => {
+    setIsLaunching(true);
     // Pass the inferred focus to local storage so the OS can utilize it
     if (syncData) {
       localStorage.setItem('simplifii_inferred_focus', syncData.history.inferredFocus);
       localStorage.setItem('simplifii_user_name', syncData.user.name);
     }
+    // Brief scan delay so the user sees confirmation
+    await new Promise(r => setTimeout(r, 1200));
     onGetStarted();
   };
 
@@ -147,11 +152,12 @@ export default function LandingPage({ onGetStarted }) {
             </div>
           </div>
 
-          <button 
+          <button
             onClick={handleLaunch}
-            className="w-full px-8 py-4 rounded-xl bg-emerald-500 text-black font-black uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-glow-emerald"
+            disabled={isLaunching}
+            className="w-full px-8 py-4 rounded-xl bg-emerald-500 text-black font-black uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-glow-emerald disabled:opacity-70 disabled:cursor-wait flex items-center justify-center gap-3"
           >
-            Enter Dashboard
+            {isLaunching ? <><Loader2 className="animate-spin" size={20} /> Scanning...</> : 'Enter Dashboard'}
           </button>
         </div>
       )}

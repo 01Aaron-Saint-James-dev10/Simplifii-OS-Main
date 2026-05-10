@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-05-10T12:44:09.992Z",
+  "projectRoot": "/Users/adonis666/Simplifii-OS_Master",
+  "structure": {
+    "hasPackageJson": true,
+    "hasTsConfig": false,
+    "hasClaudeConfig": true,
+    "hasClaudeFlow": true
+  },
+  "scannedAt": 1778417049992
+}

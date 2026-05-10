@@ -337,17 +337,48 @@ export const mergeExtractionData = (prev, next) => {
   };
 };
 
-// Map an array of extracted assessment titles into the three Semester
-// Roadmap slots. The student sees the actual graded artefacts in the left
-// sidebar instead of the generic 'Literature Review / Oral Presentation /
-// Final Exam' defaults. Returns null when titles is empty so the caller
-// can keep the per-course defaults intact.
-//
-// Rules:
-//   currentTask    -> first title (the next thing they will be graded on)
-//   nextAssessment -> second title, falling back to first if only one
-//   finalMilestone -> any title containing 'final' or 'exam' (case
-//                     insensitive); otherwise the last title
+// Pareto-ranked micro-tasks for known assessment types. Each step is
+// ordered by mark density so the student tackles the highest-yield
+// action first.
+const PARETO_STEPS = {
+  'literature review': [
+    { label: 'Lock Topic & Align to 2 Course Themes', weight: '2/25 marks', rank: 1 },
+    { label: 'Find Narrative Review & Seminal Primaries', weight: '5/25 marks', rank: 2 },
+    { label: 'Document Search Process (Replicable)', weight: '4/25 marks', rank: 3 },
+    { label: 'Define Differences (Primary vs Secondary)', weight: '4/25 marks', rank: 4 },
+    { label: 'Find the Socratic Disagreement/Hook', weight: 'Critical Analysis', rank: 5 }
+  ]
+};
+
+// Resolve Pareto steps for the current task. Matches the first
+// assessment title against known templates; returns null when no
+// match exists so the UI can fall back to the standard roadmap.
+const resolveParetoSteps = (assessmentTitle) => {
+  if (!assessmentTitle) return null;
+  const lower = assessmentTitle.toLowerCase();
+  for (const [key, steps] of Object.entries(PARETO_STEPS)) {
+    if (lower.includes(key)) return steps;
+  }
+  return null;
+};
+
+// Map an array of extracted assessment titles into the Semester
+// Roadmap. When Pareto steps exist for the current task, they replace
+// the generic 3-slot layout with a mark-density-ranked checklist.
+// Returns null when titles is empty so the caller can keep the
+// per-course defaults intact.
+// When extraction yields more than 10 raw tasks, synthesise down to
+// the top 5 milestones by keeping only titles that carry a weight
+// percentage (highest first) or, failing that, the first 5 unique titles.
+const synthesiseMilestones = (titles) => {
+  const weighted = titles
+    .map(t => ({ title: t, pct: parseInt((t.match(/(\d+)%/) || [])[1] || '0', 10) }))
+    .filter(x => x.pct > 0)
+    .sort((a, b) => b.pct - a.pct)
+    .map(x => x.title);
+  return (weighted.length >= 5 ? weighted : titles).slice(0, 5);
+};
+
 export const deriveRoadmapFromAssessments = (assessmentTitles = []) => {
   if (!Array.isArray(assessmentTitles) || assessmentTitles.length === 0) return null;
   // Drop empties, short tokens, and exact duplicates so the slots only
@@ -368,6 +399,13 @@ export const deriveRoadmapFromAssessments = (assessmentTitles = []) => {
   }
   if (titles.length === 0) return null;
 
+  // Sovereign filter: cap noisy extraction to 5 milestones
+  if (titles.length > 10) {
+    const top5 = synthesiseMilestones(titles);
+    titles.length = 0;
+    titles.push(...top5);
+  }
+
   const currentTask = titles[0] || null;
   const nextAssessment = titles.length >= 2 ? titles[1] : null;
   // Prefer 'Final' first; if no Final, take the last 'Exam' title (so a
@@ -384,5 +422,12 @@ export const deriveRoadmapFromAssessments = (assessmentTitles = []) => {
     finalMilestone = /\bfinal\b|\bexam\b/i.test(titles[1]) ? titles[1] : null;
   }
 
-  return { currentTask, nextAssessment, finalMilestone };
+  // Attach Pareto micro-steps when the current task matches a known type
+  const paretoSteps = resolveParetoSteps(currentTask);
+
+  // Extract total weight from the current task title if it contains a percentage
+  const weightMatch = currentTask ? currentTask.match(/(\d+%)/) : null;
+  const totalWeight = weightMatch ? weightMatch[1] : null;
+
+  return { currentTask, nextAssessment, finalMilestone, paretoSteps, totalWeight };
 };

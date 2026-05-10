@@ -1,0 +1,138 @@
+{
+  "running": true,
+  "startedAt": "2026-05-10T12:41:22.634Z",
+  "workers": {
+    "map": {
+      "runCount": 1,
+      "successCount": 1,
+      "failureCount": 0,
+      "averageDurationMs": 1,
+      "isRunning": false,
+      "nextRun": "2026-05-10T12:56:22.636Z",
+      "lastStartedAt": "2026-05-10T12:44:09.991Z",
+      "lastRun": "2026-05-10T12:44:09.992Z"
+    },
+    "audit": {
+      "runCount": 1,
+      "successCount": 1,
+      "failureCount": 0,
+      "averageDurationMs": 47354,
+      "isRunning": false,
+      "nextRun": "2026-05-10T12:54:09.991Z",
+      "lastStartedAt": "2026-05-10T12:43:22.636Z",
+      "lastRun": "2026-05-10T12:44:09.990Z"
+    },
+    "optimize": {
+      "runCount": 1,
+      "successCount": 1,
+      "failureCount": 0,
+      "averageDurationMs": 135305,
+      "isRunning": false,
+      "nextRun": "2026-05-10T12:45:22.635Z",
+      "lastStartedAt": "2026-05-10T12:45:22.637Z",
+      "lastRun": "2026-05-10T12:47:37.942Z"
+    },
+    "consolidate": {
+      "runCount": 1,
+      "successCount": 1,
+      "failureCount": 0,
+      "averageDurationMs": 11,
+      "isRunning": false,
+      "nextRun": "2026-05-10T13:17:22.653Z",
+      "lastStartedAt": "2026-05-10T12:47:22.640Z",
+      "lastRun": "2026-05-10T12:47:22.651Z"
+    },
+    "testgaps": {
+      "runCount": 0,
+      "successCount": 0,
+      "failureCount": 0,
+      "averageDurationMs": 0,
+      "isRunning": false,
+      "nextRun": "2026-05-10T12:49:22.635Z"
+    },
+    "predict": {
+      "runCount": 0,
+      "successCount": 0,
+      "failureCount": 0,
+      "averageDurationMs": 0,
+      "isRunning": false
+    },
+    "document": {
+      "runCount": 0,
+      "successCount": 0,
+      "failureCount": 0,
+      "averageDurationMs": 0,
+      "isRunning": false
+    }
+  },
+  "config": {
+    "autoStart": false,
+    "logDir": "/Users/adonis666/Simplifii-OS_Master/.claude-flow/logs",
+    "stateFile": "/Users/adonis666/Simplifii-OS_Master/.claude-flow/daemon-state.json",
+    "maxConcurrent": 2,
+    "workerTimeoutMs": 960000,
+    "resourceThresholds": {
+      "maxCpuLoad": 9.600000000000001,
+      "minFreeMemoryPercent": 5
+    },
+    "workers": [
+      {
+        "type": "map",
+        "intervalMs": 900000,
+        "offsetMs": 0,
+        "priority": "normal",
+        "description": "Codebase mapping",
+        "enabled": true
+      },
+      {
+        "type": "audit",
+        "intervalMs": 600000,
+        "offsetMs": 120000,
+        "priority": "critical",
+        "description": "Security analysis",
+        "enabled": true
+      },
+      {
+        "type": "optimize",
+        "intervalMs": 900000,
+        "offsetMs": 240000,
+        "priority": "high",
+        "description": "Performance optimization",
+        "enabled": true
+      },
+      {
+        "type": "consolidate",
+        "intervalMs": 1800000,
+        "offsetMs": 360000,
+        "priority": "low",
+        "description": "Memory consolidation",
+        "enabled": true
+      },
+      {
+        "type": "testgaps",
+        "intervalMs": 1200000,
+        "offsetMs": 480000,
+        "priority": "normal",
+        "description": "Test coverage analysis",
+        "enabled": true
+      },
+      {
+        "type": "predict",
+        "intervalMs": 600000,
+        "offsetMs": 0,
+        "priority": "low",
+        "description": "Predictive preloading",
+        "enabled": false
+      },
+      {
+        "type": "document",
+        "intervalMs": 3600000,
+        "offsetMs": 0,
+        "priority": "low",
+        "description": "Auto-documentation",
+        "enabled": false
+      }
+    ]
+  },
+  "savedAt": "2026-05-10T12:47:37.942Z"
+}

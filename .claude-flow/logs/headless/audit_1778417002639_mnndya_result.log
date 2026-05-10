@@ -1,0 +1,77 @@
+[2026-05-10T12:44:09.988Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 146,\n      \"description\": \"Weak passphrase requirement: minimum 4 characters is too short. Users could set trivial passphrases like '1234' that offer minimal entropy for PBKDF2 key derivation. Should enforce minimum 8-12 characters.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 66,\n      \"description\": \"Passphrase hint stored in localStorage in plaintext (PASSPHRASE_HINT_KEY). If hints are stored, they leak information about the passphrase to any XSS attack or local access.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": \"various\",\n      \"description\": \"Encryption salt and derived key data stored in localStorage. localStorage is vulnerable to XSS attacks and browser extensions. Sensitive cryptographic material should not be persisted there even as base64.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/EventBus.js\",\n      \"line\": 68,\n      \"description\": \"Event payloads from custom events are passed to appendEvent without validation. Although internal events, no schema validation ensures malformed or oversized payloads won't cause issues during encryption/storage.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/SovereignBus.js\",\n      \"line\": 52,\n      \"description\": \"The onSectionHealth handler reads e.detail.sectionId, fromDots, toDots without type validation before passing to safeAppend. Could receive unexpected data types.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/backend/NeuralAuditPipeline.js\",\n      \"line\": 3,\n      \"description\": \"Hardcoded university course codes ('BABS1201', 'BABS1202') in engineering specs violate CLAUDE.md 'Universal Architecture' principle. Course-specific data should live in schema/grounding only, not in code.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/backend/LMSConnector.js\",\n      \"line\": 1,\n      \"description\": \"courseCode parameter is accepted but never validated or used—always returns hardcoded mock data. No injection risk here but poor API design. If connected to real LMS later, parameter must be sanitized.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/App.js\",\n      \"line\": 11,\n      \"description\": \"Query parameter 'reset' read from URL without validation. While only used to trigger localStorage.clear(), should validate it's 'true' before acting. Could cause confusion if user navigates with ?reset=anything.\"\n    }\n  ],\n  \"riskScore\": 42,\n  \"recommendations\": [\n    \"Increase minimum passphrase length to 12+ characters and add strength estimation\",\n    \"Remove or encrypt passphrase hints if stored; do not keep in plaintext localStorage\",\n    \"Move encryption salt to IndexedDB with encryption, or use a session-scoped salt generated from passphrase\",\n    \"Add input validation/schema guards for all CustomEvent payloads before appendEvent (check types, string lengths, valid enum values)\",\n    \"Add type guards to e.detail destructuring in EventBus and SovereignBus (sectionId, dots, etc.)\",\n    \"Move course code lists to grounding manifest or schema; remove from NeuralAuditPipeline.js\",\n    \"Validate courseCode parameter in LMSConnector.js if future transport connects to real LMS\",\n    \"Validate query parameters explicitly: if (params.get('reset') === 'true')\",\n    \"Add Content-Security-Policy header (if deployed as web app) to reduce XSS risk to localStorage\",\n    \"Document that cloud sync API requires user opt-in and double encryption; audit transport layer when implemented\"\n  ]\n}\n```\n\n**Key Findings:**\n\n- **No SQL injection:** This is a client-side React app; no database queries present.\n- **No hardcoded API keys:** Credentials are user-provided passphrases, not embedded secrets.\n- **No severe XSS:** React safely handles textarea content; PATTERNS in LiteralMode only transform, never inject.\n- **Crypto foundation solid** (PBKDF2 600k iterations, AES-GCM-256) but **weakened by**: (1) minimum passphrase too short, (2) sensitive data in localStorage.\n- **Main risk:** localStorage used for encryption salt and credentials is exposed to XSS and local attacks.\n\nThe app follows good principles (local-first, sovereign) but the passphrase constraint and localStorage usage are the critical gaps. Focus remediation on passphrase strength and moving encryption keys away from localStorage before cloud sync ships.\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "high",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 146,
+        "description": "Weak passphrase requirement: minimum 4 characters is too short. Users could set trivial passphrases like '1234' that offer minimal entropy for PBKDF2 key derivation. Should enforce minimum 8-12 characters."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 66,
+        "description": "Passphrase hint stored in localStorage in plaintext (PASSPHRASE_HINT_KEY). If hints are stored, they leak information about the passphrase to any XSS attack or local access."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": "various",
+        "description": "Encryption salt and derived key data stored in localStorage. localStorage is vulnerable to XSS attacks and browser extensions. Sensitive cryptographic material should not be persisted there even as base64."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/EventBus.js",
+        "line": 68,
+        "description": "Event payloads from custom events are passed to appendEvent without validation. Although internal events, no schema validation ensures malformed or oversized payloads won't cause issues during encryption/storage."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/SovereignBus.js",
+        "line": 52,
+        "description": "The onSectionHealth handler reads e.detail.sectionId, fromDots, toDots without type validation before passing to safeAppend. Could receive unexpected data types."
+      },
+      {
+        "severity": "low",
+        "file": "src/backend/NeuralAuditPipeline.js",
+        "line": 3,
+        "description": "Hardcoded university course codes ('BABS1201', 'BABS1202') in engineering specs violate CLAUDE.md 'Universal Architecture' principle. Course-specific data should live in schema/grounding only, not in code."
+      },
+      {
+        "severity": "low",
+        "file": "src/backend/LMSConnector.js",
+        "line": 1,
+        "description": "courseCode parameter is accepted but never validated or used—always returns hardcoded mock data. No injection risk here but poor API design. If connected to real LMS later, parameter must be sanitized."
+      },
+      {
+        "severity": "low",
+        "file": "src/App.js",
+        "line": 11,
+        "description": "Query parameter 'reset' read from URL without validation. While only used to trigger localStorage.clear(), should validate it's 'true' before acting. Could cause confusion if user navigates with ?reset=anything."
+      }
+    ],
+    "riskScore": 42,
+    "recommendations": [
+      "Increase minimum passphrase length to 12+ characters and add strength estimation",
+      "Remove or encrypt passphrase hints if stored; do not keep in plaintext localStorage",
+      "Move encryption salt to IndexedDB with encryption, or use a session-scoped salt generated from passphrase",
+      "Add input validation/schema guards for all CustomEvent payloads before appendEvent (check types, string lengths, valid enum values)",
+      "Add type guards to e.detail destructuring in EventBus and SovereignBus (sectionId, dots, etc.)",
+      "Move course code lists to grounding manifest or schema; remove from NeuralAuditPipeline.js",
+      "Validate courseCode parameter in LMSConnector.js if future transport connects to real LMS",
+      "Validate query parameters explicitly: if (params.get('reset') === 'true')",
+      "Add Content-Security-Policy header (if deployed as web app) to reduce XSS risk to localStorage",
+      "Document that cloud sync API requires user opt-in and double encryption; audit transport layer when implemented"
+    ]
+  },
+  "durationMs": 47349,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-10T12:44:09.988Z",
+  "executionId": "audit_1778417002639_mnndya"
+}

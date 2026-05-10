@@ -285,7 +285,7 @@ export function Grounding({ onComplete, profile }) {
   };
 
   const handleContinue = () => {
-    if (aggregated) onComplete(aggregated);
+    if (aggregated) onComplete({ ...aggregated, sourceFiles: fileNames });
   };
 
   return (

@@ -281,6 +281,32 @@ export default function MasterDashboard() {
     return { reconciledBriefs, assessmentTitles, doneWhenChecklist, derivedRoadmap };
   };
 
+  // Split aggregated ingest data by unit code prefix so each course
+  // code gets its own cockpit entry. Detects codes like BABS1201,
+  // MATH1131, etc. from sourceFiles. Files without a code go into the
+  // fallback group keyed by the profile unit code.
+  const handleGroupedIngest = async (data) => {
+    const files = data.sourceFiles || [];
+    if (files.length === 0) return handleSprintCreation(data);
+
+    const codeRegex = /\b([A-Z]{3,4}\d{4})\b/;
+    const groups = {};
+    for (const name of files) {
+      const match = name.match(codeRegex);
+      const code = match ? match[1] : (data.unitCode || 'Unknown');
+      if (!groups[code]) groups[code] = [];
+      groups[code].push(name);
+    }
+
+    const codes = Object.keys(groups);
+    if (codes.length <= 1) return handleSprintCreation(data);
+
+    for (const code of codes) {
+      const subset = { ...data, unitCode: code, sourceFiles: groups[code] };
+      await handleSprintCreation(subset);
+    }
+  };
+
   const handleSprintCreation = async (data) => {
     // Shadow State pattern. Cold-load the cockpit instantly with a
     // regex-only "Draft Roadmap" so the student never stares at a
@@ -368,7 +394,11 @@ export default function MasterDashboard() {
         const greetingName = derivedName && derivedName !== 'New Course' ? derivedName : (data.unitCode || 'this course');
         const count = confirmed.assessmentTitles.length;
         let greeting;
-        if (count === 0) {
+        const hasParetoLitReview = confirmed.derivedRoadmap?.paretoSteps &&
+          confirmed.assessmentTitles.some(t => /literature review/i.test(t));
+        if (hasParetoLitReview) {
+          greeting = `I've grounded your ${greetingName} Literature Review. We have 25 marks on the line\u2014should we start with Step 1 (Locking your Topic)?`;
+        } else if (count === 0) {
           greeting = `Course ${greetingName} confirmed. No assessments detected. Drop a fuller syllabus to unlock the roadmap.`;
         } else if (count === 1) {
           greeting = `Course ${greetingName} confirmed. One pillar mapped.`;
@@ -544,7 +574,7 @@ export default function MasterDashboard() {
         return <CourseDefinition onComplete={() => handleStageTransition(4, "Course defined. Initialize knowledge graph.")} profile={profile} setProfile={setProfile} />;
       case 4:
         return <Grounding onComplete={(data) => {
-          handleSprintCreation(data);
+          handleGroupedIngest(data);
           handleStageTransition(5, "Extraction complete. Transitioning to Document Editor.");
         }} profile={profile} />;
       case 5:
@@ -630,13 +660,13 @@ export default function MasterDashboard() {
             </span>
           </div>
           <div className="h-4 w-px bg-zinc-800"></div>
-          <span className="text-[10px] font-bold text-zinc-500 tracking-[0.2em] uppercase">
+          <span className="text-[12px] font-bold text-zinc-500 tracking-[0.2em] uppercase">
             Sovereign OS
           </span>
           <div className="ml-2 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border border-indigo-500/30 text-indigo-400 bg-indigo-500/10">
             Zero Disclosure
           </div>
-          <div className="ml-2 flex items-center gap-2 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest transition-all bg-emerald-500/10 border-emerald-500/50 text-emerald-500 cursor-help" title="Sovereign Engine Active">
+          <div className="ml-2 flex items-center gap-2 px-3 py-1 rounded-full border text-[12px] font-black uppercase tracking-widest transition-all bg-emerald-500/10 border-emerald-500/50 text-emerald-400 cursor-help" title="Sovereign Engine Active">
             <HardDrive size={10} /> Sovereign
           </div>
           {/* Shadow State pill. Surfaces while the cockpit is showing
@@ -644,7 +674,7 @@ export default function MasterDashboard() {
               is still in flight. Disappears the moment the upgrade
               lands or the no-LLM fallback clears the shadow flag. */}
           {activeCourse?.extractionData?.shadow && (
-            <div className="ml-2 flex items-center gap-2 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest bg-amber-500/10 border-amber-500/40 text-amber-300 cursor-help" title="Draft roadmap from regex. Refining via Ollama; the cockpit will swap to confirmed truth automatically.">
+            <div className="ml-2 flex items-center gap-2 px-3 py-1 rounded-full border text-[12px] font-black uppercase tracking-widest bg-amber-500/10 border-amber-500/40 text-amber-300 cursor-help" title="Draft roadmap from regex. Refining via Ollama; the cockpit will swap to confirmed truth automatically.">
               <RefreshCw size={10} className="animate-spin" /> Draft  ·  refining
             </div>
           )}
@@ -658,7 +688,7 @@ export default function MasterDashboard() {
             <button
               type="button"
               onClick={() => { setGhostMode(false); setVaultDismissed(false); }}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer bg-rose-500/10 border-rose-500/40 text-rose-300 hover:bg-rose-500/20"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full border text-[12px] font-black uppercase tracking-widest transition-all cursor-pointer bg-rose-500/10 border-rose-500/40 text-rose-300 hover:bg-rose-500/20"
               title="Ghost Mode: no events recorded. Click to unlock the vault."
             >
               <Shield size={11} /> NOT VERIFIED
@@ -749,7 +779,7 @@ export default function MasterDashboard() {
             onClick={() => setIsLiteralMode(prev => !prev)}
             className="flex items-center gap-3 bg-zinc-900/50 px-4 py-2 rounded-full border border-zinc-800 cursor-pointer hover:border-zinc-600 transition-colors"
           >
-            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Literal Mode</span>
+            <span className="text-[12px] font-bold uppercase tracking-widest text-zinc-500">Literal Mode</span>
             <span className={`w-10 h-5 rounded-full relative transition-colors ${isLiteralMode ? 'bg-indigo-500' : 'bg-zinc-700'}`}>
               <span className={`w-3 h-3 bg-white rounded-full absolute top-1 transition-transform ${isLiteralMode ? 'translate-x-6' : 'translate-x-1'}`}></span>
             </span>
@@ -852,7 +882,7 @@ export default function MasterDashboard() {
                 profile={profile}
                 onComplete={(data) => {
                   setShowAddCourseModal(false);
-                  handleSprintCreation(data);
+                  handleGroupedIngest(data);
                 }}
               />
             </div>
@@ -906,9 +936,14 @@ export default function MasterDashboard() {
         
         {!isLeftCollapsed && (
           <>
+            {activeCourse?.roadmap?.paretoSteps && (
+              <div className="mb-4 px-2 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                <p className="text-[12px] font-black uppercase tracking-widest text-emerald-400 text-center">Total Assessment Weight: {activeCourse.roadmap.totalWeight || '25%'}</p>
+              </div>
+            )}
             {/* Course Switcher: pick the active course; data scopes follow. */}
             <div className="mb-6">
-              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 px-2">Active Course</p>
+              <p className="text-[12px] font-black text-zinc-500 uppercase tracking-widest mb-2 px-2">Active Course</p>
               <select
                 value={activeCourseId}
                 onChange={(e) => setActiveCourseId(e.target.value)}
@@ -933,13 +968,13 @@ export default function MasterDashboard() {
                   />
                   <button
                     onClick={commitCourseEdit}
-                    className="text-[10px] font-black text-black bg-emerald-500 hover:bg-emerald-400 uppercase tracking-widest py-2 px-3 rounded-lg transition-all"
+                    className="text-[12px] font-black text-black bg-emerald-500 hover:bg-emerald-400 uppercase tracking-widest py-2 px-3 rounded-lg transition-all"
                   >
                     Save
                   </button>
                   <button
                     onClick={cancelCourseEdit}
-                    className="text-[10px] font-black text-zinc-500 hover:text-white uppercase tracking-widest border border-zinc-800 hover:border-zinc-600 py-2 px-3 rounded-lg transition-all"
+                    className="text-[12px] font-black text-zinc-500 hover:text-white uppercase tracking-widest border border-zinc-800 hover:border-zinc-600 py-2 px-3 rounded-lg transition-all"
                   >
                     Cancel
                   </button>
@@ -948,14 +983,14 @@ export default function MasterDashboard() {
               <div className="flex gap-2 mt-2">
                 <button
                   onClick={() => setShowAddCourseModal(true)}
-                  className="flex-1 text-[10px] font-black text-emerald-500 hover:text-black hover:bg-emerald-500 uppercase tracking-widest border border-emerald-500/30 hover:border-emerald-500 py-2 rounded-lg transition-all"
+                  className="flex-1 text-[12px] font-black text-emerald-400 hover:text-black hover:bg-emerald-500 uppercase tracking-widest border border-emerald-500/30 hover:border-emerald-500 py-2 rounded-lg transition-all"
                   title="Drop a syllabus PDF; the OS names the course itself"
                 >
                   + Add Course
                 </button>
                 <button
                   onClick={() => { setCourseEditValue(courses[activeCourseId]?.name || ''); setCourseEditMode('rename'); }}
-                  className="text-[10px] font-black text-zinc-500 hover:text-white uppercase tracking-widest border border-zinc-800 hover:border-zinc-600 py-2 px-3 rounded-lg transition-all"
+                  className="text-[12px] font-black text-zinc-500 hover:text-white uppercase tracking-widest border border-zinc-800 hover:border-zinc-600 py-2 px-3 rounded-lg transition-all"
                   title="Rename active course"
                 >
                   Edit
@@ -963,7 +998,7 @@ export default function MasterDashboard() {
                 <button
                   onClick={() => setPendingDeleteCourseId(activeCourseId)}
                   disabled={Object.keys(courses).length <= 1}
-                  className="text-[10px] font-black text-zinc-500 hover:text-rose-400 uppercase tracking-widest border border-zinc-800 hover:border-rose-500 py-2 px-3 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-zinc-500 disabled:hover:border-zinc-800"
+                  className="text-[12px] font-black text-zinc-500 hover:text-rose-400 uppercase tracking-widest border border-zinc-800 hover:border-rose-500 py-2 px-3 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-zinc-500 disabled:hover:border-zinc-800"
                   title={Object.keys(courses).length <= 1 ? 'Cannot delete the only course' : 'Delete active course'}
                   aria-label="Delete active course"
                 >
@@ -975,54 +1010,88 @@ export default function MasterDashboard() {
 
             {!isBooting && (activeCourse.roadmap.currentTask || activeCourse.roadmap.nextAssessment || activeCourse.roadmap.finalMilestone) && (
               <>
-                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-4 px-2 whitespace-nowrap">Semester Roadmap</p>
-                <div className="mb-8 px-2 border-l border-zinc-800 ml-2 space-y-4 relative">
-                  {activeCourse.roadmap.currentTask && (
-                    <div className="relative pl-4 group">
-                      <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-                      <p className="text-[10px] font-black uppercase text-emerald-500">Current Task</p>
-                      <p className="text-xs text-white font-bold">{activeCourse.roadmap.currentTask}</p>
+                <p className="text-[12px] font-black text-zinc-500 uppercase tracking-widest mb-4 px-2 whitespace-nowrap">Semester Roadmap</p>
+
+                {activeCourse.roadmap.paretoSteps ? (
+                  <div className="mb-8 bg-zinc-900/60 border border-emerald-500/20 rounded-xl p-4 shadow-[0_0_30px_rgba(16,185,129,0.08)]">
+                    <p className="text-[12px] font-black uppercase tracking-widest text-emerald-400 mb-4">Pareto Micro-Steps</p>
+                    <div className="border-l border-emerald-500/30 ml-1 space-y-4">
+                      {activeCourse.roadmap.paretoSteps.map((step, i) => (
+                        <div key={i} className={`relative pl-5 group ${i > 0 ? 'opacity-60 hover:opacity-100' : ''} transition-opacity cursor-pointer`}>
+                          <div className={`absolute left-[-5px] top-1.5 w-2.5 h-2.5 rounded-full ${i === 0 ? 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.6)]' : 'bg-zinc-700 border border-zinc-600'}`}></div>
+                          <div className="flex items-baseline gap-2">
+                            <p className={`text-[12px] font-black uppercase ${i === 0 ? 'text-emerald-400' : 'text-zinc-500'}`}>Step {step.rank}</p>
+                            <span className="text-[12px] font-bold text-zinc-600">{step.weight}</span>
+                          </div>
+                          <p className={`text-xs font-bold ${i === 0 ? 'text-white' : 'text-zinc-300'}`}>{step.label}</p>
+                        </div>
+                      ))}
                     </div>
-                  )}
-                  {activeCourse.roadmap.nextAssessment && (
-                    <div className="relative pl-4 group opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
-                      <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-zinc-700 border border-zinc-600"></div>
-                      <p className="text-[10px] font-black uppercase text-zinc-500">Next Assessment</p>
-                      <p className="text-xs text-zinc-300 font-bold">{activeCourse.roadmap.nextAssessment}</p>
+                  </div>
+                ) : (
+                  <div className="mb-8 px-2 border-l border-zinc-800 ml-2 space-y-4 relative">
+                    {activeCourse.roadmap.currentTask && (
+                      <div className="relative pl-4 group">
+                        <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+                        <p className="text-[12px] font-black uppercase text-emerald-400">Current Task</p>
+                        <p className="text-xs text-white font-bold">{activeCourse.roadmap.currentTask}</p>
+                      </div>
+                    )}
+                    {activeCourse.roadmap.nextAssessment && (
+                      <div className="relative pl-4 group opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
+                        <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-zinc-700 border border-zinc-600"></div>
+                        <p className="text-[12px] font-black uppercase text-zinc-500">Next Assessment</p>
+                        <p className="text-xs text-zinc-300 font-bold">{activeCourse.roadmap.nextAssessment}</p>
+                      </div>
+                    )}
+                    {activeCourse.roadmap.finalMilestone && (
+                      <div className="relative pl-4 group opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
+                        <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-zinc-700 border border-zinc-600"></div>
+                        <p className="text-[12px] font-black uppercase text-zinc-500">Final Milestone</p>
+                        <p className="text-xs text-zinc-300 font-bold">{activeCourse.roadmap.finalMilestone}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+
+            {!(activeCourse?.roadmap?.paretoSteps) && (
+              <>
+                <p className="text-[12px] font-black text-zinc-500 uppercase tracking-widest mb-4 px-2 whitespace-nowrap">Active Context</p>
+                <div className="flex-1 overflow-y-auto space-y-4 pr-1 custom-scrollbar">
+                  {isBooting || tasks.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center opacity-50 px-4 mt-10">
+                      <Brain size={32} className="mx-auto mb-4 text-zinc-600" />
+                      <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-2">No Active Context</p>
                     </div>
-                  )}
-                  {activeCourse.roadmap.finalMilestone && (
-                    <div className="relative pl-4 group opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
-                      <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-zinc-700 border border-zinc-600"></div>
-                      <p className="text-[10px] font-black uppercase text-zinc-500">Final Milestone</p>
-                      <p className="text-xs text-zinc-300 font-bold">{activeCourse.roadmap.finalMilestone}</p>
+                  ) : tasks.length > 5 ? (
+                    <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4">
+                      <p className="text-[12px] font-black uppercase text-emerald-400 tracking-widest mb-2">Neural Summary</p>
+                      <p className="text-xs text-zinc-400 font-bold mb-3">{tasks.length} tasks detected. Showing top 5 milestones.</p>
+                      {tasks.slice(0, 5).map((t, i) => (
+                        <div key={i} className="flex items-center gap-2 py-1.5 border-b border-zinc-800/50 last:border-0">
+                          <span className="text-[12px] font-black text-zinc-600 w-5">{i + 1}.</span>
+                          <p className="text-xs text-white font-bold truncate">{t.task}</p>
+                        </div>
+                      ))}
                     </div>
+                  ) : (
+                    tasks.map((t, i) => (
+                      <TaskCard key={i} task={t} onStart={() => {}} isActive={activeTask?.task === t.task} />
+                    ))
                   )}
                 </div>
               </>
             )}
-
-            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-4 px-2 whitespace-nowrap">Active Context</p>
-            <div className="flex-1 overflow-y-auto space-y-4 pr-1 custom-scrollbar">
-              {isBooting || tasks.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center opacity-50 px-4 mt-10">
-                  <Brain size={32} className="mx-auto mb-4 text-zinc-600" />
-                  <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-2">No Active Context</p>
-                </div>
-              ) : (
-                tasks.map((t, i) => (
-                  <TaskCard key={i} task={t} onStart={() => {}} isActive={activeTask?.task === t.task} />
-                ))
-              )}
-            </div>
 
             {!isBooting && tasks.length > 0 && (
               <div className="mt-auto shrink-0 flex flex-col gap-4 pt-4 border-t border-zinc-800/50">
                 <div className="bg-black border border-zinc-800 p-3 rounded-xl flex items-start gap-3">
                   <Shield size={16} className="text-emerald-500 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[10px] font-black uppercase text-white tracking-widest mb-1">Zero-Disclosure Data</p>
-                    <p className="text-[9px] text-zinc-500 leading-relaxed whitespace-normal font-bold">Your cognitive telemetry is visible only to you and is never shared with your university.</p>
+                    <p className="text-[12px] font-black uppercase text-white tracking-widest mb-1">Zero-Disclosure Data</p>
+                    <p className="text-[12px] text-zinc-500 leading-relaxed whitespace-normal font-bold">Your cognitive telemetry is visible only to you and is never shared with your university.</p>
                   </div>
                 </div>
 
@@ -1030,7 +1099,7 @@ export default function MasterDashboard() {
                   <button onClick={simulateVoiceNote} className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase tracking-widest text-xs py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] truncate">
                     Simulate Voice 🎙️
                   </button>
-                  <button onClick={generatePremiumPDF} className="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-black uppercase tracking-widest text-[10px] py-3 rounded-xl transition-all truncate">
+                  <button onClick={generatePremiumPDF} className="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-black uppercase tracking-widest text-[12px] py-3 rounded-xl transition-all truncate">
                     Export Proof
                   </button>
                 </div>
@@ -1042,8 +1111,8 @@ export default function MasterDashboard() {
                 <div className="bg-black border border-zinc-800 p-3 rounded-xl flex items-start gap-3">
                   <Shield size={16} className="text-indigo-500 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[10px] font-black uppercase text-white tracking-widest mb-1">Zero-Disclosure OS</p>
-                    <p className="text-[9px] text-zinc-500 leading-relaxed whitespace-normal font-bold">Student-first architecture. Waiting for handshake to unlock context.</p>
+                    <p className="text-[12px] font-black uppercase text-white tracking-widest mb-1">Zero-Disclosure OS</p>
+                    <p className="text-[12px] text-zinc-500 leading-relaxed whitespace-normal font-bold">Student-first architecture. Waiting for handshake to unlock context.</p>
                   </div>
                 </div>
               </div>
@@ -1114,7 +1183,7 @@ export default function MasterDashboard() {
                     <div className="space-y-4">
                       {courseAssets.map(asset => (
                         <div key={asset.id} className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl max-w-full">
-                          <p className="text-[10px] font-black uppercase text-emerald-500 mb-2 truncate">{asset.blockId === 'archive' ? `Source: ${asset.source}` : `Block: ${asset.blockId}`}</p>
+                          <p className="text-[12px] font-black uppercase text-emerald-400 mb-2 truncate">{asset.blockId === 'archive' ? `Source: ${asset.source}` : `Block: ${asset.blockId}`}</p>
                           <p className="text-xs text-zinc-300 whitespace-normal line-clamp-3">{asset.text}</p>
                         </div>
                       ))}
@@ -1130,7 +1199,7 @@ export default function MasterDashboard() {
 
       {/* Zen Mode Indicator */}
       {isZenMode && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 bg-zinc-900/80 border border-zinc-800 backdrop-blur rounded-full text-[10px] font-black uppercase tracking-widest text-emerald-500 flex items-center gap-2 animate-pulse z-50">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 bg-zinc-900/80 border border-zinc-800 backdrop-blur rounded-full text-[12px] font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2 animate-pulse z-50">
           <Eye size={12} /> Focus Mode Active (Cmd+F to exit)
         </div>
       )}
