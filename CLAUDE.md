@@ -31,3 +31,14 @@ Do not introduce a new core module without amending this file.
 - Run `node scripts/check-style.js <files>` before committing. The pre-commit hook blocks em-dashes and US spellings.
 - Side-branch the push when `fix/cockpit-restoration` returns a sandbox 403; the user merges locally on the Mac.
 - Sovereign branch convention: `sovereign-<topic>` for ad-hoc commits.
+
+## Steering and Transparency
+
+The student is the driver. The AI is the GPS. Everything Claude generates must be steerable and explainable from the cockpit, not buried in code.
+
+1. **Why on every step.** Every micro-step, scaffold, or generated suggestion must carry a one-line rationale tied to a rubric criterion or schema field. The Pedagogical Why toggle on `SimplifiiStudio.js` is the canonical surface; new generators must populate the same `why` field.
+2. **Selective harvesting.** When pulling material from an LMS or video lecture, prioritise transcripts (`.vtt` / `.srt`) and structured text over raw video or full HTML scrapes. Surface clean Markdown to the student; never raw scrape data.
+3. **Steerable persona.** The student controls four dials via the Steering Drawer: Persona (Literal vs Academic), Scaffolding (Heavy vs Light), Grit (Hard Socratic vs Literal Assistant), and LOD (Compass / Sprint / Map). All four are persisted to localStorage; new AI prompts must read these before composing output.
+4. **Hide the gut.** Do not surface raw probability scores, parser internals, or "Thinking..." latency logs. Use calm, schema-anchored progress signals (Section Health dots, Shadow State pill, Authenticity Pulse).
+5. **Single source of truth.** The Logic Blocks (left canvas / cockpit) own the document state. The Preview Pane is view-only; edits must always round-trip through the blocks so the History of Thought log stays canonical.
+

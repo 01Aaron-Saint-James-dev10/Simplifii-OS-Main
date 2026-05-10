@@ -25,6 +25,18 @@ export const SettingsProvider = ({ children }) => {
   const [isRightCollapsed, setIsRightCollapsed] = useState(localStorage.getItem('isRightCollapsed') === 'true');
   const [isLiteralMode, setIsLiteralMode] = useState(localStorage.getItem('isLiteralMode') === 'true');
 
+  // Steering Drawer dials. The student adjusts these to tune how the
+  // OS scaffolds, paces, and explains. Persisted to localStorage so
+  // the cockpit re-opens with the same settings. CLAUDE.md "Steering
+  // and Transparency" rule 3 requires every AI prompt to read these
+  // before composing output.
+  //   scaffoldingLevel: 'heavy' | 'balanced' | 'light'
+  //   gritLevel:        'literal' | 'balanced' | 'socratic'
+  //   lodLevel:         'compass' | 'sprint' | 'map'
+  const [scaffoldingLevel, setScaffoldingLevel] = useState(localStorage.getItem('scaffoldingLevel') || 'balanced');
+  const [gritLevel, setGritLevel] = useState(localStorage.getItem('gritLevel') || 'balanced');
+  const [lodLevel, setLodLevel] = useState(localStorage.getItem('lodLevel') || 'compass');
+
   useEffect(() => {
     localStorage.setItem('mode', mode);
     localStorage.setItem('eduLevel', eduLevel);
@@ -43,7 +55,13 @@ export const SettingsProvider = ({ children }) => {
     localStorage.setItem('isLeftCollapsed', isLeftCollapsed);
     localStorage.setItem('isRightCollapsed', isRightCollapsed);
     localStorage.setItem('isLiteralMode', isLiteralMode);
-  }, [mode, eduLevel, highContrast, reducedMotion, darkMode, persona, overlayTint, fontScale, lineSpacing, isRulerActive, isBionicActive, bionicIntensity, isDriveAttached, isZenMode, isLeftCollapsed, isRightCollapsed, isLiteralMode]);
+    localStorage.setItem('scaffoldingLevel', scaffoldingLevel);
+    localStorage.setItem('gritLevel', gritLevel);
+    localStorage.setItem('lodLevel', lodLevel);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('simplifii:lod-change', { detail: { lodLevel } }));
+    }
+  }, [mode, eduLevel, highContrast, reducedMotion, darkMode, persona, overlayTint, fontScale, lineSpacing, isRulerActive, isBionicActive, bionicIntensity, isDriveAttached, isZenMode, isLeftCollapsed, isRightCollapsed, isLiteralMode, scaffoldingLevel, gritLevel, lodLevel]);
 
   const rules = {
     sequential: { font: 'Inter', spacing: 'normal', lineHeight: 'normal', letterSpacing: 'normal' },
@@ -70,6 +88,9 @@ export const SettingsProvider = ({ children }) => {
       isLeftCollapsed, setIsLeftCollapsed,
       isRightCollapsed, setIsRightCollapsed,
       isLiteralMode, setIsLiteralMode,
+      scaffoldingLevel, setScaffoldingLevel,
+      gritLevel, setGritLevel,
+      lodLevel, setLodLevel,
       activeRules: rules[mode]
     }}>
       <div 

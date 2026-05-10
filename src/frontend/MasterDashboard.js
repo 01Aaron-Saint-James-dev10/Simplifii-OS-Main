@@ -27,6 +27,7 @@ import { simulateIncomingWebhook, speakSystemMessage, markSpeechUnlocked } from 
 import { auditProjectContext } from '../services/VerificationService';
 import { saveGhostAsset, getAllGhostAssets } from '../services/IndexedDBService';
 import IdleNudge from './IdleNudge';
+import SteeringDrawer from './SteeringDrawer';
 import HomeschoolDashboard from '../streams/homeschool/Dashboard';
 import PrimaryDashboard from '../streams/primary/Dashboard';
 import SecondaryDashboard from '../streams/secondary/Dashboard';
@@ -86,6 +87,10 @@ export default function MasterDashboard() {
   // everything else (Classic AND Studio) until the student dismisses it.
   // Profile.level picks the default tier inside the overlay.
   const [showScaffolder, setShowScaffolder] = useState(false);
+  // Steering Drawer: pull-out panel surfacing the four dials (Persona,
+  // Scaffolding, Grit, LOD). Closed by default per the Compass Mode
+  // rule in CLAUDE.md.
+  const [showSteering, setShowSteering] = useState(false);
   // Vault state: open the unlock modal once on first load if the vault
   // is locked AND the student has not chosen Ghost Mode. After the
   // student unlocks or skips, the modal stays dismissed for the
@@ -602,6 +607,18 @@ export default function MasterDashboard() {
           >
             <Sparkles size={14} /> Scaffolder
           </button>
+          {/* Steering Drawer trigger. Persona / Scaffolding / Grit / LOD
+              dials live inside the drawer; this button is the only way
+              in. Stays unlocked during focus sessions because the
+              student may need to dial the OS down without ending the
+              sprint. */}
+          <button
+            onClick={() => setShowSteering(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all cursor-pointer bg-transparent border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
+            title="Open Steering Drawer (Persona, Scaffolding, Grit, LOD)"
+          >
+            <Sparkles size={14} /> Steering
+          </button>
           {/* Studio toggle: switch between classic LinearCanvas and the
               tri-column SimplifiiStudio (NotebookLM-style) layout */}
           <button
@@ -681,6 +698,7 @@ export default function MasterDashboard() {
         />
       )}
       <IdleNudge />
+      <SteeringDrawer open={showSteering} onClose={() => setShowSteering(false)} />
 
       {showScaffolder && (
         <div className="fixed inset-0 z-[2000] overflow-y-auto" role="dialog" aria-modal="true" aria-label="Sovereign Scaffolder">
