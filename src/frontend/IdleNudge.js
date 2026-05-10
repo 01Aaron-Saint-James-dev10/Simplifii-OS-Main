@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Bell, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useProject } from './ProjectContext';
+import { useSettings } from './SettingsContext';
 import { startIdleDetection, stopIdleDetection } from '../core/ExecutiveSpine';
+import { getAvatarByStream } from './AvatarVault';
 
 /**
  * IdleNudge
@@ -28,9 +30,11 @@ const ONE_STEP_LINES = [
 
 export default function IdleNudge() {
   const { stream } = useProject();
+  const { gritLevel } = useSettings();
   const [nudge, setNudge] = useState(null);
   const avatarName = stream?.getVocab?.('aura_avatar_name') || 'AURA';
   const idleThreshold = stream?.profile?.idleThresholdMs || 180_000;
+  const StreamAvatar = getAvatarByStream(stream?.streamId, { gritLevel, ariaLabel: `${avatarName}: nudging you back into focus` });
 
   useEffect(() => {
     const onFocusStart = () => {
@@ -84,23 +88,8 @@ export default function IdleNudge() {
         fontFamily: 'inherit'
       }}
     >
-      <div
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: '50%',
-          background: isMango ? '#f5b851' : '#334155',
-          color: isMango ? '#3d2700' : '#e2e8f0',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontWeight: 700,
-          fontSize: 14,
-          flexShrink: 0
-        }}
-        aria-hidden="true"
-      >
-        {isMango ? 'M' : <Bell size={16} />}
+      <div style={{ flexShrink: 0 }}>
+        <StreamAvatar size={40} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div

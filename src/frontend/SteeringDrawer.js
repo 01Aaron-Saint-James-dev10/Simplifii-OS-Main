@@ -1,6 +1,8 @@
 import React from 'react';
-import { X, Settings as SettingsIcon } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useSettings } from './SettingsContext';
+import { useProject } from './ProjectContext';
+import { getAvatarByStream } from './AvatarVault';
 
 /**
  * SteeringDrawer
@@ -76,6 +78,9 @@ export default function SteeringDrawer({ open, onClose }) {
     gritLevel, setGritLevel,
     lodLevel, setLodLevel
   } = useSettings();
+  const { stream } = useProject();
+  const avatarName = stream?.getVocab?.('aura_avatar_name') || 'AURA';
+  const StreamAvatar = getAvatarByStream(stream?.streamId, { gritLevel, ariaLabel: `${avatarName}: your steering companion` });
 
   return (
     <>
@@ -113,11 +118,11 @@ export default function SteeringDrawer({ open, onClose }) {
         }}
       >
         <header style={{ padding: '20px 20px 16px', borderBottom: '1px solid #27272a', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <SettingsIcon size={16} color="#10b981" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <StreamAvatar size={42} />
             <div>
-              <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#10b981' }}>Steering</div>
-              <div style={{ fontSize: 12, color: '#a3a3a3', marginTop: 2 }}>You are the driver. AURA is the GPS.</div>
+              <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#10b981' }}>Steering  ·  {avatarName}</div>
+              <div style={{ fontSize: 12, color: '#a3a3a3', marginTop: 2 }}>You are the driver. {avatarName} is the GPS.</div>
             </div>
           </div>
           <button
