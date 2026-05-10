@@ -34,7 +34,7 @@ export default function IdleNudge() {
   const [nudge, setNudge] = useState(null);
   const avatarName = stream?.getVocab?.('aura_avatar_name') || 'AURA';
   const idleThreshold = stream?.profile?.idleThresholdMs || 180_000;
-  const StreamAvatar = getAvatarByStream(stream?.streamId || 'tertiary', { gritLevel });
+  const StreamAvatar = getAvatarByStream(stream?.streamId, { gritLevel, ariaLabel: `${avatarName}: nudging you back into focus` });
 
   useEffect(() => {
     const onFocusStart = () => {
@@ -88,8 +88,8 @@ export default function IdleNudge() {
         fontFamily: 'inherit'
       }}
     >
-      <div style={{ flexShrink: 0 }} aria-hidden="true">
-        <StreamAvatar size={36} />
+      <div style={{ flexShrink: 0 }}>
+        <StreamAvatar size={40} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
