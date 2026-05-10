@@ -17,7 +17,9 @@ import MathsStepEditor from './MathsStepEditor';
 import AIAvatar from './AIAvatar';
 import SupportBridge from './SupportBridge';
 import { fetchLMSData } from '../backend/LMSConnector';
-import { mapToWorkspace, deriveRoadmapFromAssessments } from '../services/BriefService';
+import { mapToWorkspace, deriveRoadmapFromAssessments, extractDeepCourseData, mergeExtractionData } from '../services/BriefService';
+import { processDocumentWithGCP } from '../services/DocumentAIService';
+import { fetchGroundingPdfs, listGroundingPdfs } from '../utils/GroundingLoader';
 import { nameCourse, pingOllama, getProviderName, extractAssessmentBriefs, REASONING_START_EVENT, REASONING_END_EVENT } from '../services/RewriteService';
 import { reconcile as reconcileBriefs } from '../services/SovereignReconciler';
 import { jsPDF } from 'jspdf';
@@ -91,6 +93,14 @@ export default function MasterDashboard() {
   // Scaffolding, Grit, LOD). Closed by default per the Compass Mode
   // rule in CLAUDE.md.
   const [showSteering, setShowSteering] = useState(false);
+  // Grounding folder ingestion. Pulls every PDF committed to
+  // src/grounding/active/, runs each through DocumentAIService, then
+  // hands the aggregated extraction to handleSprintCreation. The
+  // resulting course lands as a Shadow State draft in milliseconds
+  // and the LLM extraction firms it up in the background.
+  const [ingesting, setIngesting] = useState(false);
+  const [ingestStatus, setIngestStatus] = useState('');
+  const groundingCount = listGroundingPdfs().length;
   // Vault state: open the unlock modal once on first load if the vault
   // is locked AND the student has not chosen Ghost Mode. After the
   // student unlocks or skips, the modal stays dismissed for the
@@ -377,6 +387,70 @@ export default function MasterDashboard() {
     }
   };
 
+  // Mirror UniversalOnboarding.classifyFile so the bundled PDFs feed
+  // the extractor in Outline → Brief → Rubric order. The merged rawText
+  // then opens with the canonical assessment table; Ollama's first
+  // window picks it up and the regex pre-extraction sees outline
+  // weightings before brief sub-component weightings.
+  const classifyGroundingFile = (file) => {
+    const n = (file.name || '').toLowerCase();
+    if (/outline|course[ _-]?info|co[_-]/i.test(n)) return 0;
+    if (/brief|assess|task|instruction/i.test(n)) return 1;
+    if (/rubric|criteria|marking/i.test(n)) return 2;
+    return 3;
+  };
+
+  // Ingest every PDF currently committed to /src/grounding/active/.
+  // Triggered by the cockpit top-nav button. Aggregates all files into
+  // one extractionData payload (same merge pipeline as the onboarding
+  // Grounding step) then calls handleSprintCreation, which lands the
+  // Shadow State draft cockpit immediately and fires the LLM
+  // confirmation pass in the background.
+  const handleIngestGrounding = async () => {
+    if (ingesting) return;
+    setIngesting(true);
+    setIngestStatus('Locating grounding folder...');
+    window.dispatchEvent(new CustomEvent(REASONING_START_EVENT));
+    try {
+      const files = (await fetchGroundingPdfs()).sort((a, b) => classifyGroundingFile(a) - classifyGroundingFile(b));
+      if (files.length === 0) {
+        setIngestStatus('Nothing in /src/grounding/active/.');
+        if (typeof console !== 'undefined') console.warn('[handleIngestGrounding] no PDFs returned by GroundingLoader');
+        return;
+      }
+      let aggregated = {
+        unitCode: profile.courseName,
+        level: profile.level,
+        theme: 'General'
+      };
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        setIngestStatus(`Scanning ${i + 1} of ${files.length}: ${file.name}`);
+        if (typeof console !== 'undefined') console.info('[handleIngestGrounding] processing', file.name, 'class=', classifyGroundingFile(file));
+        try {
+          const text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
+          const deepData = extractDeepCourseData(text);
+          aggregated = mergeExtractionData(aggregated, { ...deepData, rawText: text });
+        } catch (err) {
+          if (typeof console !== 'undefined') console.warn('[handleIngestGrounding] skipped', file.name, err && err.message);
+        }
+      }
+      setIngestStatus('Handing off to Sprint Creation...');
+      await handleSprintCreation(aggregated);
+      setIngestStatus(`Ingested ${files.length} file${files.length === 1 ? '' : 's'}.`);
+    } catch (err) {
+      if (typeof console !== 'undefined') console.error('[handleIngestGrounding] failed', err);
+      setIngestStatus(`Ingestion failed: ${err && err.message ? err.message : 'unknown error'}`);
+    } finally {
+      window.dispatchEvent(new CustomEvent(REASONING_END_EVENT));
+      setIngesting(false);
+      // Clear the status line after a few seconds so the nav does not
+      // stay cluttered. The Shadow State pill keeps the user informed
+      // while the LLM confirmation pass finishes.
+      setTimeout(() => setIngestStatus(''), 6000);
+    }
+  };
+
   const generatePremiumPDF = () => {
     const doc = new jsPDF();
     doc.setFillColor(7, 8, 13);
@@ -619,6 +693,25 @@ export default function MasterDashboard() {
           >
             <Sparkles size={14} /> Steering
           </button>
+          {/* Ingest Grounding Folder. Bridges the gap between the PDFs
+              committed to /src/grounding/active/ and the running
+              cockpit. Disabled when the folder is empty (require.context
+              returned zero files) and while an ingestion is in flight.
+              Stays unlocked during focus sessions; rare but useful if
+              new grounding files arrive mid-sprint. */}
+          {groundingCount > 0 && (
+            <button
+              onClick={handleIngestGrounding}
+              disabled={ingesting}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${ingesting ? 'bg-amber-500/10 border-amber-500/40 text-amber-300 cursor-wait' : 'bg-transparent border-amber-500/40 text-amber-400 hover:bg-amber-500/10'} disabled:cursor-wait`}
+              title={ingesting ? (ingestStatus || 'Scanning grounding folder...') : `Ingest ${groundingCount} PDF${groundingCount === 1 ? '' : 's'} from /src/grounding/active/ into the cockpit.`}
+            >
+              {ingesting
+                ? <RefreshCw size={14} className="animate-spin" />
+                : <FileText size={14} />}
+              {ingesting ? 'Scanning...' : 'Ingest Grounding'}
+            </button>
+          )}
           {/* Studio toggle: switch between classic LinearCanvas and the
               tri-column SimplifiiStudio (NotebookLM-style) layout */}
           <button
@@ -696,6 +789,38 @@ export default function MasterDashboard() {
           onUnlocked={() => { setVaultDismissed(true); setGhostMode(false); }}
           onGhost={() => { setVaultDismissed(true); setGhostMode(true); }}
         />
+      )}
+      {/* Ingestion status banner. Surfaces the per-file progress so
+          the student sees what is being parsed without hovering the
+          button. Disappears when the status string is cleared. */}
+      {ingestStatus && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: 'fixed',
+            top: 78,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1300,
+            background: 'rgba(245, 158, 11, 0.12)',
+            border: '1px solid rgba(245, 158, 11, 0.4)',
+            color: '#fcd34d',
+            borderRadius: 999,
+            padding: '6px 14px',
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            fontFamily: 'inherit',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8
+          }}
+        >
+          {ingesting && <RefreshCw size={11} className="animate-spin" />}
+          {ingestStatus}
+        </div>
       )}
       <IdleNudge />
       <SteeringDrawer open={showSteering} onClose={() => setShowSteering(false)} />
