@@ -1,0 +1,17 @@
+[2026-05-11T01:28:07.497Z] RESULT
+============================================================
+{
+  "success": false,
+  "output": "You've hit your limit · resets 11:50am (Australia/Sydney)\n",
+  "parsedOutput": {
+    "sections": [],
+    "codeBlocks": []
+  },
+  "durationMs": 9427,
+  "model": "sonnet",
+  "sandboxMode": "permissive",
+  "workerType": "testgaps",
+  "timestamp": "2026-05-11T01:28:07.497Z",
+  "executionId": "testgaps_1778462878070_7rb0uh",
+  "error": "SessionEnd hook [sh -c 'exec node \"${CLAUDE_PROJECT_DIR:-.}/.claude/helpers/hook-handler.cjs\" session-end'] failed: node:internal/modules/cjs/loader:1459\n  throw err;\n  ^\n\nError: Cannot find module '/Users/adonis666/Simplifii-OS_Master/.claude/helpers/hook-handler.cjs'\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1456:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)\n    at Module._load (node:internal/modules/cjs/loader:1242:25)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v24.14.1\n\n"
+}
