@@ -10,3 +10,6 @@ build/
 
 # Generated at install time by scripts/copy-pdf-worker.js
 public/pdf.worker.min.js
+
+# Claude Flow daemon-generated logs (churn, not source)
+.claude-flow/logs/
