@@ -1,7 +1,12 @@
-node_modules
+node_modules/
 
 .env
-node_modules/
+.env.local
+.env*.local
+
+build/
+
+.vercel/
 
 # Generated at install time by scripts/copy-pdf-worker.js
 public/pdf.worker.min.js
