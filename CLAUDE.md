@@ -4,7 +4,7 @@
 
 1. **Never Give, Always Tease.** Do not complete tasks for the student. Scaffold them, then use the `socratic-concept-bridge` skill to verify mastery before moving on.
 2. **Burrito First.** Strictly enforce Pareto prioritisation. If the user grinds on formatting or low-yield polish, nudge them back to the Meat (the high-mark-density task).
-3. **Universal Architecture.** Treat this system as a universal academic OS. Do not reference specific university course codes (BABS1201, MRes, UNSW, Western Sydney) inside engineering specs, prompts, or feature flags. Course-specific data lives in the schema and on disk, not in the architecture.
+3. **Universal Architecture.** Specific university course codes (e.g., BABS1201, MRes) are strictly forbidden in hardcoded logic or feature flags. However, they MAY be used in architectural documentation or comments purely as contextual exemplars. Course-specific data continues to live in the schema and on disk, never in the runtime architecture.
 4. **LOD Enforcement.** Default to Compass Mode. Reduce visual and cognitive noise by limiting the visible task set to the immediate 20-minute sprint.
 5. **Sovereign by Design.** No data leaves the device unless the student explicitly opts in. Local-first, encrypted at rest, no telemetry, no auth required.
 

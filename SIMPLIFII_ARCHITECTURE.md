@@ -1,6 +1,6 @@
 # SIMPLIFII-OS: MASTER SYSTEM ARCHITECTURE
 Version: 1.0.0
-Status: Sovereign Master Blueprint
+Status: Target Specification (Pending Implementation)
 
 ## 1. THE CORE MANDATE
 Simplifii-OS is a scale-agnostic Educational OS engineered as a high-end precision tool. Its primary function is to provide Cognitive Sovereignty and manage functional variability for university navigation and Master of Research tasks. The system prioritises clarity, literal terminology, and high-yield actions over gamification or visual noise.
@@ -27,7 +27,7 @@ Built using React 18, Tailwind CSS, and shadcn/ui (Radix primitives).
 ### STAGE 01: THE SOVEREIGN HANDSHAKE (Gateway)
 * **Function:** The local encryption gateway and entry point.
 * **Location:** `src/frontend/LandingPage.js`
-* **Visuals:** Center-aligned, terminal-minimalist. Zinc-950 background with JetBrains Mono typography.
+* **Visuals:** Center-aligned, high-contrast light theme. Zinc-50 background with zinc-900 text. JetBrains Mono typography reserved for the passphrase field and the Zero-Disclosure banner.
 * **Mechanics:** * Single password input. Requires a minimum 4-character passphrase.
     * Passphrase decrypts the local `HistoryOfThought` AES-GCM-256 vault.
     * Features the 'Siltbrand Pulse' (a 1px emerald-500 perimeter border animation on focus).
@@ -78,3 +78,17 @@ Built using React 18, Tailwind CSS, and shadcn/ui (Radix primitives).
 * **State Management:** React `useState` and Context API (`ProjectContext`, `SettingsContext`).
 * **Storage:** IndexedDB via local wrapper. No external databases.
 * **LLM Integration:** Designed to route extraction and synthesis tasks to a local Ollama instance running on the host machine.
+
+## 6. CURRENT IMPLEMENTATION STATUS
+
+Snapshot of how each Target Stage maps to the live codebase. Status values: **Pending** (no code yet), **In Progress** (partial), **Shipped** (matches the spec).
+
+| Stage | Target Location | Status | Notes |
+|---|---|---|---|
+| STAGE 01: Sovereign Handshake | `src/frontend/LandingPage.js` | Shipped | Light-theme zinc-50 gateway with JetBrains Mono passphrase field. Wired to `HistoryOfThought.unlockWithPassphrase` (PBKDF2 600k). Siltbrand Pulse 1px emerald-500 perimeter on focus. UDL toggle persists to `SettingsContext.lodLevel`. Pinned Zero-Disclosure footer. Skip path drops into Ghost Mode; the `NOT VERIFIED` badge surfaces downstream. |
+| STAGE 02: Ingestion Drive | `src/frontend/UniversalOnboarding.js` + `src/frontend/MasterDashboard.js` | Pending | Onboarding accepts PDFs and pasted text. Unit-code auto-detection that creates distinct Course Pillars does not yet exist; current behaviour aggregates all PDFs into one course. |
+| STAGE 03: Pillar Gallery | `src/frontend/MasterDashboard.js` (PillarGallery, CoursePillar) | Pending | Components named in the spec do not exist. Course selector is currently a `<select>` dropdown in the left rail. |
+| STAGE 04: Authoring Cockpit | `src/frontend/MasterDashboard.js` (AuthoringCockpit) | Pending | `AuthoringCockpit` component does not exist by that name. Closest equivalents are `LinearCanvas` and `SimplifiiStudio`. |
+| STAGE 05: AURA Layer | `src/frontend/AuraLayer.js` | Pending | File does not exist. AURA chat is split across `AskAura.js` and the `AuraPanel` inside `SimplifiiStudio.js`. |
+
+This table is the source of truth for build progress. Update it as each stage moves from Pending to Shipped, with a one-line note on what changed.

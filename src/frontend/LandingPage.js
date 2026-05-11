@@ -1,166 +1,308 @@
-import React, { useState } from 'react';
-import { Brain, Shield, FileText, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
-import { mockGoogleAuth, fetchContextualHistory } from '../services/AuthService';
+import React, { useEffect, useRef, useState } from 'react';
+import { Shield, ArrowRight, Loader2, Lock } from 'lucide-react';
+import { unlockWithPassphrase, isUnlocked } from '../core/HistoryOfThought';
 import { useSettings } from './SettingsContext';
-import { Personas } from '../services/PersonaEngine';
+
+/**
+ * LandingPage  -  Stage 01: The Sovereign Handshake
+ *
+ * High-contrast light-theme gateway per SIMPLIFII_ARCHITECTURE.md.
+ * Single 4-character passphrase decrypts the local HistoryOfThought
+ * AES-GCM-256 vault. No Google auth. No cloud sync. No telemetry.
+ *
+ * Visual contract:
+ *   - Zinc-50 background, zinc-900 text, white card surface
+ *   - JetBrains Mono on the passphrase field and the footer banner
+ *     (terminal cue without committing the whole gateway to dark)
+ *   - Center-aligned single-column frame
+ *   - Siltbrand Pulse: 1px emerald-500 perimeter ring on input focus
+ *   - UDL Toggle: Focus Mode (Compass LOD) vs Clarity Mode (Map LOD),
+ *     persisted via SettingsContext.lodLevel
+ *   - Pinned Zero-Disclosure banner in the footer
+ *
+ * Mechanics:
+ *   1. Student types a passphrase (min 4 chars).
+ *   2. unlockWithPassphrase derives the AES-GCM key via PBKDF2 600k.
+ *   3. On success, onGetStarted advances the app into the dashboard.
+ *   4. Skip path lands the cockpit in Ghost Mode without unlocking.
+ *      The NOT VERIFIED badge in MasterDashboard reminds the student
+ *      that nothing is being recorded.
+ */
+
+const MONO_STACK = '"JetBrains Mono", "SF Mono", Menlo, Consolas, monospace';
 
 export default function LandingPage({ onGetStarted }) {
-  const [step, setStep] = useState(0); // 0: hero, 1: auth, 2: persona, 3: confirm
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncData, setSyncData] = useState(null);
-  const { setEduLevel, setPersona } = useSettings();
+  const { lodLevel, setLodLevel } = useSettings();
+  const [passphrase, setPassphrase] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [focused, setFocused] = useState(false);
+  const inputRef = useRef(null);
 
-  const handleGoogleSync = async () => {
-    setIsSyncing(true);
+  useEffect(() => {
+    if (isUnlocked()) {
+      onGetStarted?.();
+    }
+  }, [onGetStarted]);
+
+  useEffect(() => {
+    if (inputRef.current) inputRef.current.focus();
+  }, []);
+
+  const handleUnlock = async (e) => {
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    if (busy) return;
+    const value = (passphrase || '').trim();
+    if (value.length < 4) {
+      setError('Passphrase must be at least 4 characters.');
+      return;
+    }
+    setBusy(true);
+    setError('');
     try {
-      const auth = await mockGoogleAuth();
-      const history = await fetchContextualHistory(auth.token);
-      setSyncData({ user: auth.user, history });
-      setStep(2);
+      await unlockWithPassphrase(value);
+      onGetStarted?.();
     } catch (err) {
-      console.error(err);
+      setError(err && err.message ? err.message : 'Could not unlock the vault. Try again.');
     } finally {
-      setIsSyncing(false);
+      setBusy(false);
     }
   };
 
-  const selectPersona = (personaKey) => {
-    setPersona(personaKey);
-    setEduLevel(syncData?.history?.inferredTier || 'tertiary');
-    setStep(3);
+  const handleSkip = () => {
+    try { window.localStorage.setItem('simplifii_vault_ghost', 'true'); } catch { /* storage unavailable */ }
+    onGetStarted?.();
   };
 
-  const [isLaunching, setIsLaunching] = useState(false);
-
-  const handleLaunch = async () => {
-    setIsLaunching(true);
-    // Pass the inferred focus to local storage so the OS can utilize it
-    if (syncData) {
-      localStorage.setItem('simplifii_inferred_focus', syncData.history.inferredFocus);
-      localStorage.setItem('simplifii_user_name', syncData.user.name);
-    }
-    // Brief scan delay so the user sees confirmation
-    await new Promise(r => setTimeout(r, 1200));
-    onGetStarted();
-  };
+  const focusMode = lodLevel === 'compass';
+  const setFocusMode = () => setLodLevel('compass');
+  const setClarityMode = () => setLodLevel('map');
 
   return (
-    <div className="min-h-screen bg-[#07080D] text-white font-sans overflow-hidden relative flex flex-col items-center justify-center">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none"></div>
-      
-      {step === 0 && (
-        <div className="text-center max-w-4xl mx-auto z-10 animate-fade-in">
-          <div className="flex justify-center mb-8">
-            <div className="bg-emerald-500 p-4 rounded-3xl shadow-glow-emerald-lg">
-              <Brain size={48} className="text-black" />
-            </div>
+    <div
+      style={{
+        minHeight: '100vh',
+        background: '#fafafa',
+        color: '#18181b',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '48px 24px',
+        position: 'relative'
+      }}
+    >
+      <div style={{ width: '100%', maxWidth: 520, display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <header style={{ textAlign: 'center', marginBottom: 8 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.32em', textTransform: 'uppercase', color: '#10b981', marginBottom: 12, fontFamily: MONO_STACK }}>
+            Simplifii-OS  ·  Sovereign Handshake
           </div>
-          <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-8 leading-tight">
-            Simplifii<br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500">The Universal Sovereign OS.</span>
+          <h1 style={{ fontSize: 28, fontWeight: 800, margin: 0, lineHeight: 1.2, letterSpacing: '-0.01em', color: '#18181b' }}>
+            Initialise the Vault
           </h1>
-          <p className="text-xl text-zinc-400 font-medium leading-relaxed mb-12 max-w-2xl mx-auto">
-            A local-first research environment that adapts to your processing style.
+          <p style={{ fontSize: 13, color: '#52525b', marginTop: 12, lineHeight: 1.55 }}>
+            Enter your passphrase to decrypt the local History of Thought vault. Everything stays on this device. No cloud, no telemetry, no account required.
           </p>
-          <button
-            onClick={() => setStep(1)}
-            className="px-10 py-5 rounded-full bg-emerald-500 text-black font-black text-lg uppercase tracking-widest hover:shadow-glow-emerald-lg hover:bg-emerald-400 transition-all flex items-center gap-3 mx-auto group cursor-pointer"
-          >
-            Initiate Local Handshake
-            <ArrowRight className="transform group-hover:translate-x-1 transition-transform" />
-          </button>
-          <div className="mt-10 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/60 border border-zinc-800 text-[10px] font-black uppercase tracking-widest text-emerald-400">
-            <Shield size={12} /> Local-First. Zero Disclosure.
-          </div>
-        </div>
-      )}
+        </header>
 
-      {step === 1 && (
-        <div className="text-center max-w-2xl mx-auto z-10 animate-fade-in">
-          <h2 className="text-4xl font-black mb-6">Step 1: Sync by Permission</h2>
-          <p className="text-zinc-400 mb-6 text-lg">
-            Optional. The live sync surface is sandboxed in this build. Real-time Google Context import lands in a future release.
-          </p>
-          <p className="text-amber-400/80 mb-10 text-xs font-bold uppercase tracking-widest border border-amber-500/30 bg-amber-500/5 rounded-xl py-3 px-4">
-            Preview Sync. No data is being moved. Nothing leaves your device.
-          </p>
-          <button
-            onClick={handleGoogleSync}
-            disabled={isSyncing}
-            className="w-full bg-white text-black hover:bg-gray-100 font-black uppercase tracking-widest py-4 rounded-2xl transition-all flex items-center justify-center gap-3 text-lg"
+        <form
+          onSubmit={handleUnlock}
+          aria-label="Sovereign Handshake passphrase form"
+          style={{
+            padding: 24,
+            borderRadius: 14,
+            background: '#ffffff',
+            border: focused ? '1px solid #10b981' : '1px solid #e4e4e7',
+            boxShadow: focused
+              ? '0 0 0 1px #10b981, 0 0 24px rgba(16, 185, 129, 0.18)'
+              : '0 1px 0 rgba(0,0,0,0.04)',
+            transition: 'all 220ms ease'
+          }}
+        >
+          <label
+            htmlFor="handshake-passphrase"
+            style={{ display: 'block', fontSize: 9, fontWeight: 800, letterSpacing: '0.24em', textTransform: 'uppercase', color: '#71717a', marginBottom: 10, fontFamily: MONO_STACK }}
           >
-            {isSyncing ? <Loader2 className="animate-spin" /> : <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google" className="w-6 h-6" />}
-            {isSyncing ? 'Loading sandboxed preview...' : 'Preview Context Sync (Demo Only)'}
-          </button>
-          <button
-            onClick={onGetStarted}
-            className="mt-6 text-zinc-500 hover:text-emerald-400 text-sm font-bold uppercase tracking-widest transition-colors"
-          >
-            Skip and work locally only
-          </button>
-        </div>
-      )}
-
-      {step === 2 && (
-        <div className="text-center max-w-4xl mx-auto z-10 animate-fade-in w-full px-6">
-          <h2 className="text-4xl font-black mb-4">Step 2: Choose Your Executive Partner</h2>
-          <p className="text-zinc-400 mb-10">Select the persona that best fits your current cognitive needs.</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {Object.entries(Personas).map(([key, persona]) => (
-              <div 
-                key={key} 
-                onClick={() => selectPersona(key)}
-                className="bg-zinc-900/80 border border-zinc-800 hover:border-emerald-500 hover:shadow-glow-emerald p-8 rounded-3xl cursor-pointer transition-all flex flex-col text-left group"
-              >
-                <h3 className="text-2xl font-black mb-2 text-white group-hover:text-emerald-400">{persona.name}</h3>
-                <div className="text-xs font-black text-emerald-500/70 uppercase tracking-widest mb-6">
-                  {persona.tone}
-                </div>
-                <p className="text-zinc-400 font-medium italic mb-4 flex-1">
-                  "{persona.greetings[0]}"
-                </p>
-                <div className="text-xs font-black uppercase text-zinc-500 group-hover:text-emerald-500 flex items-center gap-2">
-                  Select Persona <ArrowRight size={14} />
-                </div>
-              </div>
-            ))}
+            Passphrase  ·  4 characters minimum
+          </label>
+          <div style={{ position: 'relative' }}>
+            <Lock
+              size={14}
+              style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: focused ? '#10b981' : '#a1a1aa', transition: 'all 220ms ease' }}
+              aria-hidden="true"
+            />
+            <input
+              id="handshake-passphrase"
+              ref={inputRef}
+              type="password"
+              autoComplete="current-password"
+              value={passphrase}
+              onChange={(e) => { setPassphrase(e.target.value); if (error) setError(''); }}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              disabled={busy}
+              spellCheck={false}
+              style={{
+                width: '100%',
+                padding: '14px 14px 14px 36px',
+                borderRadius: 10,
+                border: '1px solid #e4e4e7',
+                background: '#fafafa',
+                color: '#18181b',
+                fontFamily: MONO_STACK,
+                fontSize: 14,
+                letterSpacing: '0.18em',
+                outline: 'none',
+                transition: 'all 220ms ease'
+              }}
+            />
           </div>
-        </div>
-      )}
-
-      {step === 3 && syncData && (
-        <div className="text-center max-w-2xl mx-auto z-10 animate-fade-in bg-zinc-900/80 border border-zinc-800 p-10 rounded-3xl shadow-2xl backdrop-blur-xl">
-          <div className="flex justify-center mb-6">
-            <CheckCircle2 size={64} className="text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.6)]" />
-          </div>
-          <h2 className="text-3xl font-black mb-2">Sync Complete</h2>
-          <p className="text-zinc-400 mb-8">Welcome back, {syncData.user.name}.</p>
-          
-          <div className="bg-black/50 rounded-2xl p-6 text-left border border-zinc-800 mb-8 space-y-4">
-            <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
-              <span className="text-xs font-black uppercase text-zinc-500 tracking-widest">Inferred Focus</span>
-              <span className="text-emerald-400 font-bold">{syncData.history.inferredFocus}</span>
+          {error && (
+            <div role="alert" style={{ marginTop: 10, fontSize: 11, color: '#be123c', fontWeight: 600 }}>
+              {error}
             </div>
-            <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
-              <span className="text-xs font-black uppercase text-zinc-500 tracking-widest">Education Tier</span>
-              <span className="text-emerald-400 font-bold uppercase">{syncData.history.inferredTier}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-black uppercase text-zinc-500 tracking-widest">Upcoming Deadline</span>
-              <span className="text-emerald-400 font-bold">{syncData.history.calendarScrape[0]?.event || 'None synced'}</span>
-            </div>
-          </div>
-
+          )}
           <button
-            onClick={handleLaunch}
-            disabled={isLaunching}
-            className="w-full px-8 py-4 rounded-xl bg-emerald-500 text-black font-black uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-glow-emerald disabled:opacity-70 disabled:cursor-wait flex items-center justify-center gap-3"
+            type="submit"
+            disabled={busy || passphrase.trim().length < 4}
+            style={{
+              width: '100%',
+              marginTop: 16,
+              padding: '14px 18px',
+              borderRadius: 10,
+              border: 'none',
+              background: busy ? '#a7f3d0' : '#10b981',
+              color: '#052e1f',
+              fontFamily: 'inherit',
+              fontSize: 11,
+              fontWeight: 800,
+              letterSpacing: '0.24em',
+              textTransform: 'uppercase',
+              cursor: busy || passphrase.trim().length < 4 ? 'not-allowed' : 'pointer',
+              opacity: passphrase.trim().length < 4 ? 0.45 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+              transition: 'all 200ms ease'
+            }}
+            aria-label="Unlock the History of Thought vault"
           >
-            {isLaunching ? <><Loader2 className="animate-spin" size={20} /> Scanning...</> : 'Enter Dashboard'}
+            {busy
+              ? <><Loader2 size={14} className="animate-spin" aria-hidden="true" /> Decrypting</>
+              : <>Initiate Handshake <ArrowRight size={14} aria-hidden="true" /></>}
           </button>
-        </div>
-      )}
+          <button
+            type="button"
+            onClick={handleSkip}
+            disabled={busy}
+            style={{
+              width: '100%',
+              marginTop: 10,
+              padding: '10px 14px',
+              borderRadius: 10,
+              border: '1px solid #e4e4e7',
+              background: 'transparent',
+              color: '#52525b',
+              fontFamily: 'inherit',
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              cursor: 'pointer'
+            }}
+            aria-label="Skip the Handshake and enter Ghost Mode"
+            title="Continue without the vault. No History of Thought will be recorded this session."
+          >
+            Skip  ·  Enter Ghost Mode
+          </button>
+        </form>
+
+        <section
+          aria-label="UDL Toggle"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 8,
+            padding: 10,
+            background: '#ffffff',
+            border: '1px solid #e4e4e7',
+            borderRadius: 12
+          }}
+        >
+          <div style={{ gridColumn: '1 / span 2', fontSize: 9, fontWeight: 800, letterSpacing: '0.24em', textTransform: 'uppercase', color: '#71717a', marginBottom: 4, fontFamily: MONO_STACK }}>
+            UDL Toggle  ·  Level of Detail
+          </div>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={focusMode}
+            onClick={setFocusMode}
+            style={{
+              padding: '10px 8px',
+              borderRadius: 8,
+              border: 'none',
+              background: focusMode ? '#10b981' : 'transparent',
+              color: focusMode ? '#052e1f' : '#3f3f46',
+              fontFamily: 'inherit',
+              fontSize: 10,
+              fontWeight: 800,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              cursor: 'pointer'
+            }}
+          >
+            Focus Mode (Compass)
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={!focusMode}
+            onClick={setClarityMode}
+            style={{
+              padding: '10px 8px',
+              borderRadius: 8,
+              border: 'none',
+              background: !focusMode ? '#10b981' : 'transparent',
+              color: !focusMode ? '#052e1f' : '#3f3f46',
+              fontFamily: 'inherit',
+              fontSize: 10,
+              fontWeight: 800,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              cursor: 'pointer'
+            }}
+          >
+            Clarity Mode (Map)
+          </button>
+        </section>
+      </div>
+
+      <footer
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          padding: '14px 24px',
+          borderTop: '1px solid #e4e4e7',
+          background: '#ffffff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 10,
+          fontSize: 9,
+          fontWeight: 700,
+          letterSpacing: '0.22em',
+          textTransform: 'uppercase',
+          color: '#71717a',
+          fontFamily: MONO_STACK
+        }}
+      >
+        <Shield size={11} color="#10b981" aria-hidden="true" />
+        <span>Zero-Disclosure  ·  Local-First  ·  AES-GCM-256  ·  PBKDF2 600k</span>
+      </footer>
     </div>
   );
 }
