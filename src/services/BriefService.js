@@ -431,3 +431,68 @@ export const deriveRoadmapFromAssessments = (assessmentTitles = []) => {
 
   return { currentTask, nextAssessment, finalMilestone, paretoSteps, totalWeight };
 };
+
+// Unit code detection. Pulls the first ALL-CAPS letters-then-digits
+// token out of a filename. Catches BABS1201, BABS1202, MATH2018, etc.,
+// including filenames where the code sits mid-string after a prefix
+// like CO_ or T3_. Returns null when no recognisable code is found.
+//
+// Used by Stage 02 (Ingestion Drive) to split a mixed PDF set into
+// distinct Course Pillars. Pure module, no DOM, no I/O.
+export const detectUnitCode = (filename) => {
+  if (!filename || typeof filename !== 'string') return null;
+  const match = filename.match(/[A-Z]{2,5}\d{3,5}/);
+  return match ? match[0] : null;
+};
+
+// Group an array of File-like objects (any object with a .name string)
+// by their detected unit code. Files with no recognisable code land
+// under the '__unknown' bucket so they still feed the ingestor and
+// the student can sort them manually downstream. Returns a plain
+// object keyed by unit code, value is an array of files in input
+// order.
+export const groupFilesByUnitCode = (files) => {
+  const out = {};
+  if (!Array.isArray(files)) return out;
+  for (const file of files) {
+    const code = detectUnitCode(file && file.name) || '__unknown';
+    if (!out[code]) out[code] = [];
+    out[code].push(file);
+  }
+  return out;
+};
+
+// Academic tier detection. Looks at filenames AND raw text for
+// signals about how the unit is taught:
+//   'lab'        practical biology / chemistry / physics, microscope,
+//                pipette, gel, PCR, titration
+//   'research'   literature review, thesis, methodology, peer review,
+//                Harvard / APA referencing focus
+//   'practical'  competency-based, vocational, hands-on trade
+//                (typical TAFE units)
+//   'general'    fallback when no strong signal
+//
+// Heuristic: filename hits weight more than text hits because filename
+// signals are usually intentional ('Lab report rubric', 'Literature
+// Review Instructions'). Text hits add weight but cannot overrule a
+// clear filename signal.
+//
+// Returns one of the four labels above. Never throws.
+export const detectAcademicTier = (rawText = '', fileNames = []) => {
+  const filenameBlob = (Array.isArray(fileNames) ? fileNames : []).join(' ').toLowerCase();
+  const text = String(rawText || '').toLowerCase();
+
+  const score = { lab: 0, research: 0, practical: 0 };
+
+  if (/\blab\b|laboratory|practical test|experiment|pipette|microscope|titration|gel\b|pcr|reagent/i.test(filenameBlob)) score.lab += 3;
+  if (/lit(erature)? review|thesis|dissertation|methodology|research proposal|peer[- ]reviewed|harvard|apa style/i.test(filenameBlob)) score.research += 3;
+  if (/competency|vocational|trade|workplace|on[- ]the[- ]job|tafe|nrt\b|bsb\d/i.test(filenameBlob)) score.practical += 3;
+
+  if (/\blaboratory\b|\bexperiment\b|reagent|pipette|microscope|electrophoresis|spectrophotometer|pcr|titration|culture (plate|dish)/i.test(text)) score.lab += 1;
+  if (/literature review|peer[- ]reviewed|primary article|narrative review|harvard style|in[- ]text citation|methodology|systematic review/i.test(text)) score.research += 1;
+  if (/competency|workplace assessment|vocational|on[- ]the[- ]job|nationally recognised|training package|unit of competency/i.test(text)) score.practical += 1;
+
+  const top = Object.entries(score).sort((a, b) => b[1] - a[1])[0];
+  if (!top || top[1] === 0) return 'general';
+  return top[0];
+};

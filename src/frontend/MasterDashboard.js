@@ -17,7 +17,7 @@ import MathsStepEditor from './MathsStepEditor';
 import AIAvatar from './AIAvatar';
 import SupportBridge from './SupportBridge';
 import { fetchLMSData } from '../backend/LMSConnector';
-import { mapToWorkspace, deriveRoadmapFromAssessments, extractDeepCourseData, mergeExtractionData } from '../services/BriefService';
+import { mapToWorkspace, deriveRoadmapFromAssessments, extractDeepCourseData, mergeExtractionData, groupFilesByUnitCode, detectAcademicTier } from '../services/BriefService';
 import { processDocumentWithGCP } from '../services/DocumentAIService';
 import { fetchGroundingPdfs, listGroundingPdfs } from '../utils/GroundingLoader';
 import { nameCourse, pingOllama, getProviderName, extractAssessmentBriefs, REASONING_START_EVENT, REASONING_END_EVENT } from '../services/RewriteService';
@@ -285,25 +285,17 @@ export default function MasterDashboard() {
   // code gets its own cockpit entry. Detects codes like BABS1201,
   // MATH1131, etc. from sourceFiles. Files without a code go into the
   // fallback group keyed by the profile unit code.
+  // Bridge between the new Grounding component (which emits an ARRAY of
+  // per-unit-code payloads, each properly merged from only its own
+  // files) and handleSprintCreation (which builds one Course Pillar
+  // per call). Stays backward compatible with the old single-payload
+  // contract: a plain object is treated as a one-pillar array.
   const handleGroupedIngest = async (data) => {
-    const files = data.sourceFiles || [];
-    if (files.length === 0) return handleSprintCreation(data);
-
-    const codeRegex = /\b([A-Z]{3,4}\d{4})\b/;
-    const groups = {};
-    for (const name of files) {
-      const match = name.match(codeRegex);
-      const code = match ? match[1] : (data.unitCode || 'Unknown');
-      if (!groups[code]) groups[code] = [];
-      groups[code].push(name);
-    }
-
-    const codes = Object.keys(groups);
-    if (codes.length <= 1) return handleSprintCreation(data);
-
-    for (const code of codes) {
-      const subset = { ...data, unitCode: code, sourceFiles: groups[code] };
-      await handleSprintCreation(subset);
+    const payloads = Array.isArray(data) ? data : [data];
+    if (payloads.length === 0) return;
+    if (typeof console !== 'undefined') console.info('[handleGroupedIngest] creating', payloads.length, 'course pillar(s)');
+    for (const payload of payloads) {
+      await handleSprintCreation(payload);
     }
   };
 
@@ -431,52 +423,67 @@ export default function MasterDashboard() {
   };
 
   // Ingest every PDF currently committed to /src/grounding/active/.
-  // Triggered by the cockpit top-nav button. Aggregates all files into
-  // one extractionData payload (same merge pipeline as the onboarding
-  // Grounding step) then calls handleSprintCreation, which lands the
-  // Shadow State draft cockpit immediately and fires the LLM
-  // confirmation pass in the background.
+  // Triggered by the cockpit top-nav button. Stage 02 of the
+  // architecture: files are first grouped by detected unit code
+  // (BABS1201 vs BABS1202 vs ...) so each group lands as a separate
+  // Course Pillar via its own handleSprintCreation call. Files inside
+  // a group are sorted Outline > Brief > Rubric so the merged rawText
+  // opens with the canonical assessment table.
   const handleIngestGrounding = async () => {
     if (ingesting) return;
     setIngesting(true);
     setIngestStatus('Locating grounding folder...');
     window.dispatchEvent(new CustomEvent(REASONING_START_EVENT));
     try {
-      const files = (await fetchGroundingPdfs()).sort((a, b) => classifyGroundingFile(a) - classifyGroundingFile(b));
-      if (files.length === 0) {
+      const allFiles = await fetchGroundingPdfs();
+      if (allFiles.length === 0) {
         setIngestStatus('Nothing in /src/grounding/active/.');
         if (typeof console !== 'undefined') console.warn('[handleIngestGrounding] no PDFs returned by GroundingLoader');
         return;
       }
-      let aggregated = {
-        unitCode: profile.courseName,
-        level: profile.level,
-        theme: 'General'
-      };
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        setIngestStatus(`Scanning ${i + 1} of ${files.length}: ${file.name}`);
-        if (typeof console !== 'undefined') console.info('[handleIngestGrounding] processing', file.name, 'class=', classifyGroundingFile(file));
-        try {
-          const text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
-          const deepData = extractDeepCourseData(text);
-          aggregated = mergeExtractionData(aggregated, { ...deepData, rawText: text });
-        } catch (err) {
-          if (typeof console !== 'undefined') console.warn('[handleIngestGrounding] skipped', file.name, err && err.message);
+
+      const grouped = groupFilesByUnitCode(allFiles);
+      const codes = Object.keys(grouped).sort();
+      if (typeof console !== 'undefined') console.info('[handleIngestGrounding] detected', codes.length, 'unit-code group(s):', codes);
+
+      let scanned = 0;
+      const totalFiles = allFiles.length;
+
+      for (const code of codes) {
+        const files = grouped[code].slice().sort((a, b) => classifyGroundingFile(a) - classifyGroundingFile(b));
+        const displayCode = code === '__unknown' ? 'Unknown unit' : code;
+        let aggregated = {
+          unitCode: code === '__unknown' ? (profile.courseName || 'Unknown') : code,
+          level: profile.level,
+          theme: 'General',
+          sourceFiles: files.map(f => f.name)
+        };
+        for (const file of files) {
+          scanned++;
+          setIngestStatus(`Scanning ${scanned} of ${totalFiles}  ·  ${displayCode}  ·  ${file.name}`);
+          if (typeof console !== 'undefined') console.info('[handleIngestGrounding] processing', file.name, 'group=', displayCode);
+          try {
+            const text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
+            const deepData = extractDeepCourseData(text);
+            aggregated = mergeExtractionData(aggregated, { ...deepData, rawText: text });
+          } catch (err) {
+            if (typeof console !== 'undefined') console.warn('[handleIngestGrounding] skipped', file.name, err && err.message);
+          }
         }
+        const tier = detectAcademicTier(aggregated.rawText || '', files.map(f => f.name));
+        aggregated.academicTier = tier;
+        if (typeof console !== 'undefined') console.info('[handleIngestGrounding]', displayCode, 'tier=', tier);
+        setIngestStatus(`Handing off ${displayCode} (${tier}) to Sprint Creation...`);
+        await handleSprintCreation(aggregated);
       }
-      setIngestStatus('Handing off to Sprint Creation...');
-      await handleSprintCreation(aggregated);
-      setIngestStatus(`Ingested ${files.length} file${files.length === 1 ? '' : 's'}.`);
+
+      setIngestStatus(`Ingested ${totalFiles} file${totalFiles === 1 ? '' : 's'} into ${codes.length} course pillar${codes.length === 1 ? '' : 's'}.`);
     } catch (err) {
       if (typeof console !== 'undefined') console.error('[handleIngestGrounding] failed', err);
       setIngestStatus(`Ingestion failed: ${err && err.message ? err.message : 'unknown error'}`);
     } finally {
       window.dispatchEvent(new CustomEvent(REASONING_END_EVENT));
       setIngesting(false);
-      // Clear the status line after a few seconds so the nav does not
-      // stay cluttered. The Shadow State pill keeps the user informed
-      // while the LLM confirmation pass finishes.
       setTimeout(() => setIngestStatus(''), 6000);
     }
   };
