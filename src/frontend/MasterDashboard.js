@@ -31,6 +31,7 @@ import { auditProjectContext } from '../services/VerificationService';
 import { saveGhostAsset, getAllGhostAssets } from '../services/IndexedDBService';
 import IdleNudge from './IdleNudge';
 import SteeringDrawer from './SteeringDrawer';
+import PdfDropZone from './PdfDropZone';
 import HomeschoolDashboard from '../streams/homeschool/Dashboard';
 import PrimaryDashboard from '../streams/primary/Dashboard';
 import SecondaryDashboard from '../streams/secondary/Dashboard';
@@ -1114,6 +1115,9 @@ export default function MasterDashboard() {
           </button>
         </div>
       </div>
+
+      {/* Block 3 scaffold: anonymous PDF upload to Supabase Storage. Move in split refactor. */}
+      <PdfDropZone />
 
       {/* Restored Avatar: Fixed Anchor at top:100px (clears the z-1200 nav) */}
       <div className="fixed top-[100px] left-4 z-[1100] w-56 animate-fade-in pointer-events-none">
