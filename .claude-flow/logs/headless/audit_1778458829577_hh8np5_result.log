@@ -1,0 +1,71 @@
+[2026-05-11T00:21:08.879Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 78,\n      \"description\": \"Weak passphrase requirement: minimum 4 characters is insufficient for encryption key derivation. Recommend enforcing 8+ characters or using entropy-based validation.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 19,\n      \"description\": \"Passphrase hint stored unencrypted in localStorage (PASSPHRASE_HINT_KEY). If attacker gains device access, hint leaks passphrase recovery information.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/App.js\",\n      \"line\": 25,\n      \"description\": \"URL parameter 'reset=true' directly triggers localStorage.clear() without confirmation. Attacker could craft malicious URLs to social-engineer users into wiping local data.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/ExecutiveSpine.js\",\n      \"line\": 32,\n      \"description\": \"Focus session data stored in plain JSON in localStorage. While not highly sensitive (timestamps/durations), stores startedAt/endsAt timestamps in plaintext.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/backend/LMSConnector.js\",\n      \"line\": 1,\n      \"description\": \"No input validation on courseCode parameter before use. When real LMS integration lands, validate courseCode format/length to prevent injection.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 159,\n      \"description\": \"Base64 encoding of salt uses btoa/atob (legacy functions). While salt is system-generated, these functions can throw on non-UTF8 input. Use TextEncoder/TextDecoder instead.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/EventBus.js\",\n      \"line\": 45,\n      \"description\": \"Default user_id hardcoded as 'local' in safeAppend. While intentional per design, ensure no actual user identifiers leak into this path during cloud-sync implementation.\"\n    }\n  ],\n  \"riskScore\": 28,\n  \"recommendations\": [\n    \"Increase passphrase minimum to 8 characters; consider adding UI validation with strength meter\",\n    \"Remove passphrase hint from localStorage or encrypt it separately; move to volatile memory only\",\n    \"Add confirmation dialog before localStorage.clear() triggered by URL parameter, or remove the feature entirely\",\n    \"Validate and sanitize courseCode parameter in LMSConnector before returning; whitelist expected format\",\n    \"Replace btoa/atob with TextEncoder/TextDecoder for salt encoding to handle edge cases safely\",\n    \"Audit pdfjs-dist version; ensure it's the latest stable release with no known CVEs (currently using legacy build)\",\n    \"When implementing real LMS integration, add request validation for all external API responses\",\n    \"Add rate limiting to API calls and encryption operations to prevent brute-force attacks on passphrase\",\n    \"Document that localStorage is readable by any script on the same origin; plan for Content Security Policy (CSP) headers if deployed as web app\",\n    \"Add integrity checks for IndexedDB events before decryption (AEAD validation is present via AES-GCM, but log this explicitly)\"\n  ]\n}\n```\n\n**Summary:**\n\nThis is a **well-architected codebase** with intentional privacy-first design. The main risks are:\n\n1. **Weak passphrase enforcement** (4 chars) - raises brute-force risk for HistoryOfThought encryption\n2. **Passphrase hint exposure** - localStorage stores hints unencrypted, defeating recovery privacy\n3. **UI-based vulnerabilities** (reset parameter, focus sessions in localStorage) - low severity but addressable\n\n**Strengths:**\n- Proper AES-GCM-256 + PBKDF2 600k implementation for encryption\n- Silent vault-locked drops prevent data leakage\n- No hardcoded API keys or secrets\n- Event bus properly isolates spine from storage\n- React components avoid obvious XSS patterns\n\nThe risk score of 28/100 reflects **low overall risk** with actionable medium-priority fixes for the passphrase/hint layer.\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 78,
+        "description": "Weak passphrase requirement: minimum 4 characters is insufficient for encryption key derivation. Recommend enforcing 8+ characters or using entropy-based validation."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 19,
+        "description": "Passphrase hint stored unencrypted in localStorage (PASSPHRASE_HINT_KEY). If attacker gains device access, hint leaks passphrase recovery information."
+      },
+      {
+        "severity": "low",
+        "file": "src/App.js",
+        "line": 25,
+        "description": "URL parameter 'reset=true' directly triggers localStorage.clear() without confirmation. Attacker could craft malicious URLs to social-engineer users into wiping local data."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/ExecutiveSpine.js",
+        "line": 32,
+        "description": "Focus session data stored in plain JSON in localStorage. While not highly sensitive (timestamps/durations), stores startedAt/endsAt timestamps in plaintext."
+      },
+      {
+        "severity": "low",
+        "file": "src/backend/LMSConnector.js",
+        "line": 1,
+        "description": "No input validation on courseCode parameter before use. When real LMS integration lands, validate courseCode format/length to prevent injection."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 159,
+        "description": "Base64 encoding of salt uses btoa/atob (legacy functions). While salt is system-generated, these functions can throw on non-UTF8 input. Use TextEncoder/TextDecoder instead."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/EventBus.js",
+        "line": 45,
+        "description": "Default user_id hardcoded as 'local' in safeAppend. While intentional per design, ensure no actual user identifiers leak into this path during cloud-sync implementation."
+      }
+    ],
+    "riskScore": 28,
+    "recommendations": [
+      "Increase passphrase minimum to 8 characters; consider adding UI validation with strength meter",
+      "Remove passphrase hint from localStorage or encrypt it separately; move to volatile memory only",
+      "Add confirmation dialog before localStorage.clear() triggered by URL parameter, or remove the feature entirely",
+      "Validate and sanitize courseCode parameter in LMSConnector before returning; whitelist expected format",
+      "Replace btoa/atob with TextEncoder/TextDecoder for salt encoding to handle edge cases safely",
+      "Audit pdfjs-dist version; ensure it's the latest stable release with no known CVEs (currently using legacy build)",
+      "When implementing real LMS integration, add request validation for all external API responses",
+      "Add rate limiting to API calls and encryption operations to prevent brute-force attacks on passphrase",
+      "Document that localStorage is readable by any script on the same origin; plan for Content Security Policy (CSP) headers if deployed as web app",
+      "Add integrity checks for IndexedDB events before decryption (AEAD validation is present via AES-GCM, but log this explicitly)"
+    ]
+  },
+  "durationMs": 39301,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-11T00:21:08.878Z",
+  "executionId": "audit_1778458829577_hh8np5"
+}

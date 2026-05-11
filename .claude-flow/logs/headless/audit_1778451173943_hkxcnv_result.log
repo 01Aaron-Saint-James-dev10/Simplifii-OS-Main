@@ -1,0 +1,89 @@
+[2026-05-10T22:13:36.482Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/App.js\",\n      \"line\": 24,\n      \"description\": \"URL parameter reset vector: `?reset=true` allows arbitrary clearing of all user data including onboarding state. No origin validation, CSRF check, or rate limiting. Anyone with access to the URL can wipe the user's data.\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 101,\n      \"description\": \"Weak passphrase requirement (minimum 4 characters) is insufficient for protecting encrypted vault. AES-GCM-256 security is undermined if passphrase is trivial. Recommend minimum 12 characters + entropy check.\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/core/ExecutiveSpine.js\",\n      \"line\": 12,\n      \"description\": \"Sensitive session data stored in plain-text localStorage: focus session state, section health scores, sovereign credits. localStorage is accessible to any script on the origin and XSS payloads. Session hijacking risk.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 67,\n      \"description\": \"Encryption salt stored in plain-text localStorage (SALT_KEY). While salt does not need to be secret in PBKDF2, storing it unencrypted alongside the encrypted vault reduces defense-in-depth. Should be derived from passphrase alone or stored encrypted.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/EventBus.js\",\n      \"line\": 60,\n      \"description\": \"Custom events (simplifii:*) can be dispatched from any code on the page, including malicious scripts or extensions. No event source validation. Attacker could inject false focus sessions, health changes, or playtime grants.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/frontend/MasterDashboard.js\",\n      \"line\": 47,\n      \"description\": \"User input (textarea value) stored directly via `updateDraft(e.target.value)` with no sanitization. If rendered as HTML elsewhere, XSS risk. Currently rendered as text but no guarantee in future refactors.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/backend/LMSConnector.js\",\n      \"line\": 1,\n      \"description\": \"courseCode parameter accepted without validation. If this function makes real network requests in future, unsanitized courseCode could enable URL injection or header smuggling.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/ExecutiveSpine.js\",\n      \"line\": 56,\n      \"description\": \"Silent error handling in `JSON.parse()` could hide corrupted session data. Invalid JSON in FOCUS_KEY will be treated as no session, potentially losing user state without warning.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/frontend/SettingsContext.js\",\n      \"line\": 27,\n      \"description\": \"fontFamily is set directly from context without validation: `fontFamily: rules[mode].font`. Unusual font names or CSS injection via mode switching could cause unexpected behavior, though impact is low.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/backend/NeuralAuditPipeline.js\",\n      \"line\": 7,\n      \"description\": \"Course code matching via `.includes()` is loose and could produce false positives. If activeFiles contains 'BABS' in any context, SCIENCE_CODES check will trigger incorrectly.\"\n    }\n  ],\n  \"riskScore\": 72,\n  \"recommendations\": [\n    \"**Disable URL-based reset**: Remove or gate the `?reset=true` parameter. Require explicit user action (button click + confirmation) to clear data. Validate origin if reset is allowed.\",\n    \"**Strengthen passphrase policy**: Enforce minimum 12 characters, mixed case, and entropy check. Display passphrase strength meter during unlock flow.\",\n    \"**Migrate sensitive data from localStorage**: Use SessionStorage for focus sessions (cleared on tab close) or in-memory state. Encrypt remaining localStorage with passphrase-derived key before storage.\",\n    \"**Validate event sources**: Wrap CustomEvent handlers to reject events from untrusted sources. Consider namespacing events or using WeakMap to track event origins.\",\n    \"**Sanitize user input**: Even though textarea is rendered as text now, apply DOMPurify or equivalent before storing/displaying user drafts. Prevents accidental XSS if code path changes.\",\n    \"**Validate courseCode**: Whitelist allowed course codes before use. Reject codes with special characters, spaces, or URLs.\",\n    \"**Harden encryption salt**: Derive salt from passphrase using HKDF or store it encrypted at rest instead of plain-text localStorage.\",\n    \"**Add Content Security Policy (CSP)**: Restrict script sources, inline styles, and font origins. Mitigates event spoofing and injection attacks.\",\n    \"**Audit dependency versions**: Verify pdfjs-dist and other node_modules for known CVEs using `npm audit`. Current versions not specified in package.json snippet.\",\n    \"**Implement CSRF tokens** if any future API calls are added. Currently client-side only, but cross-origin requests to future backend need protection.\"\n  ]\n}\n```\n\n### Key Issues Summary\n\n**Highest Risk**: The `?reset=true` parameter is a critical CSRF-like vector—it silently wipes all user data. Combined with weak passphrase enforcement (4 chars) and plain-text localStorage, the confidentiality and integrity of student work is compromised.\n\n**Encryption False Sense of Security**: The vault uses correct AES-GCM-256 + PBKDF2, but the 4-character passphrase floor and stored salt undermine the implementation.\n\n**Event Spoofing Attack Surface**: Custom events driving state changes (focus, health, playtime) have no source validation, allowing script injection to grant unauthorized credits or manipulate session data.\n\nFollow the recommendations in priority order: fix the reset vector first, then enforce passphrase strength, then migrate sensitive data away from localStorage.\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "high",
+        "file": "src/App.js",
+        "line": 24,
+        "description": "URL parameter reset vector: `?reset=true` allows arbitrary clearing of all user data including onboarding state. No origin validation, CSRF check, or rate limiting. Anyone with access to the URL can wipe the user's data."
+      },
+      {
+        "severity": "high",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 101,
+        "description": "Weak passphrase requirement (minimum 4 characters) is insufficient for protecting encrypted vault. AES-GCM-256 security is undermined if passphrase is trivial. Recommend minimum 12 characters + entropy check."
+      },
+      {
+        "severity": "high",
+        "file": "src/core/ExecutiveSpine.js",
+        "line": 12,
+        "description": "Sensitive session data stored in plain-text localStorage: focus session state, section health scores, sovereign credits. localStorage is accessible to any script on the origin and XSS payloads. Session hijacking risk."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 67,
+        "description": "Encryption salt stored in plain-text localStorage (SALT_KEY). While salt does not need to be secret in PBKDF2, storing it unencrypted alongside the encrypted vault reduces defense-in-depth. Should be derived from passphrase alone or stored encrypted."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/EventBus.js",
+        "line": 60,
+        "description": "Custom events (simplifii:*) can be dispatched from any code on the page, including malicious scripts or extensions. No event source validation. Attacker could inject false focus sessions, health changes, or playtime grants."
+      },
+      {
+        "severity": "medium",
+        "file": "src/frontend/MasterDashboard.js",
+        "line": 47,
+        "description": "User input (textarea value) stored directly via `updateDraft(e.target.value)` with no sanitization. If rendered as HTML elsewhere, XSS risk. Currently rendered as text but no guarantee in future refactors."
+      },
+      {
+        "severity": "medium",
+        "file": "src/backend/LMSConnector.js",
+        "line": 1,
+        "description": "courseCode parameter accepted without validation. If this function makes real network requests in future, unsanitized courseCode could enable URL injection or header smuggling."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/ExecutiveSpine.js",
+        "line": 56,
+        "description": "Silent error handling in `JSON.parse()` could hide corrupted session data. Invalid JSON in FOCUS_KEY will be treated as no session, potentially losing user state without warning."
+      },
+      {
+        "severity": "low",
+        "file": "src/frontend/SettingsContext.js",
+        "line": 27,
+        "description": "fontFamily is set directly from context without validation: `fontFamily: rules[mode].font`. Unusual font names or CSS injection via mode switching could cause unexpected behavior, though impact is low."
+      },
+      {
+        "severity": "low",
+        "file": "src/backend/NeuralAuditPipeline.js",
+        "line": 7,
+        "description": "Course code matching via `.includes()` is loose and could produce false positives. If activeFiles contains 'BABS' in any context, SCIENCE_CODES check will trigger incorrectly."
+      }
+    ],
+    "riskScore": 72,
+    "recommendations": [
+      "**Disable URL-based reset**: Remove or gate the `?reset=true` parameter. Require explicit user action (button click + confirmation) to clear data. Validate origin if reset is allowed.",
+      "**Strengthen passphrase policy**: Enforce minimum 12 characters, mixed case, and entropy check. Display passphrase strength meter during unlock flow.",
+      "**Migrate sensitive data from localStorage**: Use SessionStorage for focus sessions (cleared on tab close) or in-memory state. Encrypt remaining localStorage with passphrase-derived key before storage.",
+      "**Validate event sources**: Wrap CustomEvent handlers to reject events from untrusted sources. Consider namespacing events or using WeakMap to track event origins.",
+      "**Sanitize user input**: Even though textarea is rendered as text now, apply DOMPurify or equivalent before storing/displaying user drafts. Prevents accidental XSS if code path changes.",
+      "**Validate courseCode**: Whitelist allowed course codes before use. Reject codes with special characters, spaces, or URLs.",
+      "**Harden encryption salt**: Derive salt from passphrase using HKDF or store it encrypted at rest instead of plain-text localStorage.",
+      "**Add Content Security Policy (CSP)**: Restrict script sources, inline styles, and font origins. Mitigates event spoofing and injection attacks.",
+      "**Audit dependency versions**: Verify pdfjs-dist and other node_modules for known CVEs using `npm audit`. Current versions not specified in package.json snippet.",
+      "**Implement CSRF tokens** if any future API calls are added. Currently client-side only, but cross-origin requests to future backend need protection."
+    ]
+  },
+  "durationMs": 42538,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-10T22:13:36.482Z",
+  "executionId": "audit_1778451173943_hkxcnv"
+}

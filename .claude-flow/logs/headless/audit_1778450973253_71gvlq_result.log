@@ -1,0 +1,58 @@
+[2026-05-10T22:10:13.234Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "# Security Audit Report - Simplifii-OS Codebase\n\n```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 88,\n      \"description\": \"Weak passphrase validation: 4-character minimum allows easily brute-forceable passphrases. Despite PBKDF2 mitigation, should enforce minimum 8-12 characters for better security posture.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/backend/NeuralAuditPipeline.js\",\n      \"line\": 3,\n      \"description\": \"Hardcoded course codes (BABS1201, BABS1202) in source violate architectural guideline: 'do not reference specific university course codes inside engineering specs'. Code should be institution-agnostic per CLAUDE.md.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/App.js\",\n      \"line\": 28,\n      \"description\": \"URL parameter handling without explicit validation. Pattern `params.get('reset') === 'true'` is safe here, but reflects potential code smell if extended. Consider centralizing URL param validation.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 11,\n      \"description\": \"Salt stored unencrypted in localStorage. While correct (salts don't require secrecy), ensure consumers understand this is intentional and not a compliance gap.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"frontend/SmartIntake.js\",\n      \"line\": 11,\n      \"description\": \"Hardcoded 'UNSW Moodle' reference in UI text violates 'Universal Architecture' guideline. Should be sourced from institutional config, not embedded in component.\"\n    }\n  ],\n  \"riskScore\": 22,\n  \"recommendations\": [\n    \"**[MEDIUM PRIORITY]** Increase passphrase minimum to 12 characters in HistoryOfThought.js:88. Add entropy requirements (mixed case, numbers optional but encouraged).\",\n    \"**[MEDIUM PRIORITY]** Refactor hardcoded course codes (BABS1201, BABS1202) out of NeuralAuditPipeline.js. Source from institutional profile config loaded at runtime.\",\n    \"**[LOW PRIORITY]** Remove hardcoded 'UNSW Moodle' from SmartIntake.js. Replace with context variable: `${institutionalContext.lmsName || 'your LMS'}`.\",\n    \"**[LOW PRIORITY]** Add Content-Security-Policy header in production build (if not already in server config). Recommended: `script-src 'self'; object-src 'none'; base-uri 'self'`.\",\n    \"**[LOW PRIORITY]** Centralize URL search param validation. Create `src/utils/urlParams.js` with allowlist validation before use.\",\n    \"**[INFO]** Cryptographic implementation is sound: AES-GCM-256 + PBKDF2 (600k iterations) + proper key derivation. No changes needed here.\",\n    \"**[INFO]** No XSS vectors detected: no dangerouslySetInnerHTML, no eval(), user textarea content rendered as text only.\",\n    \"**[INFO]** No SQL injection vectors: frontend-only app with no direct database queries.\",\n    \"**[COMPLIANCE]** Ensure pdf.worker.min.js copy (scripts/copy-pdf-worker.js) is documented in security/supply-chain review—it's a legitimate local-first pattern but should be flagged in vendor monitoring.\"\n  ]\n}\n```\n\n## Notes\n\n**Strengths:**\n- Strong encryption architecture (AES-GCM-256 + PBKDF2)\n- No dangerous HTML rendering patterns\n- Proper use of React context (no prop drilling vulnerabilities)\n- Local-first design minimizes data exposure\n\n**Areas for Hardening:**\n- The 4-character passphrase minimum is the only material weakness; raising it to 12+ characters with PBKDF2 600k iterations brings it to industry standard\n- Institutional coupling (UNSW, BABS course codes) should be moved to config, not source\n- URL parameter handling could benefit from explicit allowlisting\n\n**Compliance notes:** The codebase adheres to the Sovereign Constitution guidelines (local-first, no telemetry, vault encryption). The institutional references are documented as a known issue in CLAUDE.md (\"do not reference specific university course codes...inside engineering specs\").\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 88,
+        "description": "Weak passphrase validation: 4-character minimum allows easily brute-forceable passphrases. Despite PBKDF2 mitigation, should enforce minimum 8-12 characters for better security posture."
+      },
+      {
+        "severity": "low",
+        "file": "src/backend/NeuralAuditPipeline.js",
+        "line": 3,
+        "description": "Hardcoded course codes (BABS1201, BABS1202) in source violate architectural guideline: 'do not reference specific university course codes inside engineering specs'. Code should be institution-agnostic per CLAUDE.md."
+      },
+      {
+        "severity": "low",
+        "file": "src/App.js",
+        "line": 28,
+        "description": "URL parameter handling without explicit validation. Pattern `params.get('reset') === 'true'` is safe here, but reflects potential code smell if extended. Consider centralizing URL param validation."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 11,
+        "description": "Salt stored unencrypted in localStorage. While correct (salts don't require secrecy), ensure consumers understand this is intentional and not a compliance gap."
+      },
+      {
+        "severity": "low",
+        "file": "frontend/SmartIntake.js",
+        "line": 11,
+        "description": "Hardcoded 'UNSW Moodle' reference in UI text violates 'Universal Architecture' guideline. Should be sourced from institutional config, not embedded in component."
+      }
+    ],
+    "riskScore": 22,
+    "recommendations": [
+      "**[MEDIUM PRIORITY]** Increase passphrase minimum to 12 characters in HistoryOfThought.js:88. Add entropy requirements (mixed case, numbers optional but encouraged).",
+      "**[MEDIUM PRIORITY]** Refactor hardcoded course codes (BABS1201, BABS1202) out of NeuralAuditPipeline.js. Source from institutional profile config loaded at runtime.",
+      "**[LOW PRIORITY]** Remove hardcoded 'UNSW Moodle' from SmartIntake.js. Replace with context variable: `${institutionalContext.lmsName || 'your LMS'}`.",
+      "**[LOW PRIORITY]** Add Content-Security-Policy header in production build (if not already in server config). Recommended: `script-src 'self'; object-src 'none'; base-uri 'self'`.",
+      "**[LOW PRIORITY]** Centralize URL search param validation. Create `src/utils/urlParams.js` with allowlist validation before use.",
+      "**[INFO]** Cryptographic implementation is sound: AES-GCM-256 + PBKDF2 (600k iterations) + proper key derivation. No changes needed here.",
+      "**[INFO]** No XSS vectors detected: no dangerouslySetInnerHTML, no eval(), user textarea content rendered as text only.",
+      "**[INFO]** No SQL injection vectors: frontend-only app with no direct database queries.",
+      "**[COMPLIANCE]** Ensure pdf.worker.min.js copy (scripts/copy-pdf-worker.js) is documented in security/supply-chain review—it's a legitimate local-first pattern but should be flagged in vendor monitoring."
+    ]
+  },
+  "durationMs": 39981,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-10T22:10:13.234Z",
+  "executionId": "audit_1778450973253_71gvlq"
+}

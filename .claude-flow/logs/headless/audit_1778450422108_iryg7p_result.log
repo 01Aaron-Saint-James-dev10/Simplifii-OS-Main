@@ -1,0 +1,97 @@
+[2026-05-10T22:01:05.241Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/App.js\",\n      \"line\": 22,\n      \"description\": \"Unvalidated query parameter 'reset' clears all localStorage without confirmation. Attacker can trick user into clicking a malicious link with ?reset=true to wipe user data and session state.\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/App.js\",\n      \"line\": 17,\n      \"description\": \"Authentication state stored in localStorage via 'simplifii_onboarding_complete' flag. localStorage is accessible to any script on the origin and can be manipulated by attacker to bypass onboarding and gain unauthorized access.\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 70,\n      \"description\": \"Encryption salt stored in plaintext localStorage (base64-encoded). Salt should not be persisted where it can be easily retrieved and combined with offline password cracking. Compromises AES-GCM-256 security model.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 125,\n      \"description\": \"No rate limiting on unlockWithPassphrase(). Attacker can perform unlimited brute-force attacks against 4-character minimum passphrases without throttling or account lockout.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 150,\n      \"description\": \"IndexedDB encryption only applied if passphrase is set via unlockWithPassphrase(). If vault is accessed before passphrase is set, events may persist unencrypted to IndexedDB, violating 'local-first encrypted' contract.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/frontend/MasterDashboard.js\",\n      \"line\": 71,\n      \"description\": \"User-controlled text (project.currentDraft) stored in state without sanitization. If this content is ever rendered as innerHTML or sent to backend without escaping, XSS attack possible.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/frontend/SettingsContext.js\",\n      \"line\": 18,\n      \"description\": \"fontFamily property applied directly to style object. Currently hardcoded, but pattern allows DOM-based XSS if font values become user-controllable without validation.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/EventBus.js\",\n      \"line\": 55,\n      \"description\": \"Console.warn() outputs internal error details. Error messages may leak system architecture details to attackers monitoring browser console. Recommend sanitize error messages before logging.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/LiteralMode.js\",\n      \"line\": 40,\n      \"description\": \"Regex pattern replacement applied to user input without validation. While patterns are hardcoded, if input source changes to user-controlled strings, replacement logic could be exploited for content injection.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"scripts/copy-pdf-worker.js\",\n      \"line\": 1,\n      \"description\": \"No integrity checking on copied pdf.worker file. If node_modules is compromised, malicious pdf.js worker could execute arbitrary code in document context. Consider adding SRI (Subresource Integrity) hash verification.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/App.js\",\n      \"line\": 1,\n      \"description\": \"No CSRF protection visible (no tokens, no SameSite cookie policy). If backend is added later, app is vulnerable to cross-site request forgery attacks.\"\n    }\n  ],\n  \"riskScore\": 72,\n  \"recommendations\": [\n    \"CRITICAL: Remove localStorage-based authentication. Implement server-side session tokens with secure, httpOnly, SameSite=Strict cookies.\",\n    \"CRITICAL: Move encryption salt out of localStorage. Generate and store salt only in memory during active session; derive it from passphrase on unlock (e.g., via PBKDF2 with passphrase as input).\",\n    \"CRITICAL: Disable the ?reset=true query parameter or require explicit passphrase confirmation before clearing vault. Prevent accidental/malicious data wipe.\",\n    \"HIGH: Implement passphrase rate limiting. Lock vault after 5 failed unlock attempts for 15+ minutes, with exponential backoff.\",\n    \"HIGH: Ensure IndexedDB encryption is mandatory before any append. Throw error rather than silently storing unencrypted if vault is not unlocked.\",\n    \"HIGH: Sanitize and escape project.currentDraft if ever rendered as HTML (currently safe in textarea, but document for future developers).\",\n    \"MEDIUM: Add SRI integrity checks to pdf.worker copy. Verify hash of node_modules artifact before serving to frontend.\",\n    \"MEDIUM: Validate fontFamily values against whitelist. Never allow user-controlled CSS values without explicit validation.\",\n    \"MEDIUM: Add CSRF token generation and validation. Implement SameSite=Lax on all cookies when backend is added.\",\n    \"LOW: Sanitize console.warn() messages. Avoid logging sensitive paths, user IDs, or system details that could aid attackers.\",\n    \"LOW: Add Content Security Policy (CSP) header to prevent inline script injection. Set script-src to 'self' only.\",\n    \"RECOMMENDATION: Run `npm audit` regularly and pin dependency versions. Consider adding npm audit CI check to pre-commit hook.\"\n  ]\n}\n```\n\n---\n\n### Summary\n\n**Risk Score: 72/100** (High Risk)\n\nYour codebase has **3 critical vulnerabilities** around state management and encryption that undermine the \"sovereign\" offline-first architecture:\n\n1. **Authentication bypass** via localStorage flag manipulation\n2. **Encryption weakness** by storing salt in accessible storage  \n3. **State wipe attack** via unprotected query parameter\n\nThe Sovereign Constitution in `CLAUDE.md` promises \"no auth required\" and \"encrypted at rest,\" but the current implementation stores both the session flag and encryption salt in plaintext localStorage, which any XSS or same-origin attacker can read.\n\n**First fix:** Implement passphrase-only unlock (derive salt from passphrase, don't persist it). Second: Add passphrase rate limiting to block brute force.\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "high",
+        "file": "src/App.js",
+        "line": 22,
+        "description": "Unvalidated query parameter 'reset' clears all localStorage without confirmation. Attacker can trick user into clicking a malicious link with ?reset=true to wipe user data and session state."
+      },
+      {
+        "severity": "high",
+        "file": "src/App.js",
+        "line": 17,
+        "description": "Authentication state stored in localStorage via 'simplifii_onboarding_complete' flag. localStorage is accessible to any script on the origin and can be manipulated by attacker to bypass onboarding and gain unauthorized access."
+      },
+      {
+        "severity": "high",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 70,
+        "description": "Encryption salt stored in plaintext localStorage (base64-encoded). Salt should not be persisted where it can be easily retrieved and combined with offline password cracking. Compromises AES-GCM-256 security model."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 125,
+        "description": "No rate limiting on unlockWithPassphrase(). Attacker can perform unlimited brute-force attacks against 4-character minimum passphrases without throttling or account lockout."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 150,
+        "description": "IndexedDB encryption only applied if passphrase is set via unlockWithPassphrase(). If vault is accessed before passphrase is set, events may persist unencrypted to IndexedDB, violating 'local-first encrypted' contract."
+      },
+      {
+        "severity": "medium",
+        "file": "src/frontend/MasterDashboard.js",
+        "line": 71,
+        "description": "User-controlled text (project.currentDraft) stored in state without sanitization. If this content is ever rendered as innerHTML or sent to backend without escaping, XSS attack possible."
+      },
+      {
+        "severity": "medium",
+        "file": "src/frontend/SettingsContext.js",
+        "line": 18,
+        "description": "fontFamily property applied directly to style object. Currently hardcoded, but pattern allows DOM-based XSS if font values become user-controllable without validation."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/EventBus.js",
+        "line": 55,
+        "description": "Console.warn() outputs internal error details. Error messages may leak system architecture details to attackers monitoring browser console. Recommend sanitize error messages before logging."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/LiteralMode.js",
+        "line": 40,
+        "description": "Regex pattern replacement applied to user input without validation. While patterns are hardcoded, if input source changes to user-controlled strings, replacement logic could be exploited for content injection."
+      },
+      {
+        "severity": "medium",
+        "file": "scripts/copy-pdf-worker.js",
+        "line": 1,
+        "description": "No integrity checking on copied pdf.worker file. If node_modules is compromised, malicious pdf.js worker could execute arbitrary code in document context. Consider adding SRI (Subresource Integrity) hash verification."
+      },
+      {
+        "severity": "medium",
+        "file": "src/App.js",
+        "line": 1,
+        "description": "No CSRF protection visible (no tokens, no SameSite cookie policy). If backend is added later, app is vulnerable to cross-site request forgery attacks."
+      }
+    ],
+    "riskScore": 72,
+    "recommendations": [
+      "CRITICAL: Remove localStorage-based authentication. Implement server-side session tokens with secure, httpOnly, SameSite=Strict cookies.",
+      "CRITICAL: Move encryption salt out of localStorage. Generate and store salt only in memory during active session; derive it from passphrase on unlock (e.g., via PBKDF2 with passphrase as input).",
+      "CRITICAL: Disable the ?reset=true query parameter or require explicit passphrase confirmation before clearing vault. Prevent accidental/malicious data wipe.",
+      "HIGH: Implement passphrase rate limiting. Lock vault after 5 failed unlock attempts for 15+ minutes, with exponential backoff.",
+      "HIGH: Ensure IndexedDB encryption is mandatory before any append. Throw error rather than silently storing unencrypted if vault is not unlocked.",
+      "HIGH: Sanitize and escape project.currentDraft if ever rendered as HTML (currently safe in textarea, but document for future developers).",
+      "MEDIUM: Add SRI integrity checks to pdf.worker copy. Verify hash of node_modules artifact before serving to frontend.",
+      "MEDIUM: Validate fontFamily values against whitelist. Never allow user-controlled CSS values without explicit validation.",
+      "MEDIUM: Add CSRF token generation and validation. Implement SameSite=Lax on all cookies when backend is added.",
+      "LOW: Sanitize console.warn() messages. Avoid logging sensitive paths, user IDs, or system details that could aid attackers.",
+      "LOW: Add Content Security Policy (CSP) header to prevent inline script injection. Set script-src to 'self' only.",
+      "RECOMMENDATION: Run `npm audit` regularly and pin dependency versions. Consider adding npm audit CI check to pre-commit hook."
+    ]
+  },
+  "durationMs": 43132,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-10T22:01:05.240Z",
+  "executionId": "audit_1778450422108_iryg7p"
+}

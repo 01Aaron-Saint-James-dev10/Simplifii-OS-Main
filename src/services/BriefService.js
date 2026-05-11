@@ -99,6 +99,27 @@ export const extractEvidenceFormula = (text, level = 'tertiary') => {
   return formula;
 };
 
+export const detectAcademicTier = (text) => {
+  const lower = (text || '').toLowerCase();
+  
+  // Lab Tier: Methodology, experimental, procedural, laboratory
+  if (/\blab\b|\blaboratory\b|\bexperiment\b|\bmethodology\b|\bprocedure\b|\bresults\b|\bscientific\b/.test(lower)) {
+    return 'Lab';
+  }
+  
+  // Research Tier: Literature review, thesis, academic, scholarly, citation
+  if (/\bliterature review\b|\bresearch\b|\bthesis\b|\bdissertation\b|\bscholarly\b|\bjournal\b|\bcitation\b/.test(lower)) {
+    return 'Research';
+  }
+  
+  // Practical Tier: Portfolio, clinical, placement, studio, creative, workshop
+  if (/\bportfolio\b|\bpractical\b|\bclinical\b|\bplacement\b|\bstudio\b|\bcreative\b|\bworkshop\b|\bperformance\b/.test(lower)) {
+    return 'Practical';
+  }
+  
+  return 'General';
+};
+
 export const extractDeepCourseData = (text) => {
   const lowerText = text.toLowerCase();
   
@@ -179,6 +200,8 @@ export const extractDeepCourseData = (text) => {
   if (udlPrinciples.includes('representation')) udlSuggestions.push('bionicReading', 'overlayTint:cream');
   if (udlPrinciples.includes('action_expression')) udlSuggestions.push('viewAsSpeech', 'literalMode');
   if (udlPrinciples.includes('engagement')) udlSuggestions.push('zenMode', 'readingRuler');
+
+  const academicTier = detectAcademicTier(text);
 
   // Extract Assessment Titles. The student cares about what is actually
   // graded, not the abstract Learning Outcomes. We look for several
@@ -289,6 +312,7 @@ export const extractDeepCourseData = (text) => {
     evidenceFormula,
     tierData,
     detectedLevel,
+    academicTier,
     words,
     weighting,
     assessmentDates,
@@ -425,9 +449,16 @@ export const deriveRoadmapFromAssessments = (assessmentTitles = []) => {
   // Attach Pareto micro-steps when the current task matches a known type
   const paretoSteps = resolveParetoSteps(currentTask);
 
-  // Extract total weight from the current task title if it contains a percentage
-  const weightMatch = currentTask ? currentTask.match(/(\d+%)/) : null;
-  const totalWeight = weightMatch ? weightMatch[1] : null;
+  // Extract total weight from the current task title if it contains a percentage.
+  // Literature Review Pareto steps are anchored to a hard 25% weighting per the
+  // BABS1201 course outline; override any extracted value so the badge is stable.
+  let totalWeight = null;
+  if (paretoSteps && currentTask && /literature review/i.test(currentTask)) {
+    totalWeight = '25%';
+  } else {
+    const weightMatch = currentTask ? currentTask.match(/(\d+%)/) : null;
+    totalWeight = weightMatch ? weightMatch[1] : null;
+  }
 
   return { currentTask, nextAssessment, finalMilestone, paretoSteps, totalWeight };
 };

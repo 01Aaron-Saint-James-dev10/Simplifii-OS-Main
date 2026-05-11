@@ -1,0 +1,71 @@
+[2026-05-11T00:24:02.114Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/App.js\",\n      \"line\": 18,\n      \"description\": \"CSRF/XSS vector: `?reset=true` URL parameter triggers localStorage.clear() without CSRF token validation or user confirmation. An attacker can craft a link that silently wipes the user's local state.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/App.js\",\n      \"line\": 31,\n      \"description\": \"Insecure state persistence: localStorage is accessible to XSS attacks. If any code path writes unsanitized user input (e.g., from the textarea in MasterDashboard) to localStorage, retrieval without sanitization creates an XSS vector.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 57,\n      \"description\": \"Weak secret storage: Salt is stored in localStorage as base64-encoded plaintext. localStorage is accessible to any JavaScript on the origin. While acknowledged for local-first design, this weakens the encryption scheme against same-origin script injection.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/ExecutiveSpine.js\",\n      \"line\": 22,\n      \"description\": \"Session tokens in localStorage: Focus session and playtime data stored in plain JSON in localStorage. While not authentication credentials, they can be modified by XSS to manipulate app state (e.g., enable playtime without earning it).\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"scripts/build-grounding-manifest.js\",\n      \"line\": 13,\n      \"description\": \"Unvalidated filenames: `fs.readdirSync()` result written directly to JSON without sanitizing filenames. If a filename contained path traversal sequences or special characters, it could cause issues downstream.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/backend/LMSConnector.js\",\n      \"line\": 1,\n      \"description\": \"Missing input validation: `courseCode` parameter is not validated or sanitized before use in mock response. In a real LMS integration, this could be exploited to inject malicious data.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/frontend/MasterDashboard.js\",\n      \"line\": 67,\n      \"description\": \"Unescaped textarea content: User input in textarea is stored to ProjectContext and persisted. No XSS sanitization visible if this content is later rendered as HTML (though currently rendered as text).\"\n    }\n  ],\n  \"riskScore\": 48,\n  \"recommendations\": [\n    \"Add CSRF protection to the `?reset=true` parameter: require POST with a token, or at minimum add user confirmation dialog.\",\n    \"Implement Content Security Policy (CSP) to mitigate XSS impact and prevent unauthorized localStorage access.\",\n    \"Never write user input directly to localStorage. Validate and sanitize all data before persistence and retrieval.\",\n    \"Move encryption salt from localStorage to a more secure mechanism (e.g., session-only memory, secure IndexedDB with additional checks).\",\n    \"Add input validation to all public function parameters (courseCode, durationMinutes, taskId, passphrase).\",\n    \"Sanitize filenames in build-grounding-manifest.js before JSON serialization (reject special chars or use safeFileName utility).\",\n    \"Use ReactDOM's built-in XSS protection; avoid dangerouslySetInnerHTML when rendering user content.\",\n    \"Add integrity validation: verify that localStorage data hasn't been tampered with (e.g., via HMAC).\",\n    \"Consider moving sensitive state (vault keys, session tokens) from localStorage to an in-memory store that clears on navigation.\",\n    \"Audit all event handlers in EventBus and ExecutiveSpine for untrusted payload injection via CustomEvent.detail.\"\n  ]\n}\n```\n\n**Key findings:**\n\n- **Highest risk**: The `?reset=true` parameter is a straightforward CSRF vector. It should require POST + CSRF token or explicit user confirmation.\n- **Second priority**: localStorage is used for both non-sensitive (session timing) and sensitive data (encryption salt). XSS anywhere on the origin can read/modify both.\n- **Architectural note**: The app's local-first design is sound, but the reliance on localStorage for secrets is inherently weak. The PBKDF2 + AES-GCM implementation is solid; the salt storage is the weak link.\n- **No hardcoded credentials** found; the mocked LMS data is safe. The build scripts are low risk (no user input).\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "high",
+        "file": "src/App.js",
+        "line": 18,
+        "description": "CSRF/XSS vector: `?reset=true` URL parameter triggers localStorage.clear() without CSRF token validation or user confirmation. An attacker can craft a link that silently wipes the user's local state."
+      },
+      {
+        "severity": "medium",
+        "file": "src/App.js",
+        "line": 31,
+        "description": "Insecure state persistence: localStorage is accessible to XSS attacks. If any code path writes unsanitized user input (e.g., from the textarea in MasterDashboard) to localStorage, retrieval without sanitization creates an XSS vector."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 57,
+        "description": "Weak secret storage: Salt is stored in localStorage as base64-encoded plaintext. localStorage is accessible to any JavaScript on the origin. While acknowledged for local-first design, this weakens the encryption scheme against same-origin script injection."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/ExecutiveSpine.js",
+        "line": 22,
+        "description": "Session tokens in localStorage: Focus session and playtime data stored in plain JSON in localStorage. While not authentication credentials, they can be modified by XSS to manipulate app state (e.g., enable playtime without earning it)."
+      },
+      {
+        "severity": "low",
+        "file": "scripts/build-grounding-manifest.js",
+        "line": 13,
+        "description": "Unvalidated filenames: `fs.readdirSync()` result written directly to JSON without sanitizing filenames. If a filename contained path traversal sequences or special characters, it could cause issues downstream."
+      },
+      {
+        "severity": "low",
+        "file": "src/backend/LMSConnector.js",
+        "line": 1,
+        "description": "Missing input validation: `courseCode` parameter is not validated or sanitized before use in mock response. In a real LMS integration, this could be exploited to inject malicious data."
+      },
+      {
+        "severity": "low",
+        "file": "src/frontend/MasterDashboard.js",
+        "line": 67,
+        "description": "Unescaped textarea content: User input in textarea is stored to ProjectContext and persisted. No XSS sanitization visible if this content is later rendered as HTML (though currently rendered as text)."
+      }
+    ],
+    "riskScore": 48,
+    "recommendations": [
+      "Add CSRF protection to the `?reset=true` parameter: require POST with a token, or at minimum add user confirmation dialog.",
+      "Implement Content Security Policy (CSP) to mitigate XSS impact and prevent unauthorized localStorage access.",
+      "Never write user input directly to localStorage. Validate and sanitize all data before persistence and retrieval.",
+      "Move encryption salt from localStorage to a more secure mechanism (e.g., session-only memory, secure IndexedDB with additional checks).",
+      "Add input validation to all public function parameters (courseCode, durationMinutes, taskId, passphrase).",
+      "Sanitize filenames in build-grounding-manifest.js before JSON serialization (reject special chars or use safeFileName utility).",
+      "Use ReactDOM's built-in XSS protection; avoid dangerouslySetInnerHTML when rendering user content.",
+      "Add integrity validation: verify that localStorage data hasn't been tampered with (e.g., via HMAC).",
+      "Consider moving sensitive state (vault keys, session tokens) from localStorage to an in-memory store that clears on navigation.",
+      "Audit all event handlers in EventBus and ExecutiveSpine for untrusted payload injection via CustomEvent.detail."
+    ]
+  },
+  "durationMs": 37442,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-11T00:24:02.114Z",
+  "executionId": "audit_1778459004672_us2s0k"
+}

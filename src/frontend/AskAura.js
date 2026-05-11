@@ -33,7 +33,7 @@ const firstSentences = (text, max = 280) => {
  * the syllabus context the rest of the cockpit is operating on, without the
  * parent component needing to thread it down.
  */
-export default function AskAura() {
+export default function AskAura({ onOpen }) {
   const { activeCourse } = useProject();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
@@ -89,7 +89,7 @@ export default function AskAura() {
       {!open && (
         <div className="flex justify-center pointer-events-auto">
           <button
-            onClick={() => setOpen(true)}
+            onClick={() => onOpen ? onOpen() : setOpen(true)}
             type="button"
             className="flex items-center gap-2 px-5 py-3 rounded-full bg-zinc-950/90 backdrop-blur border border-emerald-500/30 hover:border-emerald-500 text-emerald-400 hover:text-emerald-300 text-xs font-black uppercase tracking-widest transition-all shadow-[0_0_24px_rgba(16,185,129,0.25)]"
             aria-label="Open AURA chat"

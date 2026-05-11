@@ -1,0 +1,83 @@
+[2026-05-10T22:35:45.813Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "## Security Analysis Report\n\n```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/App.js\",\n      \"line\": 28,\n      \"description\": \"Unauthenticated URL parameter `reset=true` directly triggers `localStorage.clear()` without confirmation or re-authentication, allowing attackers to craft URLs that permanently wipe user data\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/frontend/SmartIntake.js\",\n      \"line\": 9,\n      \"description\": \"Hardcoded reference to 'UNSW Moodle' violates CLAUDE.md Universal Architecture rule: course-specific data must live in schema/disk, not in engineering specs\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/backend/NeuralAuditPipeline.js\",\n      \"line\": 3,\n      \"description\": \"Hardcoded SCIENCE_CODES array (['BABS1201', 'BABS1202']) in code violates Universal Architecture rule: must be schema-driven configuration, not hardcoded constants in source\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/frontend/ProjectContext.js\",\n      \"line\": 11,\n      \"description\": \"User-submitted draft text stored in context without sanitization; if rendered as HTML elsewhere instead of text content, could enable XSS attacks\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/ExecutiveSpine.js\",\n      \"line\": 40,\n      \"description\": \"Session state (FOCUS_KEY, HEALTH_KEY, CREDITS_KEY) stored in plaintext localStorage without encryption, violating sovereign privacy requirement; anyone with localStorage access can read focus sessions and credits\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/ExecutiveSpine.js\",\n      \"line\": 74,\n      \"description\": \"JSON.parse() on localStorage data without validation (FOCUS_KEY deserialization); if localStorage is compromised via XSS, could execute malicious code or corrupt state\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/frontend/SettingsContext.js\",\n      \"line\": 12,\n      \"description\": \"Font family applied directly from state without validation (`fontFamily: rules[mode].font`); if mode state is compromised, untrusted font URLs could be injected\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"package.json\",\n      \"line\": 8,\n      \"description\": \"axios ^1.4.0 is pinned to a range that may include known vulnerabilities; no npm audit in CI/CD pipeline evident\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/EventBus.js\",\n      \"line\": 43,\n      \"description\": \"No Rate limiting on appendEvent calls; if EventBus is exposed to user-triggered events, could enable log flooding attacks to exhaust IndexedDB quota\"\n    }\n  ],\n  \"riskScore\": 72,\n  \"recommendations\": [\n    \"🔴 CRITICAL: Remove URL-based localStorage reset or require explicit user confirmation via modal + passphrase re-entry before clearing data\",\n    \"🔴 CRITICAL: Move 'UNSW Moodle' and BABS course codes from SmartIntake.js and NeuralAuditPipeline.js into a schema-driven config file (e.g., `src/schema/institutions.json`) to enable universal portability\",\n    \"🔴 HIGH: Sanitize all user-submitted text (ProjectContext.currentDraft) using DOMPurify before rendering; always render as `.textContent`, never as `.innerHTML`\",\n    \"🟡 MEDIUM: Encrypt all localStorage keys containing session state (FOCUS_KEY, CREDITS_KEY, HEALTH_KEY) using the same AES-GCM-256 derivation as HistoryOfThought, OR migrate session state to sessionStorage + add CSP header\",\n    \"🟡 MEDIUM: Add input validation for 'mode' parameter in SettingsContext to whitelist only ['standard', 'adhd', 'dyslexia'] before accessing rules object\",\n    \"🟡 MEDIUM: Wrap JSON.parse calls with try-catch and validate deserialized structure before use (e.g., check taskId is string, dates are numbers, no unexpected fields)\",\n    \"🟡 MEDIUM: Add Content Security Policy (CSP) header in build config to block inline scripts and restrict external resource loading (especially fonts)\",\n    \"🟢 LOW: Pin axios to exact version (`1.7.7` or latest) and add `npm audit --audit-level=moderate` to pre-commit hooks and CI/CD\",\n    \"🟢 LOW: Implement rate limiting on EventBus.appendEvent to prevent log flooding (e.g., max 100 events per minute)\",\n    \"🟢 LOW: Document in CLAUDE.md that localStorage is only for non-sensitive UI state; all PII, credentials, and session tokens must use IndexedDB + encryption\"\n  ]\n}\n```\n\n### Key Findings\n\n**Architectural Violations (CLAUDE.md non-compliance):**\n- SmartIntake.js:9 and NeuralAuditPipeline.js:3 hardcode institution/course data that should be schema-driven and portable\n\n**Data Destruction Vector:**\n- URL parameter `reset=true` wipes localStorage without authentication\n\n**Encryption Gaps:**\n- Session state (PlayTime, Credits, Focus sessions) stored plaintext in localStorage while HistoryOfThought uses AES-GCM-256\n\n**Missing Protections:**\n- No CSP headers (enables inline XSS if user draft ever renders as HTML)\n- No input validation on JSON deserialization from localStorage\n- No rate limiting on event logging\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "high",
+        "file": "src/App.js",
+        "line": 28,
+        "description": "Unauthenticated URL parameter `reset=true` directly triggers `localStorage.clear()` without confirmation or re-authentication, allowing attackers to craft URLs that permanently wipe user data"
+      },
+      {
+        "severity": "high",
+        "file": "src/frontend/SmartIntake.js",
+        "line": 9,
+        "description": "Hardcoded reference to 'UNSW Moodle' violates CLAUDE.md Universal Architecture rule: course-specific data must live in schema/disk, not in engineering specs"
+      },
+      {
+        "severity": "high",
+        "file": "src/backend/NeuralAuditPipeline.js",
+        "line": 3,
+        "description": "Hardcoded SCIENCE_CODES array (['BABS1201', 'BABS1202']) in code violates Universal Architecture rule: must be schema-driven configuration, not hardcoded constants in source"
+      },
+      {
+        "severity": "medium",
+        "file": "src/frontend/ProjectContext.js",
+        "line": 11,
+        "description": "User-submitted draft text stored in context without sanitization; if rendered as HTML elsewhere instead of text content, could enable XSS attacks"
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/ExecutiveSpine.js",
+        "line": 40,
+        "description": "Session state (FOCUS_KEY, HEALTH_KEY, CREDITS_KEY) stored in plaintext localStorage without encryption, violating sovereign privacy requirement; anyone with localStorage access can read focus sessions and credits"
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/ExecutiveSpine.js",
+        "line": 74,
+        "description": "JSON.parse() on localStorage data without validation (FOCUS_KEY deserialization); if localStorage is compromised via XSS, could execute malicious code or corrupt state"
+      },
+      {
+        "severity": "medium",
+        "file": "src/frontend/SettingsContext.js",
+        "line": 12,
+        "description": "Font family applied directly from state without validation (`fontFamily: rules[mode].font`); if mode state is compromised, untrusted font URLs could be injected"
+      },
+      {
+        "severity": "low",
+        "file": "package.json",
+        "line": 8,
+        "description": "axios ^1.4.0 is pinned to a range that may include known vulnerabilities; no npm audit in CI/CD pipeline evident"
+      },
+      {
+        "severity": "low",
+        "file": "src/core/EventBus.js",
+        "line": 43,
+        "description": "No Rate limiting on appendEvent calls; if EventBus is exposed to user-triggered events, could enable log flooding attacks to exhaust IndexedDB quota"
+      }
+    ],
+    "riskScore": 72,
+    "recommendations": [
+      "🔴 CRITICAL: Remove URL-based localStorage reset or require explicit user confirmation via modal + passphrase re-entry before clearing data",
+      "🔴 CRITICAL: Move 'UNSW Moodle' and BABS course codes from SmartIntake.js and NeuralAuditPipeline.js into a schema-driven config file (e.g., `src/schema/institutions.json`) to enable universal portability",
+      "🔴 HIGH: Sanitize all user-submitted text (ProjectContext.currentDraft) using DOMPurify before rendering; always render as `.textContent`, never as `.innerHTML`",
+      "🟡 MEDIUM: Encrypt all localStorage keys containing session state (FOCUS_KEY, CREDITS_KEY, HEALTH_KEY) using the same AES-GCM-256 derivation as HistoryOfThought, OR migrate session state to sessionStorage + add CSP header",
+      "🟡 MEDIUM: Add input validation for 'mode' parameter in SettingsContext to whitelist only ['standard', 'adhd', 'dyslexia'] before accessing rules object",
+      "🟡 MEDIUM: Wrap JSON.parse calls with try-catch and validate deserialized structure before use (e.g., check taskId is string, dates are numbers, no unexpected fields)",
+      "🟡 MEDIUM: Add Content Security Policy (CSP) header in build config to block inline scripts and restrict external resource loading (especially fonts)",
+      "🟢 LOW: Pin axios to exact version (`1.7.7` or latest) and add `npm audit --audit-level=moderate` to pre-commit hooks and CI/CD",
+      "🟢 LOW: Implement rate limiting on EventBus.appendEvent to prevent log flooding (e.g., max 100 events per minute)",
+      "🟢 LOW: Document in CLAUDE.md that localStorage is only for non-sensitive UI state; all PII, credentials, and session tokens must use IndexedDB + encryption"
+    ]
+  },
+  "durationMs": 62366,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-10T22:35:45.812Z",
+  "executionId": "audit_1778452483446_zgutnw"
+}

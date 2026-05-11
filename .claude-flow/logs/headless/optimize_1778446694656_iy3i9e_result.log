@@ -1,0 +1,93 @@
+[2026-05-10T21:00:22.833Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "Here's the full performance analysis for the Simplifii OS codebase:\n\n---\n\n## Performance Analysis\n\n### 1. Memory Leaks (Critical — fix first)\n\n**EventBus.js: Listener accumulation on re-init**\n`src/core/EventBus.js:69-91` — `startEventBus` adds listeners in a loop; calling it twice without `stopEventBus` duplicates all handlers.\n```js\nexport const startEventBus = (getContext) => {\n  stopEventBus(); // add this guard\n  __started = true;\n  // ... rest of setup\n};\n```\n\n**ExecutiveSpine.js: Idle detection listeners never removed**\n`src/core/ExecutiveSpine.js:146-177` — `startIdleDetection` attaches document listeners; `stopIdleDetection` is only called manually, so listeners persist on route changes.\n```js\nuseEffect(() => {\n  startIdleDetection({ thresholdMs: 180000 });\n  return () => stopIdleDetection();\n}, []);\n```\n\n**ExecutiveSpine.js: `__sessionTimer` outlives component**\n`src/core/ExecutiveSpine.js:83-101` — timer created in `startFocusSession` is never cleared if the consuming component unmounts mid-session.\n```js\nuseEffect(() => {\n  return () => { if (isFocusActive()) endFocusSession({ reason: 'unmount' }); };\n}, []);\n```\n\n**MasterDashboard.js: Window event listeners without cleanup**\n`src/frontend/MasterDashboard.js:132-166` — multiple `useEffect` blocks register `simplifii:*` events on `window` with no return cleanup.\n```js\nuseEffect(() => {\n  const handler = (e) => { /* ... */ };\n  window.addEventListener('simplifii:focus-start', handler);\n  return () => window.removeEventListener('simplifii:focus-start', handler);\n}, []);\n```\n\n---\n\n### 2. Unnecessary Re-renders\n\n**MasterDashboard.js: Inline handlers on every render**\n`src/frontend/MasterDashboard.js:800-850` — event handlers and config objects created inline pass new references to children each render.\n```js\nconst handleFocusStart = useCallback(({ detail }) => {\n  setCurrentStage('focus');\n}, []);\n```\n\n**LinearCanvas.js: Tone analysis on every render**\n`src/frontend/LinearCanvas.js:23-89` — `ToneHUD` recalculates tone metrics on every render regardless of whether `blockText` changed.\n```js\nconst toneMetrics = useMemo(() => analyzeBlockTone(blockText), [blockText]);\n```\n\n**SimplifiiStudio.js: `sectionHealth` recomputed in render loop**\n`src/frontend/SimplifiiStudio.js:152-169` — health metrics recalculated for each section on every render.\n```js\nconst health = useMemo(() => sectionHealth(sectionText), [sectionText]);\n```\n\n---\n\n### 3. Caching Opportunities\n\n**BriefService.js: Regex compiled inside function body**\n`src/services/BriefService.js:127-163` — patterns like `/\\bhow\\s+to\\b/gi` compiled fresh on every call to `extractDeepCourseData`.\n```js\n// Module level — compiled once\nconst PATTERN_HOW_TO = /\\bhow\\s+to\\b/gi;\nconst PATTERN_STEPS   = /\\bsteps\\b/gi;\n```\n\n**MessagingHub.js: Voice search repeated each utterance**\n`src/services/MessagingHub.js:104-118` — `__pickVoice` scans the full voices array on every synthesis call.\n```js\nlet __cachedVoice = null;\nconst __pickVoice = (name, lang) => {\n  if (__cachedVoice?.name === name) return __cachedVoice;\n  __cachedVoice = /* search */;\n  return __cachedVoice;\n};\n```\n\n**RewriteService.js: Synonym lookups without a cache**\nSynonym resolution for the same `(term, level)` pair repeats on every rewrite; a `Map` keyed on `term:level` eliminates the redundancy.\n\n---\n\n### 4. Redundant Computations\n\n**LiteralMode.js: Sequential regex chain**\n`src/core/LiteralMode.js:22-91` — `literalise` applies patterns one-by-one via `reduce`. Where patterns are non-overlapping, combine into a single alternation regex with a lookup table to do one pass.\n\n**BriefService.js: Multiple regex passes on same string**\n`src/services/BriefService.js:215-253` — assessment title parser runs several `.match`/`.test` calls on the same string. Collapse into one regex with named capture groups.\n```js\nconst match = title.match(/^(?<type>assessment|quiz|test):\\s*(?<name>.+?)(?:\\s*\\((?<meta>.+?)\\))?$/i);\n```\n\n---\n\n### 5. N+1 Patterns\n\nNo explicit backend N+1 loops were found — this is a local-first frontend codebase. The closest risk is if any component iterates over sections/blocks and fires a separate `IndexedDB` read per item; batch reads with `getAll()` + client-side filter to prevent this if it emerges.\n\n---\n\n### Priority Order\n\n| Priority | Issue | File |\n|---|---|---|\n| 1 | EventBus listener accumulation | `EventBus.js:69` |\n| 2 | Executive idle/timer leaks | `ExecutiveSpine.js:83,146` |\n| 3 | MasterDashboard window listener cleanup | `MasterDashboard.js:132` |\n| 4 | Inline handlers → `useCallback` | `MasterDashboard.js:800` |\n| 5 | Module-level regex precompilation | `BriefService.js:127` |\n| 6 | `useMemo` for tone/health calcs | `LinearCanvas.js:23`, `SimplifiiStudio.js:152` |\n| 7 | Voice selection cache | `MessagingHub.js:104` |\n\nThe memory leaks in the core modules are the most urgent — they compound over a long study session and will degrade performance noticeably as the student cycles through focus sessions.\n",
+  "parsedOutput": {
+    "sections": [
+      {
+        "title": "Performance Analysis",
+        "content": "\n",
+        "level": 2
+      },
+      {
+        "title": "1. Memory Leaks (Critical — fix first)",
+        "content": "\n**EventBus.js: Listener accumulation on re-init**\n`src/core/EventBus.js:69-91` — `startEventBus` adds listeners in a loop; calling it twice without `stopEventBus` duplicates all handlers.\n```js\nexport const startEventBus = (getContext) => {\n  stopEventBus(); // add this guard\n  __started = true;\n  // ... rest of setup\n};\n```\n\n**ExecutiveSpine.js: Idle detection listeners never removed**\n`src/core/ExecutiveSpine.js:146-177` — `startIdleDetection` attaches document listeners; `stopIdleDetection` is only called manually, so listeners persist on route changes.\n```js\nuseEffect(() => {\n  startIdleDetection({ thresholdMs: 180000 });\n  return () => stopIdleDetection();\n}, []);\n```\n\n**ExecutiveSpine.js: `__sessionTimer` outlives component**\n`src/core/ExecutiveSpine.js:83-101` — timer created in `startFocusSession` is never cleared if the consuming component unmounts mid-session.\n```js\nuseEffect(() => {\n  return () => { if (isFocusActive()) endFocusSession({ reason: 'unmount' }); };\n}, []);\n```\n\n**MasterDashboard.js: Window event listeners without cleanup**\n`src/frontend/MasterDashboard.js:132-166` — multiple `useEffect` blocks register `simplifii:*` events on `window` with no return cleanup.\n```js\nuseEffect(() => {\n  const handler = (e) => { /* ... */ };\n  window.addEventListener('simplifii:focus-start', handler);\n  return () => window.removeEventListener('simplifii:focus-start', handler);\n}, []);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "2. Unnecessary Re-renders",
+        "content": "\n**MasterDashboard.js: Inline handlers on every render**\n`src/frontend/MasterDashboard.js:800-850` — event handlers and config objects created inline pass new references to children each render.\n```js\nconst handleFocusStart = useCallback(({ detail }) => {\n  setCurrentStage('focus');\n}, []);\n```\n\n**LinearCanvas.js: Tone analysis on every render**\n`src/frontend/LinearCanvas.js:23-89` — `ToneHUD` recalculates tone metrics on every render regardless of whether `blockText` changed.\n```js\nconst toneMetrics = useMemo(() => analyzeBlockTone(blockText), [blockText]);\n```\n\n**SimplifiiStudio.js: `sectionHealth` recomputed in render loop**\n`src/frontend/SimplifiiStudio.js:152-169` — health metrics recalculated for each section on every render.\n```js\nconst health = useMemo(() => sectionHealth(sectionText), [sectionText]);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "3. Caching Opportunities",
+        "content": "\n**BriefService.js: Regex compiled inside function body**\n`src/services/BriefService.js:127-163` — patterns like `/\\bhow\\s+to\\b/gi` compiled fresh on every call to `extractDeepCourseData`.\n```js\n// Module level — compiled once\nconst PATTERN_HOW_TO = /\\bhow\\s+to\\b/gi;\nconst PATTERN_STEPS   = /\\bsteps\\b/gi;\n```\n\n**MessagingHub.js: Voice search repeated each utterance**\n`src/services/MessagingHub.js:104-118` — `__pickVoice` scans the full voices array on every synthesis call.\n```js\nlet __cachedVoice = null;\nconst __pickVoice = (name, lang) => {\n  if (__cachedVoice?.name === name) return __cachedVoice;\n  __cachedVoice = /* search */;\n  return __cachedVoice;\n};\n```\n\n**RewriteService.js: Synonym lookups without a cache**\nSynonym resolution for the same `(term, level)` pair repeats on every rewrite; a `Map` keyed on `term:level` eliminates the redundancy.\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "4. Redundant Computations",
+        "content": "\n**LiteralMode.js: Sequential regex chain**\n`src/core/LiteralMode.js:22-91` — `literalise` applies patterns one-by-one via `reduce`. Where patterns are non-overlapping, combine into a single alternation regex with a lookup table to do one pass.\n\n**BriefService.js: Multiple regex passes on same string**\n`src/services/BriefService.js:215-253` — assessment title parser runs several `.match`/`.test` calls on the same string. Collapse into one regex with named capture groups.\n```js\nconst match = title.match(/^(?<type>assessment|quiz|test):\\s*(?<name>.+?)(?:\\s*\\((?<meta>.+?)\\))?$/i);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "5. N+1 Patterns",
+        "content": "\nNo explicit backend N+1 loops were found — this is a local-first frontend codebase. The closest risk is if any component iterates over sections/blocks and fires a separate `IndexedDB` read per item; batch reads with `getAll()` + client-side filter to prevent this if it emerges.\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Priority Order",
+        "content": "| Priority | Issue | File |\n|---|---|---|\n| 1 | EventBus listener accumulation | `EventBus.js:69` |\n| 2 | Executive idle/timer leaks | `ExecutiveSpine.js:83,146` |\n| 3 | MasterDashboard window listener cleanup | `MasterDashboard.js:132` |\n| 4 | Inline handlers → `useCallback` | `MasterDashboard.js:800` |\n| 5 | Module-level regex precompilation | `BriefService.js:127` |\n| 6 | `useMemo` for tone/health calcs | `LinearCanvas.js:23`, `SimplifiiStudio.js:152` |\n| 7 | Voice selection cache | `MessagingHub.js:104` |\n\nThe memory leaks in the core modules are the most urgent — they compound over a long study session and will degrade performance noticeably as the student cycles through focus sessions.",
+        "level": 3
+      }
+    ],
+    "codeBlocks": [
+      {
+        "language": "js",
+        "code": "export const startEventBus = (getContext) => {\n  stopEventBus(); // add this guard\n  __started = true;\n  // ... rest of setup\n};"
+      },
+      {
+        "language": "js",
+        "code": "useEffect(() => {\n  startIdleDetection({ thresholdMs: 180000 });\n  return () => stopIdleDetection();\n}, []);"
+      },
+      {
+        "language": "js",
+        "code": "useEffect(() => {\n  return () => { if (isFocusActive()) endFocusSession({ reason: 'unmount' }); };\n}, []);"
+      },
+      {
+        "language": "js",
+        "code": "useEffect(() => {\n  const handler = (e) => { /* ... */ };\n  window.addEventListener('simplifii:focus-start', handler);\n  return () => window.removeEventListener('simplifii:focus-start', handler);\n}, []);"
+      },
+      {
+        "language": "js",
+        "code": "const handleFocusStart = useCallback(({ detail }) => {\n  setCurrentStage('focus');\n}, []);"
+      },
+      {
+        "language": "js",
+        "code": "const toneMetrics = useMemo(() => analyzeBlockTone(blockText), [blockText]);"
+      },
+      {
+        "language": "js",
+        "code": "const health = useMemo(() => sectionHealth(sectionText), [sectionText]);"
+      },
+      {
+        "language": "js",
+        "code": "// Module level — compiled once\nconst PATTERN_HOW_TO = /\\bhow\\s+to\\b/gi;\nconst PATTERN_STEPS   = /\\bsteps\\b/gi;"
+      },
+      {
+        "language": "js",
+        "code": "let __cachedVoice = null;\nconst __pickVoice = (name, lang) => {\n  if (__cachedVoice?.name === name) return __cachedVoice;\n  __cachedVoice = /* search */;\n  return __cachedVoice;\n};"
+      },
+      {
+        "language": "js",
+        "code": "const match = title.match(/^(?<type>assessment|quiz|test):\\s*(?<name>.+?)(?:\\s*\\((?<meta>.+?)\\))?$/i);"
+      }
+    ]
+  },
+  "durationMs": 128177,
+  "model": "sonnet",
+  "sandboxMode": "permissive",
+  "workerType": "optimize",
+  "timestamp": "2026-05-10T21:00:22.833Z",
+  "executionId": "optimize_1778446694656_iy3i9e"
+}

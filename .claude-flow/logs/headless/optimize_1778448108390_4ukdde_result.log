@@ -1,0 +1,100 @@
+[2026-05-10T21:23:31.100Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "## Performance Analysis: Simplifii OS\n\nHere are the most impactful issues found, ordered by severity:\n\n---\n\n### 1. N+1 / Repeated Text Search on Every Keystroke — CRITICAL\n\n**`LinearCanvas.js` ~line 718-743**\n\nOn every keystroke, the handler reconstructs full text, then searches it once per checklist item:\n\n```js\n// Current: O(n * m) on every keydown\nconst fullText = updatedSections.map(s => s.content).join(' ');\nchecklist.map(item => ({\n  ...item,\n  checked: fullText.toLowerCase().includes(item.keyword.toLowerCase())\n}));\n\n// Fix: debounce + memoize\nconst debouncedChecklistSync = useCallback(\n  debounce((sections) => {\n    const fullText = sections.map(s => s.content).join(' ').toLowerCase();\n    setChecklist(prev => prev.map(item => ({\n      ...item,\n      checked: fullText.includes(item.keyword.toLowerCase())\n    })));\n  }, 400),\n  [setChecklist]\n);\n```\n\n---\n\n### 2. setInterval with Huge Dependency Array — Memory + CPU Leak\n\n**`LinearCanvas.js` ~line 671-677**\n\n```js\n// Current: re-registers interval + all event listeners whenever ANY of 7 deps change\nuseEffect(() => {\n  const interval = setInterval(updateLineCoords, 500);\n  window.addEventListener('resize', updateLineCoords);\n  // ...\n}, [mappedBlocks, activeSectionId, hoveredBlockId, checklist,\n    isZenMode, isLeftCollapsed, isRightCollapsed]); // ← triggers constantly\n\n// Fix: use a ref for the callback to stabilise the effect\nconst updateCoordsRef = useRef(updateLineCoords);\nuseEffect(() => { updateCoordsRef.current = updateLineCoords; });\n\nuseEffect(() => {\n  const interval = setInterval(() => updateCoordsRef.current(), 500);\n  const onResize = () => updateCoordsRef.current();\n  window.addEventListener('resize', onResize);\n  return () => { clearInterval(interval); window.removeEventListener('resize', onResize); };\n}, []); // stable — never re-registers\n```\n\n---\n\n### 3. Numeric Index Keys on Lists — Re-render on Reorder\n\n**`MasterDashboard.js` ~lines 1047, 1100, 1108**\n\n```jsx\n// Current — causes full re-render when task order changes\ntasks.map((t, i) => <TaskCard key={i} ... />)\nparetoSteps.map((step, i) => <div key={i} ... />)\n\n// Fix — use stable IDs\ntasks.map(t => <TaskCard key={t.id} ... />)\nparetoSteps.map(step => <div key={step.rank ?? step.title} ... />)\n```\n\n---\n\n### 4. setTimeout Without Cleanup — Memory Leak\n\n**`MasterDashboard.js` ~line 508**\n\n```js\n// Current — fires after unmount if component gone in 6s\nsetTimeout(() => setIngestStatus(''), 6000);\n\n// Fix\nuseEffect(() => {\n  if (!ingestStatus) return;\n  const t = setTimeout(() => setIngestStatus(''), 6000);\n  return () => clearTimeout(t);\n}, [ingestStatus]);\n```\n\n---\n\n### 5. Missing useMemo on Expensive Derivations\n\n**`LinearCanvas.js` ToneHUD component (~line 24-30)**\n\n```js\n// Current — regex runs on every render\nconst wordCount = content.match(/\\S+/g)?.length ?? 0;\nconst longWords = content.match(/\\b\\w{8,}\\b/g)?.length ?? 0;\n\n// Fix\nconst { wordCount, longWords } = useMemo(() => ({\n  wordCount: content.match(/\\S+/g)?.length ?? 0,\n  longWords: content.match(/\\b\\w{8,}\\b/g)?.length ?? 0,\n}), [content]);\n```\n\n---\n\n### 6. localStorage Parsed on Every Call — Caching Miss\n\n**`ExecutiveSpine.js` ~line 183-191**\n\n```js\n// Current — JSON.parse on every getSectionHealth call\nreadHealthMap() {\n  return JSON.parse(localStorage.getItem('sectionHealth') || '{}');\n}\n\n// Fix — simple in-memory cache\nlet _healthCache = null;\nreadHealthMap() {\n  if (!_healthCache) _healthCache = JSON.parse(localStorage.getItem('sectionHealth') || '{}');\n  return _healthCache;\n}\nwriteHealthMap(map) {\n  _healthCache = map;\n  localStorage.setItem('sectionHealth', JSON.stringify(map));\n}\n```\n\n---\n\n### 7. Redundant .filter() + .map() Chain on Every Render\n\n**`MasterDashboard.js` ~line 1201-1217**\n\n```jsx\n// Current — re-filters globalGhostAssets on every render\nconst courseAssets = globalGhostAssets.filter(a => a.courseId === activeCourseId);\n// then: courseAssets.map(asset => ...)\n\n// Fix\nconst courseAssets = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);\n```\n\n---\n\n### 8. BriefService: No Caching on Regex Extraction\n\n**`BriefService.js` ~line 102+**\n\n`extractDeepCourseData` re-runs all regexes on the same PDF text every call. Since PDFs don't change mid-session:\n\n```js\nconst _extractCache = new Map();\n\nexport function extractDeepCourseData(rawText) {\n  if (_extractCache.has(rawText)) return _extractCache.get(rawText);\n  const result = _doExtract(rawText);\n  _extractCache.set(rawText, result);\n  return result;\n}\n```\n\n---\n\n### Summary Table\n\n| # | File | Issue | Impact |\n|---|------|--------|--------|\n| 1 | LinearCanvas.js ~718 | Checklist search per keystroke | CPU (typing lag) |\n| 2 | LinearCanvas.js ~671 | Interval + 7-dep effect | Memory + CPU |\n| 3 | MasterDashboard.js ~1100 | Index keys on task lists | Wasted re-renders |\n| 4 | MasterDashboard.js ~508 | setTimeout leak on unmount | Memory |\n| 5 | LinearCanvas.js ~24 | Regex without useMemo | CPU |\n| 6 | ExecutiveSpine.js ~183 | localStorage parsed every call | I/O |\n| 7 | MasterDashboard.js ~1201 | filter() in render | Wasted re-renders |\n| 8 | BriefService.js ~102 | No extraction cache | CPU |\n\nThe two most impactful fixes are **#1** (debounce checklist sync) and **#2** (stabilise the interval effect with a ref) — both affect live typing performance directly.\n",
+  "parsedOutput": {
+    "sections": [
+      {
+        "title": "Performance Analysis: Simplifii OS",
+        "content": "\nHere are the most impactful issues found, ordered by severity:\n\n---\n\n",
+        "level": 2
+      },
+      {
+        "title": "1. N+1 / Repeated Text Search on Every Keystroke — CRITICAL",
+        "content": "\n**`LinearCanvas.js` ~line 718-743**\n\nOn every keystroke, the handler reconstructs full text, then searches it once per checklist item:\n\n```js\n// Current: O(n * m) on every keydown\nconst fullText = updatedSections.map(s => s.content).join(' ');\nchecklist.map(item => ({\n  ...item,\n  checked: fullText.toLowerCase().includes(item.keyword.toLowerCase())\n}));\n\n// Fix: debounce + memoize\nconst debouncedChecklistSync = useCallback(\n  debounce((sections) => {\n    const fullText = sections.map(s => s.content).join(' ').toLowerCase();\n    setChecklist(prev => prev.map(item => ({\n      ...item,\n      checked: fullText.includes(item.keyword.toLowerCase())\n    })));\n  }, 400),\n  [setChecklist]\n);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "2. setInterval with Huge Dependency Array — Memory + CPU Leak",
+        "content": "\n**`LinearCanvas.js` ~line 671-677**\n\n```js\n// Current: re-registers interval + all event listeners whenever ANY of 7 deps change\nuseEffect(() => {\n  const interval = setInterval(updateLineCoords, 500);\n  window.addEventListener('resize', updateLineCoords);\n  // ...\n}, [mappedBlocks, activeSectionId, hoveredBlockId, checklist,\n    isZenMode, isLeftCollapsed, isRightCollapsed]); // ← triggers constantly\n\n// Fix: use a ref for the callback to stabilise the effect\nconst updateCoordsRef = useRef(updateLineCoords);\nuseEffect(() => { updateCoordsRef.current = updateLineCoords; });\n\nuseEffect(() => {\n  const interval = setInterval(() => updateCoordsRef.current(), 500);\n  const onResize = () => updateCoordsRef.current();\n  window.addEventListener('resize', onResize);\n  return () => { clearInterval(interval); window.removeEventListener('resize', onResize); };\n}, []); // stable — never re-registers\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "3. Numeric Index Keys on Lists — Re-render on Reorder",
+        "content": "\n**`MasterDashboard.js` ~lines 1047, 1100, 1108**\n\n```jsx\n// Current — causes full re-render when task order changes\ntasks.map((t, i) => <TaskCard key={i} ... />)\nparetoSteps.map((step, i) => <div key={i} ... />)\n\n// Fix — use stable IDs\ntasks.map(t => <TaskCard key={t.id} ... />)\nparetoSteps.map(step => <div key={step.rank ?? step.title} ... />)\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "4. setTimeout Without Cleanup — Memory Leak",
+        "content": "\n**`MasterDashboard.js` ~line 508**\n\n```js\n// Current — fires after unmount if component gone in 6s\nsetTimeout(() => setIngestStatus(''), 6000);\n\n// Fix\nuseEffect(() => {\n  if (!ingestStatus) return;\n  const t = setTimeout(() => setIngestStatus(''), 6000);\n  return () => clearTimeout(t);\n}, [ingestStatus]);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "5. Missing useMemo on Expensive Derivations",
+        "content": "\n**`LinearCanvas.js` ToneHUD component (~line 24-30)**\n\n```js\n// Current — regex runs on every render\nconst wordCount = content.match(/\\S+/g)?.length ?? 0;\nconst longWords = content.match(/\\b\\w{8,}\\b/g)?.length ?? 0;\n\n// Fix\nconst { wordCount, longWords } = useMemo(() => ({\n  wordCount: content.match(/\\S+/g)?.length ?? 0,\n  longWords: content.match(/\\b\\w{8,}\\b/g)?.length ?? 0,\n}), [content]);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "6. localStorage Parsed on Every Call — Caching Miss",
+        "content": "\n**`ExecutiveSpine.js` ~line 183-191**\n\n```js\n// Current — JSON.parse on every getSectionHealth call\nreadHealthMap() {\n  return JSON.parse(localStorage.getItem('sectionHealth') || '{}');\n}\n\n// Fix — simple in-memory cache\nlet _healthCache = null;\nreadHealthMap() {\n  if (!_healthCache) _healthCache = JSON.parse(localStorage.getItem('sectionHealth') || '{}');\n  return _healthCache;\n}\nwriteHealthMap(map) {\n  _healthCache = map;\n  localStorage.setItem('sectionHealth', JSON.stringify(map));\n}\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "7. Redundant .filter() + .map() Chain on Every Render",
+        "content": "\n**`MasterDashboard.js` ~line 1201-1217**\n\n```jsx\n// Current — re-filters globalGhostAssets on every render\nconst courseAssets = globalGhostAssets.filter(a => a.courseId === activeCourseId);\n// then: courseAssets.map(asset => ...)\n\n// Fix\nconst courseAssets = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "8. BriefService: No Caching on Regex Extraction",
+        "content": "\n**`BriefService.js` ~line 102+**\n\n`extractDeepCourseData` re-runs all regexes on the same PDF text every call. Since PDFs don't change mid-session:\n\n```js\nconst _extractCache = new Map();\n\nexport function extractDeepCourseData(rawText) {\n  if (_extractCache.has(rawText)) return _extractCache.get(rawText);\n  const result = _doExtract(rawText);\n  _extractCache.set(rawText, result);\n  return result;\n}\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Summary Table",
+        "content": "| # | File | Issue | Impact |\n|---|------|--------|--------|\n| 1 | LinearCanvas.js ~718 | Checklist search per keystroke | CPU (typing lag) |\n| 2 | LinearCanvas.js ~671 | Interval + 7-dep effect | Memory + CPU |\n| 3 | MasterDashboard.js ~1100 | Index keys on task lists | Wasted re-renders |\n| 4 | MasterDashboard.js ~508 | setTimeout leak on unmount | Memory |\n| 5 | LinearCanvas.js ~24 | Regex without useMemo | CPU |\n| 6 | ExecutiveSpine.js ~183 | localStorage parsed every call | I/O |\n| 7 | MasterDashboard.js ~1201 | filter() in render | Wasted re-renders |\n| 8 | BriefService.js ~102 | No extraction cache | CPU |\n\nThe two most impactful fixes are **#1** (debounce checklist sync) and **#2** (stabilise the interval effect with a ref) — both affect live typing performance directly.",
+        "level": 3
+      }
+    ],
+    "codeBlocks": [
+      {
+        "language": "js",
+        "code": "// Current: O(n * m) on every keydown\nconst fullText = updatedSections.map(s => s.content).join(' ');\nchecklist.map(item => ({\n  ...item,\n  checked: fullText.toLowerCase().includes(item.keyword.toLowerCase())\n}));\n\n// Fix: debounce + memoize\nconst debouncedChecklistSync = useCallback(\n  debounce((sections) => {\n    const fullText = sections.map(s => s.content).join(' ').toLowerCase();\n    setChecklist(prev => prev.map(item => ({\n      ...item,\n      checked: fullText.includes(item.keyword.toLowerCase())\n    })));\n  }, 400),\n  [setChecklist]\n);"
+      },
+      {
+        "language": "js",
+        "code": "// Current: re-registers interval + all event listeners whenever ANY of 7 deps change\nuseEffect(() => {\n  const interval = setInterval(updateLineCoords, 500);\n  window.addEventListener('resize', updateLineCoords);\n  // ...\n}, [mappedBlocks, activeSectionId, hoveredBlockId, checklist,\n    isZenMode, isLeftCollapsed, isRightCollapsed]); // ← triggers constantly\n\n// Fix: use a ref for the callback to stabilise the effect\nconst updateCoordsRef = useRef(updateLineCoords);\nuseEffect(() => { updateCoordsRef.current = updateLineCoords; });\n\nuseEffect(() => {\n  const interval = setInterval(() => updateCoordsRef.current(), 500);\n  const onResize = () => updateCoordsRef.current();\n  window.addEventListener('resize', onResize);\n  return () => { clearInterval(interval); window.removeEventListener('resize', onResize); };\n}, []); // stable — never re-registers"
+      },
+      {
+        "language": "jsx",
+        "code": "// Current — causes full re-render when task order changes\ntasks.map((t, i) => <TaskCard key={i} ... />)\nparetoSteps.map((step, i) => <div key={i} ... />)\n\n// Fix — use stable IDs\ntasks.map(t => <TaskCard key={t.id} ... />)\nparetoSteps.map(step => <div key={step.rank ?? step.title} ... />)"
+      },
+      {
+        "language": "js",
+        "code": "// Current — fires after unmount if component gone in 6s\nsetTimeout(() => setIngestStatus(''), 6000);\n\n// Fix\nuseEffect(() => {\n  if (!ingestStatus) return;\n  const t = setTimeout(() => setIngestStatus(''), 6000);\n  return () => clearTimeout(t);\n}, [ingestStatus]);"
+      },
+      {
+        "language": "js",
+        "code": "// Current — regex runs on every render\nconst wordCount = content.match(/\\S+/g)?.length ?? 0;\nconst longWords = content.match(/\\b\\w{8,}\\b/g)?.length ?? 0;\n\n// Fix\nconst { wordCount, longWords } = useMemo(() => ({\n  wordCount: content.match(/\\S+/g)?.length ?? 0,\n  longWords: content.match(/\\b\\w{8,}\\b/g)?.length ?? 0,\n}), [content]);"
+      },
+      {
+        "language": "js",
+        "code": "// Current — JSON.parse on every getSectionHealth call\nreadHealthMap() {\n  return JSON.parse(localStorage.getItem('sectionHealth') || '{}');\n}\n\n// Fix — simple in-memory cache\nlet _healthCache = null;\nreadHealthMap() {\n  if (!_healthCache) _healthCache = JSON.parse(localStorage.getItem('sectionHealth') || '{}');\n  return _healthCache;\n}\nwriteHealthMap(map) {\n  _healthCache = map;\n  localStorage.setItem('sectionHealth', JSON.stringify(map));\n}"
+      },
+      {
+        "language": "jsx",
+        "code": "// Current — re-filters globalGhostAssets on every render\nconst courseAssets = globalGhostAssets.filter(a => a.courseId === activeCourseId);\n// then: courseAssets.map(asset => ...)\n\n// Fix\nconst courseAssets = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);"
+      },
+      {
+        "language": "js",
+        "code": "const _extractCache = new Map();\n\nexport function extractDeepCourseData(rawText) {\n  if (_extractCache.has(rawText)) return _extractCache.get(rawText);\n  const result = _doExtract(rawText);\n  _extractCache.set(rawText, result);\n  return result;\n}"
+      }
+    ]
+  },
+  "durationMs": 102710,
+  "model": "sonnet",
+  "sandboxMode": "permissive",
+  "workerType": "optimize",
+  "timestamp": "2026-05-10T21:23:31.100Z",
+  "executionId": "optimize_1778448108390_4ukdde"
+}

@@ -1,0 +1,104 @@
+[2026-05-10T22:14:20.260Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/backend/LMSConnector.js\",\n      \"line\": 1,\n      \"description\": \"No authentication or authorization checks. Function accepts courseCode parameter without validation and returns course/rubric data to any caller. No verification that user has permission to access this course.\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 55,\n      \"description\": \"Salt stored in plaintext localStorage (base64-encoded). If passphrase is weak, salt exposure in browser storage combined with offline attacks compromises encryption. Recommend: derive salt from passphrase entropy or use secure storage.\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 85,\n      \"description\": \"Passphrase minimum length only 4 characters. Insufficient entropy for PBKDF2 protection. Recommend: enforce minimum 12+ characters and complexity rules.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/backend/NeuralAuditPipeline.js\",\n      \"line\": 3,\n      \"description\": \"Hardcoded course codes 'BABS1201', 'BABS1202' in architecture layer. Violates CLAUDE.md rule 3 (no course-specific codes in specs). Creates brittle code; should be loaded from schema/config.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/frontend/SmartIntake.js\",\n      \"line\": 12,\n      \"description\": \"Hardcoded university reference 'UNSW Moodle' and course code 'ARTS5200'. Violates CLAUDE.md rule 3. Makes code non-reusable across institutions.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/App.js\",\n      \"line\": 20,\n      \"description\": \"URL parameter 'reset=true' clears all localStorage without additional confirmation or rate-limiting. Attacker can craft links to wipe user state. No CSRF protection token.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/EventBus.js\",\n      \"line\": 40,\n      \"description\": \"Event payloads accepted without schema validation. pickSafePayload() filters some fields, but detail object is user-controlled. No bounds on payload size; could enable DoS via large events.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/frontend/ProjectContext.js\",\n      \"line\": 10,\n      \"description\": \"User draft text stored in React state only (volatile). If stored in localStorage later, it would be plaintext until vault is unlocked. No encryption of work-in-progress.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/frontend/SettingsContext.js\",\n      \"line\": 8,\n      \"description\": \"Mode/eduLevel settings stored in React state/localStorage without encryption. Combined with courseCode, could reveal user identity or learning context.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"scripts/copy-pdf-worker.js\",\n      \"line\": 30,\n      \"description\": \"File paths constructed from CANDIDATES array without validation. If node_modules path is manipulated, could copy unintended files. Low risk in CI/local builds, higher in container/shared environments.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/ExecutiveSpine.js\",\n      \"line\": 72,\n      \"description\": \"Focus session data (taskId, timestamps) stored in localStorage in plaintext JSON. Could reveal session patterns to other scripts on domain.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/backend/MasterEngine.js\",\n      \"line\": 1,\n      \"description\": \"Input 'rawText' and 'eduLevel' processed without type guards or length limits. Could enable injection if output is ever rendered as code/HTML in another context.\"\n    }\n  ],\n  \"riskScore\": 62,\n  \"recommendations\": [\n    \"Add input validation and sanitization: validate courseCode, taskId, passphrase format, and event payloads against a schema before processing.\",\n    \"Increase passphrase entropy requirements: enforce 12+ characters, mixed case, numbers. Add strength meter.\",\n    \"Replace course-code hardcodes with config-driven lookups: move BABS1201, ARTS5200, UNSW references out of code into src/config or database.\",\n    \"Add authentication layer: LMSConnector must verify user identity (JWT token, session cookie) before returning course data.\",\n    \"Add CSRF token to state-changing operations: localStorage.clear() via URL param requires nonce validation.\",\n    \"Encrypt sensitive localStorage fields: mode, eduLevel, taskId should be encrypted at rest if persisted beyond session.\",\n    \"Implement event payload schema validation: EventBus must check size, type, and field names against a whitelist.\",\n    \"Add rate limiting: LMSConnector should track calls per user/IP and reject after threshold (e.g., 100/hour).\",\n    \"Implement Content Security Policy (CSP): restrict script sources to 'self' to mitigate XSS from dependency vulnerabilities.\",\n    \"Audit IndexedDB encryption: ensure HistoryOfThought doesn't store plaintext fallback on decrypt failure.\",\n    \"Add security headers: Strict-Transport-Security, X-Frame-Options, X-Content-Type-Options to prevent clickjacking and MIME-sniffing.\",\n    \"Run `npm audit` and update dependencies: pdfjs-dist and other libraries may have known CVEs.\",\n    \"Implement per-user encryption key derivation: avoid storing salt in localStorage; derive it from username + server-side nonce instead.\"\n  ]\n}\n```\n\n**Key Finding:** Your risk score is **62/100 (medium-high)**. The most critical issues are:\n1. **No auth/authz in LMSConnector** — returns course data to anyone\n2. **Weak passphrase enforcement** (4 chars min) — undermines your AES-GCM encryption\n3. **Hardcoded course codes** — violates your own CLAUDE.md architecture rules and couples frontend to institution-specific data\n\nThe good news: HistoryOfThought's encryption logic is sound (PBKDF2 600k, AES-GCM), but it's undermined by salt-in-localStorage and weak passphrases. Recommend fixing those three issues first, then adding input validation across the codebase before any LMS integration ships.\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "high",
+        "file": "src/backend/LMSConnector.js",
+        "line": 1,
+        "description": "No authentication or authorization checks. Function accepts courseCode parameter without validation and returns course/rubric data to any caller. No verification that user has permission to access this course."
+      },
+      {
+        "severity": "high",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 55,
+        "description": "Salt stored in plaintext localStorage (base64-encoded). If passphrase is weak, salt exposure in browser storage combined with offline attacks compromises encryption. Recommend: derive salt from passphrase entropy or use secure storage."
+      },
+      {
+        "severity": "high",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 85,
+        "description": "Passphrase minimum length only 4 characters. Insufficient entropy for PBKDF2 protection. Recommend: enforce minimum 12+ characters and complexity rules."
+      },
+      {
+        "severity": "medium",
+        "file": "src/backend/NeuralAuditPipeline.js",
+        "line": 3,
+        "description": "Hardcoded course codes 'BABS1201', 'BABS1202' in architecture layer. Violates CLAUDE.md rule 3 (no course-specific codes in specs). Creates brittle code; should be loaded from schema/config."
+      },
+      {
+        "severity": "medium",
+        "file": "src/frontend/SmartIntake.js",
+        "line": 12,
+        "description": "Hardcoded university reference 'UNSW Moodle' and course code 'ARTS5200'. Violates CLAUDE.md rule 3. Makes code non-reusable across institutions."
+      },
+      {
+        "severity": "medium",
+        "file": "src/App.js",
+        "line": 20,
+        "description": "URL parameter 'reset=true' clears all localStorage without additional confirmation or rate-limiting. Attacker can craft links to wipe user state. No CSRF protection token."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/EventBus.js",
+        "line": 40,
+        "description": "Event payloads accepted without schema validation. pickSafePayload() filters some fields, but detail object is user-controlled. No bounds on payload size; could enable DoS via large events."
+      },
+      {
+        "severity": "medium",
+        "file": "src/frontend/ProjectContext.js",
+        "line": 10,
+        "description": "User draft text stored in React state only (volatile). If stored in localStorage later, it would be plaintext until vault is unlocked. No encryption of work-in-progress."
+      },
+      {
+        "severity": "medium",
+        "file": "src/frontend/SettingsContext.js",
+        "line": 8,
+        "description": "Mode/eduLevel settings stored in React state/localStorage without encryption. Combined with courseCode, could reveal user identity or learning context."
+      },
+      {
+        "severity": "low",
+        "file": "scripts/copy-pdf-worker.js",
+        "line": 30,
+        "description": "File paths constructed from CANDIDATES array without validation. If node_modules path is manipulated, could copy unintended files. Low risk in CI/local builds, higher in container/shared environments."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/ExecutiveSpine.js",
+        "line": 72,
+        "description": "Focus session data (taskId, timestamps) stored in localStorage in plaintext JSON. Could reveal session patterns to other scripts on domain."
+      },
+      {
+        "severity": "low",
+        "file": "src/backend/MasterEngine.js",
+        "line": 1,
+        "description": "Input 'rawText' and 'eduLevel' processed without type guards or length limits. Could enable injection if output is ever rendered as code/HTML in another context."
+      }
+    ],
+    "riskScore": 62,
+    "recommendations": [
+      "Add input validation and sanitization: validate courseCode, taskId, passphrase format, and event payloads against a schema before processing.",
+      "Increase passphrase entropy requirements: enforce 12+ characters, mixed case, numbers. Add strength meter.",
+      "Replace course-code hardcodes with config-driven lookups: move BABS1201, ARTS5200, UNSW references out of code into src/config or database.",
+      "Add authentication layer: LMSConnector must verify user identity (JWT token, session cookie) before returning course data.",
+      "Add CSRF token to state-changing operations: localStorage.clear() via URL param requires nonce validation.",
+      "Encrypt sensitive localStorage fields: mode, eduLevel, taskId should be encrypted at rest if persisted beyond session.",
+      "Implement event payload schema validation: EventBus must check size, type, and field names against a whitelist.",
+      "Add rate limiting: LMSConnector should track calls per user/IP and reject after threshold (e.g., 100/hour).",
+      "Implement Content Security Policy (CSP): restrict script sources to 'self' to mitigate XSS from dependency vulnerabilities.",
+      "Audit IndexedDB encryption: ensure HistoryOfThought doesn't store plaintext fallback on decrypt failure.",
+      "Add security headers: Strict-Transport-Security, X-Frame-Options, X-Content-Type-Options to prevent clickjacking and MIME-sniffing.",
+      "Run `npm audit` and update dependencies: pdfjs-dist and other libraries may have known CVEs.",
+      "Implement per-user encryption key derivation: avoid storing salt in localStorage; derive it from username + server-side nonce instead."
+    ]
+  },
+  "durationMs": 43775,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-10T22:14:20.260Z",
+  "executionId": "audit_1778451216485_2r5z5y"
+}

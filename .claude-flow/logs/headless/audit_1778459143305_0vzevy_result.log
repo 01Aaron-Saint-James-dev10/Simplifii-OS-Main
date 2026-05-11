@@ -1,0 +1,56 @@
+[2026-05-11T00:26:25.052Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/backend/NeuralAuditPipeline.js\",\n      \"line\": 3,\n      \"description\": \"Hardcoded course codes (SCIENCE_CODES) violate architecture rules. Per CLAUDE.md: 'Course-specific data lives in the schema and on disk, not in the architecture.' These values should be loaded from configuration or grounding data.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/frontend/SmartIntake.js\",\n      \"line\": 9,\n      \"description\": \"Hardcoded 'UNSW Moodle' institution reference violates architecture rule against hardcoded university course codes in logic. Should be pulled from institutional context or configuration.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/frontend/MasterDashboard.js\",\n      \"line\": 15,\n      \"description\": \"Hardcoded example task with course code 'ARTS5200' mixed into component logic. Should be pulled from ProjectContext or grounding data to avoid hardcoding institution-specific values in UI.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/backend/LMSConnector.js\",\n      \"line\": 1,\n      \"description\": \"Mock LMS connector lacks error handling, authentication token support, and input validation on courseCode parameter. If wired to a real LMS API, would need: credential management, network error handling, and sanitization of institutional URLs.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 166,\n      \"description\": \"Passphrase minimum length is 4 characters, which is weak. While PBKDF2 (600k iterations) mitigates brute force, consider enforcing minimum 8-12 characters for better security posture.\"\n    }\n  ],\n  \"riskScore\": 22,\n  \"recommendations\": [\n    \"Move SCIENCE_CODES and all course-specific constants from NeuralAuditPipeline.js to a data-driven config file or grounding manifest (activeManifest.json pattern)\",\n    \"Extract hardcoded institution names ('UNSW', 'ARTS5200') into a runtime-loaded institutional context that the student can customize\",\n    \"Add authentication and error handling to LMSConnector.js if it will connect to real LMS systems (OAuth token support, network retry logic, graceful degradation)\",\n    \"Increase passphrase minimum to 8-12 characters and add strength indicator in UI\",\n    \"Audit all window.localStorage writes (ExecutiveSpine.js focus session, HistoryOfThought salt) — ensure they're marked as intentionally unencrypted in comments, and document why plaintext storage is acceptable per Sovereign architecture\",\n    \"Add input validation in textarea onChange handlers to prevent event bombing or unusual payloads (MasterDashboard.js updateDraft callback)\",\n    \"Verify EventBus.js pickSafePayload function is complete — truncate all user-controlled string fields (source, sourceId) before encryption to prevent IndexedDB quota exhaustion attacks\"\n  ]\n}\n```\n\n**Key Findings:**\n\n✅ **No Critical Issues** — No hardcoded secrets, SQL injection, or XSS vulnerabilities detected.\n\n⚠️ **Architectural Violations** — Two medium-severity issues: hardcoded course codes and institution names in logic violate your documented rule that course-specific data must live in schema/disk, not architecture.\n\n✅ **Crypto is Sound** — HistoryOfThought.js implements AES-GCM-256 + PBKDF2 (600k iterations) correctly. Encryption layer is solid.\n\n✅ **React Safety** — JSX escaping prevents XSS; no direct DOM manipulation with user input.\n\n**Lowest-Risk Area:** Core spine/vault layer (ExecutiveSpine, HistoryOfThought, EventBus) is well-architected and follows the Sovereign Constitution rules. The frontend components are minimal and safe.\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "medium",
+        "file": "src/backend/NeuralAuditPipeline.js",
+        "line": 3,
+        "description": "Hardcoded course codes (SCIENCE_CODES) violate architecture rules. Per CLAUDE.md: 'Course-specific data lives in the schema and on disk, not in the architecture.' These values should be loaded from configuration or grounding data."
+      },
+      {
+        "severity": "medium",
+        "file": "src/frontend/SmartIntake.js",
+        "line": 9,
+        "description": "Hardcoded 'UNSW Moodle' institution reference violates architecture rule against hardcoded university course codes in logic. Should be pulled from institutional context or configuration."
+      },
+      {
+        "severity": "low",
+        "file": "src/frontend/MasterDashboard.js",
+        "line": 15,
+        "description": "Hardcoded example task with course code 'ARTS5200' mixed into component logic. Should be pulled from ProjectContext or grounding data to avoid hardcoding institution-specific values in UI."
+      },
+      {
+        "severity": "low",
+        "file": "src/backend/LMSConnector.js",
+        "line": 1,
+        "description": "Mock LMS connector lacks error handling, authentication token support, and input validation on courseCode parameter. If wired to a real LMS API, would need: credential management, network error handling, and sanitization of institutional URLs."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 166,
+        "description": "Passphrase minimum length is 4 characters, which is weak. While PBKDF2 (600k iterations) mitigates brute force, consider enforcing minimum 8-12 characters for better security posture."
+      }
+    ],
+    "riskScore": 22,
+    "recommendations": [
+      "Move SCIENCE_CODES and all course-specific constants from NeuralAuditPipeline.js to a data-driven config file or grounding manifest (activeManifest.json pattern)",
+      "Extract hardcoded institution names ('UNSW', 'ARTS5200') into a runtime-loaded institutional context that the student can customize",
+      "Add authentication and error handling to LMSConnector.js if it will connect to real LMS systems (OAuth token support, network retry logic, graceful degradation)",
+      "Increase passphrase minimum to 8-12 characters and add strength indicator in UI",
+      "Audit all window.localStorage writes (ExecutiveSpine.js focus session, HistoryOfThought salt) — ensure they're marked as intentionally unencrypted in comments, and document why plaintext storage is acceptable per Sovereign architecture",
+      "Add input validation in textarea onChange handlers to prevent event bombing or unusual payloads (MasterDashboard.js updateDraft callback)",
+      "Verify EventBus.js pickSafePayload function is complete — truncate all user-controlled string fields (source, sourceId) before encryption to prevent IndexedDB quota exhaustion attacks"
+    ]
+  },
+  "durationMs": 41746,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-11T00:26:25.051Z",
+  "executionId": "audit_1778459143305_0vzevy"
+}

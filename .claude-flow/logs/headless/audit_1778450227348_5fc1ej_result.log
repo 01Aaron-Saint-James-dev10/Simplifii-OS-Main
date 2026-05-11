@@ -1,0 +1,89 @@
+[2026-05-10T21:57:51.258Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 87,\n      \"description\": \"Encryption salt stored in localStorage in plaintext (base64). If localStorage is compromised via XSS, the salt can be recovered and used to derive keys with minimal additional work, defeating the security of the PBKDF2 key derivation.\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 35,\n      \"description\": \"Weak passphrase requirement: minimum 4 characters. Users can set extremely weak passphrases (e.g., '1234'), making brute-force attacks trivial despite 600k PBKDF2 iterations.\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 30,\n      \"description\": \"Module-level `__derivedKey` caches the AES-GCM key in memory. No secure zeroing on lockSession() - JavaScript has no guarantees about memory wiping, making the key vulnerable to memory disclosure attacks (e.g., Spectre).\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/App.js\",\n      \"line\": 23,\n      \"description\": \"localStorage cleared via URL parameter `?reset=true` without CSRF token or user confirmation. Malicious sites can trick users into clearing all data by embedding the link or via auto-redirect.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/ExecutiveSpine.js\",\n      \"line\": 46,\n      \"description\": \"Session state and health data stored in localStorage. Accessible to any XSS payload in the same origin. No Content Security Policy evident to prevent inline script injection.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/frontend/SettingsContext.js\",\n      \"line\": 19,\n      \"description\": \"Dynamic fontFamily applied via inline style from context value. While currently enum-safe, this pattern is vulnerable if font names ever come from user input or external sources.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/backend/LMSConnector.js\",\n      \"line\": 1,\n      \"description\": \"courseCode parameter not validated before use. If integrated with a real LMS, unsanitized input could lead to path traversal or injection attacks. Function should validate courseCode format.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/EventBus.js\",\n      \"line\": 52,\n      \"description\": \"User ID and stream ID default to hardcoded values ('local', 'tertiary'). No actual authentication. If multi-user support is added, requires proper user context validation.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/backend/NeuralAuditPipeline.js\",\n      \"line\": 3,\n      \"description\": \"Hardcoded university course codes (BABS1201, BABS1202) in engineering spec. Violates CLAUDE.md §3 (Universal Architecture). Should be externalized to schema/config.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/frontend/SmartIntake.js\",\n      \"line\": 12,\n      \"description\": \"Hardcoded 'UNSW Moodle' reference in UI text. Violates CLAUDE.md §3 (no course-specific code in engineering specs). Should be read from institution config.\"\n    }\n  ],\n  \"riskScore\": 72,\n  \"recommendations\": [\n    \"Implement a Content Security Policy (CSP) header to prevent XSS attacks and inline script execution. Enforce `script-src 'none'` or whitelist specific sources.\",\n    \"Move encryption salt to a secure, server-managed location or derive it from a server-side challenge-response. Never store salt in localStorage.\",\n    \"Increase passphrase minimum length to 12+ characters and add strength validation (entropy check). Consider ZXCVBN library for real-time feedback.\",\n    \"Replace module-level `__derivedKey` cache with scoped, session-limited storage. Consider WebCrypto's built-in key isolation (non-extractable keys) where possible.\",\n    \"Add CSRF token validation for sensitive operations (localStorage clear, settings changes). Require explicit user confirmation for destructive actions.\",\n    \"Implement proper input validation for all external parameters: courseCode, streamId, userId. Use allowlists where possible.\",\n    \"Add request rate limiting and abuse detection for sensitive endpoints (even client-side, to prevent rapid-fire attacks).\",\n    \"Externalize hardcoded course codes and institution names to a configuration file or environment variables. Respect CLAUDE.md §3 (Universal Architecture).\",\n    \"Implement proper logging and monitoring (without exposing sensitive data) to detect unauthorized access or tampering with encryption state.\",\n    \"For production deployment with real user data: implement server-side authentication, encrypt all data in transit (HTTPS), and conduct a security audit by external experts.\"\n  ]\n}\n```\n\n---\n\n## Key Findings\n\n**Highest Risk:** The encryption system (HistoryOfThought) has three critical weaknesses:\n1. Salt stored plaintext in localStorage—defeats PBKDF2 protection\n2. Minimum 4-char passphrase—trivial to brute-force\n3. Unzeroed key in memory—vulnerable to Spectre-class attacks\n\n**XSS & CSRF:** Multiple localStorage writes with no CSP or CSRF token. The `?reset=true` parameter can wipe all user data.\n\n**No Auth:** The system has no real user authentication—all security relies on client-side encryption with a weak passphrase, which is insufficient for sensitive academic work.\n\n**Architectural:** Hardcoded course codes and institution names violate the project's stated \"Universal Architecture\" goal and should be externalized.\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "high",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 87,
+        "description": "Encryption salt stored in localStorage in plaintext (base64). If localStorage is compromised via XSS, the salt can be recovered and used to derive keys with minimal additional work, defeating the security of the PBKDF2 key derivation."
+      },
+      {
+        "severity": "high",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 35,
+        "description": "Weak passphrase requirement: minimum 4 characters. Users can set extremely weak passphrases (e.g., '1234'), making brute-force attacks trivial despite 600k PBKDF2 iterations."
+      },
+      {
+        "severity": "high",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 30,
+        "description": "Module-level `__derivedKey` caches the AES-GCM key in memory. No secure zeroing on lockSession() - JavaScript has no guarantees about memory wiping, making the key vulnerable to memory disclosure attacks (e.g., Spectre)."
+      },
+      {
+        "severity": "medium",
+        "file": "src/App.js",
+        "line": 23,
+        "description": "localStorage cleared via URL parameter `?reset=true` without CSRF token or user confirmation. Malicious sites can trick users into clearing all data by embedding the link or via auto-redirect."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/ExecutiveSpine.js",
+        "line": 46,
+        "description": "Session state and health data stored in localStorage. Accessible to any XSS payload in the same origin. No Content Security Policy evident to prevent inline script injection."
+      },
+      {
+        "severity": "medium",
+        "file": "src/frontend/SettingsContext.js",
+        "line": 19,
+        "description": "Dynamic fontFamily applied via inline style from context value. While currently enum-safe, this pattern is vulnerable if font names ever come from user input or external sources."
+      },
+      {
+        "severity": "medium",
+        "file": "src/backend/LMSConnector.js",
+        "line": 1,
+        "description": "courseCode parameter not validated before use. If integrated with a real LMS, unsanitized input could lead to path traversal or injection attacks. Function should validate courseCode format."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/EventBus.js",
+        "line": 52,
+        "description": "User ID and stream ID default to hardcoded values ('local', 'tertiary'). No actual authentication. If multi-user support is added, requires proper user context validation."
+      },
+      {
+        "severity": "low",
+        "file": "src/backend/NeuralAuditPipeline.js",
+        "line": 3,
+        "description": "Hardcoded university course codes (BABS1201, BABS1202) in engineering spec. Violates CLAUDE.md §3 (Universal Architecture). Should be externalized to schema/config."
+      },
+      {
+        "severity": "low",
+        "file": "src/frontend/SmartIntake.js",
+        "line": 12,
+        "description": "Hardcoded 'UNSW Moodle' reference in UI text. Violates CLAUDE.md §3 (no course-specific code in engineering specs). Should be read from institution config."
+      }
+    ],
+    "riskScore": 72,
+    "recommendations": [
+      "Implement a Content Security Policy (CSP) header to prevent XSS attacks and inline script execution. Enforce `script-src 'none'` or whitelist specific sources.",
+      "Move encryption salt to a secure, server-managed location or derive it from a server-side challenge-response. Never store salt in localStorage.",
+      "Increase passphrase minimum length to 12+ characters and add strength validation (entropy check). Consider ZXCVBN library for real-time feedback.",
+      "Replace module-level `__derivedKey` cache with scoped, session-limited storage. Consider WebCrypto's built-in key isolation (non-extractable keys) where possible.",
+      "Add CSRF token validation for sensitive operations (localStorage clear, settings changes). Require explicit user confirmation for destructive actions.",
+      "Implement proper input validation for all external parameters: courseCode, streamId, userId. Use allowlists where possible.",
+      "Add request rate limiting and abuse detection for sensitive endpoints (even client-side, to prevent rapid-fire attacks).",
+      "Externalize hardcoded course codes and institution names to a configuration file or environment variables. Respect CLAUDE.md §3 (Universal Architecture).",
+      "Implement proper logging and monitoring (without exposing sensitive data) to detect unauthorized access or tampering with encryption state.",
+      "For production deployment with real user data: implement server-side authentication, encrypt all data in transit (HTTPS), and conduct a security audit by external experts."
+    ]
+  },
+  "durationMs": 43909,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-10T21:57:51.257Z",
+  "executionId": "audit_1778450227348_5fc1ej"
+}

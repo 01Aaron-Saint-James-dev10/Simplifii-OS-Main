@@ -1,0 +1,1217 @@
+[2026-05-11T00:23:24.689Z] PROMPT
+============================================================
+Analyze this codebase for security vulnerabilities:
+- Check for hardcoded secrets (API keys, passwords)
+- Identify SQL injection risks
+- Find XSS vulnerabilities
+- Check for insecure dependencies
+- Identify authentication/authorization issues
+
+Provide a JSON report with:
+{
+  "vulnerabilities": [{ "severity": "high|medium|low", "file": "...", "line": N, "description": "..." }],
+  "riskScore": 0-100,
+  "recommendations": ["..."]
+}
+
+## Codebase Context
+
+--- App.js ---
+import React from 'react';
+import { SettingsProvider } from './frontend/SettingsContext';
+import { ProjectProvider } from './frontend/ProjectContext';
+import MasterDashboard from './frontend/MasterDashboard';
+function App() { return (
+<SettingsProvider><ProjectProvider><MasterDashboard /></ProjectProvider></SettingsProvider>
+); }
+export default App;
+
+
+--- CourseTrack.js ---
+import React from 'react';
+import { Star, Trophy, Palmtree } from 'lucide-react';
+export default function CourseTrack() {
+  return (
+    <div className="p-4 bg-zinc-800/50 rounded-2xl border border-zinc-700 flex justify-around items-center w-full animate-fade-in">
+      <Palmtree className="text-emerald-500" />
+      <div className="h-1 bg-zinc-700 flex-1 mx-4 rounded-full overflow-hidden">
+        <div className="bg-emerald-500 h-full w-1/3"></div>
+      </div>
+      <Star className="text-amber-500 animate-pulse" />
+      <div className="h-1 bg-zinc-700 flex-1 mx-4 rounded-full"></div>
+      <Trophy className="text-zinc-600" />
+    </div>
+  );
+}
+
+
+--- MasterDashboard.js ---
+import React, { useState } from 'react';
+import { Brain, Sparkles, Mic, ArrowRight, Zap, ListTree } from 'lucide-react';
+import { useSettings } from './SettingsContext';
+import { useProject } from './ProjectContext';
+import CourseTrack from './CourseTrack';
+import TaskCard from './TaskCard';
+import SmartIntake from './SmartIntake';
+
+export default function MasterDashboard() {
+  const { mode, setMode, eduLevel } = useSettings();
+  const { project, updateDraft } = useProject();
+  const [activeTask, setActiveTask] = useState(null);
+  const [lmsConnected, setLmsConnected] = useState(false);
+  const [currentPhase, setCurrentPhase] = useState('grounding');
+
+  const handleSync = () => setLmsConnected(true);
+
+  return (
+    <div className="flex h-screen bg-[#07080D] text-white overflow-hidden font-sans">
+      <aside className={`transition-all duration-500 border-r border-zinc-800 bg-[#0D0F18] p-5 flex flex-col ${activeTask ? 'w-20' : 'w-80'}`}>
+        <div className="flex items-center gap-2 mb-10">
+          <div className="bg-emerald-500 p-1.5 rounded-lg shadow-lg"><Brain size={20} /></div>
+          {!activeTask && <span className="font-bold text-lg tracking-tighter uppercase">Simplifii-OS</span>}
+        </div>
+        {!activeTask && (
+          <div className="space-y-4">
+            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-4 px-3">Active Sprints</p>
+            <TaskCard task={{course: 'ARTS5200', task: 'Foundations Essay'}} onStart={setActiveTask} />
+          </div>
+        )}
+      </aside>
+
+      <main className="flex-1 flex overflow-hidden">
+        <section className="w-1/2 border-r border-zinc-800 p-8 overflow-y-auto space-y-6 bg-[#07080D]">
+          <header className="flex justify-between items-center mb-8">
+            <h2 className="text-sm font-black uppercase text-emerald-500 tracking-widest">Guidance Engine</h2>
+            <div className="flex gap-1 bg-zinc-900 p-1 rounded-lg border border-zinc-800">
+              {['standard', 'adhd', 'dyslexia'].map(m => (
+                <button key={m} onClick={() => setMode(m)} className={`px-2 py-1 rounded text-[8px] font-bold ${mode===m ? 'bg-emerald-500 text-black' : 'text-zinc-500'}`}>{m.toUpperCase()}</button>
+              ))}
+            </div>
+          </header>
+          {!lmsConnected ? (
+            <div className="p-10 rounded-[40px] bg-zinc-900 border border-zinc-800 text-center space-y-6 shadow-2xl">
+              <Sparkles size={40} className="mx-auto text-emerald-500" />
+              <h3 className="text-3xl font-bold">Connect your university...</h3>
+              <button onClick={handleSync} className="px-8 py-4 rounded-2xl bg-emerald-500 text-black font-black hover:scale-105 transition-all">START AUTO-SYNC</button>
+            </div>
+          ) : currentPhase === 'grounding' ? (
+            <SmartIntake onComplete={(phase) => setCurrentPhase(phase)} />
+          ) : (
+            <div className="p-6 rounded-3xl bg-emerald-500/5 border border-emerald-500/20 animate-fade-in">
+              <p className="text-xs font-black text-emerald-500 uppercase mb-2">Sprint Goal</p>
+              <p className="text-lg font-medium">Draft your methodology section.</p>
+              <button className="mt-6 w-full p-4 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center gap-3 text-zinc-400"><Mic size={18}/> Talk through your ideas</button>
+            </div>
+          )}
+        </section>
+
+        <section className="w-1/2 bg-zinc-950 p-8 flex flex-col relative">
+           <div className="flex justify-between items-center mb-6">
+             <CourseTrack />
+           </div>
+           <div className={`flex-1 rounded-[40px] border border-white/5 ${mode === 'dyslexia' ? 'bg-[#FEFCE8]/5' : 'bg-white/5'} p-8 flex flex-col`}>
+             <textarea 
+               value={project.currentDraft} 
+               onChange={(e) => updateDraft(e.target.value)}
+               className="flex-1 bg-transparent border-none focus:ring-0 text-zinc-300 text-xl leading-relaxed resize-none"
+               placeholder="Your work belongs here..."
+             />
+           </div>
+           <div className="absolute bottom-6 left-8 right-8 h-12 flex items-end gap-1 opacity-40 pointer-events-none">
+             {project.integrityLog.map((log, i) => (
+               <div key={i} className="bg-emerald-500 w-1 rounded-full" style={{ height: `${Math.min(log.length / 5, 100)}%` }} />
+             ))}
+           </div>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+
+--- MasterEngine.js ---
+export const MasterEngine = {
+  simplifyBrief: (rawText, eduLevel = 'university') => ({
+    title: "Decoded Assessment Plan",
+    strategy: eduLevel === 'university' ? "Critical Analysis Focus" : "Structure Focus"
+  }),
+  trackThinking: (oldText, newText) => {
+    const delta = newText.length - oldText.length;
+    return { status: delta > 2000 ? "Warning: Paste Detected" : "Human Pattern Verified" };
+  }
+};
+
+
+--- ProjectContext.js ---
+import React, { createContext, useState, useContext } from 'react';
+const ProjectContext = createContext();
+export const ProjectProvider = ({ children }) => {
+  const [project, setProject] = useState({ currentDraft: '', integrityLog: [] });
+  const updateDraft = (newText) => {
+    setProject(prev => ({
+      ...prev,
+      currentDraft: newText,
+      integrityLog: [...prev.integrityLog, { length: newText.length }]
+    }));
+  };
+  return (
+    <ProjectContext.Provider value={{ project, updateDraft }}>{children}</ProjectContext.Provider>
+  );
+};
+export const useProject = () => useContext(ProjectContext);
+
+
+--- SettingsContext.js ---
+import React, { createContext, useState, useContext } from 'react';
+const SettingsContext = createContext();
+export const SettingsProvider = ({ children }) => {
+  const [mode, setMode] = useState('standard'); 
+  const [eduLevel, setEduLevel] = useState('university');
+  const rules = {
+    standard: { font: 'Inter', spacing: 'normal' },
+    adhd: { font: 'Inter', spacing: 'wide' },
+    dyslexia: { font: 'OpenDyslexic', spacing: 'extra-wide' }
+  };
+  return (
+    <SettingsContext.Provider value={{ mode, setMode, eduLevel, setEduLevel, activeRules: rules[mode] }}>
+      <div style={{ fontFamily: rules[mode].font }}>{children}</div>
+    </SettingsContext.Provider>
+  );
+};
+export const useSettings = () => useContext(SettingsContext);
+
+
+--- Simplifii-OS_Master_CoWork/SovereignBus.js ---
+/**
+ * SovereignBus
+ *
+ * The wiring layer between ExecutiveSpine and HistoryOfThought.
+ *
+ * ExecutiveSpine dispatches 8 simplifii:* CustomEvents. Without this
+ * bus, none of them are heard. The HistoryOfThought event log stays
+ * empty, the Authenticity Report has nothing to authenticate, and
+ * the per-stream PlayTime threshold never auto-fires.
+ *
+ * This module adds:
+ *   1. Listeners for every spine event, mapping each to its
+ *      HistoryOfThought event_type and forwarding via appendEvent.
+ *      Vault-locked drops are silent (HistoryOfThought handles this).
+ *   2. Auto PlayTime grant when SectionHealth crosses the active
+ *      stream's sectionHealthUnlockThreshold (Blueprint Layer 2.2d).
+ *
+ * Called from ProjectContext.useEffect on stream hydrate. Idempotent.
+ *
+ * Hard rules from the Blueprint enforced here:
+ *   - section_health_change events feed HistoryOfThought without naming
+ *     the user (we pass user_id='local' until cloud sync ships)
+ *   - PlayTime threshold is read from the stream profile, never inferred
+ *
+ * Drop this file at: src/core/SovereignBus.js
+ */
+
+import { appendEvent, isUnlocked } from './HistoryOfThought';
+import { grantPlayTime } from './ExecutiveSpine';
+
+let __busAttached = false;
+let __activeStreamId = 'tertiary';
+let __activeUnlockThreshold = 4;
+let __activePlaytimeMinutes = 7;
+
+const safeAppend = async (event_type, payload) => {
+  try {
+    if (!isUnlocked()) return; // soft-drop; HistoryOfThought already logs
+    await appendEvent({ user_id: 'local', stream_id: __activeStreamId, event_type, payload });
+  } catch (e) {
+    if (typeof console !== 'undefined') console.warn('[SovereignBus] appendEvent failed', e);
+  }
+};
+
+const onFocusStart = (e) => safeAppend('focus_session_start', {
+  taskId: e.detail?.taskId,
+  plannedDurationMs: e.detail?.plannedDurationMs
+});
+
+const onFocusEnd = (e) => safeAppend('focus_session_end', {
+  taskId: e.detail?.taskId,
+  actualDurationMs: e.detail?.actualDurationMs,
+  reason: e.detail?.reason
+});
+
+const onIdle = (e) => safeAppend('nudge_triggered', {
+  reason: 'idle',
+  sinceMs: e.detail?.sinceMs,
+  taskId: e.detail?.taskId
+});
+
+const onSectionHealth = (e) => {
+  const { sectionId, fromDots, toDots } = e.detail || {};
+  safeAppend('section_health_change', { sectionId, fromDots, toDots });
+  // Auto-grant PlayTime when threshold is crossed.
+  if (
+    typeof toDots === 'number' &&
+    typeof fromDots === 'number' &&
+    fromDots < __activeUnlockThreshold &&
+    toDots >= __activeUnlockThreshold
+  ) {
+    grantPlayTime({ minutes: __activePlaytimeMinutes, reason: 'section-health' });
+  }
+};
+
+const onPlaytimeGranted = (e) => safeAppend('playtime_granted', {
+  durationMs: (e.detail?.until || Date.now()) - Date.now()
+});
+
+const onPlaytimeExpired = () => safeAppend('playtime_expired', {});
+
+export const start = ({ stream } = {}) => {
+  if (typeof window === 'undefined') return;
+  if (__busAttached) return;
+  __activeStreamId = stream?.streamId || 'tertiary';
+  __activeUnlockThreshold = stream?.profile?.sectionHealthUnlockThreshold ?? 4;
+  __activePlaytimeMinutes = stream?.profile?.defaultPlaytimeMinutes ?? 7;
+
+  window.addEventListener('simplifii:focus-start', onFocusStart);
+  window.addEventListener('simplifii:focus-end', onFocusEnd);
+  window.addEventListener('simplifii:idle', onIdle);
+  window.addEventListener('simplifii:section-health', onSectionHealth);
+  window.addEventListener('simplifii:playtime-granted', onPlaytimeGranted);
+  window.addEventListener('simplifii:playtime-expired', onPlaytimeExpired);
+  __busAttached = true;
+};
+
+export const stop = () => {
+  if (typeof window === 'undefined' || !__busAttached) return;
+  window.removeEventListener('simplifii:focus-start', onFocusStart);
+  window.removeEventListener('simplifii:focus-end', onFocusEnd);
+  window.removeEventListener('simplifii:idle', onIdle);
+  window.removeEventListener('simplifii:section-health', onSectionHealth);
+  window.removeEventListener('simplifii:playtime-granted', onPlaytimeGranted);
+  window.removeEventListener('simplifii:playtime-expired', onPlaytimeExpired);
+  __busAttached = false;
+};
+
+export const updateActiveStream = ({ stream }) => {
+  __activeStreamId = stream?.streamId || 'tertiary';
+  __activeUnlockThreshold = stream?.profile?.sectionHealthUnlockThreshold ?? 4;
+  __activePlaytimeMinutes = stream?.profile?.defaultPlaytimeMinutes ?? 7;
+};
+
+export const __internals = { onSectionHealth, onFocusStart, onFocusEnd, onIdle };
+
+
+--- SmartIntake.js ---
+import React from 'react';
+import { Sparkles, ArrowRight } from 'lucide-react';
+export default function SmartIntake({ onComplete }) {
+  return (
+    <div className="p-10 rounded-[40px] bg-zinc-900 border border-zinc-800 shadow-2xl space-y-8 animate-fade-in">
+      <div className="flex items-center gap-3 text-emerald-500">
+        <Sparkles size={32} />
+        <h2 className="text-2xl font-bold">I've scanned your UNSW Moodle...</h2>
+      </div>
+      <p className="text-zinc-400 text-lg">I see you have an <b>ARTS5200 Essay</b> due in 12 days. Tell me where your brain is at:</p>
+      <div className="grid grid-cols-1 gap-4">
+        <button onClick={() => onComplete('scaffold')} className="p-6 rounded-2xl bg-zinc-800 border border-zinc-700 text-left hover:border-emerald-500 transition-all group">
+          <div className="flex justify-between items-center text-white">
+            <div>
+              <p className="font-bold">"I'm staring at a blank page."</p>
+              <p className="text-xs text-zinc-500 mt-1">Open the Scaffolder to build your structure.</p>
+            </div>
+            <ArrowRight className="text-zinc-600 group-hover:text-emerald-500" />
+          </div>
+        </button>
+        <button onClick={() => onComplete('humaniser')} className="p-6 rounded-2xl bg-zinc-800 border border-zinc-700 text-left hover:border-amber-500 transition-all group">
+          <div className="flex justify-between items-center text-white">
+            <div>
+              <p className="font-bold">"I've written a draft, but I'm worried it sounds like AI."</p>
+              <p className="text-xs text-zinc-500 mt-1">Open the Humaniser Shield to protect your voice.</p>
+            </div>
+            <ArrowRight className="text-zinc-600 group-hover:text-amber-500" />
+          </div>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
+--- TaskCard.js ---
+import React from 'react';
+import { Play } from 'lucide-react';
+export default function TaskCard({ task, onStart }) {
+  return (
+    <div className="p-4 rounded-2xl bg-zinc-900 border border-zinc-800 hover:border-emerald-500/50 transition-all shadow-xl">
+      <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-md uppercase">{task.course}</span>
+      <h3 className="text-sm font-bold mt-2">{task.task}</h3>
+      <button onClick={() => onStart(task)} className="w-full mt-3 bg-emerald-500 text-black py-2 rounded-lg font-black text-[10px] flex items-center justify-center gap-2 active:scale-95 transition-all">
+        <Play size={12} fill="black"/> START SPRINT
+      </button>
+    </div>
+  );
+}
+
+
+--- public/pdf.worker.min.js (truncated) ---
+/**
+ * @licstart The following is the entire license notice for the
+ * JavaScript code in this page
+ *
+ * Copyright 2023 Mozilla Foundation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @licend The above is the entire license notice for the
+ * JavaScript code in this page
+ */
+!function webpackUniversalModuleDefinition(e,t){"object"==typeof exports&&"object"==typeof module?module.exports=e.pdfjsWorker=t():"function"==typeof define&&define.amd?define("pdfjs-dist/build/pdf.worker",[],(()=>e.pdfjsWorker=t())):"object"==typeof exports?exports["pdfjs-dist/build/pdf.worker"]=e.pdfjsWorker=t():e["pdfjs-dist/build/pdf.worker"]=e.pdfjsWorker=t()}(globalThis,(()=>(()=>{"use strict";var e=[,(e,t,a)=>{Object.defineProperty(t,"__esModule",{value:!0});t.WorkerTask=t.WorkerMessageHandler=void 0;a(2);a(84);a(93);a(94);a(97);a(99);a(101);a(105);a(108);a(115);a(116);a(127);a(129);a(132);a(134);a(136);a(138);a(140);a(144);var r=a(145),n=a(150),i=a(151),s=a(153),o=a(157),c=a(219),l=a(224),h=a(258),u=a(259),d=a(223);class WorkerTask{constructor(e){this.name=e;this.terminated=!1;this._capability=new r.PromiseCapability}get finished(){return this._capability.promise}finish(){this._capability.resolve()}terminate(){this.terminated=!0}ensureNotTerminated(){if(this.terminated)throw new Error("Worker task was terminated")}}t.WorkerTask=WorkerTask;class WorkerMessageHandler{static setup(e,t){let a=!1;e.on("test",(function(t){if(!a){a=!0;e.send("test",t instanceof Uint8Array)}}));e.on("configure",(function(e){(0,r.setVerbosityLevel)(e.verbosity)}));e.on("GetDocRequest",(function(e){return WorkerMessageHandler.createDocumentHandler(e,t)}))}static createDocumentHandler(e,t){let a,f=!1,g=null;const p=new Set,m=(0,r.getVerbosityLevel)(),{docId:b,apiVersion:y}=e,w="3.11.174";if(y!==w)throw new Error(`The API version "${y}" does not match the Worker version "${w}".`);const S=[];for(const e in[])S.push(e);if(S.length)throw new Error("The `Array.prototype` contains unexpected enumerable properties: "+S.join(", ")+"; thus breaking e.g. `for...in` iteration of `Array`s.");const x=b+"_worker";let C=new h.MessageHandler(x,b,t);function ensureNotTerminated(){if(f)throw new Error("Worker was terminated")}function startWorkerTask(e){p.add(e)}function finishWorkerTask(e){e.finish();p.delete(e)}async function loadDocument(e){await a.ensureDoc("checkHeader");await a.ensureDoc("parseStartXRef");await a.ensureDoc("parse",[e]);await a.ensureDoc("checkFirstPage",[e]);await a.ensureDoc("checkLastPage",[e]);const t=await a.ensureDoc("isPureXfa");if(t){const e=new WorkerTask("loadXfaFonts");startWorkerTask(e);await Promise.all([a.loadXfaFonts(C,e).catch((e=>{})).then((()=>finishWorkerTask(e))),a.loadXfaImages()])}const[r,n]=await Promise.all([a.ensureDoc("numPages"),a.ensureDoc("fingerprints")]);return{numPages:r,fingerprints:n,htmlForXfa:t?await a.ensureDoc("htmlForXfa"):null}}function getPdfManager(e){let{data:t,password:a,disableAutoFetch:i,rangeChunkSize:o,length:c,docBaseUrl:l,enableXfa:h,evaluatorOptions:d}=e;const f={source:null,disableAutoFetch:i,docBaseUrl:l,docId:b,enableXfa:h,evaluatorOptions:d,handler:C,length:c,password:a,rangeChunkSize:o},p=new r.PromiseCapability;let m;if(t){try{f.source=t;m=new s.LocalPdfManager(f);p.resolve(m)}catch(e){p.reject(e)}return p.promise}let y,w=[];try{y=new u.PDFWorkerStream(C)}catch(e){p.reject(e);return p.promise}const S=y.getFullReader();S.headersReady.then((function(){if(S.isRangeSupported){f.source=y;f.length=S.contentLength;f.disableAutoFetch||=S.isStreamingSupported;m=new s.NetworkPdfManager(f);for(const e of w)m.sendProgressiveData(e);w=[];p.resolve(m);g=null}})).catch((function(e){p.reject(e);g=null}));let x=0;new Promise((function(e,t){const readChunk=function(e){let{value:a,done:i}=e;try{ensureNotTerminated();if(i){m||function(){const e=(0,n.arrayBuffersToBytes)(w);c&&e.length!==c&&(0,r.warn)("reported HTTP length is different from actual");try{f.source=e;m=new s.LocalPdfManager(f);p.resolve(m)}catch(e){p.reject(e)}w=[]}();g=null;return}x+=a.byteLength;S.isStreamingSupported||C.send("DocProgress",{loaded:x,total:Math.max(x,S.contentLength||0)});m?m.sendProgressiveData(a):w.push(a);S.read().then(readChunk,t)}catch(e){t(e)}};S.read().then(readChunk,t)})).catch((function(e){p.reject(e);g=null}));g=function(e){y.cancelAllRequests(e)};return p.promise}C.on("GetPage",(function(e){return a.getPage(e.pageIndex).then((function(e){return Promise.all([a.ensure(e,"rotate"),a.ensure(e,"ref"),a.ensure(e,"userUnit
+
+--- scripts/build-grounding-manifest.js ---
+#!/usr/bin/env node
+/**
+ * Scans src/grounding/active/ and writes a JSON manifest that the
+ * browser-side NeuralAuditPipeline can import at build time.
+ */
+const fs = require('fs');
+const path = require('path');
+
+const ACTIVE_DIR = path.resolve(__dirname, '../src/grounding/active');
+const OUT_FILE = path.resolve(__dirname, '../src/grounding/activeManifest.json');
+
+let filenames = [];
+try {
+  filenames = fs.readdirSync(ACTIVE_DIR);
+} catch {
+  // directory missing — write empty manifest
+}
+
+fs.writeFileSync(OUT_FILE, JSON.stringify(filenames, null, 2) + '\n');
+console.log(`[build-grounding-manifest] Wrote ${filenames.length} entries to activeManifest.json`);
+
+
+--- scripts/check-style.js (truncated) ---
+#!/usr/bin/env node
+/**
+ * Neural Proof: pre-commit style enforcer for Simplifii-OS.
+ *
+ *  Hard-fails if it finds:
+ *    - U+2014 em-dash or U+2013 en-dash anywhere in src/ or public/.
+ *    - US-spelling tells inside string literals or JSX text:
+ *        behavior, color, flavor, analyze, organize, realize,
+ *        optimize, optimization (and -ed / -ing / -ation forms).
+ *
+ *  Skips:
+ *    - CSS property contexts (color:, scroll-behavior, fill-, stroke-).
+ *    - Tailwind class names (text-*, bg-*, border-*, fill-*, stroke-*).
+ *    - Identifier names where the word is part of a longer token.
+ *
+ *  Exit 0 = clean.  Exit 1 = violations printed to stderr.
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+const ROOT = path.resolve(__dirname, '..');
+const TARGETS = ['src', 'public'];
+const EXCLUDED_DIRS = new Set(['node_modules', 'build', 'dist', '.git', '.husky']);
+const ALLOWED_EXTS = new Set(['.js', '.jsx', '.ts', '.tsx', '.html', '.css', '.json', '.md']);
+
+const DASH_RE = /[—–]/g;
+
+const US_FORMS = [
+  { stem: 'behavior', expected: 'behaviour' },
+  { stem: 'color',    expected: 'colour'    },
+  { stem: 'flavor',   expected: 'flavour'   },
+  { stem: 'analyze',  expected: 'analyse'   },
+  { stem: 'organize', expected: 'organise'  },
+  { stem: 'realize',  expected: 'realise'   },
+  { stem: 'optimize', expected: 'optimise'  }
+];
+
+// Returns true if the position falls inside a string literal or JSX text.
+// Used to suppress identifier-context false positives.
+function isInTemplateInterpolation(line, index) {
+  const before = line.slice(0, index);
+  const lastOpen = before.lastIndexOf('${');
+  const lastClose = before.lastIndexOf('}');
+  return lastOpen > lastClose;
+}
+
+function isInUserFacingContext(line, index) {
+  // Heuristic: count quote and angle-bracket positions up to index. A
+  // substring in a string literal will be inside a matched pair of " ' or `,
+  // or appear between > and < in JSX text. For our enforcement we accept
+  // some imprecision: flag when surrounded by quotes OR JSX braces.
+  const before = line.slice(0, index);
+  const after = line.slice(index);
+
+  const inQuotedString =
+    (before.match(/["']/g) || []).length % 2 === 1 ||
+    (before.match(/`/g) || []).length % 2 === 1;
+  if (inQuotedString) return true;
+
+  const lastGt = before.lastIndexOf('>');
+  const lastLt = before.lastIndexOf('<');
+  const nextLt = after.indexOf('<');
+  if (lastGt > lastLt && nextLt !== -1) return true;
+
+  return false;
+}
+
+function isCssOrTailwindContext(line) {
+  if (/\bcolor\s*:/.test(line)) return true;
+  if (/scroll-behavior/i.test(line)) return true;
+  if (/\b(text|bg|border|fill|stroke|ring|outline|shadow|placeholder|caret|accent|divide|from|via|to)-(?:[a-z]+-)?(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|black|white)\b/.test(line)) return true;
+  return false;
+}
+
+const violations = [];
+
+function scanFile(filePath, content) {
+  const rel = path.relative(ROOT, filePath);
+  const lines = content.split('\n');
+
+  // File-level directive: lookup tables / functional word lists can opt out
+  // of the spelling rule (em-dash check still runs). Place
+  //   // allow-style:file
+  // anywhere in the first 10 lines.
+  const headerScope = lines.slice(0, 10).join('\n');
+  const skipSpelling = /allow-style:file/.test(headerScope);
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Em-dashes / en-dashes: any occurrence is a hard fail.
+    let m;
+    DASH_RE.lastIndex = 0;
+    while ((m = DASH_RE.exec(line)) !== null) {
+      violations.push(`${rel}:${i + 1}: em-dash or en-dash (U+${m[0].charCodeAt(0).toString(16).toUpperCase()}) - use comma, full stop, or pair of hyphens`);
+    }
+
+    // US spellings inside user-facing contexts only.
+    if (skipSpelling) continue;
+    if (isCssOrTailwindContext(line)) continue;
+    if (/\/\/\s*allow-style/.test(line) || /\/\*\s*allow-style/.test(line)) continue;
+
+    for (const { stem, expected } of US_FORMS) {
+      const re = new RegExp(`\\b${stem}(?:s|d|r|rs|ation|ations|ed|ing)?\\b`, 'gi');
+      let sm;
+      while ((sm = re.exec(line)) !== null) {
+        const charBefore = sm.index > 0 ? line[sm.index - 1] : '';
+        if (charBefore === '.') continue; // property access, e.g. obj.color
+        if (isInTemplateInterpolation(line, sm.index)) continue; // ${...}
+        if (isInUserFacingContext(line, sm.index)) {
+          violations.push(`${rel}:${i + 1}: '${sm[0]}' (US spelling) - Australian-English uses '${expected}' family`);
+        }
+      }
+    }
+  }
+}
+
+function walk(dir) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (EXCLUDED_DIRS.has(entry.name)) continue;
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      walk(full);
+    } else if (ALLOWED_EXTS.has(path.extname(entry.name))) {
+      try {
+        scanFile(full, fs.readFileSync(full, 'utf8'));
+      } catch (err) {
+        con
+
+--- scripts/copy-pdf-worker.js ---
+#!/usr/bin/env node
+/**
+ * Copies the pdf.js worker out of node_modules into public/ so the cockpit
+ * can serve it from its own origin instead of fetching it from unpkg.com
+ * at runtime. Going local fixes the
+ *   "Failed to fetch dynamically imported module: pdf.worker.min.js"
+ * crash, makes PDF parsing offline-capable, and matches the sovereign
+ * privacy posture the rest of the OS already follows.
+ *
+ * Triggered automatically by npm install (postinstall), npm start
+ * (prestart), and npm run build (prebuild). Safe to re-run; it
+ * overwrites the destination.
+ *
+ * Handles both layouts:
+ *   - pdfjs-dist 2.x/3.x ships pdf.worker.min.js (UMD, classic script)
+ *   - pdfjs-dist 4.x ships pdf.worker.min.mjs   (ESM, module script)
+ * The first matching candidate wins; the destination filename mirrors
+ * the source extension so the dev server serves the correct MIME type.
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+const ROOT = path.resolve(__dirname, '..');
+const PUBLIC_DIR = path.join(ROOT, 'public');
+
+const CANDIDATES = [
+  // 3.x and earlier: legacy UMD worker. This is the path the current
+  // DocumentAIService.workerSrc points at, so it wins by default.
+  { src: 'node_modules/pdfjs-dist/legacy/build/pdf.worker.min.js', dest: 'pdf.worker.min.js' },
+  { src: 'node_modules/pdfjs-dist/legacy/build/pdf.worker.js',     dest: 'pdf.worker.min.js' },
+  { src: 'node_modules/pdfjs-dist/build/pdf.worker.min.js',        dest: 'pdf.worker.min.js' },
+  { src: 'node_modules/pdfjs-dist/build/pdf.worker.js',            dest: 'pdf.worker.min.js' },
+  // 4.x: ESM worker. Copied with .mjs extension so the dev server
+  // serves it as a module script. DocumentAIService falls back to
+  // /pdf.worker.min.mjs when the .js variant is missing.
+  { src: 'node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs', dest: 'pdf.worker.min.mjs' },
+  { src: 'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs',     dest: 'pdf.worker.min.mjs' },
+  { src: 'node_modules/pdfjs-dist/build/pdf.worker.min.mjs',        dest: 'pdf.worker.min.mjs' },
+  { src: 'node_modules/pdfjs-dist/build/pdf.worker.mjs',            dest: 'pdf.worker.min.mjs' }
+];
+
+const found = CANDIDATES.find(({ src }) => fs.existsSync(path.join(ROOT, src)));
+if (!found) {
+  console.warn('[copy-pdf-worker] No pdf.worker file found in node_modules.');
+  console.warn('[copy-pdf-worker] Run `npm install` to populate dependencies.');
+  console.warn('[copy-pdf-worker] Tried:');
+  CANDIDATES.forEach(({ src }) => console.warn('  -', src));
+  process.exit(0);
+}
+
+if (!fs.existsSync(PUBLIC_DIR)) fs.mkdirSync(PUBLIC_DIR, { recursive: true });
+const sourcePath = path.join(ROOT, found.src);
+const destPath = path.join(PUBLIC_DIR, found.dest);
+fs.copyFileSync(sourcePath, destPath);
+console.log(`[copy-pdf-worker] Copied ${found.src} -> public/${found.dest}`);
+
+
+--- src/App.js ---
+import React, { useState, useEffect } from 'react';
+import MasterDashboard from './frontend/MasterDashboard';
+import LandingPage from './frontend/LandingPage';
+import { SettingsProvider } from './frontend/SettingsContext';
+import { ProjectProvider } from './frontend/ProjectContext';
+import { InstitutionalProvider } from './frontend/InstitutionalContext';
+
+const VIEW = { LANDING: 'landing', DASHBOARD: 'dashboard' };
+
+class ViewBoundary extends React.Component {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(err) { console.error('[Simplifii-OS view crash]', err); }
+  render() {
+    if (this.state.failed) {
+      return (
+        <div style={{ minHeight: '100vh', background: '#07080D', color: '#10b981',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontFamily: 'system-ui', padding: 24, textAlign: 'center' }}>
+          <div>
+            <p style={{ fontWeight: 900, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 12 }}>
+              Cockpit recovered
+            </p>
+            <p style={{ color: '#a1a1aa', marginBottom: 16 }}>Something went sideways. Reload to continue.</p>
+            <button onClick={() => window.location.reload()}
+              style={{ padding: '12px 24px', background: '#10b981', color: '#000',
+                fontWeight: 900, borderRadius: 12, border: 0, cursor: 'pointer' }}>
+              Reload OS
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function AppContent() {
+  const isReturning = localStorage.getItem('simplifii_onboarding_complete') === 'true';
+  const [currentView, setCurrentView] = useState(isReturning ? VIEW.DASHBOARD : VIEW.LANDING);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('reset') === 'true') {
+      localStorage.clear();
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setCurrentView(VIEW.LANDING);
+    }
+  }, []);
+
+  const enterDashboard = () => {
+    localStorage.setItem('simplifii_onboarding_complete', 'true');
+    setCurrentView(VIEW.DASHBOARD);
+  };
+
+  switch (currentView) {
+    case VIEW.LANDING:
+      return <LandingPage onGetStarted={enterDashboard} />;
+    case VIEW.DASHBOARD:
+      return <MasterDashboard />;
+    default:
+      return <LandingPage onGetStarted={enterDashboard} />;
+  }
+}
+
+export default function App() {
+  return (
+    <ViewBoundary>
+      <SettingsProvider>
+        <ProjectProvider>
+          <InstitutionalProvider>
+            <AppContent />
+          </InstitutionalProvider>
+        </ProjectProvider>
+      </SettingsProvider>
+    </ViewBoundary>
+  );
+}
+
+
+--- src/backend/LMSConnector.js ---
+export const fetchLMSData = async (courseCode) => {
+  // Simulate network delay
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  
+  return {
+    course: courseCode,
+    taskName: 'Foundations Essay',
+    wordLimit: 2000,
+    objectives: [
+      "Critically analyse the methodological frameworks presented in the reading.",
+      "Compare at least two distinct approaches."
+    ],
+    rubric: [
+      { criterion: "Critical Thinking", description: "Independent synthesis required. Logical integration of literature.", weight: "40%" },
+      { criterion: "Structure", description: "Clear introduction, body paragraphs with topic sentences, and a conclusive summary.", weight: "30%" },
+      { criterion: "Referencing", description: "APA 7th edition formatting required. Minimum 5 peer-reviewed sources.", weight: "30%" }
+    ]
+  };
+};
+
+
+--- src/backend/NeuralAuditPipeline.js ---
+import activeFiles from '../grounding/activeManifest.json';
+
+const SCIENCE_CODES = ['BABS1201', 'BABS1202'];
+
+export const runNeuralScan = () => {
+  const joined = activeFiles.join(' ');
+  const matched = SCIENCE_CODES.some(code => joined.includes(code));
+
+  if (matched) {
+    return { inferredFocus: 'Science/Biology', tier: 'Tertiary' };
+  }
+
+  return { inferredFocus: 'General Studies', tier: 'General' };
+};
+
+
+--- src/core/EventBus.js (truncated) ---
+/**
+ * EventBus
+ *
+ * Bridges ExecutiveSpine's window CustomEvents into the
+ * HistoryOfThought encrypted log. The bus is a one-way pipe:
+ * Spine dispatches, Bus listens, HoT appends (only when the vault
+ * is unlocked).
+ *
+ * Sovereign integrity (Blueprint hard rule):
+ *   When the vault is locked, events are SILENTLY DROPPED. No
+ *   localStorage shadow queue. No pending buffer. No leakage.
+ *   The student's typing happens; the cockpit forgets it. When
+ *   they unlock later, capture resumes from that point forward.
+ *   Past silence is the cost of refusing to hold plaintext.
+ *
+ * Event mapping:
+ *   simplifii:focus-start         -> focus_session_start
+ *   simplifii:focus-end           -> focus_session_end
+ *   simplifii:idle                -> nudge_triggered
+ *   simplifii:section-health      -> section_health_change
+ *   simplifii:playtime-granted    -> playtime_granted
+ *   simplifii:playtime-expired    -> playtime_expired
+ *   simplifii:credits-earned      -> ai_assist_invoked    (placeholder
+ *                                                          mapping)
+ *   simplifii:reasoning-start     -> ai_assist_invoked    (RewriteService /
+ *                                                          ChatService /
+ *                                                          MicroStepService)
+ *
+ * Lifecycle: startEventBus() once on app mount; stopEventBus() on
+ * unmount. Re-entrant safe (start clears any prior listeners).
+ */
+
+import { isUnlocked, appendEvent, EVENT_TYPES } from './HistoryOfThought';
+
+const SPINE_TO_HOT = {
+  'simplifii:focus-start':      'focus_session_start',
+  'simplifii:focus-end':        'focus_session_end',
+  'simplifii:idle':              'nudge_triggered',
+  'simplifii:section-health':    'section_health_change',
+  'simplifii:playtime-granted':  'playtime_granted',
+  'simplifii:playtime-expired':  'playtime_expired',
+  'simplifii:reasoning-start':   'ai_assist_invoked',
+  'simplifii:credits-earned':    'ai_assist_invoked'
+};
+
+const __listeners = new Map();
+let __started = false;
+
+const safeAppend = async (eventType, payload, streamId, userId) => {
+  if (!isUnlocked()) return;
+  if (!EVENT_TYPES.includes(eventType)) return;
+  try {
+    await appendEvent({
+      user_id: userId || 'local',
+      stream_id: streamId || 'tertiary',
+      event_type: eventType,
+      payload: payload || {}
+    });
+  } catch (err) {
+    if (typeof console !== 'undefined') console.warn('[EventBus] append failed:', err.message);
+  }
+};
+
+/**
+ * startEventBus(getContext)
+ *   getContext: () => { streamId, userId } - called per event so the
+ *   bus picks up the current stream / user without a stale closure.
+ */
+export const startEventBus = (getContext = () => ({ streamId: 'tertiary', userId: 'local' })) => {
+  if (typeof window === 'undefined') return;
+  if (__started) stopEventBus();
+  __started = true;
+
+  for (const [windowEventName, hotEventType] of Object.entries(SPINE_TO_HOT)) {
+    const handler = (e) => {
+      const ctx = getContext() || {};
+      // Strip noisy / large fields from payloads before they hit
+      // encryption. The encrypted log is for proof of process, not
+      // for storing every keystroke verbatim.
+      const detail = e?.detail || {};
+      const payload = pickSafePayload(hotEventType, detail);
+      safeAppend(hotEventType, payload, ctx.streamId, ctx.userId);
+    };
+    window.addEventListener(windowEventName, handler);
+    __listeners.set(windowEventName, handler);
+  }
+
+  if (typeof console !== 'undefined') {
+    console.info('[EventBus] started; listening for', __listeners.size, 'spine events');
+  }
+};
+
+export const stopEventBus = () => {
+  if (typeof window === 'undefined') return;
+  for (const [name, handler] of __listeners.entries()) {
+    window.removeEventListener(name, handler);
+  }
+  __listeners.clear();
+  __started = false;
+};
+
+/**
+ * recordTextEdit({ sectionId, words, debounceWindowMs }):
+ *   Convenience appender for the cockpit text editors. Debounce
+ *   handled by the caller; this is a single 'a meaningful change
+ *   landed' beacon.
+ */
+export const recordTextEdit = async ({ sectionId, wordsAfter, debounceWindowMs, streamId, userId }) => {
+  if (!isUnlocked()) return;
+  await safeAppend('text_edit', {
+    sectionId: String(sectionId || 'unscoped'),
+    wordsAfter: Number(wordsAfter) || 0,
+    debounceWindowMs: Number(debounceWindowMs) || 0
+  }, streamId, userId);
+};
+
+/**
+ * recordCitation({ added, source }): payload-shaped helper for the
+ * AURA chat / source ingest path.
+ */
+export const recordCitation = async ({ added = true, source, sourceId, streamId, userId }) => {
+  const type = added ? 'citation_added' : 'citation_removed';
+  await safeAppend(type, {
+    source: String(source || '').slice(0, 120),
+    sourceId: String(sourceId || '').slice(0, 60)
+  }, streamId, userId);
+};
+
+const pickSafePayload = (hotEventType, detail) => {
+  switch (hotEventType) {
+    case 'focus_session_start':
+      return { taskId: detail.taskId, plannedDurationMs: detail.planned
+
+--- src/core/ExecutiveSpine.js (truncated) ---
+/**
+ * ExecutiveSpine
+ *
+ * Layer 2 of the Sovereign Architecture Blueprint.
+ *
+ * Differentiator: Simplifii does not deliver curriculum. Simplifii
+ * helps the student finish the next ten minutes. Every part of this
+ * file answers that test.
+ *
+ * Five sub-systems, all in-app, all sovereign:
+ *
+ *   FocusSession     Sprint timer with in-app navigation lock.
+ *                    NEVER blocks external apps or other browser
+ *                    tabs. The Blueprint is explicit about this.
+ *
+ *   IdleDetection    Watches keydown / mousedown / touchstart on
+ *                    the active workspace. After idleThresholdMs
+ *                    of silence dispatches simplifii:idle so AURA
+ *                    can nudge the student with a single literal
+ *                    instruction.
+ *
+ *   SectionHealth    Per-section dot count (0 to 5) persisted to
+ *                    localStorage. Used by PlayTime to gate rewards.
+ *
+ *   PlayTime         When SectionHealth.dots >= threshold, dispatches
+ *                    simplifii:playtime-granted so the UI can unlock
+ *                    designated 'play' modules for a fixed duration.
+ *
+ *   SovereignCredits Honour-system currency. Earned per completed
+ *                    micro-task. No monetary value. No redemption
+ *                    outside the app. Stored in localStorage. The
+ *                    Blueprint cites the Australian Interactive
+ *                    Gambling Act 2001 as the reason.
+ *
+ * Hard rules from the Blueprint enforced here:
+ *   - focus_session_locks_in_app_only_never_external = true
+ *   - sovereign_credits_have_no_monetary_redemption = true
+ *   - section_health change events feed the (future) HistoryOfThought
+ *     event log without naming the user
+ */
+
+const STORAGE_PREFIX = 'simplifii_spine_';
+const FOCUS_KEY = `${STORAGE_PREFIX}focus_session`;
+const HEALTH_KEY = `${STORAGE_PREFIX}section_health`;
+const CREDITS_KEY = `${STORAGE_PREFIX}sovereign_credits`;
+const PLAYTIME_KEY = `${STORAGE_PREFIX}playtime_until`;
+
+// Per-stream tunables. Set by configureSpine on stream hydrate.
+// Defaults match the Blueprint Layer 2.2d (4-of-5 dots unlocks 7
+// minutes of PlayTime); the homeschool stream typically wants a
+// lower threshold so the dopamine loop fires sooner.
+let __unlockThreshold = 4;
+let __playtimeMinutes = 7;
+
+export const configureSpine = ({ sectionHealthUnlockThreshold, defaultPlaytimeMinutes } = {}) => {
+  if (Number.isFinite(sectionHealthUnlockThreshold)) {
+    __unlockThreshold = Math.max(1, Math.min(5, sectionHealthUnlockThreshold));
+  }
+  if (Number.isFinite(defaultPlaytimeMinutes)) {
+    __playtimeMinutes = Math.max(1, Math.min(60, defaultPlaytimeMinutes));
+  }
+};
+
+const safeReadLS = (key, fallback) => {
+  if (typeof window === 'undefined') return fallback;
+  try { const v = window.localStorage.getItem(key); return v == null ? fallback : v; }
+  catch { return fallback; }
+};
+const safeWriteLS = (key, value) => {
+  if (typeof window === 'undefined') return;
+  try { window.localStorage.setItem(key, value); } catch { /* storage unavailable */ }
+};
+const dispatch = (name, detail) => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(name, { detail }));
+  }
+};
+
+// ============================================================
+// FocusSession (in-app sprint timer + nav lock)
+// ============================================================
+
+let __sessionTimer = null;
+
+export const startFocusSession = ({ taskId, durationMinutes = 25 } = {}) => {
+  const now = Date.now();
+  const session = {
+    taskId: String(taskId || 'unscoped'),
+    startedAt: now,
+    plannedDurationMs: Math.max(60_000, durationMinutes * 60 * 1000),
+    endsAt: now + Math.max(60_000, durationMinutes * 60 * 1000)
+  };
+  safeWriteLS(FOCUS_KEY, JSON.stringify(session));
+  if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('data-focus-active', 'true');
+  }
+  if (__sessionTimer) clearTimeout(__sessionTimer);
+  __sessionTimer = setTimeout(() => endFocusSession({ reason: 'completed' }), session.plannedDurationMs);
+  dispatch('simplifii:focus-start', session);
+  return session;
+};
+
+export const endFocusSession = ({ reason = 'manual' } = {}) => {
+  const raw = safeReadLS(FOCUS_KEY, null);
+  if (!raw) return null;
+  let session = null;
+  try { session = JSON.parse(raw); } catch { /* ignore */ }
+  if (!session) return null;
+  const actualDurationMs = Date.now() - session.startedAt;
+  safeWriteLS(FOCUS_KEY, '');
+  if (typeof document !== 'undefined') {
+    document.documentElement.removeAttribute('data-focus-active');
+  }
+  if (__sessionTimer) { clearTimeout(__sessionTimer); __sessionTimer = null; }
+  dispatch('simplifii:focus-end', { ...session, actualDurationMs, reason });
+  return { ...session, actualDurationMs, reason };
+};
+
+export const getFocusSession = () => {
+  const raw = safeReadLS(FOCUS_KEY, null);
+  if (!raw) return null;
+  try {
+    const s = JSON.parse(raw);
+    if (s && s.endsAt && s.endsAt > Date
+
+--- src/core/HistoryOfThought.js (truncated) ---
+/**
+ * HistoryOfThought
+ *
+ * Layer 3 of the Sovereign Architecture Blueprint.
+ *
+ * Local-first encrypted event log. Every meaningful action the
+ * student takes inside Simplifii is captured as an event, encrypted
+ * with a key derived from the student's passphrase, and persisted
+ * to IndexedDB. Cloud sync exists as opt-in only and is double
+ * encrypted at rest; Simplifii cannot read user content.
+ *
+ * Why this is load-bearing:
+ *   - Authenticity Report. The student can prove the work evolved
+ *     over time, not LLM-generated in one shot. Marker-defensible.
+ *   - Predictive analytics floor. Same event stream becomes the
+ *     training data for stream-specific completion models in
+ *     Phase 3 of the roadmap (not in this commit).
+ *   - Patent-continuation candidate. Work-evolution authenticity
+ *     logging via locally-keyed encryption is genuinely novel
+ *     architecture worth protecting before March 2027.
+ *
+ * Hard rules from the Blueprint enforced here:
+ *   - history_of_thought_events_local_first = true
+ *   - history_of_thought_cloud_sync_requires_opt_in = true
+ *   - cloud_payload_double_encrypted = true
+ *   - encryption: AES-GCM-256, PBKDF2 600,000 iterations, per-user
+ *     salt
+ *
+ * Storage: IndexedDB (existing SimplifiiOS_Vault) gets a new object
+ * store 'history_of_thought_events'. Migration is additive only.
+ *
+ * Cloud sync: API surface present but no transport wired. The
+ * Blueprint defers cloud transport until the user explicitly
+ * opts in via a UI flow that does not exist yet. Calling
+ * enableCloudSync() throws until that flow lands.
+ */
+
+const DB_NAME = 'SimplifiiOS_Vault';
+const STORE = 'history_of_thought_events';
+const SALT_KEY = 'simplifii_hot_salt_v1';
+const PASSPHRASE_HINT_KEY = 'simplifii_hot_hint_v1';
+const PBKDF2_ITERATIONS = 600_000;
+const SCHEMA_VERSION = '2.0';
+
+// Module-scoped derived key cache. Lives only in memory; never
+// touches storage. Cleared by lockSession().
+let __derivedKey = null;
+let __activePassphraseSet = false;
+
+const isCryptoAvailable = () =>
+  typeof window !== 'undefined' && window.crypto && window.crypto.subtle;
+
+// ============================================================
+// Salt management
+// ============================================================
+
+const readSalt = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(SALT_KEY);
+    if (!raw) return null;
+    return Uint8Array.from(atob(raw), (c) => c.charCodeAt(0));
+  } catch { return null; }
+};
+
+const writeSalt = (saltBytes) => {
+  if (typeof window === 'undefined') return;
+  try {
+    const b64 = btoa(String.fromCharCode.apply(null, Array.from(saltBytes)));
+    window.localStorage.setItem(SALT_KEY, b64);
+  } catch { /* storage unavailable */ }
+};
+
+const ensureSalt = () => {
+  let salt = readSalt();
+  if (salt && salt.length >= 16) return salt;
+  if (!isCryptoAvailable()) throw new Error('Web Crypto unavailable.');
+  salt = window.crypto.getRandomValues(new Uint8Array(32));
+  writeSalt(salt);
+  return salt;
+};
+
+// ============================================================
+// Key derivation (PBKDF2)
+// ============================================================
+
+const deriveKey = async (passphrase, salt) => {
+  if (!isCryptoAvailable()) throw new Error('Web Crypto unavailable.');
+  const enc = new TextEncoder();
+  const baseKey = await window.crypto.subtle.importKey(
+    'raw', enc.encode(passphrase), 'PBKDF2', false, ['deriveKey']
+  );
+  return window.crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
+    baseKey,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+};
+
+// ============================================================
+// Public unlock / lock
+// ============================================================
+
+export const isUnlocked = () => __derivedKey !== null;
+
+export const unlockWithPassphrase = async (passphrase) => {
+  if (!passphrase || typeof passphrase !== 'string' || passphrase.length < 4) {
+    throw new Error('Passphrase must be at least 4 characters.');
+  }
+  const salt = ensureSalt();
+  __derivedKey = await deriveKey(passphrase, salt);
+  __activePassphraseSet = true;
+  return true;
+};
+
+export const lockSession = () => {
+  __derivedKey = null;
+  __activePassphraseSet = false;
+};
+
+// ============================================================
+// IndexedDB store
+// ============================================================
+
+const openDB = () => new Promise((resolve, reject) => {
+  if (typeof indexedDB === 'undefined') return reject(new Error('IndexedDB unavailable.'));
+  const req = indexedDB.open(DB_NAME, 2);
+  req.onupgradeneeded = (e) => {
+    const db = e.target.result;
+    if (!db.objectStoreNames.contains('blockHistory')) {
+      db.createObjectStore('blockHistory', { keyPath: 'id', autoIncrement: true });
+    }
+    if (!db.objectStoreNames.contains('ghostAssets')) {
+      db.createObjectStore('ghostAssets'
+
+--- src/core/LiteralMode.js ---
+/**
+ * LiteralMode
+ *
+ * Layer 4 of the Sovereign Architecture Blueprint.
+ *
+ * Render-time vocabulary transformer. Re-voices schema-anchored output
+ * for primary / secondary streams (and any caller that opts in) into
+ * plain, imperative, single-instruction English. NEVER generates new
+ * content. NEVER receives rubric data directly. Only re-voices text
+ * that has already come from upstream schema-anchored extraction.
+ *
+ * This is the architectural defence against the '5% Literature Review'
+ * hallucination class re-emerging in primary / secondary streams: the
+ * transformer cannot invent because it has no model in the pipeline.
+ *
+ * Hard rule from the Blueprint:
+ *   literal_mode_never_generates_content_only_transforms = true
+ */
+
+// Pattern → replacement table. Order matters: more specific patterns
+// fire first so they are not eaten by greedier later ones.
+const PATTERNS = [
+  // Vague advisory phrasing → imperative.
+  [/\bconsider revising\b/gi, 'change'],
+  [/\bit is recommended that\b/gi, 'do this:'],
+  [/\bgoing forward\b/gi, ''],
+  [/\bin order to\b/gi, 'to'],
+  [/\bplease ensure that\b/gi, 'make sure'],
+  [/\bit may be helpful to\b/gi, 'try to'],
+
+  // Academic verbs → plain verbs.
+  [/\bsynthesise\b/gi, 'combine ideas from'],
+  [/\bsynthesize\b/gi, 'combine ideas from'],
+  [/\bdemonstrates\b/gi, 'shows'],
+  [/\bdemonstrate\b/gi, 'show'],
+  [/\barticulate\b/gi, 'say'],
+  [/\barticulated\b/gi, 'said'],
+  [/\bengage with\b/gi, 'read'],
+  [/\bengaging with\b/gi, 'reading'],
+  [/\bfurthermore\b/gi, 'also'],
+  [/\bmoreover\b/gi, 'also'],
+  [/\bnotwithstanding\b/gi, 'even so'],
+  [/\bnevertheless\b/gi, 'still'],
+  [/\bconsequently\b/gi, 'so'],
+  [/\bthereby\b/gi, 'so'],
+
+  // Passive → active. These are heuristics, not full grammar parsing.
+  // They handle the common rubric voice: 'should be revised', 'must be
+  // demonstrated', 'is to be considered'.
+  [/\bshould be revised\b/gi, 'rewrite this'],
+  [/\bmust be demonstrated\b/gi, 'show this'],
+  [/\bis to be considered\b/gi, 'think about'],
+  [/\bare required to\b/gi, 'must'],
+  [/\bis required to\b/gi, 'must']
+];
+
+const sanitiseDashes = (s) => String(s || '').replace(/[\u2014\u2013]/g, ',');
+
+/**
+ * literalise(text, options)
+ *   text: string from schema-anchored upstream
+ *   options:
+ *     splitClauses: boolean (default true) - split multi-clause sentences
+ *                   into one instruction per sentence
+ *     dropEmpty: boolean (default true) - strip leftover whitespace from
+ *                deletions like 'going forward'
+ * Returns the transformed string. If text is empty or non-string,
+ * returns it unchanged.
+ */
+export const literalise = (text, options = {}) => {
+  if (!text || typeof text !== 'string') return text;
+  const { splitClauses = true, dropEmpty = true } = options;
+  let out = sanitiseDashes(text);
+  for (const [pattern, replacement] of PATTERNS) {
+    out = out.replace(pattern, replacement);
+  }
+  if (splitClauses) {
+    // Split on semicolons and the patterns ', and ' / ', but ' that often
+    // chain two instructions in academic prose. One instruction per
+    // sentence is the readability target.
+    out = out.replace(/;\s*/g, '. ');
+    out = out.replace(/,\s*(and|but|so|while|whereas)\s+/gi, '. ');
+  }
+  if (dropEmpty) {
+    out = out.replace(/\s{2,}/g, ' ').replace(/\s+([.,!?])/g, '$1').trim();
+    // Capitalise the first letter of any sentence that starts lowercase
+    // after our deletions / splits.
+    out = out.replace(/(^|[.!?]\s+)([a-z])/g, (_, pre, ch) => pre + ch.toUpperCase());
+  }
+  return out;
+};
+
+/**
+ * shouldLiteralise(streamProfile, userPreference): single source of truth
+ * for whether a render path should run output through literalise(). Stream
+ * profile sets the default; userPreference (when not null) overrides.
+ */
+export const shouldLiteralise = (streamProfile, userPreference) => {
+  if (typeof userPreference === 'boolean') return userPreference;
+  return !!streamProfile?.literalModeDefault;
+};
+
+export const __internals = { PATTERNS, sanitiseDashes };
+
+
+## Instructions
+
+Analyze the above codebase context and provide your response following the format specified in the task.

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Brain, RefreshCw, Sparkles, CheckCircle2, Layout, FileText, Download, Target, AlertTriangle, Shield, ChevronLeft, ChevronRight, Eye, HardDrive, Trash2 } from 'lucide-react';
+import { Brain, RefreshCw, Sparkles, CheckCircle2, Layout, FileText, Download, Target, AlertTriangle, Shield, ChevronLeft, ChevronRight, Eye, HardDrive, Trash2, FlaskConical, BookOpen, MousePointer2, Plus, Circle } from 'lucide-react';
 import { useSettings } from './SettingsContext';
 import { useProject } from './ProjectContext';
 import { useInstitution } from './InstitutionalContext';
@@ -7,6 +7,7 @@ import TaskCard from './TaskCard';
 import AccessibilityVault from './AccessibilityVault';
 import ConfirmDialog from './ConfirmDialog';
 import AskAura from './AskAura';
+import AuraLayer from './AuraLayer';
 import SimplifiiStudio from './SimplifiiStudio';
 import Scaffolder from './Scaffolder';
 import HistoryVaultUnlock, { isVaultGhostMode } from './HistoryVaultUnlock';
@@ -41,6 +42,230 @@ const STREAM_DASHBOARDS = {
   tafe: TafeDashboard,
   homeschool: HomeschoolDashboard
 };
+
+/**
+ * CoursePillar - Stage 03: Calm Dashboard Card
+ * High-contrast, single-tier course tile. No nested cards.
+ * Every interactive element carries a visible focus ring.
+ */
+function CoursePillar({ course, id, isActive, onClick }) {
+  const tier = course.extractionData?.academicTier || 'General';
+
+  const tierMeta = (() => {
+    switch (tier) {
+      case 'Lab':       return { icon: <FlaskConical size={22} className="text-emerald-600" />, label: 'Lab' };
+      case 'Research':  return { icon: <BookOpen size={22} className="text-emerald-600" />,     label: 'Research' };
+      case 'Practical': return { icon: <Layout size={22} className="text-emerald-600" />,       label: 'Practical' };
+      default:          return { icon: <Brain size={22} className="text-emerald-600" />,        label: 'General' };
+    }
+  })();
+
+  const unitCode = course.extractionData?.unitCode || id.split('_')[1]?.toUpperCase() || 'UNKN101';
+
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(id)}
+      className={`relative text-left bg-white border-2 ${isActive ? 'border-emerald-500 ring-2 ring-emerald-200' : 'border-zinc-200 hover:border-zinc-400'} rounded-lg p-6 transition-all flex flex-col h-52 justify-between focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none cursor-pointer shadow-sm hover:shadow-md`}
+    >
+      <div>
+        <div className="mb-3 inline-flex items-center gap-2 bg-zinc-100 px-3 py-2 rounded-md">
+          {tierMeta.icon}
+          <span className="text-xs font-bold text-zinc-500 uppercase">{tierMeta.label}</span>
+        </div>
+        <p className="text-xs font-bold uppercase tracking-wide text-zinc-400 mb-1">{unitCode}</p>
+        <h2 className="text-lg font-bold text-zinc-900 leading-snug">{course.name}</h2>
+      </div>
+
+      <div className="flex items-center justify-between pt-4 border-t border-zinc-100">
+        <span className="text-xs font-medium text-zinc-400">
+          {isActive ? 'Currently active' : 'Select to open'}
+        </span>
+        {isActive && (
+          <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600">
+            <CheckCircle2 size={14} /> Active
+          </span>
+        )}
+      </div>
+    </button>
+  );
+}
+
+/**
+ * AddCourseTile - Stage 03: Dashed placeholder for adding a new course.
+ */
+function AddCourseTile({ onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="text-left bg-white border-2 border-dashed border-zinc-300 hover:border-emerald-500 rounded-lg p-6 transition-all flex flex-col h-52 items-center justify-center gap-3 focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none cursor-pointer hover:bg-emerald-50/50"
+    >
+      <div className="w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center">
+        <Plus size={24} className="text-zinc-400" />
+      </div>
+      <span className="text-sm font-bold text-zinc-500">Add a course</span>
+      <span className="text-xs text-zinc-400">Upload a syllabus to get started</span>
+    </button>
+  );
+}
+
+/**
+ * PillarGallery - Stage 03: Calm Dashboard Course Selection
+ * Clean grid, maximum six tiles (five courses + one add tile).
+ * High-contrast light theme, keyboard-first tab order.
+ */
+function PillarGallery({ courses, activeCourseId, onSelect, onAddCourse }) {
+  const entries = Object.entries(courses).slice(0, 5);
+  const totalCourses = Object.keys(courses).length;
+
+  return (
+    <div className="flex-1 bg-zinc-50 p-8 md:p-12 overflow-y-auto font-sans">
+      <header className="max-w-5xl mx-auto mb-10 flex justify-between items-end">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-900 mb-1">Your Courses</h1>
+          <p className="text-sm text-zinc-500">
+            {totalCourses} {totalCourses === 1 ? 'course' : 'courses'} loaded
+          </p>
+        </div>
+      </header>
+
+      <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        {entries.map(([id, course]) => (
+          <CoursePillar
+            key={id}
+            id={id}
+            course={course}
+            isActive={id === activeCourseId}
+            onClick={onSelect}
+          />
+        ))}
+        {entries.length < 5 && <AddCourseTile onClick={onAddCourse} />}
+      </div>
+
+      {totalCourses > 5 && (
+        <p className="max-w-5xl mx-auto mt-6 text-sm text-zinc-400">
+          Showing 5 of {totalCourses} courses. Use the sidebar switcher to access the rest.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * AuthoringCockpit - Stage 04: Active Task View
+ * Calm Dashboard centre column. Left sidebar collapsed by default.
+ * Shows a 5-step Pareto workflow for the active assessment with a
+ * pinned weight badge. Light theme, focus rings on every control.
+ */
+function AuthoringCockpit({ activeCourse, activeTask, onEnterCanvas, onBackToGallery }) {
+  const courseName = activeCourse?.name || 'Untitled Course';
+  const totalWeight = activeCourse?.roadmap?.totalWeight || '25%';
+  const paretoSteps = activeCourse?.roadmap?.paretoSteps;
+  const taskTitle = activeTask?.task || courseName;
+
+  const steps = paretoSteps && paretoSteps.length > 0
+    ? paretoSteps.slice(0, 5)
+    : [
+        { rank: 1, label: 'Analyse the brief and identify key requirements', weight: '5%' },
+        { rank: 2, label: 'Research and gather primary sources', weight: '5%' },
+        { rank: 3, label: 'Organise your structure and build an outline', weight: '5%' },
+        { rank: 4, label: 'Synthesise evidence into draft sections', weight: '5%' },
+        { rank: 5, label: 'Review, refine, and finalise for submission', weight: '5%' },
+      ];
+
+  return (
+    <div className="flex-1 bg-zinc-50 overflow-y-auto font-sans">
+      <div className="max-w-2xl mx-auto px-6 py-10">
+        {/* Back navigation */}
+        <button
+          type="button"
+          onClick={onBackToGallery}
+          className="inline-flex items-center gap-2 text-sm font-medium text-zinc-500 hover:text-zinc-900 mb-8 transition-colors focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none rounded-md px-2 py-1"
+        >
+          <ChevronLeft size={16} />
+          <span>All courses</span>
+        </button>
+
+        {/* Task header with weight badge */}
+        <header className="relative mb-8">
+          <div className="absolute top-0 right-0">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-bold rounded-md">
+              <Target size={14} />
+              <span>{totalWeight} Weight</span>
+            </span>
+          </div>
+          <p className="text-xs font-bold uppercase tracking-wide text-zinc-400 mb-1">{courseName}</p>
+          <h1 className="text-2xl font-bold text-zinc-900 pr-36 leading-snug">{taskTitle}</h1>
+        </header>
+
+        <hr className="border-zinc-200 mb-8" />
+
+        {/* Pareto steps */}
+        <section aria-label="Pareto steps for this assessment">
+          <h2 className="text-sm font-bold text-zinc-900 mb-1">Pareto Steps</h2>
+          <p className="text-sm text-zinc-500 mb-6">
+            Prioritise the steps that carry the most marks. Complete them in order.
+          </p>
+
+          <ol className="space-y-3">
+            {steps.map((step, i) => {
+              const isCurrent = i === 0;
+              return (
+                <li key={step.rank || i}>
+                  <div
+                    className={`w-full text-left bg-white border ${isCurrent ? 'border-emerald-300' : 'border-zinc-200'} rounded-lg px-5 py-4 flex items-start gap-4`}
+                  >
+                    <span
+                      className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${isCurrent ? 'bg-emerald-600 text-white' : 'bg-zinc-100 text-zinc-500 border border-zinc-200'}`}
+                      aria-hidden="true"
+                    >
+                      {step.rank || i + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-semibold ${isCurrent ? 'text-zinc-900' : 'text-zinc-700'}`}>
+                        {step.label}
+                      </p>
+                      {step.weight && (
+                        <p className="text-xs text-zinc-400 mt-1">
+                          <span className="sr-only">Step weight: </span>{step.weight}
+                        </p>
+                      )}
+                    </div>
+                    {isCurrent && (
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md flex-shrink-0">
+                        <Circle size={8} className="fill-emerald-500 text-emerald-500" />
+                        Current step
+                      </span>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+
+        {/* Enter canvas action */}
+        <div className="mt-10">
+          <button
+            type="button"
+            onClick={onEnterCanvas}
+            className="w-full py-4 bg-zinc-900 hover:bg-black text-white text-sm font-bold rounded-lg transition-all focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none shadow-md flex items-center justify-center gap-2"
+          >
+            <FileText size={16} />
+            <span>Open Authoring Canvas</span>
+          </button>
+        </div>
+
+        {/* Zero-disclosure footer */}
+        <div className="mt-8 flex items-center gap-2 text-zinc-400 justify-center">
+          <Shield size={14} />
+          <span className="text-xs font-medium">Local processing only. No data leaves this device.</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function MasterDashboard() {
   const {
@@ -93,6 +318,7 @@ export default function MasterDashboard() {
   // Scaffolding, Grit, LOD). Closed by default per the Compass Mode
   // rule in CLAUDE.md.
   const [showSteering, setShowSteering] = useState(false);
+  const [showAuraLayer, setShowAuraLayer] = useState(false);
   // Grounding folder ingestion. Pulls every PDF committed to
   // src/grounding/active/, runs each through DocumentAIService, then
   // hands the aggregated extraction to handleSprintCreation. The
@@ -114,6 +340,18 @@ export default function MasterDashboard() {
   const [courseEditMode, setCourseEditMode] = useState(null); // 'rename' | null
   const [courseEditValue, setCourseEditValue] = useState('');
   const courseEditInputRef = useRef(null);
+  const [viewMode, setViewMode] = useState('canvas'); // 'canvas' | 'gallery' | 'cockpit'
+
+  // Auto-collapse the left sidebar when entering the Authoring Cockpit
+  // so the centre column gets full focus. Restore when leaving.
+  const prevViewModeRef = useRef(viewMode);
+  useEffect(() => {
+    if (viewMode === 'cockpit' && prevViewModeRef.current !== 'cockpit') {
+      setIsLeftCollapsed(true);
+    }
+    prevViewModeRef.current = viewMode;
+  }, [viewMode, setIsLeftCollapsed]);
+
   useEffect(() => { if (courseEditMode && courseEditInputRef.current) courseEditInputRef.current.focus(); }, [courseEditMode]);
   const commitCourseEdit = () => {
     const name = courseEditValue.trim();
@@ -289,11 +527,12 @@ export default function MasterDashboard() {
     const files = data.sourceFiles || [];
     if (files.length === 0) return handleSprintCreation(data);
 
+    // Sovereign Logic: Detect Unit Codes (e.g., BABS1201, LAWS1001)
     const codeRegex = /\b([A-Z]{3,4}\d{4})\b/;
     const groups = {};
     for (const name of files) {
       const match = name.match(codeRegex);
-      const code = match ? match[1] : (data.unitCode || 'Unknown');
+      const code = match ? match[1] : (data.unitCode || 'General');
       if (!groups[code]) groups[code] = [];
       groups[code].push(name);
     }
@@ -301,10 +540,13 @@ export default function MasterDashboard() {
     const codes = Object.keys(groups);
     if (codes.length <= 1) return handleSprintCreation(data);
 
+    // Multi-course ingestion: Initialise distinct Course Pillars
     for (const code of codes) {
       const subset = { ...data, unitCode: code, sourceFiles: groups[code] };
       await handleSprintCreation(subset);
     }
+    
+    setViewMode('gallery');
   };
 
   const handleSprintCreation = async (data) => {
@@ -415,6 +657,7 @@ export default function MasterDashboard() {
       // without a perpetual DRAFT badge.
       upgradeCourseExtraction(courseId, { extractionData: { shadow: false } });
     }
+    return courseId;
   };
 
   // Mirror UniversalOnboarding.classifyFile so the bundled PDFs feed
@@ -431,11 +674,11 @@ export default function MasterDashboard() {
   };
 
   // Ingest every PDF currently committed to /src/grounding/active/.
-  // Triggered by the cockpit top-nav button. Aggregates all files into
-  // one extractionData payload (same merge pipeline as the onboarding
-  // Grounding step) then calls handleSprintCreation, which lands the
-  // Shadow State draft cockpit immediately and fires the LLM
-  // confirmation pass in the background.
+  // Triggered by the cockpit top-nav button. Groups files by unit code
+  // (e.g. BABS1201, BABS1202) BEFORE extraction so each course code
+  // gets its own cockpit entry with only its own documents. Files
+  // without a recognisable code fall into a fallback group keyed by the
+  // profile course name.
   const handleIngestGrounding = async () => {
     if (ingesting) return;
     setIngesting(true);
@@ -448,26 +691,53 @@ export default function MasterDashboard() {
         if (typeof console !== 'undefined') console.warn('[handleIngestGrounding] no PDFs returned by GroundingLoader');
         return;
       }
-      let aggregated = {
-        unitCode: profile.courseName,
-        level: profile.level,
-        theme: 'General'
-      };
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        setIngestStatus(`Scanning ${i + 1} of ${files.length}: ${file.name}`);
-        if (typeof console !== 'undefined') console.info('[handleIngestGrounding] processing', file.name, 'class=', classifyGroundingFile(file));
-        try {
-          const text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
-          const deepData = extractDeepCourseData(text);
-          aggregated = mergeExtractionData(aggregated, { ...deepData, rawText: text });
-        } catch (err) {
-          if (typeof console !== 'undefined') console.warn('[handleIngestGrounding] skipped', file.name, err && err.message);
-        }
+
+      // Group files by unit code before extraction
+      const codeRegex = /\b([A-Z]{3,4}\d{4})\b/;
+      const fileGroups = {};
+      for (const file of files) {
+        const match = (file.name || '').match(codeRegex);
+        const code = match ? match[1] : (profile.courseName || 'Unknown');
+        if (!fileGroups[code]) fileGroups[code] = [];
+        fileGroups[code].push(file);
       }
-      setIngestStatus('Handing off to Sprint Creation...');
-      await handleSprintCreation(aggregated);
-      setIngestStatus(`Ingested ${files.length} file${files.length === 1 ? '' : 's'}.`);
+
+      // Sort codes so BABS1201 is processed last and becomes the
+      // active course (addCourseWithData sets activeCourseId on each
+      // call; last one wins).
+      const codes = Object.keys(fileGroups).sort((a, b) => {
+        if (a === 'BABS1201') return 1;
+        if (b === 'BABS1201') return -1;
+        return a.localeCompare(b);
+      });
+
+      if (typeof console !== 'undefined') console.info('[handleIngestGrounding] detected', codes.length, 'unit groups:', codes.join(', '));
+
+      for (const code of codes) {
+        const groupFiles = fileGroups[code];
+        let aggregated = {
+          unitCode: code,
+          level: profile.level,
+          theme: 'General',
+          sourceFiles: groupFiles.map(f => f.name)
+        };
+        for (let i = 0; i < groupFiles.length; i++) {
+          const file = groupFiles[i];
+          setIngestStatus(`Scanning ${code}: ${file.name}`);
+          if (typeof console !== 'undefined') console.info('[handleIngestGrounding] processing', file.name, 'group=', code, 'class=', classifyGroundingFile(file));
+          try {
+            const text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
+            const deepData = extractDeepCourseData(text);
+            aggregated = mergeExtractionData(aggregated, { ...deepData, rawText: text });
+          } catch (err) {
+            if (typeof console !== 'undefined') console.warn('[handleIngestGrounding] skipped', file.name, err && err.message);
+          }
+        }
+        setIngestStatus(`Creating ${code} cockpit...`);
+        await handleSprintCreation(aggregated);
+      }
+
+      setIngestStatus(`Ingested ${files.length} file${files.length === 1 ? '' : 's'} across ${codes.length} course${codes.length === 1 ? '' : 's'}.`);
     } catch (err) {
       if (typeof console !== 'undefined') console.error('[handleIngestGrounding] failed', err);
       setIngestStatus(`Ingestion failed: ${err && err.message ? err.message : 'unknown error'}`);
@@ -581,6 +851,54 @@ export default function MasterDashboard() {
       default:
         const activeCourseName = (courses[activeCourseId]?.name || '').toLowerCase();
         const isMaths = activeCourseName.includes('maths') || activeCourseName.includes('hsc');
+
+        // Zen Empty State: If no courses and no tasks, force grounding initialisation
+        if (Object.keys(courses).length === 0 || (tasks.length === 0 && !activeCourseId)) {
+          return (
+            <div className="flex-1 flex flex-col items-center justify-center bg-zinc-950 font-mono">
+              <div className="text-center animate-fade-in">
+                <div className="mb-12 opacity-20">
+                  <Brain size={80} className="text-zinc-500 mx-auto" />
+                </div>
+                <h2 className="text-2xl font-bold tracking-[0.4em] uppercase mb-8 text-zinc-800">Zen State</h2>
+                <button
+                  onClick={() => setShowAddCourseModal(true)}
+                  className="px-12 py-5 border border-emerald-500/30 hover:border-emerald-500 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase tracking-[0.5em] rounded-sm transition-all shadow-glow-emerald"
+                >
+                  Initialise Grounding
+                </button>
+              </div>
+            </div>
+          );
+        }
+
+        // Pillar Gallery View (Stage 03)
+        if (viewMode === 'gallery') {
+          return (
+            <PillarGallery
+              courses={courses}
+              activeCourseId={activeCourseId}
+              onSelect={(id) => {
+                setActiveCourseId(id);
+                setViewMode('cockpit');
+              }}
+              onAddCourse={() => setShowAddCourseModal(true)}
+            />
+          );
+        }
+
+        // Authoring Cockpit View (Stage 04)
+        if (viewMode === 'cockpit') {
+          return (
+            <AuthoringCockpit
+              activeCourse={activeCourse}
+              activeTask={activeTask}
+              onEnterCanvas={() => setViewMode('canvas')}
+              onBackToGallery={() => setViewMode('gallery')}
+            />
+          );
+        }
+
         // Stream-based default landing. Non-tertiary streams (primary,
         // secondary, tafe, homeschool) render their own skeleton
         // dashboard unless the student has explicitly toggled into the
@@ -651,14 +969,17 @@ export default function MasterDashboard() {
       {/* Top Navigation Bar */}
       <div className={`h-[70px] shrink-0 flex items-center justify-between px-8 border-b border-zinc-800 bg-black/80 backdrop-blur-md relative z-[1200] transition-all duration-700 ${isZenMode ? '-translate-y-full' : 'translate-y-0'}`}>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center">
+          <button 
+            onClick={() => setViewMode('gallery')}
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity group"
+          >
+            <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center group-hover:bg-indigo-500/30 transition-colors">
               <Brain size={18} className="text-indigo-400" />
             </div>
             <span className="font-black tracking-widest uppercase text-sm bg-gradient-to-r from-indigo-400 to-indigo-600 text-transparent bg-clip-text">
               Simplifii
             </span>
-          </div>
+          </button>
           <div className="h-4 w-px bg-zinc-800"></div>
           <span className="text-[12px] font-bold text-zinc-500 tracking-[0.2em] uppercase">
             Sovereign OS
@@ -889,7 +1210,8 @@ export default function MasterDashboard() {
           </div>
         </div>
       )}
-      {currentStage === 5 && !isZenMode && <AskAura />}
+      {currentStage === 5 && !isZenMode && !showAuraLayer && <AskAura onOpen={() => setShowAuraLayer(true)} />}
+      <AuraLayer open={showAuraLayer} onClose={() => setShowAuraLayer(false)} />
       <ConfirmDialog
         open={!!pendingDeleteCourseId}
         title="Delete Course"

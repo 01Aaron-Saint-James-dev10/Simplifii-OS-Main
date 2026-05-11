@@ -1,0 +1,77 @@
+[2026-05-10T22:17:50.767Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 109,\n      \"description\": \"Weak passphrase minimum length (4 characters). AES-GCM encryption requires at least 12-16 character passphrases to resist brute-force attacks. Current minimum allows trivial brute forcing with 36^4 (~1.6M) possibilities.\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 108,\n      \"description\": \"No rate limiting on passphrase attempts. unlockWithPassphrase() can be called repeatedly without throttling, enabling brute-force attacks on weak passphrases.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 60,\n      \"description\": \"Encryption salt stored unencrypted in localStorage alongside ciphertext. If localStorage is compromised, attacker has both salt and encrypted payload, reducing PBKDF2 protection effectiveness. Salt should be derived from passphrase or stored separately with additional encryption.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/App.js\",\n      \"line\": 44,\n      \"description\": \"URL parameter ?reset=true clears all localStorage without user confirmation. Exploitable via phishing links to reset user progress. Should require confirmation or remove entirely.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 47,\n      \"description\": \"Encryption key (__derivedKey) stored in module-scoped memory. Vulnerable to memory inspection attacks if browser process is compromised. Should be cleared after use when possible or use WebWorker isolation.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/backend/NeuralAuditPipeline.js\",\n      \"line\": 3,\n      \"description\": \"Hardcoded institution-specific course codes (BABS1201, BABS1202) violate CLAUDE.md guideline: 'Do not reference specific university course codes inside engineering specs'. Architecture violation, not security vulnerability.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/backend/LMSConnector.js\",\n      \"line\": 4,\n      \"description\": \"Simulated LMS data contains hardcoded UNSW Moodle reference. While mocked, violates architecture guideline against institution-specific references in code.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/EventBus.js\",\n      \"line\": 40,\n      \"description\": \"pickSafePayload() function is partially truncated in provided code. Cannot verify complete input validation on custom event payloads before encryption.\"\n    }\n  ],\n  \"riskScore\": 38,\n  \"recommendations\": [\n    \"Increase minimum passphrase length to 12+ characters and add strength meter with real-time feedback\",\n    \"Implement passphrase attempt rate limiting (exponential backoff after 3 failed attempts, 15min lockout)\",\n    \"Derive salt from passphrase using HKDF instead of storing it in localStorage, or encrypt salt with a master key\",\n    \"Remove or add explicit user confirmation to ?reset=true URL parameter; consider adding state-change confirmation dialogs\",\n    \"Document and test memory isolation of __derivedKey; consider WebWorker for key operations to prevent memory inspection\",\n    \"Refactor hardcoded course codes (BABS1201, ARTS5200, UNSW) into configuration/schema layer, not business logic\",\n    \"Add input validation schema validation for all custom event payloads before encryption in EventBus\",\n    \"Consider adding optional biometric/device-binding for passphrase unlock as second factor\",\n    \"Implement secure session timeout (auto-lock after N minutes of inactivity)\",\n    \"Add Content Security Policy (CSP) headers to prevent XSS if deployed via HTTP server\"\n  ]\n}\n```\n\n**Summary:** The codebase has a **medium risk profile** (38/100). The primary concern is **weak passphrase validation combined with no rate limiting** on unlock attempts—a 4-character passphrase is cryptographically insufficient. Secondary issues are salt storage leaking alongside ciphertext and unprotected URL-based state reset. The architecture is otherwise sound (AES-GCM, PBKDF2 600k iterations), but key derivation and storage practices need hardening before production use.\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "high",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 109,
+        "description": "Weak passphrase minimum length (4 characters). AES-GCM encryption requires at least 12-16 character passphrases to resist brute-force attacks. Current minimum allows trivial brute forcing with 36^4 (~1.6M) possibilities."
+      },
+      {
+        "severity": "high",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 108,
+        "description": "No rate limiting on passphrase attempts. unlockWithPassphrase() can be called repeatedly without throttling, enabling brute-force attacks on weak passphrases."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 60,
+        "description": "Encryption salt stored unencrypted in localStorage alongside ciphertext. If localStorage is compromised, attacker has both salt and encrypted payload, reducing PBKDF2 protection effectiveness. Salt should be derived from passphrase or stored separately with additional encryption."
+      },
+      {
+        "severity": "medium",
+        "file": "src/App.js",
+        "line": 44,
+        "description": "URL parameter ?reset=true clears all localStorage without user confirmation. Exploitable via phishing links to reset user progress. Should require confirmation or remove entirely."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 47,
+        "description": "Encryption key (__derivedKey) stored in module-scoped memory. Vulnerable to memory inspection attacks if browser process is compromised. Should be cleared after use when possible or use WebWorker isolation."
+      },
+      {
+        "severity": "low",
+        "file": "src/backend/NeuralAuditPipeline.js",
+        "line": 3,
+        "description": "Hardcoded institution-specific course codes (BABS1201, BABS1202) violate CLAUDE.md guideline: 'Do not reference specific university course codes inside engineering specs'. Architecture violation, not security vulnerability."
+      },
+      {
+        "severity": "low",
+        "file": "src/backend/LMSConnector.js",
+        "line": 4,
+        "description": "Simulated LMS data contains hardcoded UNSW Moodle reference. While mocked, violates architecture guideline against institution-specific references in code."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/EventBus.js",
+        "line": 40,
+        "description": "pickSafePayload() function is partially truncated in provided code. Cannot verify complete input validation on custom event payloads before encryption."
+      }
+    ],
+    "riskScore": 38,
+    "recommendations": [
+      "Increase minimum passphrase length to 12+ characters and add strength meter with real-time feedback",
+      "Implement passphrase attempt rate limiting (exponential backoff after 3 failed attempts, 15min lockout)",
+      "Derive salt from passphrase using HKDF instead of storing it in localStorage, or encrypt salt with a master key",
+      "Remove or add explicit user confirmation to ?reset=true URL parameter; consider adding state-change confirmation dialogs",
+      "Document and test memory isolation of __derivedKey; consider WebWorker for key operations to prevent memory inspection",
+      "Refactor hardcoded course codes (BABS1201, ARTS5200, UNSW) into configuration/schema layer, not business logic",
+      "Add input validation schema validation for all custom event payloads before encryption in EventBus",
+      "Consider adding optional biometric/device-binding for passphrase unlock as second factor",
+      "Implement secure session timeout (auto-lock after N minutes of inactivity)",
+      "Add Content Security Policy (CSP) headers to prevent XSS if deployed via HTTP server"
+    ]
+  },
+  "durationMs": 49646,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-10T22:17:50.767Z",
+  "executionId": "audit_1778451421121_nrtec9"
+}

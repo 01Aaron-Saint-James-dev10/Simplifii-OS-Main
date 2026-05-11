@@ -1,0 +1,139 @@
+[2026-05-10T22:38:57.006Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "Here's the full performance analysis of the Simplifii-OS codebase:\n\n---\n\n## Performance Analysis\n\n### CRITICAL\n\n#### 1. `SettingsContext.js` — Mega-Effect with 20+ Dependencies\nEvery keystroke in settings triggers full localStorage serialization and CustomEvent dispatch because all state is in one monolithic `useEffect`.\n\n**Fix:** Split into focused per-setting effects or debounce the save:\n```javascript\n// Instead of one useEffect([mode, eduLevel, highContrast, ...20 more...])\nuseEffect(() => { localStorage.setItem('darkMode', JSON.stringify(darkMode)); }, [darkMode]);\nuseEffect(() => { localStorage.setItem('scaffoldingLevel', scaffoldingLevel); }, [scaffoldingLevel]);\n// etc.\n```\n\n#### 2. `ZenTools.js:28-48` — Recursive `setTimeout` Memory Leak\nBreathing animation chains `setTimeout` calls to itself. The cleanup function can't clear already-scheduled timers, so they keep firing after unmount.\n\n**Fix:** Use a ref-tracked timer stack:\n```javascript\nconst timerRefsRef = useRef([]);\nconst scheduleTimer = (fn, delay) => {\n  const id = setTimeout(fn, delay);\n  timerRefsRef.current.push(id);\n  return id;\n};\nuseEffect(() => () => timerRefsRef.current.forEach(clearTimeout), []);\n```\n\n#### 3. `ProjectContext.js` — Unmoized O(n) Transformations\n`__schemaPillars()`, `__readSchemaOverride()`, etc. run on every render against full course data.\n\n**Fix:**\n```javascript\nconst schemaPillars = useMemo(() => __schemaPillars(), [schemaOverride, extractionData]);\n```\n\n---\n\n### HIGH\n\n#### 4. `CourseTrack.js:9-25` — O(blocks × verifications) Every Render\n`islands` array computed via `.map()` + inner `.some()` on every render with no memoization.\n\n**Fix:**\n```javascript\nconst islands = useMemo(() => {\n  let cumulative = 0;\n  return blocks.map((b, i) => {\n    cumulative += b.targetWords || 0;\n    const isVerified = verifications.some(v => v.week === i + 1 || v.week === 5);\n    return { ...b, cumulative, isVerified };\n  });\n}, [blocks, verifications]);\n```\n\n#### 5. `AvatarVault.js:126-138` — Component Factories Recreated on Every Render\n`getAvatarByStream()` returns a new component reference every call, forcing parents to recreate SVG trees.\n\n**Fix:** Memoize in the parent at call site:\n```javascript\nconst StreamAvatar = useMemo(\n  () => getAvatarByStream(stream?.streamId),\n  [stream?.streamId]\n);\n```\n\n---\n\n### MEDIUM\n\n#### 6. `MessagingHub.js:104-118` — `getVoices()` Called on Every Utterance\n`window.speechSynthesis.getVoices()` is a DOM API call that should be cached since the voice list rarely changes.\n\n**Fix:**\n```javascript\nlet __cachedVoices = null;\nwindow.speechSynthesis.onvoiceschanged = () => { __cachedVoices = null; };\n\nconst __pickVoice = () => {\n  __cachedVoices ??= window.speechSynthesis.getVoices();\n  return __cachedVoices.find(/* ... */);\n};\n```\n\n#### 7. `ChatService.js:169-172` — System Prompt Rebuilt Every Message\n`buildContextBlock()` and `buildSteeringBlock()` are expensive string builds that run per message even when course/steering hasn't changed.\n\n**Fix:** Cache with a dirty-check:\n```javascript\nlet _promptCache = null, _lastCourse = null, _lastSteering = null;\n\nconst getSystemPrompt = (course) => {\n  const steering = JSON.stringify(readSteering());\n  if (course !== _lastCourse || steering !== _lastSteering) {\n    _promptCache = buildSystemPrompt(course, readSteering());\n    _lastCourse = course; _lastSteering = steering;\n  }\n  return _promptCache;\n};\n```\n\n#### 8. `BionicText.js:24-76` — Module-Level Set Created Inside Component + Re-processing on Every Render\n`vowels` Set recreated inside the word-processing loop; entire token pass reruns on every parent re-render.\n\n**Fix:**\n```javascript\nconst VOWELS = new Set(['a', 'e', 'i', 'o', 'u', 'y']); // Module scope\n\n// Inside component:\nconst processedTokens = useMemo(\n  () => tokens.map(/* ... use VOWELS ... */),\n  [text, intensity, activeWordIndex]\n);\n```\n\n---\n\n### LOW\n\n#### 9. Multiple Unguarded `setTimeout` Calls (State-after-unmount)\n`UniversalOnboarding.js`, `MathsStepEditor.js:76`, `DevInsightsPanel.js:37-41`, `Humaniser.js:12-15` — all fire `setState` from `setTimeout` without storing the timer ID for cleanup.\n\n**Fix (pattern for all):**\n```javascript\nconst timerRef = useRef(null);\nuseEffect(() => () => clearTimeout(timerRef.current), []);\n\n// In handler:\ntimerRef.current = setTimeout(() => setState(...), delay);\n```\n\n#### 10. `EffortTracker.js:89` — Stale Closure on `onLogEffort`\n`useEffect` cleanup calls `commitLog()` (which uses `onLogEffort`) but `onLogEffort` is not in the dependency array — stale prop captured at mount.\n\n**Fix:** Add `onLogEffort` to the dependency array.\n\n#### 11. `ConfirmDialog.js` — Pure Component Without `React.memo`\nStateless dialog re-renders on every parent render even when hidden and props unchanged.\n\n**Fix:** `export default React.memo(ConfirmDialog);`\n\n---\n\n### Priority Order for Fixes\n\n| # | File | Severity | Impact |\n|---|------|----------|--------|\n| 1 | `SettingsContext.js` | Critical | Every setting change causes full app re-render cycle |\n| 2 | `ZenTools.js` | Critical | Timer leak accumulates over long sessions |\n| 3 | `ProjectContext.js` | Critical | O(n) course transforms on every render |\n| 4 | `CourseTrack.js` | High | O(blocks×verifications) per render |\n| 5 | `AvatarVault.js` | High | SVG tree recreation on every parent render |\n| 6 | `MessagingHub.js` | Medium | Repeated DOM API calls |\n| 7 | `ChatService.js` | Medium | String builds per message |\n| 8 | `BionicText.js` | Medium | Token reprocessing on every parent render |\n| 9-11 | Various timers | Low | Console warnings, minor leaks |\n",
+  "parsedOutput": {
+    "sections": [
+      {
+        "title": "Performance Analysis",
+        "content": "\n",
+        "level": 2
+      },
+      {
+        "title": "CRITICAL",
+        "content": "\n",
+        "level": 3
+      },
+      {
+        "title": "1. `SettingsContext.js` — Mega-Effect with 20+ Dependencies",
+        "content": "Every keystroke in settings triggers full localStorage serialization and CustomEvent dispatch because all state is in one monolithic `useEffect`.\n\n**Fix:** Split into focused per-setting effects or debounce the save:\n```javascript\n// Instead of one useEffect([mode, eduLevel, highContrast, ...20 more...])\nuseEffect(() => { localStorage.setItem('darkMode', JSON.stringify(darkMode)); }, [darkMode]);\nuseEffect(() => { localStorage.setItem('scaffoldingLevel', scaffoldingLevel); }, [scaffoldingLevel]);\n// etc.\n```\n\n",
+        "level": 4
+      },
+      {
+        "title": "2. `ZenTools.js:28-48` — Recursive `setTimeout` Memory Leak",
+        "content": "Breathing animation chains `setTimeout` calls to itself. The cleanup function can't clear already-scheduled timers, so they keep firing after unmount.\n\n**Fix:** Use a ref-tracked timer stack:\n```javascript\nconst timerRefsRef = useRef([]);\nconst scheduleTimer = (fn, delay) => {\n  const id = setTimeout(fn, delay);\n  timerRefsRef.current.push(id);\n  return id;\n};\nuseEffect(() => () => timerRefsRef.current.forEach(clearTimeout), []);\n```\n\n",
+        "level": 4
+      },
+      {
+        "title": "3. `ProjectContext.js` — Unmoized O(n) Transformations",
+        "content": "`__schemaPillars()`, `__readSchemaOverride()`, etc. run on every render against full course data.\n\n**Fix:**\n```javascript\nconst schemaPillars = useMemo(() => __schemaPillars(), [schemaOverride, extractionData]);\n```\n\n---\n\n",
+        "level": 4
+      },
+      {
+        "title": "HIGH",
+        "content": "\n",
+        "level": 3
+      },
+      {
+        "title": "4. `CourseTrack.js:9-25` — O(blocks × verifications) Every Render",
+        "content": "`islands` array computed via `.map()` + inner `.some()` on every render with no memoization.\n\n**Fix:**\n```javascript\nconst islands = useMemo(() => {\n  let cumulative = 0;\n  return blocks.map((b, i) => {\n    cumulative += b.targetWords || 0;\n    const isVerified = verifications.some(v => v.week === i + 1 || v.week === 5);\n    return { ...b, cumulative, isVerified };\n  });\n}, [blocks, verifications]);\n```\n\n",
+        "level": 4
+      },
+      {
+        "title": "5. `AvatarVault.js:126-138` — Component Factories Recreated on Every Render",
+        "content": "`getAvatarByStream()` returns a new component reference every call, forcing parents to recreate SVG trees.\n\n**Fix:** Memoize in the parent at call site:\n```javascript\nconst StreamAvatar = useMemo(\n  () => getAvatarByStream(stream?.streamId),\n  [stream?.streamId]\n);\n```\n\n---\n\n",
+        "level": 4
+      },
+      {
+        "title": "MEDIUM",
+        "content": "\n",
+        "level": 3
+      },
+      {
+        "title": "6. `MessagingHub.js:104-118` — `getVoices()` Called on Every Utterance",
+        "content": "`window.speechSynthesis.getVoices()` is a DOM API call that should be cached since the voice list rarely changes.\n\n**Fix:**\n```javascript\nlet __cachedVoices = null;\nwindow.speechSynthesis.onvoiceschanged = () => { __cachedVoices = null; };\n\nconst __pickVoice = () => {\n  __cachedVoices ??= window.speechSynthesis.getVoices();\n  return __cachedVoices.find(/* ... */);\n};\n```\n\n",
+        "level": 4
+      },
+      {
+        "title": "7. `ChatService.js:169-172` — System Prompt Rebuilt Every Message",
+        "content": "`buildContextBlock()` and `buildSteeringBlock()` are expensive string builds that run per message even when course/steering hasn't changed.\n\n**Fix:** Cache with a dirty-check:\n```javascript\nlet _promptCache = null, _lastCourse = null, _lastSteering = null;\n\nconst getSystemPrompt = (course) => {\n  const steering = JSON.stringify(readSteering());\n  if (course !== _lastCourse || steering !== _lastSteering) {\n    _promptCache = buildSystemPrompt(course, readSteering());\n    _lastCourse = course; _lastSteering = steering;\n  }\n  return _promptCache;\n};\n```\n\n",
+        "level": 4
+      },
+      {
+        "title": "8. `BionicText.js:24-76` — Module-Level Set Created Inside Component + Re-processing on Every Render",
+        "content": "`vowels` Set recreated inside the word-processing loop; entire token pass reruns on every parent re-render.\n\n**Fix:**\n```javascript\nconst VOWELS = new Set(['a', 'e', 'i', 'o', 'u', 'y']); // Module scope\n\n// Inside component:\nconst processedTokens = useMemo(\n  () => tokens.map(/* ... use VOWELS ... */),\n  [text, intensity, activeWordIndex]\n);\n```\n\n---\n\n",
+        "level": 4
+      },
+      {
+        "title": "LOW",
+        "content": "\n",
+        "level": 3
+      },
+      {
+        "title": "9. Multiple Unguarded `setTimeout` Calls (State-after-unmount)",
+        "content": "`UniversalOnboarding.js`, `MathsStepEditor.js:76`, `DevInsightsPanel.js:37-41`, `Humaniser.js:12-15` — all fire `setState` from `setTimeout` without storing the timer ID for cleanup.\n\n**Fix (pattern for all):**\n```javascript\nconst timerRef = useRef(null);\nuseEffect(() => () => clearTimeout(timerRef.current), []);\n\n// In handler:\ntimerRef.current = setTimeout(() => setState(...), delay);\n```\n\n",
+        "level": 4
+      },
+      {
+        "title": "10. `EffortTracker.js:89` — Stale Closure on `onLogEffort`",
+        "content": "`useEffect` cleanup calls `commitLog()` (which uses `onLogEffort`) but `onLogEffort` is not in the dependency array — stale prop captured at mount.\n\n**Fix:** Add `onLogEffort` to the dependency array.\n\n",
+        "level": 4
+      },
+      {
+        "title": "11. `ConfirmDialog.js` — Pure Component Without `React.memo`",
+        "content": "Stateless dialog re-renders on every parent render even when hidden and props unchanged.\n\n**Fix:** `export default React.memo(ConfirmDialog);`\n\n---\n\n",
+        "level": 4
+      },
+      {
+        "title": "Priority Order for Fixes",
+        "content": "| # | File | Severity | Impact |\n|---|------|----------|--------|\n| 1 | `SettingsContext.js` | Critical | Every setting change causes full app re-render cycle |\n| 2 | `ZenTools.js` | Critical | Timer leak accumulates over long sessions |\n| 3 | `ProjectContext.js` | Critical | O(n) course transforms on every render |\n| 4 | `CourseTrack.js` | High | O(blocks×verifications) per render |\n| 5 | `AvatarVault.js` | High | SVG tree recreation on every parent render |\n| 6 | `MessagingHub.js` | Medium | Repeated DOM API calls |\n| 7 | `ChatService.js` | Medium | String builds per message |\n| 8 | `BionicText.js` | Medium | Token reprocessing on every parent render |\n| 9-11 | Various timers | Low | Console warnings, minor leaks |",
+        "level": 3
+      }
+    ],
+    "codeBlocks": [
+      {
+        "language": "javascript",
+        "code": "// Instead of one useEffect([mode, eduLevel, highContrast, ...20 more...])\nuseEffect(() => { localStorage.setItem('darkMode', JSON.stringify(darkMode)); }, [darkMode]);\nuseEffect(() => { localStorage.setItem('scaffoldingLevel', scaffoldingLevel); }, [scaffoldingLevel]);\n// etc."
+      },
+      {
+        "language": "javascript",
+        "code": "const timerRefsRef = useRef([]);\nconst scheduleTimer = (fn, delay) => {\n  const id = setTimeout(fn, delay);\n  timerRefsRef.current.push(id);\n  return id;\n};\nuseEffect(() => () => timerRefsRef.current.forEach(clearTimeout), []);"
+      },
+      {
+        "language": "javascript",
+        "code": "const schemaPillars = useMemo(() => __schemaPillars(), [schemaOverride, extractionData]);"
+      },
+      {
+        "language": "javascript",
+        "code": "const islands = useMemo(() => {\n  let cumulative = 0;\n  return blocks.map((b, i) => {\n    cumulative += b.targetWords || 0;\n    const isVerified = verifications.some(v => v.week === i + 1 || v.week === 5);\n    return { ...b, cumulative, isVerified };\n  });\n}, [blocks, verifications]);"
+      },
+      {
+        "language": "javascript",
+        "code": "const StreamAvatar = useMemo(\n  () => getAvatarByStream(stream?.streamId),\n  [stream?.streamId]\n);"
+      },
+      {
+        "language": "javascript",
+        "code": "let __cachedVoices = null;\nwindow.speechSynthesis.onvoiceschanged = () => { __cachedVoices = null; };\n\nconst __pickVoice = () => {\n  __cachedVoices ??= window.speechSynthesis.getVoices();\n  return __cachedVoices.find(/* ... */);\n};"
+      },
+      {
+        "language": "javascript",
+        "code": "let _promptCache = null, _lastCourse = null, _lastSteering = null;\n\nconst getSystemPrompt = (course) => {\n  const steering = JSON.stringify(readSteering());\n  if (course !== _lastCourse || steering !== _lastSteering) {\n    _promptCache = buildSystemPrompt(course, readSteering());\n    _lastCourse = course; _lastSteering = steering;\n  }\n  return _promptCache;\n};"
+      },
+      {
+        "language": "javascript",
+        "code": "const VOWELS = new Set(['a', 'e', 'i', 'o', 'u', 'y']); // Module scope\n\n// Inside component:\nconst processedTokens = useMemo(\n  () => tokens.map(/* ... use VOWELS ... */),\n  [text, intensity, activeWordIndex]\n);"
+      },
+      {
+        "language": "javascript",
+        "code": "const timerRef = useRef(null);\nuseEffect(() => () => clearTimeout(timerRef.current), []);\n\n// In handler:\ntimerRef.current = setTimeout(() => setState(...), delay);"
+      }
+    ]
+  },
+  "durationMs": 253553,
+  "model": "sonnet",
+  "sandboxMode": "permissive",
+  "workerType": "optimize",
+  "timestamp": "2026-05-10T22:38:57.005Z",
+  "executionId": "optimize_1778452483452_t24vfr"
+}

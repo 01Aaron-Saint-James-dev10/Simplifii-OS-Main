@@ -1,0 +1,85 @@
+[2026-05-10T22:05:41.487Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "## Performance Analysis Report\n\nHere are the real issues found across 8 files, ordered by severity:\n\n---\n\n### 1. N+1 / Repeated Async Calls\n\n**`src/core/HistoryOfThought.js`** — `openDB()` called on every `appendEvent()` invocation instead of reusing a persistent connection:\n```js\n// Fix: singleton connection\nlet dbConnection = null;\nasync function getDB() {\n  if (!dbConnection) dbConnection = await openDB();\n  return dbConnection;\n}\n```\n\n**`src/frontend/UniversalOnboarding.js`** — `processDocumentWithGCP` called sequentially in a `for...of` loop. Parallelise:\n```js\n// Before: sequential await in loop\n// After:\nconst results = await Promise.all(files.map(f => processDocumentWithGCP(f)));\n```\n\n---\n\n### 2. Unnecessary Re-renders\n\n**`src/frontend/SettingsContext.js`** — Monolithic `useEffect` with 20+ dependencies writes all localStorage keys on any single setting change. Split into one effect per key. Also, the context value object is created inline on every render — wrap it in `useMemo`.\n\n**`src/frontend/LinearCanvas.js`** — `ToneHUD` runs regex splits and `Set` construction on every render:\n```js\n// Wrap in useMemo keyed to currentContent\nconst metrics = useMemo(() => {\n  const wordCount = currentContent.split(/\\s+/).filter(Boolean).length;\n  const longWords = (currentContent.match(/\\b\\w{8,}\\b/g) || []).length;\n  return { wordCount, rigor: (longWords / wordCount * 100).toFixed(1) };\n}, [currentContent]);\n```\n\n**`src/frontend/ProjectContext.js`** — `__overriddenExtractionData` and `__overriddenRoadmap` are computed as IIFEs inside render. Wrap both in `useMemo([__schemaPillars])`.\n\n---\n\n### 3. Caching Opportunities\n\n**`src/services/BriefService.js`** — 15+ regex literals compiled on every function call. Hoist them to module scope:\n```js\n// Module-level constants (compiled once):\nconst THEME_REGEX = /\\b[\\w\\s&]+\\b/g;\nconst LEARNING_OUTCOME_REGEX = /(?:Learning Outcomes?|LOs?|Course Goals?)/gi;\n// ... etc.\n```\n\n**`src/core/HistoryOfThought.js`** — `deviceSignature()` async function recomputed on every `appendEvent`. Cache after first call:\n```js\nlet _sig = null;\nasync function deviceSignature() {\n  if (!_sig) _sig = await computeSignature();\n  return _sig;\n}\n```\n\n**`src/core/ExecutiveSpine.js`** — Repeated `localStorage.getItem()` calls without in-memory cache. Add a simple key→value map with invalidation on `setItem`.\n\n---\n\n### 4. Memory Leaks\n\n**`src/frontend/MasterDashboard.js`** — Multiple `window.addEventListener` calls in `useEffect` with no cleanup:\n```js\nuseEffect(() => {\n  window.addEventListener('toggle-view-mode', handler);\n  return () => window.removeEventListener('toggle-view-mode', handler);\n}, []);\n```\n\n**`src/core/ExecutiveSpine.js`** — `setInterval` for idle detection starts a new interval on every call without clearing the previous one. Guard with a module-level variable:\n```js\nlet idleInterval = null;\nfunction startIdleDetection() {\n  if (idleInterval) return;\n  idleInterval = setInterval(checkIdle, 15_000);\n}\nfunction stopIdleDetection() {\n  clearInterval(idleInterval);\n  idleInterval = null;\n}\n```\n\nNested `setTimeout` in `grantPlayTime` also leaks on repeated calls — store both timer IDs and clear before re-setting.\n\n---\n\n### 5. Redundant Computations\n\n**`src/frontend/LinearCanvas.js`** (`SectionHealth`) — word count and percentage recomputed every render. Wrap in `React.memo` + `useMemo`:\n```js\nconst SectionHealth = React.memo(({ content, maxWords }) => {\n  const { wordCount, pct } = useMemo(() => ({\n    wordCount: content.split(/\\s+/).length,\n    pct: (content.split(/\\s+/).length / maxWords * 100).toFixed(1)\n  }), [content, maxWords]);\n  return <div>{pct}%</div>;\n});\n```\n\nHistory scrubbing (`historyWords.map(...)`) runs on every slider movement — memoize the rendered spans with `useMemo([isScrubbing, historyWords])`.\n\n**`src/frontend/MasterDashboard.js`** — `synthesiseMilestones` called inside a `tasks.map()` without memoization. Wrap the entire map in `useMemo([tasks])`.\n\n---\n\n### Priority Order\n\n| # | File | Fix | Impact |\n|---|------|-----|--------|\n| 1 | `SettingsContext.js` | Split useEffect + memoize value | Eliminates cascade re-renders on every setting |\n| 2 | `LinearCanvas.js` | `useMemo` on ToneHUD + SectionHealth | Stops regex on every keystroke |\n| 3 | `BriefService.js` | Hoist regex to module scope | Compile cost amortised across lifetime |\n| 4 | `HistoryOfThought.js` | Singleton DB + cache deviceSignature | Eliminates repeated IndexedDB opens |\n| 5 | `ExecutiveSpine.js` | Guard interval + clear timers | Prevents timer accumulation leaks |\n| 6 | `MasterDashboard.js` | Add cleanup returns to useEffect | Prevents listener accumulation |\n",
+  "parsedOutput": {
+    "sections": [
+      {
+        "title": "Performance Analysis Report",
+        "content": "\nHere are the real issues found across 8 files, ordered by severity:\n\n---\n\n",
+        "level": 2
+      },
+      {
+        "title": "1. N+1 / Repeated Async Calls",
+        "content": "\n**`src/core/HistoryOfThought.js`** — `openDB()` called on every `appendEvent()` invocation instead of reusing a persistent connection:\n```js\n// Fix: singleton connection\nlet dbConnection = null;\nasync function getDB() {\n  if (!dbConnection) dbConnection = await openDB();\n  return dbConnection;\n}\n```\n\n**`src/frontend/UniversalOnboarding.js`** — `processDocumentWithGCP` called sequentially in a `for...of` loop. Parallelise:\n```js\n// Before: sequential await in loop\n// After:\nconst results = await Promise.all(files.map(f => processDocumentWithGCP(f)));\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "2. Unnecessary Re-renders",
+        "content": "\n**`src/frontend/SettingsContext.js`** — Monolithic `useEffect` with 20+ dependencies writes all localStorage keys on any single setting change. Split into one effect per key. Also, the context value object is created inline on every render — wrap it in `useMemo`.\n\n**`src/frontend/LinearCanvas.js`** — `ToneHUD` runs regex splits and `Set` construction on every render:\n```js\n// Wrap in useMemo keyed to currentContent\nconst metrics = useMemo(() => {\n  const wordCount = currentContent.split(/\\s+/).filter(Boolean).length;\n  const longWords = (currentContent.match(/\\b\\w{8,}\\b/g) || []).length;\n  return { wordCount, rigor: (longWords / wordCount * 100).toFixed(1) };\n}, [currentContent]);\n```\n\n**`src/frontend/ProjectContext.js`** — `__overriddenExtractionData` and `__overriddenRoadmap` are computed as IIFEs inside render. Wrap both in `useMemo([__schemaPillars])`.\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "3. Caching Opportunities",
+        "content": "\n**`src/services/BriefService.js`** — 15+ regex literals compiled on every function call. Hoist them to module scope:\n```js\n// Module-level constants (compiled once):\nconst THEME_REGEX = /\\b[\\w\\s&]+\\b/g;\nconst LEARNING_OUTCOME_REGEX = /(?:Learning Outcomes?|LOs?|Course Goals?)/gi;\n// ... etc.\n```\n\n**`src/core/HistoryOfThought.js`** — `deviceSignature()` async function recomputed on every `appendEvent`. Cache after first call:\n```js\nlet _sig = null;\nasync function deviceSignature() {\n  if (!_sig) _sig = await computeSignature();\n  return _sig;\n}\n```\n\n**`src/core/ExecutiveSpine.js`** — Repeated `localStorage.getItem()` calls without in-memory cache. Add a simple key→value map with invalidation on `setItem`.\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "4. Memory Leaks",
+        "content": "\n**`src/frontend/MasterDashboard.js`** — Multiple `window.addEventListener` calls in `useEffect` with no cleanup:\n```js\nuseEffect(() => {\n  window.addEventListener('toggle-view-mode', handler);\n  return () => window.removeEventListener('toggle-view-mode', handler);\n}, []);\n```\n\n**`src/core/ExecutiveSpine.js`** — `setInterval` for idle detection starts a new interval on every call without clearing the previous one. Guard with a module-level variable:\n```js\nlet idleInterval = null;\nfunction startIdleDetection() {\n  if (idleInterval) return;\n  idleInterval = setInterval(checkIdle, 15_000);\n}\nfunction stopIdleDetection() {\n  clearInterval(idleInterval);\n  idleInterval = null;\n}\n```\n\nNested `setTimeout` in `grantPlayTime` also leaks on repeated calls — store both timer IDs and clear before re-setting.\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "5. Redundant Computations",
+        "content": "\n**`src/frontend/LinearCanvas.js`** (`SectionHealth`) — word count and percentage recomputed every render. Wrap in `React.memo` + `useMemo`:\n```js\nconst SectionHealth = React.memo(({ content, maxWords }) => {\n  const { wordCount, pct } = useMemo(() => ({\n    wordCount: content.split(/\\s+/).length,\n    pct: (content.split(/\\s+/).length / maxWords * 100).toFixed(1)\n  }), [content, maxWords]);\n  return <div>{pct}%</div>;\n});\n```\n\nHistory scrubbing (`historyWords.map(...)`) runs on every slider movement — memoize the rendered spans with `useMemo([isScrubbing, historyWords])`.\n\n**`src/frontend/MasterDashboard.js`** — `synthesiseMilestones` called inside a `tasks.map()` without memoization. Wrap the entire map in `useMemo([tasks])`.\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Priority Order",
+        "content": "| # | File | Fix | Impact |\n|---|------|-----|--------|\n| 1 | `SettingsContext.js` | Split useEffect + memoize value | Eliminates cascade re-renders on every setting |\n| 2 | `LinearCanvas.js` | `useMemo` on ToneHUD + SectionHealth | Stops regex on every keystroke |\n| 3 | `BriefService.js` | Hoist regex to module scope | Compile cost amortised across lifetime |\n| 4 | `HistoryOfThought.js` | Singleton DB + cache deviceSignature | Eliminates repeated IndexedDB opens |\n| 5 | `ExecutiveSpine.js` | Guard interval + clear timers | Prevents timer accumulation leaks |\n| 6 | `MasterDashboard.js` | Add cleanup returns to useEffect | Prevents listener accumulation |",
+        "level": 3
+      }
+    ],
+    "codeBlocks": [
+      {
+        "language": "js",
+        "code": "// Fix: singleton connection\nlet dbConnection = null;\nasync function getDB() {\n  if (!dbConnection) dbConnection = await openDB();\n  return dbConnection;\n}"
+      },
+      {
+        "language": "js",
+        "code": "// Before: sequential await in loop\n// After:\nconst results = await Promise.all(files.map(f => processDocumentWithGCP(f)));"
+      },
+      {
+        "language": "js",
+        "code": "// Wrap in useMemo keyed to currentContent\nconst metrics = useMemo(() => {\n  const wordCount = currentContent.split(/\\s+/).filter(Boolean).length;\n  const longWords = (currentContent.match(/\\b\\w{8,}\\b/g) || []).length;\n  return { wordCount, rigor: (longWords / wordCount * 100).toFixed(1) };\n}, [currentContent]);"
+      },
+      {
+        "language": "js",
+        "code": "// Module-level constants (compiled once):\nconst THEME_REGEX = /\\b[\\w\\s&]+\\b/g;\nconst LEARNING_OUTCOME_REGEX = /(?:Learning Outcomes?|LOs?|Course Goals?)/gi;\n// ... etc."
+      },
+      {
+        "language": "js",
+        "code": "let _sig = null;\nasync function deviceSignature() {\n  if (!_sig) _sig = await computeSignature();\n  return _sig;\n}"
+      },
+      {
+        "language": "js",
+        "code": "useEffect(() => {\n  window.addEventListener('toggle-view-mode', handler);\n  return () => window.removeEventListener('toggle-view-mode', handler);\n}, []);"
+      },
+      {
+        "language": "js",
+        "code": "let idleInterval = null;\nfunction startIdleDetection() {\n  if (idleInterval) return;\n  idleInterval = setInterval(checkIdle, 15_000);\n}\nfunction stopIdleDetection() {\n  clearInterval(idleInterval);\n  idleInterval = null;\n}"
+      },
+      {
+        "language": "js",
+        "code": "const SectionHealth = React.memo(({ content, maxWords }) => {\n  const { wordCount, pct } = useMemo(() => ({\n    wordCount: content.split(/\\s+/).length,\n    pct: (content.split(/\\s+/).length / maxWords * 100).toFixed(1)\n  }), [content, maxWords]);\n  return <div>{pct}%</div>;\n});"
+      }
+    ]
+  },
+  "durationMs": 151380,
+  "model": "sonnet",
+  "sandboxMode": "permissive",
+  "workerType": "optimize",
+  "timestamp": "2026-05-10T22:05:41.487Z",
+  "executionId": "optimize_1778450590107_ytq30o"
+}

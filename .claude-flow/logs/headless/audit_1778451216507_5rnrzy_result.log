@@ -1,0 +1,70 @@
+[2026-05-10T22:14:12.098Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/App.js\",\n      \"line\": 15,\n      \"description\": \"URL-based localStorage reset without authentication. The `?reset=true` parameter allows any user to clear the entire vault via URL manipulation. This bypasses any session validation and could be exploited to destroy user work.\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/App.js\",\n      \"line\": 16,\n      \"description\": \"localStorage.clear() is not selective. Clears entire localStorage including encryption salts and passphrases if present. No confirmation or rate-limiting protects against accidental or malicious clears.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/backend/LMSConnector.js\",\n      \"line\": 1,\n      \"description\": \"Missing input validation on courseCode parameter. If connected to a real backend API, the courseCode is passed unsanitized. Susceptible to injection attacks if backend constructs queries with it.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/backend/NeuralAuditPipeline.js\",\n      \"line\": 3,\n      \"description\": \"Course codes (BABS1201, BABS1202) hardcoded in production code. Violates 'Universal Architecture' principle in CLAUDE.md which requires course-specific data to live in schema/disk only. Creates maintenance burden and couples code to specific curriculum.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 92,\n      \"description\": \"Weak passphrase validation (minimum 4 characters). For an encryption key derived via PBKDF2, 4 characters is insufficient entropy. Recommend minimum 8-12 characters to prevent dictionary attacks.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/App.js\",\n      \"line\": 13,\n      \"description\": \"localStorage.getItem() result not validated before use. Line 13 checks `=== 'true'` but does not handle null return. Could cause unexpected behavior if localStorage is unavailable.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"SmartIntake.js\",\n      \"line\": 8,\n      \"description\": \"Hardcoded university reference 'UNSW Moodle' in UI text. While not a direct security issue, it violates the 'Universal Architecture' principle—course-specific language should be externalized to schema, not hardcoded in components.\"\n    }\n  ],\n  \"riskScore\": 52,\n  \"recommendations\": [\n    \"**Remove URL-based reset parameter** (src/App.js:15-18). Replace with explicit UI confirmation dialog + rate-limiting if reset functionality is necessary.\",\n    \"**Add input validation** to LMSConnector.fetchLMSData. Whitelist courseCode against expected format; reject if malformed.\",\n    \"**Externalize course codes** from NeuralAuditPipeline.js into a JSON schema file (e.g., src/schemas/courseMapping.json) and load at runtime.\",\n    \"**Increase passphrase minimum** from 4 to 12 characters in HistoryOfThought.js:92.\",\n    \"**Validate localStorage reads**. Add null-coalescing or default fallbacks for all localStorage.getItem() calls.\",\n    \"**Externalize hardcoded institution names** (e.g., 'UNSW') into SettingsContext or a config file.\",\n    \"**Add Content Security Policy (CSP) headers** to prevent inline script injection if deployed as a web app.\",\n    \"**Audit EventBus event payloads** for keystroke logging. Ensure `recordTextEdit` does not capture raw document content—only metrics like word count.\",\n    \"**Verify PDF worker integrity**. Confirm pdf.worker.min.js is sourced from trusted npm package and matches checksums on build.\"\n  ]\n}\n```\n\n---\n\n### Summary\n**Risk Score: 52/100 (Moderate)**\n\n**Key findings:**\n1. **Critical**: The `?reset=true` URL parameter allows unauthenticated wiping of all data—no confirmation, no rate limit.\n2. **Architecture violations**: Course codes and university names are hardcoded in source; should live in schema only (per CLAUDE.md).\n3. **Input validation gaps**: LMSConnector does not validate the courseCode parameter before use.\n4. **Weak encryption parameters**: 4-character passphrase minimum is too low for PBKDF2-derived keys.\n\n**Encryption layer (HistoryOfThought.js) is well-designed**: Proper use of Web Crypto API, AES-GCM-256, and PBKDF2 with 600k iterations. No secrets leaked.\n\n**No SQL injection, XSS, or dependency vulnerabilities detected** in the provided code.\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "high",
+        "file": "src/App.js",
+        "line": 15,
+        "description": "URL-based localStorage reset without authentication. The `?reset=true` parameter allows any user to clear the entire vault via URL manipulation. This bypasses any session validation and could be exploited to destroy user work."
+      },
+      {
+        "severity": "high",
+        "file": "src/App.js",
+        "line": 16,
+        "description": "localStorage.clear() is not selective. Clears entire localStorage including encryption salts and passphrases if present. No confirmation or rate-limiting protects against accidental or malicious clears."
+      },
+      {
+        "severity": "medium",
+        "file": "src/backend/LMSConnector.js",
+        "line": 1,
+        "description": "Missing input validation on courseCode parameter. If connected to a real backend API, the courseCode is passed unsanitized. Susceptible to injection attacks if backend constructs queries with it."
+      },
+      {
+        "severity": "medium",
+        "file": "src/backend/NeuralAuditPipeline.js",
+        "line": 3,
+        "description": "Course codes (BABS1201, BABS1202) hardcoded in production code. Violates 'Universal Architecture' principle in CLAUDE.md which requires course-specific data to live in schema/disk only. Creates maintenance burden and couples code to specific curriculum."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 92,
+        "description": "Weak passphrase validation (minimum 4 characters). For an encryption key derived via PBKDF2, 4 characters is insufficient entropy. Recommend minimum 8-12 characters to prevent dictionary attacks."
+      },
+      {
+        "severity": "low",
+        "file": "src/App.js",
+        "line": 13,
+        "description": "localStorage.getItem() result not validated before use. Line 13 checks `=== 'true'` but does not handle null return. Could cause unexpected behavior if localStorage is unavailable."
+      },
+      {
+        "severity": "low",
+        "file": "SmartIntake.js",
+        "line": 8,
+        "description": "Hardcoded university reference 'UNSW Moodle' in UI text. While not a direct security issue, it violates the 'Universal Architecture' principle—course-specific language should be externalized to schema, not hardcoded in components."
+      }
+    ],
+    "riskScore": 52,
+    "recommendations": [
+      "**Remove URL-based reset parameter** (src/App.js:15-18). Replace with explicit UI confirmation dialog + rate-limiting if reset functionality is necessary.",
+      "**Add input validation** to LMSConnector.fetchLMSData. Whitelist courseCode against expected format; reject if malformed.",
+      "**Externalize course codes** from NeuralAuditPipeline.js into a JSON schema file (e.g., src/schemas/courseMapping.json) and load at runtime.",
+      "**Increase passphrase minimum** from 4 to 12 characters in HistoryOfThought.js:92.",
+      "**Validate localStorage reads**. Add null-coalescing or default fallbacks for all localStorage.getItem() calls.",
+      "**Externalize hardcoded institution names** (e.g., 'UNSW') into SettingsContext or a config file.",
+      "**Add Content Security Policy (CSP) headers** to prevent inline script injection if deployed as a web app.",
+      "**Audit EventBus event payloads** for keystroke logging. Ensure `recordTextEdit` does not capture raw document content—only metrics like word count.",
+      "**Verify PDF worker integrity**. Confirm pdf.worker.min.js is sourced from trusted npm package and matches checksums on build."
+    ]
+  },
+  "durationMs": 35591,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-10T22:14:12.098Z",
+  "executionId": "audit_1778451216507_5rnrzy"
+}

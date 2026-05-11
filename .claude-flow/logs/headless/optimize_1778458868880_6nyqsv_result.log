@@ -1,0 +1,89 @@
+[2026-05-11T00:23:24.671Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "## Performance Analysis: Simplifii-OS Master\n\nHere are the real issues found with actionable fixes, ordered by impact:\n\n---\n\n### Memory Leaks\n\n**1. Event listener cleanup mismatch — `MasterDashboard.js:830-835`**\n\nThe `mousemove` listener is added with `capture: true` but removed without it, leaving the listener permanently registered.\n\n```js\n// Bug:\nwindow.addEventListener('mousemove', handleMouseMove, true);\nwindow.removeEventListener('mousemove', handleMouseMove); // missing flag\n\n// Fix:\nwindow.removeEventListener('mousemove', handleMouseMove, true);\n```\n\n---\n\n### Unnecessary Re-renders\n\n**2. `buildDerived` called twice on every render — `MasterDashboard.js:570,617`**\n\nCalled without memoization; both run on every render even when `assets` hasn't changed.\n\n```js\n// Fix:\nconst draftAssets = useMemo(() => buildDerived(assets, 'draft'), [assets]);\nconst confirmedAssets = useMemo(() => buildDerived(assets, 'confirmed'), [assets]);\n```\n\n**3. Inline callback recreated on every render — `MasterDashboard.js:473`**\n\n```js\n// Fix:\nconst handleAddGhostAsset = useCallback((file) => {\n  saveGhostAsset({ id: generateId(), file, status: 'draft', timestamp: Date.now() });\n}, []);\n```\n\n**4. PDF generation callback not memoized — `MasterDashboard.js:779-795`**\n\n```js\nconst generatePremiumPDF = useCallback(() => {\n  tasks.forEach((task) => { /* ... */ });\n}, [tasks]);\n```\n\n---\n\n### Redundant Computations\n\n**5. Regex + word-count ops on every render — `LinearCanvas.js:24-30`**\n\n```js\nconst { wordCount, longWords, semanticDensity } = useMemo(() => {\n  const wc = content.split(' ').length;\n  const lw = (content.match(/\\b\\w{8,}\\b/g) || []).length;\n  return { wordCount: wc, longWords: lw, semanticDensity: lw / wc };\n}, [content]);\n```\n\n**6. `classifyFile()` called during sort on every render — `UniversalOnboarding.js:251`**\n\nO(n log n) expensive calls in a comparator that runs each render:\n\n```js\n// Fix: pre-classify, then sort\nconst classifiedFiles = useMemo(\n  () => files.map(f => ({ file: f, cls: classifyFile(f) })),\n  [files]\n);\nconst sortedFiles = useMemo(\n  () => [...classifiedFiles].sort((a, b) => a.cls.priority - b.cls.priority),\n  [classifiedFiles]\n);\n```\n\n**7. String splits inside map loop — `LinearCanvas.js:165`**\n\n```js\nconst currentWords = useMemo(() => currentContent.split(' '), [currentContent]);\nconst historyWords = useMemo(() => historicalText.split(' '), [historicalText]);\n// then reference these inside history.map()\n```\n\n---\n\n### N+1 / Sequential Processing\n\n**8. Sequential file processing in `handleFileUpload` — `UniversalOnboarding.js:260-270`**\n\n```js\n// Bug: sequential for...of\nfor (const file of files) {\n  const cls = classifyFile(file); // blocks\n}\n\n// Fix: parallel\nconst results = await Promise.all(files.map(f => Promise.resolve(classifyFile(f))));\n```\n\n---\n\n### Caching / localStorage\n\n**9. Three separate `useEffect` → localStorage writes — `ProjectContext.js:137-139`**\n\nEach fires independently, causing three separate write cycles per state change:\n\n```js\n// Fix: batch into one effect\nuseEffect(() => {\n  localStorage.setItem('simplifii_profile', JSON.stringify(profile));\n  localStorage.setItem('simplifii_courses_v1', JSON.stringify(courses));\n  localStorage.setItem('simplifii_activeCourseId', activeCourseId);\n}, [profile, courses, activeCourseId]);\n```\n\n---\n\n### Priority Summary\n\n| Priority | Issue | File | Impact |\n|---|---|---|---|\n| Critical | Event listener leak | `MasterDashboard.js:834` | Memory leak |\n| High | `buildDerived` unmemod | `MasterDashboard.js:570,617` | Render perf |\n| High | `classifyFile` in sort | `UniversalOnboarding.js:251` | O(n log n) per render |\n| Medium | Regex on every render | `LinearCanvas.js:24-30` | CPU waste |\n| Medium | Sequential file processing | `UniversalOnboarding.js:260` | Upload latency |\n| Low | localStorage batching | `ProjectContext.js:137` | I/O batching |\n\nThe event listener leak (item 1) should be fixed first — it accumulates with every ruler activation and is never cleaned up.\n",
+  "parsedOutput": {
+    "sections": [
+      {
+        "title": "Performance Analysis: Simplifii-OS Master",
+        "content": "\nHere are the real issues found with actionable fixes, ordered by impact:\n\n---\n\n",
+        "level": 2
+      },
+      {
+        "title": "Memory Leaks",
+        "content": "\n**1. Event listener cleanup mismatch — `MasterDashboard.js:830-835`**\n\nThe `mousemove` listener is added with `capture: true` but removed without it, leaving the listener permanently registered.\n\n```js\n// Bug:\nwindow.addEventListener('mousemove', handleMouseMove, true);\nwindow.removeEventListener('mousemove', handleMouseMove); // missing flag\n\n// Fix:\nwindow.removeEventListener('mousemove', handleMouseMove, true);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Unnecessary Re-renders",
+        "content": "\n**2. `buildDerived` called twice on every render — `MasterDashboard.js:570,617`**\n\nCalled without memoization; both run on every render even when `assets` hasn't changed.\n\n```js\n// Fix:\nconst draftAssets = useMemo(() => buildDerived(assets, 'draft'), [assets]);\nconst confirmedAssets = useMemo(() => buildDerived(assets, 'confirmed'), [assets]);\n```\n\n**3. Inline callback recreated on every render — `MasterDashboard.js:473`**\n\n```js\n// Fix:\nconst handleAddGhostAsset = useCallback((file) => {\n  saveGhostAsset({ id: generateId(), file, status: 'draft', timestamp: Date.now() });\n}, []);\n```\n\n**4. PDF generation callback not memoized — `MasterDashboard.js:779-795`**\n\n```js\nconst generatePremiumPDF = useCallback(() => {\n  tasks.forEach((task) => { /* ... */ });\n}, [tasks]);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Redundant Computations",
+        "content": "\n**5. Regex + word-count ops on every render — `LinearCanvas.js:24-30`**\n\n```js\nconst { wordCount, longWords, semanticDensity } = useMemo(() => {\n  const wc = content.split(' ').length;\n  const lw = (content.match(/\\b\\w{8,}\\b/g) || []).length;\n  return { wordCount: wc, longWords: lw, semanticDensity: lw / wc };\n}, [content]);\n```\n\n**6. `classifyFile()` called during sort on every render — `UniversalOnboarding.js:251`**\n\nO(n log n) expensive calls in a comparator that runs each render:\n\n```js\n// Fix: pre-classify, then sort\nconst classifiedFiles = useMemo(\n  () => files.map(f => ({ file: f, cls: classifyFile(f) })),\n  [files]\n);\nconst sortedFiles = useMemo(\n  () => [...classifiedFiles].sort((a, b) => a.cls.priority - b.cls.priority),\n  [classifiedFiles]\n);\n```\n\n**7. String splits inside map loop — `LinearCanvas.js:165`**\n\n```js\nconst currentWords = useMemo(() => currentContent.split(' '), [currentContent]);\nconst historyWords = useMemo(() => historicalText.split(' '), [historicalText]);\n// then reference these inside history.map()\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "N+1 / Sequential Processing",
+        "content": "\n**8. Sequential file processing in `handleFileUpload` — `UniversalOnboarding.js:260-270`**\n\n```js\n// Bug: sequential for...of\nfor (const file of files) {\n  const cls = classifyFile(file); // blocks\n}\n\n// Fix: parallel\nconst results = await Promise.all(files.map(f => Promise.resolve(classifyFile(f))));\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Caching / localStorage",
+        "content": "\n**9. Three separate `useEffect` → localStorage writes — `ProjectContext.js:137-139`**\n\nEach fires independently, causing three separate write cycles per state change:\n\n```js\n// Fix: batch into one effect\nuseEffect(() => {\n  localStorage.setItem('simplifii_profile', JSON.stringify(profile));\n  localStorage.setItem('simplifii_courses_v1', JSON.stringify(courses));\n  localStorage.setItem('simplifii_activeCourseId', activeCourseId);\n}, [profile, courses, activeCourseId]);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Priority Summary",
+        "content": "| Priority | Issue | File | Impact |\n|---|---|---|---|\n| Critical | Event listener leak | `MasterDashboard.js:834` | Memory leak |\n| High | `buildDerived` unmemod | `MasterDashboard.js:570,617` | Render perf |\n| High | `classifyFile` in sort | `UniversalOnboarding.js:251` | O(n log n) per render |\n| Medium | Regex on every render | `LinearCanvas.js:24-30` | CPU waste |\n| Medium | Sequential file processing | `UniversalOnboarding.js:260` | Upload latency |\n| Low | localStorage batching | `ProjectContext.js:137` | I/O batching |\n\nThe event listener leak (item 1) should be fixed first — it accumulates with every ruler activation and is never cleaned up.",
+        "level": 3
+      }
+    ],
+    "codeBlocks": [
+      {
+        "language": "js",
+        "code": "// Bug:\nwindow.addEventListener('mousemove', handleMouseMove, true);\nwindow.removeEventListener('mousemove', handleMouseMove); // missing flag\n\n// Fix:\nwindow.removeEventListener('mousemove', handleMouseMove, true);"
+      },
+      {
+        "language": "js",
+        "code": "// Fix:\nconst draftAssets = useMemo(() => buildDerived(assets, 'draft'), [assets]);\nconst confirmedAssets = useMemo(() => buildDerived(assets, 'confirmed'), [assets]);"
+      },
+      {
+        "language": "js",
+        "code": "// Fix:\nconst handleAddGhostAsset = useCallback((file) => {\n  saveGhostAsset({ id: generateId(), file, status: 'draft', timestamp: Date.now() });\n}, []);"
+      },
+      {
+        "language": "js",
+        "code": "const generatePremiumPDF = useCallback(() => {\n  tasks.forEach((task) => { /* ... */ });\n}, [tasks]);"
+      },
+      {
+        "language": "js",
+        "code": "const { wordCount, longWords, semanticDensity } = useMemo(() => {\n  const wc = content.split(' ').length;\n  const lw = (content.match(/\\b\\w{8,}\\b/g) || []).length;\n  return { wordCount: wc, longWords: lw, semanticDensity: lw / wc };\n}, [content]);"
+      },
+      {
+        "language": "js",
+        "code": "// Fix: pre-classify, then sort\nconst classifiedFiles = useMemo(\n  () => files.map(f => ({ file: f, cls: classifyFile(f) })),\n  [files]\n);\nconst sortedFiles = useMemo(\n  () => [...classifiedFiles].sort((a, b) => a.cls.priority - b.cls.priority),\n  [classifiedFiles]\n);"
+      },
+      {
+        "language": "js",
+        "code": "const currentWords = useMemo(() => currentContent.split(' '), [currentContent]);\nconst historyWords = useMemo(() => historicalText.split(' '), [historicalText]);\n// then reference these inside history.map()"
+      },
+      {
+        "language": "js",
+        "code": "// Bug: sequential for...of\nfor (const file of files) {\n  const cls = classifyFile(file); // blocks\n}\n\n// Fix: parallel\nconst results = await Promise.all(files.map(f => Promise.resolve(classifyFile(f))));"
+      },
+      {
+        "language": "js",
+        "code": "// Fix: batch into one effect\nuseEffect(() => {\n  localStorage.setItem('simplifii_profile', JSON.stringify(profile));\n  localStorage.setItem('simplifii_courses_v1', JSON.stringify(courses));\n  localStorage.setItem('simplifii_activeCourseId', activeCourseId);\n}, [profile, courses, activeCourseId]);"
+      }
+    ]
+  },
+  "durationMs": 135791,
+  "model": "sonnet",
+  "sandboxMode": "permissive",
+  "workerType": "optimize",
+  "timestamp": "2026-05-11T00:23:24.671Z",
+  "executionId": "optimize_1778458868880_6nyqsv"
+}

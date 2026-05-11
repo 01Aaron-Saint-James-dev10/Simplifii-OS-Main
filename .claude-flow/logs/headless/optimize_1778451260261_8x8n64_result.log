@@ -1,0 +1,158 @@
+[2026-05-10T22:16:37.864Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "Here's a prioritized performance audit of the Simplifii-OS codebase.\n\n---\n\n## 1. N+1 Query Patterns\n\n### `src/frontend/MasterDashboard.js` — `handleIngestGrounding`\nEach file in the loop triggers individual `DocumentAIService.processWithGCP` calls:\n```js\n// BEFORE (N+1)\nfor (const file of files) {\n  const result = await DocumentAIService.processWithGCP(file); // one call per file\n  await updateGroundingFromExtraction(result);\n}\n\n// AFTER — batch process\nconst results = await Promise.all(files.map(f => DocumentAIService.processWithGCP(f)));\nawait Promise.all(results.map(r => updateGroundingFromExtraction(r)));\n```\n\n### `src/frontend/UniversalOnboarding.js` — `handleFileUpload`\nSame pattern: individual `processDocumentWithGCP` call per file in a loop. Apply `Promise.all` for concurrent processing.\n\n---\n\n## 2. Unnecessary Re-renders\n\n### `src/frontend/MasterDashboard.js` — 20+ `useState` + inline handlers\n```js\n// BEFORE — inline arrow function recreated every render\n<AssetCard onClick={() => handleAddAsset(pillar.id)} />\n\n// AFTER\nconst handleAddAsset = useCallback((pillarId) => { ... }, [deps]);\n<AssetCard onClick={handleAddAsset} />\n```\nConsolidate the 20+ `useState` calls into a `useReducer` to prevent cascading re-renders on each state slice update.\n\n### `src/frontend/LinearCanvas.js` — `ToneHUD` unoptimized calculations\n```js\n// BEFORE — recalculated on every render\nconst wordCount = content.split(' ').length;\nconst uniqueWords = new Set(content.split(' ')).size;\nconst rigor = computeRigor(content); // expensive regex\n\n// AFTER\nconst { wordCount, uniqueWords, rigor } = useMemo(() => ({\n  wordCount: content.split(' ').length,\n  uniqueWords: new Set(content.split(' ')).size,\n  rigor: computeRigor(content),\n}), [content]);\n```\n\n### `src/core/ProjectContext.js` — override computations every render\n`__readSchemaOverride`, `__overriddenExtractionData`, and `__overriddenRoadmap` are all recomputed on every render. Wrap each in `useMemo` with the relevant data as dependencies.\n\n### `src/frontend/SettingsContext.js` — 40+ individual `useState`\nEach individual dial/setting change re-renders all consumers. Replace with:\n```js\nconst [settings, dispatch] = useReducer(settingsReducer, defaultSettings);\n```\n\n---\n\n## 3. Caching Opportunities\n\n### `src/services/BriefService.js` — regex compiled on every call\n```js\n// BEFORE — compiled fresh every invocation\nfunction extractDeepCourseData(text) {\n  const loRegex = /learning.outcome[s]?/gi;\n  const rubricRegex = /rubric|criterion|criteria/gi;\n  // ...\n}\n\n// AFTER — module-level constants\nconst LO_REGEX = /learning.outcome[s]?/gi;\nconst RUBRIC_REGEX = /rubric|criterion|criteria/gi;\n\nfunction extractDeepCourseData(text) {\n  LO_REGEX.lastIndex = 0; // reset stateful regex before use\n  // ...\n}\n```\nThis affects 4+ regex patterns called repeatedly per document ingestion.\n\n### `src/core/SovereignRouter.js` — theme objects recreated on every `hydrate()` call\nCache the last computed theme keyed on the stream ID:\n```js\nconst _themeCache = new Map();\nfunction hydrate(streamId) {\n  if (_themeCache.has(streamId)) return _themeCache.get(streamId);\n  const theme = buildTheme(streamId);\n  _themeCache.set(streamId, theme);\n  return theme;\n}\n```\n\n---\n\n## 4. Memory Leaks\n\n### `src/frontend/LinearCanvas.js` — 9+ unguarded `setTimeout` calls\nTimeouts at lines ~135, 152, 194, 249, 399, 405, 536, 685, 729, 736, 792, 1331 are not stored in refs. On unmount, they continue executing and attempt state updates on the dead component.\n```js\n// BEFORE\nsetTimeout(() => setSomething(val), 2000);\n\n// AFTER\nconst timerRef = useRef(null);\ntimerRef.current = setTimeout(() => setSomething(val), 2000);\nuseEffect(() => () => clearTimeout(timerRef.current), []);\n```\n\n### `src/core/ExecutiveSpine.js` — stacking session timers\n`__sessionTimer` can accumulate if `endFocusSession` is never called. Always clear before setting:\n```js\nclearTimeout(__sessionTimer);\n__sessionTimer = setTimeout(endFocusSession, SESSION_DURATION);\n```\n\n### `src/core/EventBus.js` — 8 window listeners\n`startEventBus` registers 8 listeners. Confirm `stopEventBus` is called in a `useEffect` cleanup or equivalent unmount path in every consumer. If `startEventBus` is called more than once without `stopEventBus`, listeners double-register silently.\n\n### `src/core/ProjectContext.js` — `syncInterval` without guaranteed cleanup\nEnsure the `setInterval` at line ~432 is cleared in the context provider's cleanup:\n```js\nuseEffect(() => {\n  const id = setInterval(syncProjectState, 30000);\n  return () => clearInterval(id);\n}, []);\n```\n\n---\n\n## 5. Redundant Computations\n\n### `src/frontend/SimplifiiStudio.js` — `buildPillarsFromBriefs` rebuilt unconditionally\n```js\n// AFTER — memoize based on briefs reference\nconst pillars = useMemo(() => buildPillarsFromBriefs(briefs), [briefs]);\n```\n\n### `src/services/BriefService.js` — two-pass assessment extraction\nThe same text is scanned twice for different patterns (lines ~245-276). Consolidate into a single-pass with multiple capture groups or one `matchAll` loop that categorises matches in place.\n\n---\n\n## Priority Order\n\n| Priority | Issue | File | Effort |\n|---|---|---|---|\n| 1 | Fix 9+ unguarded timeouts | `LinearCanvas.js` | Low |\n| 2 | `Promise.all` for file ingestion loops | `MasterDashboard.js`, `UniversalOnboarding.js` | Low |\n| 3 | Module-level regex constants | `BriefService.js` | Low |\n| 4 | `useMemo` for ToneHUD calculations | `LinearCanvas.js` | Low |\n| 5 | `useCallback` for inline handlers | `MasterDashboard.js` | Low |\n| 6 | `useReducer` for SettingsContext | `SettingsContext.js` | Medium |\n| 7 | `useMemo` for ProjectContext overrides | `ProjectContext.js` | Medium |\n| 8 | Theme cache in SovereignRouter | `SovereignRouter.js` | Low |\n\nThe timeout leaks (#1) and N+1 ingestion patterns (#2) are the highest-impact fixes — they affect correctness under rapid user interaction, not just speed.\n",
+  "parsedOutput": {
+    "sections": [
+      {
+        "title": "1. N+1 Query Patterns",
+        "content": "\n",
+        "level": 2
+      },
+      {
+        "title": "`src/frontend/MasterDashboard.js` — `handleIngestGrounding`",
+        "content": "Each file in the loop triggers individual `DocumentAIService.processWithGCP` calls:\n```js\n// BEFORE (N+1)\nfor (const file of files) {\n  const result = await DocumentAIService.processWithGCP(file); // one call per file\n  await updateGroundingFromExtraction(result);\n}\n\n// AFTER — batch process\nconst results = await Promise.all(files.map(f => DocumentAIService.processWithGCP(f)));\nawait Promise.all(results.map(r => updateGroundingFromExtraction(r)));\n```\n\n",
+        "level": 3
+      },
+      {
+        "title": "`src/frontend/UniversalOnboarding.js` — `handleFileUpload`",
+        "content": "Same pattern: individual `processDocumentWithGCP` call per file in a loop. Apply `Promise.all` for concurrent processing.\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "2. Unnecessary Re-renders",
+        "content": "\n",
+        "level": 2
+      },
+      {
+        "title": "`src/frontend/MasterDashboard.js` — 20+ `useState` + inline handlers",
+        "content": "```js\n// BEFORE — inline arrow function recreated every render\n<AssetCard onClick={() => handleAddAsset(pillar.id)} />\n\n// AFTER\nconst handleAddAsset = useCallback((pillarId) => { ... }, [deps]);\n<AssetCard onClick={handleAddAsset} />\n```\nConsolidate the 20+ `useState` calls into a `useReducer` to prevent cascading re-renders on each state slice update.\n\n",
+        "level": 3
+      },
+      {
+        "title": "`src/frontend/LinearCanvas.js` — `ToneHUD` unoptimized calculations",
+        "content": "```js\n// BEFORE — recalculated on every render\nconst wordCount = content.split(' ').length;\nconst uniqueWords = new Set(content.split(' ')).size;\nconst rigor = computeRigor(content); // expensive regex\n\n// AFTER\nconst { wordCount, uniqueWords, rigor } = useMemo(() => ({\n  wordCount: content.split(' ').length,\n  uniqueWords: new Set(content.split(' ')).size,\n  rigor: computeRigor(content),\n}), [content]);\n```\n\n",
+        "level": 3
+      },
+      {
+        "title": "`src/core/ProjectContext.js` — override computations every render",
+        "content": "`__readSchemaOverride`, `__overriddenExtractionData`, and `__overriddenRoadmap` are all recomputed on every render. Wrap each in `useMemo` with the relevant data as dependencies.\n\n",
+        "level": 3
+      },
+      {
+        "title": "`src/frontend/SettingsContext.js` — 40+ individual `useState`",
+        "content": "Each individual dial/setting change re-renders all consumers. Replace with:\n```js\nconst [settings, dispatch] = useReducer(settingsReducer, defaultSettings);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "3. Caching Opportunities",
+        "content": "\n",
+        "level": 2
+      },
+      {
+        "title": "`src/services/BriefService.js` — regex compiled on every call",
+        "content": "```js\n// BEFORE — compiled fresh every invocation\nfunction extractDeepCourseData(text) {\n  const loRegex = /learning.outcome[s]?/gi;\n  const rubricRegex = /rubric|criterion|criteria/gi;\n  // ...\n}\n\n// AFTER — module-level constants\nconst LO_REGEX = /learning.outcome[s]?/gi;\nconst RUBRIC_REGEX = /rubric|criterion|criteria/gi;\n\nfunction extractDeepCourseData(text) {\n  LO_REGEX.lastIndex = 0; // reset stateful regex before use\n  // ...\n}\n```\nThis affects 4+ regex patterns called repeatedly per document ingestion.\n\n",
+        "level": 3
+      },
+      {
+        "title": "`src/core/SovereignRouter.js` — theme objects recreated on every `hydrate()` call",
+        "content": "Cache the last computed theme keyed on the stream ID:\n```js\nconst _themeCache = new Map();\nfunction hydrate(streamId) {\n  if (_themeCache.has(streamId)) return _themeCache.get(streamId);\n  const theme = buildTheme(streamId);\n  _themeCache.set(streamId, theme);\n  return theme;\n}\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "4. Memory Leaks",
+        "content": "\n",
+        "level": 2
+      },
+      {
+        "title": "`src/frontend/LinearCanvas.js` — 9+ unguarded `setTimeout` calls",
+        "content": "Timeouts at lines ~135, 152, 194, 249, 399, 405, 536, 685, 729, 736, 792, 1331 are not stored in refs. On unmount, they continue executing and attempt state updates on the dead component.\n```js\n// BEFORE\nsetTimeout(() => setSomething(val), 2000);\n\n// AFTER\nconst timerRef = useRef(null);\ntimerRef.current = setTimeout(() => setSomething(val), 2000);\nuseEffect(() => () => clearTimeout(timerRef.current), []);\n```\n\n",
+        "level": 3
+      },
+      {
+        "title": "`src/core/ExecutiveSpine.js` — stacking session timers",
+        "content": "`__sessionTimer` can accumulate if `endFocusSession` is never called. Always clear before setting:\n```js\nclearTimeout(__sessionTimer);\n__sessionTimer = setTimeout(endFocusSession, SESSION_DURATION);\n```\n\n",
+        "level": 3
+      },
+      {
+        "title": "`src/core/EventBus.js` — 8 window listeners",
+        "content": "`startEventBus` registers 8 listeners. Confirm `stopEventBus` is called in a `useEffect` cleanup or equivalent unmount path in every consumer. If `startEventBus` is called more than once without `stopEventBus`, listeners double-register silently.\n\n",
+        "level": 3
+      },
+      {
+        "title": "`src/core/ProjectContext.js` — `syncInterval` without guaranteed cleanup",
+        "content": "Ensure the `setInterval` at line ~432 is cleared in the context provider's cleanup:\n```js\nuseEffect(() => {\n  const id = setInterval(syncProjectState, 30000);\n  return () => clearInterval(id);\n}, []);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "5. Redundant Computations",
+        "content": "\n",
+        "level": 2
+      },
+      {
+        "title": "`src/frontend/SimplifiiStudio.js` — `buildPillarsFromBriefs` rebuilt unconditionally",
+        "content": "```js\n// AFTER — memoize based on briefs reference\nconst pillars = useMemo(() => buildPillarsFromBriefs(briefs), [briefs]);\n```\n\n",
+        "level": 3
+      },
+      {
+        "title": "`src/services/BriefService.js` — two-pass assessment extraction",
+        "content": "The same text is scanned twice for different patterns (lines ~245-276). Consolidate into a single-pass with multiple capture groups or one `matchAll` loop that categorises matches in place.\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Priority Order",
+        "content": "| Priority | Issue | File | Effort |\n|---|---|---|---|\n| 1 | Fix 9+ unguarded timeouts | `LinearCanvas.js` | Low |\n| 2 | `Promise.all` for file ingestion loops | `MasterDashboard.js`, `UniversalOnboarding.js` | Low |\n| 3 | Module-level regex constants | `BriefService.js` | Low |\n| 4 | `useMemo` for ToneHUD calculations | `LinearCanvas.js` | Low |\n| 5 | `useCallback` for inline handlers | `MasterDashboard.js` | Low |\n| 6 | `useReducer` for SettingsContext | `SettingsContext.js` | Medium |\n| 7 | `useMemo` for ProjectContext overrides | `ProjectContext.js` | Medium |\n| 8 | Theme cache in SovereignRouter | `SovereignRouter.js` | Low |\n\nThe timeout leaks (#1) and N+1 ingestion patterns (#2) are the highest-impact fixes — they affect correctness under rapid user interaction, not just speed.",
+        "level": 2
+      }
+    ],
+    "codeBlocks": [
+      {
+        "language": "js",
+        "code": "// BEFORE (N+1)\nfor (const file of files) {\n  const result = await DocumentAIService.processWithGCP(file); // one call per file\n  await updateGroundingFromExtraction(result);\n}\n\n// AFTER — batch process\nconst results = await Promise.all(files.map(f => DocumentAIService.processWithGCP(f)));\nawait Promise.all(results.map(r => updateGroundingFromExtraction(r)));"
+      },
+      {
+        "language": "js",
+        "code": "// BEFORE — inline arrow function recreated every render\n<AssetCard onClick={() => handleAddAsset(pillar.id)} />\n\n// AFTER\nconst handleAddAsset = useCallback((pillarId) => { ... }, [deps]);\n<AssetCard onClick={handleAddAsset} />"
+      },
+      {
+        "language": "js",
+        "code": "// BEFORE — recalculated on every render\nconst wordCount = content.split(' ').length;\nconst uniqueWords = new Set(content.split(' ')).size;\nconst rigor = computeRigor(content); // expensive regex\n\n// AFTER\nconst { wordCount, uniqueWords, rigor } = useMemo(() => ({\n  wordCount: content.split(' ').length,\n  uniqueWords: new Set(content.split(' ')).size,\n  rigor: computeRigor(content),\n}), [content]);"
+      },
+      {
+        "language": "js",
+        "code": "const [settings, dispatch] = useReducer(settingsReducer, defaultSettings);"
+      },
+      {
+        "language": "js",
+        "code": "// BEFORE — compiled fresh every invocation\nfunction extractDeepCourseData(text) {\n  const loRegex = /learning.outcome[s]?/gi;\n  const rubricRegex = /rubric|criterion|criteria/gi;\n  // ...\n}\n\n// AFTER — module-level constants\nconst LO_REGEX = /learning.outcome[s]?/gi;\nconst RUBRIC_REGEX = /rubric|criterion|criteria/gi;\n\nfunction extractDeepCourseData(text) {\n  LO_REGEX.lastIndex = 0; // reset stateful regex before use\n  // ...\n}"
+      },
+      {
+        "language": "js",
+        "code": "const _themeCache = new Map();\nfunction hydrate(streamId) {\n  if (_themeCache.has(streamId)) return _themeCache.get(streamId);\n  const theme = buildTheme(streamId);\n  _themeCache.set(streamId, theme);\n  return theme;\n}"
+      },
+      {
+        "language": "js",
+        "code": "// BEFORE\nsetTimeout(() => setSomething(val), 2000);\n\n// AFTER\nconst timerRef = useRef(null);\ntimerRef.current = setTimeout(() => setSomething(val), 2000);\nuseEffect(() => () => clearTimeout(timerRef.current), []);"
+      },
+      {
+        "language": "js",
+        "code": "clearTimeout(__sessionTimer);\n__sessionTimer = setTimeout(endFocusSession, SESSION_DURATION);"
+      },
+      {
+        "language": "js",
+        "code": "useEffect(() => {\n  const id = setInterval(syncProjectState, 30000);\n  return () => clearInterval(id);\n}, []);"
+      },
+      {
+        "language": "js",
+        "code": "// AFTER — memoize based on briefs reference\nconst pillars = useMemo(() => buildPillarsFromBriefs(briefs), [briefs]);"
+      }
+    ]
+  },
+  "durationMs": 137603,
+  "model": "sonnet",
+  "sandboxMode": "permissive",
+  "workerType": "optimize",
+  "timestamp": "2026-05-10T22:16:37.864Z",
+  "executionId": "optimize_1778451260261_8x8n64"
+}

@@ -1,0 +1,101 @@
+[2026-05-10T21:02:18.835Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "Here's the full performance analysis with code examples for the most impactful fixes:\n\n---\n\n## Performance Analysis — Simplifii-OS\n\n### 1. N+1 / Serial Async Patterns\n\n**`MasterDashboard.js` ~L482** — PDF ingestion runs sequentially:\n\n```js\n// CURRENT (serial, ~N × 2s per file)\nfor (let i = 0; i < groupFiles.length; i++) {\n  const text = await processDocumentWithGCP(groupFiles[i], ...);\n  const deepData = extractDeepCourseData(text);\n  aggregated = mergeExtractionData(aggregated, { ...deepData });\n}\n\n// FIX (parallel, ~1 round-trip regardless of N)\nconst results = await Promise.all(\n  groupFiles.map(file => processDocumentWithGCP(file, ...))\n);\nfor (const text of results) {\n  const deepData = extractDeepCourseData(text);\n  aggregated = mergeExtractionData(aggregated, { ...deepData });\n}\n```\n\n**`LinearCanvas.js` ~L127** — re-fetches block history right after saving it (two round-trips). Use an optimistic update instead:\n\n```js\n// FIX: skip the refetch; append the new snapshot locally\nsaveBlockSnapshot(blockId, currentContent).then(() => {\n  setHistory(prev => [...prev, { content: currentContent, ts: Date.now() }]);\n});\n```\n\n---\n\n### 2. Unnecessary React Re-renders\n\n**`MasterDashboard.js`** — `handleAddGhostAsset` is recreated every render, forcing `LinearCanvas` to re-render:\n\n```js\n// CURRENT\nfunction handleAddGhostAsset(asset) { ... }\n\n// FIX\nconst handleAddGhostAsset = useCallback((asset) => { ... }, [/* stable deps */]);\n```\n\n**`LinearCanvas.js` ~L23** — `ToneHUD` runs 3–4 regex passes on every keystroke:\n\n```js\n// FIX: memoize inside ToneHUD (or wherever content is used)\nconst metrics = useMemo(() => {\n  const wordCount = (content.match(/\\S+/g) || []).length;\n  const longWords = (content.match(/\\b\\w{8,}\\b/g) || []).length;\n  const words = content.toLowerCase().match(/\\b[a-z]{4,}\\b/g) || [];\n  const uniqueWords = new Set(words).size;\n  return { wordCount, longWords, uniqueWords };\n}, [content]);\n```\n\n**`TaskCard.js`** — not memoized; all cards re-render when parent updates:\n\n```js\n// FIX: wrap the default export\nexport default React.memo(TaskCard);\n```\n\n**`MasterDashboard.js`** — inline filter/slice in render JSX:\n\n```js\n// FIX\nconst visibleAssets = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);\n```\n\n---\n\n### 3. Memory Leaks\n\n**`MasterDashboard.js`** — `setTimeout` at ~L508 is never cancelled on unmount:\n\n```js\n// FIX\nuseEffect(() => {\n  const tid = setTimeout(() => setIngestStatus(''), 6000);\n  return () => clearTimeout(tid);\n}, [ingestStatus]);\n```\n\n**`ExecutiveSpine.js` ~L157** — no guard against multiple idle-detection intervals:\n\n```js\n// FIX: clear any existing interval before starting a new one\nlet _idleInterval = null;\nfunction startIdleDetection() {\n  if (_idleInterval) clearInterval(_idleInterval);\n  _idleInterval = setInterval(..., 15_000);\n}\n```\n\n**`MasterDashboard.js`** — several `useEffect` hooks add `window` listeners with no cleanup. Pattern to follow:\n\n```js\nuseEffect(() => {\n  const handler = (e) => { ... };\n  window.addEventListener('toggle-accessibility', handler);\n  return () => window.removeEventListener('toggle-accessibility', handler);\n}, []);\n```\n\n---\n\n### 4. Caching Opportunities\n\n**`PersonaEngine.js` ~L49** — reads the same `localStorage` keys on every call. Cache them at module init:\n\n```js\n// Module-level cache, refreshed only when settings change\nlet _personaCache = null;\nfunction getPersonaResponse(eventType) {\n  if (!_personaCache) {\n    _personaCache = {\n      userName:  localStorage.getItem('simplifii_user_name')   || 'User',\n      courseName: localStorage.getItem('simplifii_course_name') || 'Course',\n      // ...\n    };\n  }\n  // use _personaCache\n}\n// Invalidate: call `_personaCache = null` in the settings save path\n```\n\n**`BriefService.js` ~L141** — regex compiled inside a loop on every extraction:\n\n```js\n// CURRENT\nfor (const [key, regex] of Object.entries(tier.heuristics)) {\n  const globalRegex = new RegExp(regex, 'g'); // compiled per iteration\n  ...\n}\n\n// FIX: compile once at module load time\nconst COMPILED_HEURISTICS = Object.fromEntries(\n  Object.entries(tier.heuristics).map(([k, r]) => [k, new RegExp(r, 'g')])\n);\n```\n\n---\n\n### 5. Redundant Computations\n\n**`LinearCanvas.js`** — word count computed independently in `ToneHUD`, `SectionHealth`, and `SectionHistory`. Lift it up to a single `useMemo` in the parent and pass it down as a prop.\n\n**`BriefService.js` ~L222`** — two-pass assessment parsing always scans the full text twice. Add an early exit after Pass 1:\n\n```js\nconst pass1Results = [...text.matchAll(anchorRegex)];\nconst results = pass1Results.length > 0\n  ? pass1Results\n  : [...text.matchAll(examLineRegex)]; // only scan if needed\n```\n\n---\n\n### Priority Summary\n\n| Priority | Issue | File | Effort |\n|---|---|---|---|\n| High | Parallelize PDF ingestion | `MasterDashboard.js` | Low |\n| High | Fix `setTimeout` leak on unmount | `MasterDashboard.js` | Low |\n| High | Guard against multiple idle intervals | `ExecutiveSpine.js` | Low |\n| Medium | `useCallback` on `handleAddGhostAsset` | `MasterDashboard.js` | Low |\n| Medium | `useMemo` for `ToneHUD` metrics | `LinearCanvas.js` | Low |\n| Medium | `React.memo` on `TaskCard` | `TaskCard.js` | Low |\n| Medium | Cache regex at module level | `BriefService.js` | Low |\n| Medium | Cache `localStorage` reads in `PersonaEngine` | `PersonaEngine.js` | Low |\n| Low | Optimistic block history update | `LinearCanvas.js` | Medium |\n| Low | Single word-count source of truth | `LinearCanvas.js` | Medium |\n\nThe highest-ROI changes are the `Promise.all` parallelization (likely 4–10× faster ingestion) and the timer/listener cleanup (prevents crashes after long sessions). All other fixes are single-line or small refactors.\n",
+  "parsedOutput": {
+    "sections": [
+      {
+        "title": "Performance Analysis — Simplifii-OS",
+        "content": "\n",
+        "level": 2
+      },
+      {
+        "title": "1. N+1 / Serial Async Patterns",
+        "content": "\n**`MasterDashboard.js` ~L482** — PDF ingestion runs sequentially:\n\n```js\n// CURRENT (serial, ~N × 2s per file)\nfor (let i = 0; i < groupFiles.length; i++) {\n  const text = await processDocumentWithGCP(groupFiles[i], ...);\n  const deepData = extractDeepCourseData(text);\n  aggregated = mergeExtractionData(aggregated, { ...deepData });\n}\n\n// FIX (parallel, ~1 round-trip regardless of N)\nconst results = await Promise.all(\n  groupFiles.map(file => processDocumentWithGCP(file, ...))\n);\nfor (const text of results) {\n  const deepData = extractDeepCourseData(text);\n  aggregated = mergeExtractionData(aggregated, { ...deepData });\n}\n```\n\n**`LinearCanvas.js` ~L127** — re-fetches block history right after saving it (two round-trips). Use an optimistic update instead:\n\n```js\n// FIX: skip the refetch; append the new snapshot locally\nsaveBlockSnapshot(blockId, currentContent).then(() => {\n  setHistory(prev => [...prev, { content: currentContent, ts: Date.now() }]);\n});\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "2. Unnecessary React Re-renders",
+        "content": "\n**`MasterDashboard.js`** — `handleAddGhostAsset` is recreated every render, forcing `LinearCanvas` to re-render:\n\n```js\n// CURRENT\nfunction handleAddGhostAsset(asset) { ... }\n\n// FIX\nconst handleAddGhostAsset = useCallback((asset) => { ... }, [/* stable deps */]);\n```\n\n**`LinearCanvas.js` ~L23** — `ToneHUD` runs 3–4 regex passes on every keystroke:\n\n```js\n// FIX: memoize inside ToneHUD (or wherever content is used)\nconst metrics = useMemo(() => {\n  const wordCount = (content.match(/\\S+/g) || []).length;\n  const longWords = (content.match(/\\b\\w{8,}\\b/g) || []).length;\n  const words = content.toLowerCase().match(/\\b[a-z]{4,}\\b/g) || [];\n  const uniqueWords = new Set(words).size;\n  return { wordCount, longWords, uniqueWords };\n}, [content]);\n```\n\n**`TaskCard.js`** — not memoized; all cards re-render when parent updates:\n\n```js\n// FIX: wrap the default export\nexport default React.memo(TaskCard);\n```\n\n**`MasterDashboard.js`** — inline filter/slice in render JSX:\n\n```js\n// FIX\nconst visibleAssets = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "3. Memory Leaks",
+        "content": "\n**`MasterDashboard.js`** — `setTimeout` at ~L508 is never cancelled on unmount:\n\n```js\n// FIX\nuseEffect(() => {\n  const tid = setTimeout(() => setIngestStatus(''), 6000);\n  return () => clearTimeout(tid);\n}, [ingestStatus]);\n```\n\n**`ExecutiveSpine.js` ~L157** — no guard against multiple idle-detection intervals:\n\n```js\n// FIX: clear any existing interval before starting a new one\nlet _idleInterval = null;\nfunction startIdleDetection() {\n  if (_idleInterval) clearInterval(_idleInterval);\n  _idleInterval = setInterval(..., 15_000);\n}\n```\n\n**`MasterDashboard.js`** — several `useEffect` hooks add `window` listeners with no cleanup. Pattern to follow:\n\n```js\nuseEffect(() => {\n  const handler = (e) => { ... };\n  window.addEventListener('toggle-accessibility', handler);\n  return () => window.removeEventListener('toggle-accessibility', handler);\n}, []);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "4. Caching Opportunities",
+        "content": "\n**`PersonaEngine.js` ~L49** — reads the same `localStorage` keys on every call. Cache them at module init:\n\n```js\n// Module-level cache, refreshed only when settings change\nlet _personaCache = null;\nfunction getPersonaResponse(eventType) {\n  if (!_personaCache) {\n    _personaCache = {\n      userName:  localStorage.getItem('simplifii_user_name')   || 'User',\n      courseName: localStorage.getItem('simplifii_course_name') || 'Course',\n      // ...\n    };\n  }\n  // use _personaCache\n}\n// Invalidate: call `_personaCache = null` in the settings save path\n```\n\n**`BriefService.js` ~L141** — regex compiled inside a loop on every extraction:\n\n```js\n// CURRENT\nfor (const [key, regex] of Object.entries(tier.heuristics)) {\n  const globalRegex = new RegExp(regex, 'g'); // compiled per iteration\n  ...\n}\n\n// FIX: compile once at module load time\nconst COMPILED_HEURISTICS = Object.fromEntries(\n  Object.entries(tier.heuristics).map(([k, r]) => [k, new RegExp(r, 'g')])\n);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "5. Redundant Computations",
+        "content": "\n**`LinearCanvas.js`** — word count computed independently in `ToneHUD`, `SectionHealth`, and `SectionHistory`. Lift it up to a single `useMemo` in the parent and pass it down as a prop.\n\n**`BriefService.js` ~L222`** — two-pass assessment parsing always scans the full text twice. Add an early exit after Pass 1:\n\n```js\nconst pass1Results = [...text.matchAll(anchorRegex)];\nconst results = pass1Results.length > 0\n  ? pass1Results\n  : [...text.matchAll(examLineRegex)]; // only scan if needed\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Priority Summary",
+        "content": "| Priority | Issue | File | Effort |\n|---|---|---|---|\n| High | Parallelize PDF ingestion | `MasterDashboard.js` | Low |\n| High | Fix `setTimeout` leak on unmount | `MasterDashboard.js` | Low |\n| High | Guard against multiple idle intervals | `ExecutiveSpine.js` | Low |\n| Medium | `useCallback` on `handleAddGhostAsset` | `MasterDashboard.js` | Low |\n| Medium | `useMemo` for `ToneHUD` metrics | `LinearCanvas.js` | Low |\n| Medium | `React.memo` on `TaskCard` | `TaskCard.js` | Low |\n| Medium | Cache regex at module level | `BriefService.js` | Low |\n| Medium | Cache `localStorage` reads in `PersonaEngine` | `PersonaEngine.js` | Low |\n| Low | Optimistic block history update | `LinearCanvas.js` | Medium |\n| Low | Single word-count source of truth | `LinearCanvas.js` | Medium |\n\nThe highest-ROI changes are the `Promise.all` parallelization (likely 4–10× faster ingestion) and the timer/listener cleanup (prevents crashes after long sessions). All other fixes are single-line or small refactors.",
+        "level": 3
+      }
+    ],
+    "codeBlocks": [
+      {
+        "language": "js",
+        "code": "// CURRENT (serial, ~N × 2s per file)\nfor (let i = 0; i < groupFiles.length; i++) {\n  const text = await processDocumentWithGCP(groupFiles[i], ...);\n  const deepData = extractDeepCourseData(text);\n  aggregated = mergeExtractionData(aggregated, { ...deepData });\n}\n\n// FIX (parallel, ~1 round-trip regardless of N)\nconst results = await Promise.all(\n  groupFiles.map(file => processDocumentWithGCP(file, ...))\n);\nfor (const text of results) {\n  const deepData = extractDeepCourseData(text);\n  aggregated = mergeExtractionData(aggregated, { ...deepData });\n}"
+      },
+      {
+        "language": "js",
+        "code": "// FIX: skip the refetch; append the new snapshot locally\nsaveBlockSnapshot(blockId, currentContent).then(() => {\n  setHistory(prev => [...prev, { content: currentContent, ts: Date.now() }]);\n});"
+      },
+      {
+        "language": "js",
+        "code": "// CURRENT\nfunction handleAddGhostAsset(asset) { ... }\n\n// FIX\nconst handleAddGhostAsset = useCallback((asset) => { ... }, [/* stable deps */]);"
+      },
+      {
+        "language": "js",
+        "code": "// FIX: memoize inside ToneHUD (or wherever content is used)\nconst metrics = useMemo(() => {\n  const wordCount = (content.match(/\\S+/g) || []).length;\n  const longWords = (content.match(/\\b\\w{8,}\\b/g) || []).length;\n  const words = content.toLowerCase().match(/\\b[a-z]{4,}\\b/g) || [];\n  const uniqueWords = new Set(words).size;\n  return { wordCount, longWords, uniqueWords };\n}, [content]);"
+      },
+      {
+        "language": "js",
+        "code": "// FIX: wrap the default export\nexport default React.memo(TaskCard);"
+      },
+      {
+        "language": "js",
+        "code": "// FIX\nconst visibleAssets = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);"
+      },
+      {
+        "language": "js",
+        "code": "// FIX\nuseEffect(() => {\n  const tid = setTimeout(() => setIngestStatus(''), 6000);\n  return () => clearTimeout(tid);\n}, [ingestStatus]);"
+      },
+      {
+        "language": "js",
+        "code": "// FIX: clear any existing interval before starting a new one\nlet _idleInterval = null;\nfunction startIdleDetection() {\n  if (_idleInterval) clearInterval(_idleInterval);\n  _idleInterval = setInterval(..., 15_000);\n}"
+      },
+      {
+        "language": "js",
+        "code": "useEffect(() => {\n  const handler = (e) => { ... };\n  window.addEventListener('toggle-accessibility', handler);\n  return () => window.removeEventListener('toggle-accessibility', handler);\n}, []);"
+      },
+      {
+        "language": "js",
+        "code": "// Module-level cache, refreshed only when settings change\nlet _personaCache = null;\nfunction getPersonaResponse(eventType) {\n  if (!_personaCache) {\n    _personaCache = {\n      userName:  localStorage.getItem('simplifii_user_name')   || 'User',\n      courseName: localStorage.getItem('simplifii_course_name') || 'Course',\n      // ...\n    };\n  }\n  // use _personaCache\n}\n// Invalidate: call `_personaCache = null` in the settings save path"
+      },
+      {
+        "language": "js",
+        "code": "// CURRENT\nfor (const [key, regex] of Object.entries(tier.heuristics)) {\n  const globalRegex = new RegExp(regex, 'g'); // compiled per iteration\n  ...\n}\n\n// FIX: compile once at module load time\nconst COMPILED_HEURISTICS = Object.fromEntries(\n  Object.entries(tier.heuristics).map(([k, r]) => [k, new RegExp(r, 'g')])\n);"
+      },
+      {
+        "language": "js",
+        "code": "const pass1Results = [...text.matchAll(anchorRegex)];\nconst results = pass1Results.length > 0\n  ? pass1Results\n  : [...text.matchAll(examLineRegex)]; // only scan if needed"
+      }
+    ]
+  },
+  "durationMs": 115971,
+  "model": "sonnet",
+  "sandboxMode": "permissive",
+  "workerType": "optimize",
+  "timestamp": "2026-05-10T21:02:18.835Z",
+  "executionId": "optimize_1778446822864_lvjv9e"
+}

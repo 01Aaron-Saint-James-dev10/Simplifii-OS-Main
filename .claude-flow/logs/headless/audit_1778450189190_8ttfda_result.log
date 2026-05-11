@@ -1,0 +1,71 @@
+[2026-05-10T21:57:07.343Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 89,\n      \"description\": \"Insufficient passphrase entropy requirement. Minimum 4-character passphrase is cryptographically weak. Recommend minimum 8-12 characters or entropy-based validation.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 42,\n      \"description\": \"Salt stored in localStorage (SALT_KEY). While the architecture encrypts data on top, localStorage is vulnerable to XSS and offers no encryption-at-rest for the salt itself. Consider scoping to sessionStorage for salt or using only in-memory storage if possible.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/LiteralMode.js\",\n      \"line\": 58,\n      \"description\": \"Text transformation output (literalise function) uses .replace() without HTML escaping. If output is rendered as innerHTML rather than textContent, this could be an XSS vector. Verify render context in consuming components.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/backend/NeuralAuditPipeline.js\",\n      \"line\": 3,\n      \"description\": \"Hardcoded course codes (BABS1201, BABS1202) in source. While not a direct security issue, this violates CLAUDE.md guideline: 'Do not reference specific university course codes inside engineering specs.' Move to configuration/environment.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/backend/LMSConnector.js\",\n      \"line\": 5,\n      \"description\": \"Hardcoded course code 'ARTS5200' in mock data. Per CLAUDE.md, course-specific data should live in schema/disk config, not architecture code.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/App.js\",\n      \"line\": 12,\n      \"description\": \"localStorage used without validation of data type. Consider adding type guards before parsing JSON from localStorage (e.g., 'simplifii_onboarding_complete' should be explicitly checked as string).\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/EventBus.js\",\n      \"line\": 95,\n      \"description\": \"No Content-Security-Policy headers visible. Consider implementing CSP to mitigate XSS and injection attacks at the HTTP layer.\"\n    }\n  ],\n  \"riskScore\": 28,\n  \"recommendations\": [\n    \"Enforce stronger passphrase requirements (minimum 8 characters + entropy check) in HistoryOfThought.unlockWithPassphrase()\",\n    \"Move hardcoded course codes (BABS1201, ARTS5200) to a configuration file or environment variable, not source code\",\n    \"Audit all renders of LiteralMode output to ensure they use textContent or dangerouslySetInnerHTML with sanitization, never innerHTML with untrusted data\",\n    \"Implement Content-Security-Policy headers (especially script-src, style-src) to mitigate XSS\",\n    \"Add CSRF protection if backend endpoints are added (SameSite cookie attribute, CSRF tokens)\",\n    \"Replace localStorage salt storage with sessionStorage or in-memory-only (after app loads) to reduce XSS exposure window\",\n    \"Validate and sanitize all LMS data before rendering (SmartIntake.js hardcodes UNSW reference; ensure dynamic LMS sources are validated)\",\n    \"Keep pdfjs-dist dependency updated (check package.json for version) — audit for known CVEs regularly\",\n    \"Add type validation for localStorage items before parsing (use JSON.parse with try/catch + schema validation)\",\n    \"No backend authentication visible; verify cloud sync implementation (if added) includes proper OAuth/JWT validation and per-user isolation\"\n  ]\n}\n```\n\n---\n\n**Summary:**\n\nYour codebase is **relatively secure** for a client-side educational app, but has **3 load-bearing issues**:\n\n1. **Passphrase too weak** (4-char min) — increase to 8–12 chars minimum\n2. **Hardcoded course codes violate your own architecture rules** — move to config\n3. **localStorage salt is XSS-adjacent** — consider sessionStorage instead\n\nThe architecture's choice to keep everything client-side and encrypted is sound (aligns with CLAUDE.md's \"sovereign\" principle). No SQL injection, hardcoded API keys, or auth bypasses found.\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "high",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 89,
+        "description": "Insufficient passphrase entropy requirement. Minimum 4-character passphrase is cryptographically weak. Recommend minimum 8-12 characters or entropy-based validation."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 42,
+        "description": "Salt stored in localStorage (SALT_KEY). While the architecture encrypts data on top, localStorage is vulnerable to XSS and offers no encryption-at-rest for the salt itself. Consider scoping to sessionStorage for salt or using only in-memory storage if possible."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/LiteralMode.js",
+        "line": 58,
+        "description": "Text transformation output (literalise function) uses .replace() without HTML escaping. If output is rendered as innerHTML rather than textContent, this could be an XSS vector. Verify render context in consuming components."
+      },
+      {
+        "severity": "medium",
+        "file": "src/backend/NeuralAuditPipeline.js",
+        "line": 3,
+        "description": "Hardcoded course codes (BABS1201, BABS1202) in source. While not a direct security issue, this violates CLAUDE.md guideline: 'Do not reference specific university course codes inside engineering specs.' Move to configuration/environment."
+      },
+      {
+        "severity": "low",
+        "file": "src/backend/LMSConnector.js",
+        "line": 5,
+        "description": "Hardcoded course code 'ARTS5200' in mock data. Per CLAUDE.md, course-specific data should live in schema/disk config, not architecture code."
+      },
+      {
+        "severity": "low",
+        "file": "src/App.js",
+        "line": 12,
+        "description": "localStorage used without validation of data type. Consider adding type guards before parsing JSON from localStorage (e.g., 'simplifii_onboarding_complete' should be explicitly checked as string)."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/EventBus.js",
+        "line": 95,
+        "description": "No Content-Security-Policy headers visible. Consider implementing CSP to mitigate XSS and injection attacks at the HTTP layer."
+      }
+    ],
+    "riskScore": 28,
+    "recommendations": [
+      "Enforce stronger passphrase requirements (minimum 8 characters + entropy check) in HistoryOfThought.unlockWithPassphrase()",
+      "Move hardcoded course codes (BABS1201, ARTS5200) to a configuration file or environment variable, not source code",
+      "Audit all renders of LiteralMode output to ensure they use textContent or dangerouslySetInnerHTML with sanitization, never innerHTML with untrusted data",
+      "Implement Content-Security-Policy headers (especially script-src, style-src) to mitigate XSS",
+      "Add CSRF protection if backend endpoints are added (SameSite cookie attribute, CSRF tokens)",
+      "Replace localStorage salt storage with sessionStorage or in-memory-only (after app loads) to reduce XSS exposure window",
+      "Validate and sanitize all LMS data before rendering (SmartIntake.js hardcodes UNSW reference; ensure dynamic LMS sources are validated)",
+      "Keep pdfjs-dist dependency updated (check package.json for version) — audit for known CVEs regularly",
+      "Add type validation for localStorage items before parsing (use JSON.parse with try/catch + schema validation)",
+      "No backend authentication visible; verify cloud sync implementation (if added) includes proper OAuth/JWT validation and per-user isolation"
+    ]
+  },
+  "durationMs": 38152,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-10T21:57:07.342Z",
+  "executionId": "audit_1778450189190_8ttfda"
+}

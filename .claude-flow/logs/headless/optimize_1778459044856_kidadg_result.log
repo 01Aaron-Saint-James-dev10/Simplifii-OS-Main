@@ -1,0 +1,95 @@
+[2026-05-11T00:25:43.305Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "## Performance Analysis: Simplifii-OS Master\n\nHere are the findings ranked by severity with actionable fixes:\n\n---\n\n### 1. N+1 State Updates in Loop (HIGH)\n\n**`MasterDashboard.js:716-738` — `handleIngestGrounding`**\n\n`setIngestStatus()` called inside nested loops triggers a re-render per file per course. Sequential `await` also blocks parallelism.\n\n**Fix:**\n```javascript\n// Before: N renders, sequential\nfor (const code of codes) {\n  for (let i = 0; i < groupFiles.length; i++) {\n    setIngestStatus(`Scanning ${code}: ${file.name}`); // re-render per file\n    await processDocumentWithGCP(file, token);\n  }\n  await handleSprintCreation(aggregated);\n}\n\n// After: batched renders, parallel processing\nconst processGroup = async (code) => {\n  const results = await Promise.all(\n    fileGroups[code].map(f => processDocumentWithGCP(f, token))\n  );\n  const aggregated = results.reduce((acc, text) => \n    mergeExtractionData(acc, { ...extractDeepCourseData(text), rawText: text }),\n    {}\n  );\n  return handleSprintCreation(aggregated);\n};\n\nsetIngestStatus('Processing all courses...');\nawait Promise.allSettled(codes.map(processGroup));\nsetIngestStatus('Done.');\n```\n\n---\n\n### 2. Inline Callbacks Breaking Memoization (HIGH)\n\n**`MasterDashboard.js:881-883, 1474-1491`** — New function instances every render break any `React.memo` on children.\n\n**Fix:**\n```javascript\n// Before\n<CourseSelector onSelect={(id) => { setActiveCourseId(id); setViewMode('cockpit'); }} />\n\n// After\nconst handleCourseSelect = useCallback((id) => {\n  setActiveCourseId(id);\n  setViewMode('cockpit');\n}, []); // stable reference\n\n<CourseSelector onSelect={handleCourseSelect} />\n```\n\nSame pattern for drag handlers:\n```javascript\nconst handleDragOver = useCallback((e) => { e.preventDefault(); setDragOver(true); }, []);\nconst handleDragLeave = useCallback(() => setDragOver(false), []);\nconst handleDrop = useCallback((e) => { /* ... */ }, [/* relevant deps */]);\n```\n\n---\n\n### 3. Redundant localStorage Reads on Polling (MEDIUM)\n\n**`ExecutiveSpine.js:119-126, 236-254`** — `getFocusSession()` and `isPlayTimeActive()` hit localStorage every 15 seconds from the idle detection loop.\n\n**Fix: module-level cache with write-through invalidation**\n```javascript\n// Module-level cache\nlet _focusCache = null;\nlet _focusCacheTime = 0;\nconst CACHE_TTL = 5000; // 5s\n\nexport const getFocusSession = () => {\n  const now = Date.now();\n  if (_focusCache !== null && now - _focusCacheTime < CACHE_TTL) return _focusCache;\n  const raw = safeReadLS(FOCUS_KEY, null);\n  _focusCache = raw ? JSON.parse(raw) : null;\n  _focusCacheTime = now;\n  return _focusCache;\n};\n\n// Invalidate on write\nexport const startFocusSession = (opts) => {\n  _focusCache = null; // bust cache\n  safeWriteLS(FOCUS_KEY, JSON.stringify(opts));\n};\n\n// Same pattern for credits\nlet _creditsCache = null;\nexport const getCredits = () => {\n  if (_creditsCache !== null) return _creditsCache;\n  return (_creditsCache = Number(safeReadLS(CREDITS_KEY, '0')) || 0);\n};\nexport const earnCredits = (n) => {\n  _creditsCache = getCredits() + n;\n  safeWriteLS(CREDITS_KEY, String(_creditsCache));\n};\n```\n\n---\n\n### 4. Unmemoized Filtered Renders (MEDIUM)\n\n**`MasterDashboard.js:~1494-1514`** — Archive asset filtering runs on every render.\n\n**Fix:**\n```javascript\n// Before (in render)\nconst courseAssets = globalGhostAssets.filter(a => a.courseId === activeCourseId);\n\n// After (top of component)\nconst courseAssets = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);\n```\n\n---\n\n### 5. History List Re-renders (MEDIUM)\n\n**`AskAura.js:106-115`** — `history.map()` re-runs on every render including unrelated state changes.\n\n**Fix:**\n```javascript\n// Extract to memoized component\nconst ChatMessage = React.memo(({ turn }) => (\n  <div className={turn.role === 'user' ? 'text-right' : 'text-left'}>\n    <p className=\"text-[9px] font-black uppercase tracking-widest mb-1 text-zinc-500\">\n      {turn.role === 'user' ? 'You' : 'AURA'}\n    </p>\n    <p className={`text-sm leading-relaxed whitespace-pre-wrap ${\n      turn.role === 'user' ? 'text-zinc-100' : 'text-emerald-200'\n    }`}>\n      {turn.content}\n    </p>\n  </div>\n));\n\n// In parent — also use index as key only if history is append-only\n{history.map((turn, i) => <ChatMessage key={i} turn={turn} />)}\n```\n\n---\n\n### 6. IndexedDB Transaction Leak (MEDIUM)\n\n**`HistoryOfThought.js:237-263`** — Transactions with no timeout can hang indefinitely, locking writes.\n\n**Fix:**\n```javascript\nconst withTimeout = (promise, ms = 5000) =>\n  Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(new Error('tx timeout')), ms))]);\n\nconst logEvent = (event) => withTimeout(new Promise((resolve, reject) => {\n  const tx = db.transaction(STORE, 'readwrite');\n  tx.objectStore(STORE).add(event);\n  tx.oncomplete = () => resolve(event);\n  tx.onerror = () => { tx.abort(); reject(tx.error); };\n}));\n```\n\n---\n\n### 7. `{ once: true }` Listener Redundant Cleanup (LOW)\n\n**`MasterDashboard.js:396-404`** — Listeners registered with `{ once: true }` auto-remove; the `removeEventListener` in cleanup is a no-op after they've fired but unnecessary noise.\n\n**Fix:**\n```javascript\n// Remove the cleanup for once listeners — they self-clean\nuseEffect(() => {\n  const unlock = () => { /* ... */ };\n  document.addEventListener('pointerdown', unlock, { once: true });\n  document.addEventListener('keydown', unlock, { once: true });\n  // No return cleanup needed — { once: true } handles it\n}, []);\n```\n\n---\n\n### Priority Order\n\n| # | Fix | File | Impact |\n|---|-----|------|--------|\n| 1 | Parallelise `handleIngestGrounding` with `Promise.all` | MasterDashboard.js | High |\n| 2 | `useCallback` for all passed-down handlers | MasterDashboard.js | High |\n| 3 | Cache localStorage reads in ExecutiveSpine | ExecutiveSpine.js | Medium |\n| 4 | `useMemo` for filtered asset list | MasterDashboard.js | Medium |\n| 5 | Memoize `ChatMessage` in AskAura | AskAura.js | Medium |\n| 6 | Add timeout to IndexedDB transactions | HistoryOfThought.js | Medium |\n| 7 | Drop redundant `{ once: true }` cleanup | MasterDashboard.js | Low |\n",
+  "parsedOutput": {
+    "sections": [
+      {
+        "title": "Performance Analysis: Simplifii-OS Master",
+        "content": "\nHere are the findings ranked by severity with actionable fixes:\n\n---\n\n",
+        "level": 2
+      },
+      {
+        "title": "1. N+1 State Updates in Loop (HIGH)",
+        "content": "\n**`MasterDashboard.js:716-738` — `handleIngestGrounding`**\n\n`setIngestStatus()` called inside nested loops triggers a re-render per file per course. Sequential `await` also blocks parallelism.\n\n**Fix:**\n```javascript\n// Before: N renders, sequential\nfor (const code of codes) {\n  for (let i = 0; i < groupFiles.length; i++) {\n    setIngestStatus(`Scanning ${code}: ${file.name}`); // re-render per file\n    await processDocumentWithGCP(file, token);\n  }\n  await handleSprintCreation(aggregated);\n}\n\n// After: batched renders, parallel processing\nconst processGroup = async (code) => {\n  const results = await Promise.all(\n    fileGroups[code].map(f => processDocumentWithGCP(f, token))\n  );\n  const aggregated = results.reduce((acc, text) => \n    mergeExtractionData(acc, { ...extractDeepCourseData(text), rawText: text }),\n    {}\n  );\n  return handleSprintCreation(aggregated);\n};\n\nsetIngestStatus('Processing all courses...');\nawait Promise.allSettled(codes.map(processGroup));\nsetIngestStatus('Done.');\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "2. Inline Callbacks Breaking Memoization (HIGH)",
+        "content": "\n**`MasterDashboard.js:881-883, 1474-1491`** — New function instances every render break any `React.memo` on children.\n\n**Fix:**\n```javascript\n// Before\n<CourseSelector onSelect={(id) => { setActiveCourseId(id); setViewMode('cockpit'); }} />\n\n// After\nconst handleCourseSelect = useCallback((id) => {\n  setActiveCourseId(id);\n  setViewMode('cockpit');\n}, []); // stable reference\n\n<CourseSelector onSelect={handleCourseSelect} />\n```\n\nSame pattern for drag handlers:\n```javascript\nconst handleDragOver = useCallback((e) => { e.preventDefault(); setDragOver(true); }, []);\nconst handleDragLeave = useCallback(() => setDragOver(false), []);\nconst handleDrop = useCallback((e) => { /* ... */ }, [/* relevant deps */]);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "3. Redundant localStorage Reads on Polling (MEDIUM)",
+        "content": "\n**`ExecutiveSpine.js:119-126, 236-254`** — `getFocusSession()` and `isPlayTimeActive()` hit localStorage every 15 seconds from the idle detection loop.\n\n**Fix: module-level cache with write-through invalidation**\n```javascript\n// Module-level cache\nlet _focusCache = null;\nlet _focusCacheTime = 0;\nconst CACHE_TTL = 5000; // 5s\n\nexport const getFocusSession = () => {\n  const now = Date.now();\n  if (_focusCache !== null && now - _focusCacheTime < CACHE_TTL) return _focusCache;\n  const raw = safeReadLS(FOCUS_KEY, null);\n  _focusCache = raw ? JSON.parse(raw) : null;\n  _focusCacheTime = now;\n  return _focusCache;\n};\n\n// Invalidate on write\nexport const startFocusSession = (opts) => {\n  _focusCache = null; // bust cache\n  safeWriteLS(FOCUS_KEY, JSON.stringify(opts));\n};\n\n// Same pattern for credits\nlet _creditsCache = null;\nexport const getCredits = () => {\n  if (_creditsCache !== null) return _creditsCache;\n  return (_creditsCache = Number(safeReadLS(CREDITS_KEY, '0')) || 0);\n};\nexport const earnCredits = (n) => {\n  _creditsCache = getCredits() + n;\n  safeWriteLS(CREDITS_KEY, String(_creditsCache));\n};\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "4. Unmemoized Filtered Renders (MEDIUM)",
+        "content": "\n**`MasterDashboard.js:~1494-1514`** — Archive asset filtering runs on every render.\n\n**Fix:**\n```javascript\n// Before (in render)\nconst courseAssets = globalGhostAssets.filter(a => a.courseId === activeCourseId);\n\n// After (top of component)\nconst courseAssets = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "5. History List Re-renders (MEDIUM)",
+        "content": "\n**`AskAura.js:106-115`** — `history.map()` re-runs on every render including unrelated state changes.\n\n**Fix:**\n```javascript\n// Extract to memoized component\nconst ChatMessage = React.memo(({ turn }) => (\n  <div className={turn.role === 'user' ? 'text-right' : 'text-left'}>\n    <p className=\"text-[9px] font-black uppercase tracking-widest mb-1 text-zinc-500\">\n      {turn.role === 'user' ? 'You' : 'AURA'}\n    </p>\n    <p className={`text-sm leading-relaxed whitespace-pre-wrap ${\n      turn.role === 'user' ? 'text-zinc-100' : 'text-emerald-200'\n    }`}>\n      {turn.content}\n    </p>\n  </div>\n));\n\n// In parent — also use index as key only if history is append-only\n{history.map((turn, i) => <ChatMessage key={i} turn={turn} />)}\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "6. IndexedDB Transaction Leak (MEDIUM)",
+        "content": "\n**`HistoryOfThought.js:237-263`** — Transactions with no timeout can hang indefinitely, locking writes.\n\n**Fix:**\n```javascript\nconst withTimeout = (promise, ms = 5000) =>\n  Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(new Error('tx timeout')), ms))]);\n\nconst logEvent = (event) => withTimeout(new Promise((resolve, reject) => {\n  const tx = db.transaction(STORE, 'readwrite');\n  tx.objectStore(STORE).add(event);\n  tx.oncomplete = () => resolve(event);\n  tx.onerror = () => { tx.abort(); reject(tx.error); };\n}));\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "7. `{ once: true }` Listener Redundant Cleanup (LOW)",
+        "content": "\n**`MasterDashboard.js:396-404`** — Listeners registered with `{ once: true }` auto-remove; the `removeEventListener` in cleanup is a no-op after they've fired but unnecessary noise.\n\n**Fix:**\n```javascript\n// Remove the cleanup for once listeners — they self-clean\nuseEffect(() => {\n  const unlock = () => { /* ... */ };\n  document.addEventListener('pointerdown', unlock, { once: true });\n  document.addEventListener('keydown', unlock, { once: true });\n  // No return cleanup needed — { once: true } handles it\n}, []);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Priority Order",
+        "content": "| # | Fix | File | Impact |\n|---|-----|------|--------|\n| 1 | Parallelise `handleIngestGrounding` with `Promise.all` | MasterDashboard.js | High |\n| 2 | `useCallback` for all passed-down handlers | MasterDashboard.js | High |\n| 3 | Cache localStorage reads in ExecutiveSpine | ExecutiveSpine.js | Medium |\n| 4 | `useMemo` for filtered asset list | MasterDashboard.js | Medium |\n| 5 | Memoize `ChatMessage` in AskAura | AskAura.js | Medium |\n| 6 | Add timeout to IndexedDB transactions | HistoryOfThought.js | Medium |\n| 7 | Drop redundant `{ once: true }` cleanup | MasterDashboard.js | Low |",
+        "level": 3
+      }
+    ],
+    "codeBlocks": [
+      {
+        "language": "javascript",
+        "code": "// Before: N renders, sequential\nfor (const code of codes) {\n  for (let i = 0; i < groupFiles.length; i++) {\n    setIngestStatus(`Scanning ${code}: ${file.name}`); // re-render per file\n    await processDocumentWithGCP(file, token);\n  }\n  await handleSprintCreation(aggregated);\n}\n\n// After: batched renders, parallel processing\nconst processGroup = async (code) => {\n  const results = await Promise.all(\n    fileGroups[code].map(f => processDocumentWithGCP(f, token))\n  );\n  const aggregated = results.reduce((acc, text) => \n    mergeExtractionData(acc, { ...extractDeepCourseData(text), rawText: text }),\n    {}\n  );\n  return handleSprintCreation(aggregated);\n};\n\nsetIngestStatus('Processing all courses...');\nawait Promise.allSettled(codes.map(processGroup));\nsetIngestStatus('Done.');"
+      },
+      {
+        "language": "javascript",
+        "code": "// Before\n<CourseSelector onSelect={(id) => { setActiveCourseId(id); setViewMode('cockpit'); }} />\n\n// After\nconst handleCourseSelect = useCallback((id) => {\n  setActiveCourseId(id);\n  setViewMode('cockpit');\n}, []); // stable reference\n\n<CourseSelector onSelect={handleCourseSelect} />"
+      },
+      {
+        "language": "javascript",
+        "code": "const handleDragOver = useCallback((e) => { e.preventDefault(); setDragOver(true); }, []);\nconst handleDragLeave = useCallback(() => setDragOver(false), []);\nconst handleDrop = useCallback((e) => { /* ... */ }, [/* relevant deps */]);"
+      },
+      {
+        "language": "javascript",
+        "code": "// Module-level cache\nlet _focusCache = null;\nlet _focusCacheTime = 0;\nconst CACHE_TTL = 5000; // 5s\n\nexport const getFocusSession = () => {\n  const now = Date.now();\n  if (_focusCache !== null && now - _focusCacheTime < CACHE_TTL) return _focusCache;\n  const raw = safeReadLS(FOCUS_KEY, null);\n  _focusCache = raw ? JSON.parse(raw) : null;\n  _focusCacheTime = now;\n  return _focusCache;\n};\n\n// Invalidate on write\nexport const startFocusSession = (opts) => {\n  _focusCache = null; // bust cache\n  safeWriteLS(FOCUS_KEY, JSON.stringify(opts));\n};\n\n// Same pattern for credits\nlet _creditsCache = null;\nexport const getCredits = () => {\n  if (_creditsCache !== null) return _creditsCache;\n  return (_creditsCache = Number(safeReadLS(CREDITS_KEY, '0')) || 0);\n};\nexport const earnCredits = (n) => {\n  _creditsCache = getCredits() + n;\n  safeWriteLS(CREDITS_KEY, String(_creditsCache));\n};"
+      },
+      {
+        "language": "javascript",
+        "code": "// Before (in render)\nconst courseAssets = globalGhostAssets.filter(a => a.courseId === activeCourseId);\n\n// After (top of component)\nconst courseAssets = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);"
+      },
+      {
+        "language": "javascript",
+        "code": "// Extract to memoized component\nconst ChatMessage = React.memo(({ turn }) => (\n  <div className={turn.role === 'user' ? 'text-right' : 'text-left'}>\n    <p className=\"text-[9px] font-black uppercase tracking-widest mb-1 text-zinc-500\">\n      {turn.role === 'user' ? 'You' : 'AURA'}\n    </p>\n    <p className={`text-sm leading-relaxed whitespace-pre-wrap ${\n      turn.role === 'user' ? 'text-zinc-100' : 'text-emerald-200'\n    }`}>\n      {turn.content}\n    </p>\n  </div>\n));\n\n// In parent — also use index as key only if history is append-only\n{history.map((turn, i) => <ChatMessage key={i} turn={turn} />)}"
+      },
+      {
+        "language": "javascript",
+        "code": "const withTimeout = (promise, ms = 5000) =>\n  Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(new Error('tx timeout')), ms))]);\n\nconst logEvent = (event) => withTimeout(new Promise((resolve, reject) => {\n  const tx = db.transaction(STORE, 'readwrite');\n  tx.objectStore(STORE).add(event);\n  tx.oncomplete = () => resolve(event);\n  tx.onerror = () => { tx.abort(); reject(tx.error); };\n}));"
+      },
+      {
+        "language": "javascript",
+        "code": "// Remove the cleanup for once listeners — they self-clean\nuseEffect(() => {\n  const unlock = () => { /* ... */ };\n  document.addEventListener('pointerdown', unlock, { once: true });\n  document.addEventListener('keydown', unlock, { once: true });\n  // No return cleanup needed — { once: true } handles it\n}, []);"
+      }
+    ]
+  },
+  "durationMs": 98448,
+  "model": "sonnet",
+  "sandboxMode": "permissive",
+  "workerType": "optimize",
+  "timestamp": "2026-05-11T00:25:43.304Z",
+  "executionId": "optimize_1778459044856_kidadg"
+}

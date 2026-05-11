@@ -1,0 +1,77 @@
+[2026-05-10T22:03:44.762Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/frontend/MasterDashboard.js\",\n      \"line\": 50,\n      \"description\": \"User input from project.currentDraft is rendered directly in textarea without sanitization. While textarea content is safe from XSS, if this data is later used in other contexts (innerHTML, dangerouslySetInnerHTML), it becomes an XSS vector.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/App.js\",\n      \"line\": 18,\n      \"description\": \"Authentication state determined solely by localStorage flag 'simplifii_onboarding_complete'. Client-side storage is not secure and can be modified by users. No server-side session validation.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/backend/LMSConnector.js\",\n      \"line\": 1,\n      \"description\": \"courseCode parameter passed to fetchLMSData lacks input validation. If this connects to a backend API, unvalidated parameters could enable injection attacks or parameter tampering.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 45,\n      \"description\": \"Salt for PBKDF2 key derivation is stored in localStorage as base64. While the salt doesn't directly compromise encryption (salt is also needed), storing it unencrypted is not cryptographic best practice. Consider storing only in memory or using a hardware-backed mechanism if available.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/ExecutiveSpine.js\",\n      \"line\": 25,\n      \"description\": \"Focus session data including taskId and timing information stored in unencrypted localStorage. User could tamper with session state to extend focus time artificially.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/frontend/SmartIntake.js\",\n      \"line\": 11,\n      \"description\": \"Hardcoded university course codes ('UNSW Moodle', 'ARTS5200') in feature code violates architecture rule: 'Do not reference specific university course codes inside engineering specs'. Course data should be externalized to schema/config, not hardcoded in components.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"public/pdf.worker.min.js\",\n      \"line\": 1,\n      \"description\": \"Third-party PDF.js library included. Verify current version has no known CVEs. Ensure pdfjs-dist dependency is pinned to a verified secure version in package.json.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/EventBus.js\",\n      \"line\": 72,\n      \"description\": \"user_id hardcoded as 'local' throughout. No multi-user isolation or authentication. If this system ever scales to real users, there's no mechanism to differentiate between different users' events.\"\n    }\n  ],\n  \"riskScore\": 38,\n  \"recommendations\": [\n    \"Add input validation for all user-supplied parameters, especially courseCode in LMSConnector.js. Use allowlists for course codes.\",\n    \"Implement server-side session authentication. Never rely on localStorage flags for security decisions. Use HttpOnly, Secure, SameSite cookies for session tokens.\",\n    \"Sanitize any user input before rendering in contexts beyond plain text. Use DOMPurify or similar for any HTML content rendering.\",\n    \"Externalize hardcoded course codes and university references to a config file or data schema, not embedded in component code.\",\n    \"Review pdfjs-dist for CVEs and ensure package.json pins a verified secure version. Add npm audit to CI/CD pipeline.\",\n    \"Consider storing the PBKDF2 salt in memory-only or behind a secure enclave if future versions support multi-device sync.\",\n    \"Add CSRF tokens to any form submissions (if backend exists). Implement SameSite cookie policies.\",\n    \"Document and enforce that user_id must be sourced from authenticated session context, not hardcoded, before multi-user support is added.\",\n    \"Replace localStorage-based state for sensitive data (focus sessions, credits) with IndexedDB and the existing HistoryOfThought encryption layer.\",\n    \"Add rate limiting and validation to any LMS integration endpoints to prevent enumeration or abuse of courseCode parameter.\"\n  ]\n}\n```\n\n## Summary\n\nYour codebase is **low-to-medium risk** (38/100). The frontend is largely safe from traditional web attacks, but several architectural decisions create security gaps:\n\n**Critical gaps:**\n- Client-side session determination via localStorage—no backend auth\n- Unvalidated courseCode parameter in LMS connector\n\n**Quick wins:**\n- Move state from localStorage to IndexedDB + HistoryOfThought encryption\n- Externalize hardcoded course codes (CLAUDE.md violation)\n- Add input validation to backend-bound parameters\n\nThe encryption layer (AES-GCM, PBKDF2 600k) is solid; the vulnerabilities are architectural, not cryptographic.\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "medium",
+        "file": "src/frontend/MasterDashboard.js",
+        "line": 50,
+        "description": "User input from project.currentDraft is rendered directly in textarea without sanitization. While textarea content is safe from XSS, if this data is later used in other contexts (innerHTML, dangerouslySetInnerHTML), it becomes an XSS vector."
+      },
+      {
+        "severity": "medium",
+        "file": "src/App.js",
+        "line": 18,
+        "description": "Authentication state determined solely by localStorage flag 'simplifii_onboarding_complete'. Client-side storage is not secure and can be modified by users. No server-side session validation."
+      },
+      {
+        "severity": "medium",
+        "file": "src/backend/LMSConnector.js",
+        "line": 1,
+        "description": "courseCode parameter passed to fetchLMSData lacks input validation. If this connects to a backend API, unvalidated parameters could enable injection attacks or parameter tampering."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 45,
+        "description": "Salt for PBKDF2 key derivation is stored in localStorage as base64. While the salt doesn't directly compromise encryption (salt is also needed), storing it unencrypted is not cryptographic best practice. Consider storing only in memory or using a hardware-backed mechanism if available."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/ExecutiveSpine.js",
+        "line": 25,
+        "description": "Focus session data including taskId and timing information stored in unencrypted localStorage. User could tamper with session state to extend focus time artificially."
+      },
+      {
+        "severity": "low",
+        "file": "src/frontend/SmartIntake.js",
+        "line": 11,
+        "description": "Hardcoded university course codes ('UNSW Moodle', 'ARTS5200') in feature code violates architecture rule: 'Do not reference specific university course codes inside engineering specs'. Course data should be externalized to schema/config, not hardcoded in components."
+      },
+      {
+        "severity": "low",
+        "file": "public/pdf.worker.min.js",
+        "line": 1,
+        "description": "Third-party PDF.js library included. Verify current version has no known CVEs. Ensure pdfjs-dist dependency is pinned to a verified secure version in package.json."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/EventBus.js",
+        "line": 72,
+        "description": "user_id hardcoded as 'local' throughout. No multi-user isolation or authentication. If this system ever scales to real users, there's no mechanism to differentiate between different users' events."
+      }
+    ],
+    "riskScore": 38,
+    "recommendations": [
+      "Add input validation for all user-supplied parameters, especially courseCode in LMSConnector.js. Use allowlists for course codes.",
+      "Implement server-side session authentication. Never rely on localStorage flags for security decisions. Use HttpOnly, Secure, SameSite cookies for session tokens.",
+      "Sanitize any user input before rendering in contexts beyond plain text. Use DOMPurify or similar for any HTML content rendering.",
+      "Externalize hardcoded course codes and university references to a config file or data schema, not embedded in component code.",
+      "Review pdfjs-dist for CVEs and ensure package.json pins a verified secure version. Add npm audit to CI/CD pipeline.",
+      "Consider storing the PBKDF2 salt in memory-only or behind a secure enclave if future versions support multi-device sync.",
+      "Add CSRF tokens to any form submissions (if backend exists). Implement SameSite cookie policies.",
+      "Document and enforce that user_id must be sourced from authenticated session context, not hardcoded, before multi-user support is added.",
+      "Replace localStorage-based state for sensitive data (focus sessions, credits) with IndexedDB and the existing HistoryOfThought encryption layer.",
+      "Add rate limiting and validation to any LMS integration endpoints to prevent enumeration or abuse of courseCode parameter."
+    ]
+  },
+  "durationMs": 34762,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-10T22:03:44.761Z",
+  "executionId": "audit_1778450589999_u58t1v"
+}

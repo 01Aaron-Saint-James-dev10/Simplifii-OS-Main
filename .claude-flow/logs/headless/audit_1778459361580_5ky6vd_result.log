@@ -1,0 +1,59 @@
+[2026-05-11T00:29:57.633Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/App.js\",\n      \"line\": 27,\n      \"description\": \"Unprotected localStorage reset via query parameter. The `reset=true` parameter clears all user data without confirmation. Can be exploited for social engineering by tricking users into clicking malicious links.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 64,\n      \"description\": \"Weak passphrase validation. Minimum 4 characters is insufficient for encryption key derivation. Vulnerable to brute-force attacks, especially given the deterministic PBKDF2 derivation.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 97,\n      \"description\": \"No rate limiting on passphrase unlock attempts. An attacker with access to IndexedDB could potentially attempt unlimited passphrase guesses offline.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/App.js\",\n      \"line\": 13,\n      \"description\": \"localStorage used to store authentication state (`simplifii_onboarding_complete`). Accessible to any XSS vulnerability. No HTTPOnly flag equivalent available in browser storage.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/EventBus.js\",\n      \"line\": 51,\n      \"description\": \"Hardcoded user identifier `'local'` in event payloads. If cloud sync is enabled in future versions without proper user identification, could lead to data attribution issues.\"\n    }\n  ],\n  \"riskScore\": 28,\n  \"recommendations\": [\n    \"Require confirmation dialog before executing `reset=true` parameter, or remove this feature entirely\",\n    \"Increase minimum passphrase length to 12+ characters and add strength validation\",\n    \"Implement passphrase attempt rate limiting (e.g., exponential backoff after 3 failures)\",\n    \"Use sessionStorage for temporary auth state instead of localStorage where appropriate\",\n    \"Add Content Security Policy (CSP) headers to prevent inline script execution and XSS\",\n    \"When implementing cloud sync, establish proper user authentication and server-side session validation\",\n    \"Add input validation for all user-controlled data, especially before storage in IndexedDB\",\n    \"Consider using Web Authentication API (WebAuthn) instead of passphrase-only encryption\",\n    \"Sanitize all UI-rendered user content even though textarea usage is currently safe\",\n    \"Add integrity checks for the activeManifest.json to prevent tampering with course code detection\"\n  ]\n}\n```\n\n**Key Findings:**\n\nThe codebase shows **solid cryptographic design** (AES-GCM-256, PBKDF2 600k iterations) but has **operational security gaps**:\n\n- **Biggest risk**: The `reset=true` parameter is a social engineering vector with no protection\n- **Encryption weakened by**: Only 4-character minimum passphrase, no rate limiting on unlock attempts\n- **localStorage exposure**: Authentication state stored in plaintext, vulnerable to XSS\n\nOverall **risk is low** for a local-first academic app, but **production deployment would require**: HTTPS enforcement, stronger passphrase requirements, CSRF tokens for any backend, and CSP headers.\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "medium",
+        "file": "src/App.js",
+        "line": 27,
+        "description": "Unprotected localStorage reset via query parameter. The `reset=true` parameter clears all user data without confirmation. Can be exploited for social engineering by tricking users into clicking malicious links."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 64,
+        "description": "Weak passphrase validation. Minimum 4 characters is insufficient for encryption key derivation. Vulnerable to brute-force attacks, especially given the deterministic PBKDF2 derivation."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 97,
+        "description": "No rate limiting on passphrase unlock attempts. An attacker with access to IndexedDB could potentially attempt unlimited passphrase guesses offline."
+      },
+      {
+        "severity": "low",
+        "file": "src/App.js",
+        "line": 13,
+        "description": "localStorage used to store authentication state (`simplifii_onboarding_complete`). Accessible to any XSS vulnerability. No HTTPOnly flag equivalent available in browser storage."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/EventBus.js",
+        "line": 51,
+        "description": "Hardcoded user identifier `'local'` in event payloads. If cloud sync is enabled in future versions without proper user identification, could lead to data attribution issues."
+      }
+    ],
+    "riskScore": 28,
+    "recommendations": [
+      "Require confirmation dialog before executing `reset=true` parameter, or remove this feature entirely",
+      "Increase minimum passphrase length to 12+ characters and add strength validation",
+      "Implement passphrase attempt rate limiting (e.g., exponential backoff after 3 failures)",
+      "Use sessionStorage for temporary auth state instead of localStorage where appropriate",
+      "Add Content Security Policy (CSP) headers to prevent inline script execution and XSS",
+      "When implementing cloud sync, establish proper user authentication and server-side session validation",
+      "Add input validation for all user-controlled data, especially before storage in IndexedDB",
+      "Consider using Web Authentication API (WebAuthn) instead of passphrase-only encryption",
+      "Sanitize all UI-rendered user content even though textarea usage is currently safe",
+      "Add integrity checks for the activeManifest.json to prevent tampering with course code detection"
+    ]
+  },
+  "durationMs": 36053,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-11T00:29:57.633Z",
+  "executionId": "audit_1778459361580_5ky6vd"
+}

@@ -1,0 +1,85 @@
+[2026-05-10T22:17:01.118Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "Here's the performance analysis with actionable fixes:\n\n---\n\n## Performance Analysis\n\n### 1. N+1 Query Patterns\n\n**`src/services/IndexedDBService.js:18-67` — CRITICAL**\n\n`initDB()` is called on every operation (`saveBlockSnapshot`, `getBlockHistory`, etc.), triggering a new `IndexedDB.open()` each time.\n\n```js\n// BEFORE: each call opens a new connection\nasync function saveBlockSnapshot(data) {\n  const db = await initDB(); // opens every time\n  ...\n}\n\n// AFTER: cache the connection at module scope\nlet _dbPromise = null;\nfunction getDB() {\n  if (!_dbPromise) _dbPromise = initDB();\n  return _dbPromise;\n}\n\nasync function saveBlockSnapshot(data) {\n  const db = await getDB(); // reuses open connection\n  ...\n}\n```\n\n**`src/services/ChatService.js:40-45` — HIGH**\n\n`readSteering()` calls `safeReadLocalStorage` 4x per message with no caching.\n\n```js\n// AFTER: read once, reuse for request lifetime\nconst steering = readSteering();\nconst { persona, scaffolding, grit, lod } = steering;\n```\n\n---\n\n### 2. Unnecessary Re-renders\n\n**`src/frontend/LinearCanvas.js:23-30` (ToneHUD) — HIGH**\n\nRegex word analysis runs on every render, not just when `content` changes.\n\n```js\n// BEFORE: inside component body\nconst words = content.match(/\\S+/g) || [];\nconst wordCount = words.length;\nconst longWords = (content.match(/\\b\\w{8,}\\b/g) || []).length;\nconst uniqueWords = new Set((content.match(/\\b[a-z]{4,}\\b/gi) || [])).size;\nconst rigor = Math.min(Math.max((longWords / (wordCount || 1)) * 300, 20), 98);\nconst semanticDensity = Math.min(Math.max((uniqueWords / (words.length || 1)) * 150, 10), 95);\n\n// AFTER: memoized, single-pass word extraction\nconst { rigor, semanticDensity } = useMemo(() => {\n  const words = content.match(/\\S+/g) || [];\n  const wordCount = words.length || 1;\n  const longWords = words.filter(w => w.length >= 8).length;\n  const lowerWords = words.map(w => w.toLowerCase()).filter(w => w.length >= 4);\n  const uniqueWords = new Set(lowerWords).size;\n  return {\n    rigor: Math.min(Math.max((longWords / wordCount) * 300, 20), 98),\n    semanticDensity: Math.min(Math.max((uniqueWords / lowerWords.length || 1) * 150, 10), 95),\n  };\n}, [content]);\n```\n\n**`src/frontend/SimplifiiStudio.js:924-939` — MEDIUM**\n\n`send` function recreated every render, breaking child memoization.\n\n```js\n// AFTER:\nconst send = useCallback(async (msg) => {\n  // ...existing logic\n}, [activeCourse, messages, loading]);\n```\n\n---\n\n### 3. Caching Opportunities\n\n**`src/frontend/LinearCanvas.js:517-529` (renderDensityScanner) — HIGH**\n\nRebuilds sanitized HTML string (with 10 regex replaces) on every render.\n\n```js\n// AFTER: memoize the highlighted HTML\nconst densityHTML = useMemo(() => {\n  let html = section.content || '';\n  fillers.forEach(f => {\n    html = html.replace(new RegExp(`\\\\b${f}\\\\b`, 'gi'), `<mark class=\"filler\">$&</mark>`);\n  });\n  return html;\n}, [section.content]); // only recompute when content changes\n\n// then in JSX:\n<div dangerouslySetInnerHTML={{ __html: densityHTML }} />\n```\n\n**`src/services/BriefService.js`** — Cache extraction results keyed by content hash so repeated calls (e.g. course switching) don't re-run the full two-pass regex sweep.\n\n---\n\n### 4. Memory Leaks\n\n**Good news:** All `addEventListener` calls in `LinearCanvas.js` (lines 300-311, 651-667, 669-677) and `MasterDashboard.js` properly return cleanup functions with matching `removeEventListener`. No leaks found.\n\n**Watch for:** `src/frontend/LinearCanvas.js:672` — a 500ms `setInterval` for SVG coordinates. It is cleaned up, but if this component ever mounts twice (StrictMode double-invoke), the interval could stack. Guard with:\n```js\nuseEffect(() => {\n  const id = setInterval(updateLineCoords, 500);\n  return () => clearInterval(id);\n}, []); // already done — just verify it's not in an outer closure\n```\n\n---\n\n### 5. Redundant Computations\n\n**`src/frontend/LinearCanvas.js:1117-1126` (Neural Proofing Overlay) — HIGH**\n\nSplits and maps every word into React nodes on every render.\n\n```js\n// AFTER: memoize word nodes\nconst wordNodes = useMemo(() =>\n  (section.content || '').split(' ').map((word, i) => (\n    <span key={i} className={highlights.has(i) ? 'highlight' : ''}>\n      {word}{' '}\n    </span>\n  )),\n[section.content, highlights]);\n```\n\n**`src/frontend/SimplifiiStudio.js:593-707`** — `totalWords` and `totalForStage` (line 702) both reduce over `pillar.blocks` independently. Merge into one `useMemo`:\n\n```js\nconst { totalWords, masteryActive } = useMemo(() => {\n  const totalWords = pillar.blocks.reduce((sum, b) => sum + (b.wordCount || 0), 0);\n  const totalPct = (totalWords / targetWords) * 100;\n  return { totalWords, masteryActive: totalPct >= 60 };\n}, [pillar.blocks, targetWords]);\n```\n\n---\n\n### Priority Order\n\n| Priority | Fix | Est. Impact |\n|---|---|---|\n| 1 | `IndexedDBService` — cache DB connection | -N open() calls per session |\n| 2 | `LinearCanvas` ToneHUD — memoize regex | -keypress lag |\n| 3 | `LinearCanvas` density scanner HTML — memoize | -render cost |\n| 4 | `LinearCanvas` word nodes (proofing overlay) — memoize | -500+ node diff |\n| 5 | `SimplifiiStudio.send` — useCallback | -child re-render cascade |\n| 6 | `ChatService` steering — read once | -4x localStorage per msg |\n| 7 | Merge `totalWords`/`totalForStage` in Studio | -1 extra array pass |\n",
+  "parsedOutput": {
+    "sections": [
+      {
+        "title": "Performance Analysis",
+        "content": "\n",
+        "level": 2
+      },
+      {
+        "title": "1. N+1 Query Patterns",
+        "content": "\n**`src/services/IndexedDBService.js:18-67` — CRITICAL**\n\n`initDB()` is called on every operation (`saveBlockSnapshot`, `getBlockHistory`, etc.), triggering a new `IndexedDB.open()` each time.\n\n```js\n// BEFORE: each call opens a new connection\nasync function saveBlockSnapshot(data) {\n  const db = await initDB(); // opens every time\n  ...\n}\n\n// AFTER: cache the connection at module scope\nlet _dbPromise = null;\nfunction getDB() {\n  if (!_dbPromise) _dbPromise = initDB();\n  return _dbPromise;\n}\n\nasync function saveBlockSnapshot(data) {\n  const db = await getDB(); // reuses open connection\n  ...\n}\n```\n\n**`src/services/ChatService.js:40-45` — HIGH**\n\n`readSteering()` calls `safeReadLocalStorage` 4x per message with no caching.\n\n```js\n// AFTER: read once, reuse for request lifetime\nconst steering = readSteering();\nconst { persona, scaffolding, grit, lod } = steering;\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "2. Unnecessary Re-renders",
+        "content": "\n**`src/frontend/LinearCanvas.js:23-30` (ToneHUD) — HIGH**\n\nRegex word analysis runs on every render, not just when `content` changes.\n\n```js\n// BEFORE: inside component body\nconst words = content.match(/\\S+/g) || [];\nconst wordCount = words.length;\nconst longWords = (content.match(/\\b\\w{8,}\\b/g) || []).length;\nconst uniqueWords = new Set((content.match(/\\b[a-z]{4,}\\b/gi) || [])).size;\nconst rigor = Math.min(Math.max((longWords / (wordCount || 1)) * 300, 20), 98);\nconst semanticDensity = Math.min(Math.max((uniqueWords / (words.length || 1)) * 150, 10), 95);\n\n// AFTER: memoized, single-pass word extraction\nconst { rigor, semanticDensity } = useMemo(() => {\n  const words = content.match(/\\S+/g) || [];\n  const wordCount = words.length || 1;\n  const longWords = words.filter(w => w.length >= 8).length;\n  const lowerWords = words.map(w => w.toLowerCase()).filter(w => w.length >= 4);\n  const uniqueWords = new Set(lowerWords).size;\n  return {\n    rigor: Math.min(Math.max((longWords / wordCount) * 300, 20), 98),\n    semanticDensity: Math.min(Math.max((uniqueWords / lowerWords.length || 1) * 150, 10), 95),\n  };\n}, [content]);\n```\n\n**`src/frontend/SimplifiiStudio.js:924-939` — MEDIUM**\n\n`send` function recreated every render, breaking child memoization.\n\n```js\n// AFTER:\nconst send = useCallback(async (msg) => {\n  // ...existing logic\n}, [activeCourse, messages, loading]);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "3. Caching Opportunities",
+        "content": "\n**`src/frontend/LinearCanvas.js:517-529` (renderDensityScanner) — HIGH**\n\nRebuilds sanitized HTML string (with 10 regex replaces) on every render.\n\n```js\n// AFTER: memoize the highlighted HTML\nconst densityHTML = useMemo(() => {\n  let html = section.content || '';\n  fillers.forEach(f => {\n    html = html.replace(new RegExp(`\\\\b${f}\\\\b`, 'gi'), `<mark class=\"filler\">$&</mark>`);\n  });\n  return html;\n}, [section.content]); // only recompute when content changes\n\n// then in JSX:\n<div dangerouslySetInnerHTML={{ __html: densityHTML }} />\n```\n\n**`src/services/BriefService.js`** — Cache extraction results keyed by content hash so repeated calls (e.g. course switching) don't re-run the full two-pass regex sweep.\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "4. Memory Leaks",
+        "content": "\n**Good news:** All `addEventListener` calls in `LinearCanvas.js` (lines 300-311, 651-667, 669-677) and `MasterDashboard.js` properly return cleanup functions with matching `removeEventListener`. No leaks found.\n\n**Watch for:** `src/frontend/LinearCanvas.js:672` — a 500ms `setInterval` for SVG coordinates. It is cleaned up, but if this component ever mounts twice (StrictMode double-invoke), the interval could stack. Guard with:\n```js\nuseEffect(() => {\n  const id = setInterval(updateLineCoords, 500);\n  return () => clearInterval(id);\n}, []); // already done — just verify it's not in an outer closure\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "5. Redundant Computations",
+        "content": "\n**`src/frontend/LinearCanvas.js:1117-1126` (Neural Proofing Overlay) — HIGH**\n\nSplits and maps every word into React nodes on every render.\n\n```js\n// AFTER: memoize word nodes\nconst wordNodes = useMemo(() =>\n  (section.content || '').split(' ').map((word, i) => (\n    <span key={i} className={highlights.has(i) ? 'highlight' : ''}>\n      {word}{' '}\n    </span>\n  )),\n[section.content, highlights]);\n```\n\n**`src/frontend/SimplifiiStudio.js:593-707`** — `totalWords` and `totalForStage` (line 702) both reduce over `pillar.blocks` independently. Merge into one `useMemo`:\n\n```js\nconst { totalWords, masteryActive } = useMemo(() => {\n  const totalWords = pillar.blocks.reduce((sum, b) => sum + (b.wordCount || 0), 0);\n  const totalPct = (totalWords / targetWords) * 100;\n  return { totalWords, masteryActive: totalPct >= 60 };\n}, [pillar.blocks, targetWords]);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Priority Order",
+        "content": "| Priority | Fix | Est. Impact |\n|---|---|---|\n| 1 | `IndexedDBService` — cache DB connection | -N open() calls per session |\n| 2 | `LinearCanvas` ToneHUD — memoize regex | -keypress lag |\n| 3 | `LinearCanvas` density scanner HTML — memoize | -render cost |\n| 4 | `LinearCanvas` word nodes (proofing overlay) — memoize | -500+ node diff |\n| 5 | `SimplifiiStudio.send` — useCallback | -child re-render cascade |\n| 6 | `ChatService` steering — read once | -4x localStorage per msg |\n| 7 | Merge `totalWords`/`totalForStage` in Studio | -1 extra array pass |",
+        "level": 3
+      }
+    ],
+    "codeBlocks": [
+      {
+        "language": "js",
+        "code": "// BEFORE: each call opens a new connection\nasync function saveBlockSnapshot(data) {\n  const db = await initDB(); // opens every time\n  ...\n}\n\n// AFTER: cache the connection at module scope\nlet _dbPromise = null;\nfunction getDB() {\n  if (!_dbPromise) _dbPromise = initDB();\n  return _dbPromise;\n}\n\nasync function saveBlockSnapshot(data) {\n  const db = await getDB(); // reuses open connection\n  ...\n}"
+      },
+      {
+        "language": "js",
+        "code": "// AFTER: read once, reuse for request lifetime\nconst steering = readSteering();\nconst { persona, scaffolding, grit, lod } = steering;"
+      },
+      {
+        "language": "js",
+        "code": "// BEFORE: inside component body\nconst words = content.match(/\\S+/g) || [];\nconst wordCount = words.length;\nconst longWords = (content.match(/\\b\\w{8,}\\b/g) || []).length;\nconst uniqueWords = new Set((content.match(/\\b[a-z]{4,}\\b/gi) || [])).size;\nconst rigor = Math.min(Math.max((longWords / (wordCount || 1)) * 300, 20), 98);\nconst semanticDensity = Math.min(Math.max((uniqueWords / (words.length || 1)) * 150, 10), 95);\n\n// AFTER: memoized, single-pass word extraction\nconst { rigor, semanticDensity } = useMemo(() => {\n  const words = content.match(/\\S+/g) || [];\n  const wordCount = words.length || 1;\n  const longWords = words.filter(w => w.length >= 8).length;\n  const lowerWords = words.map(w => w.toLowerCase()).filter(w => w.length >= 4);\n  const uniqueWords = new Set(lowerWords).size;\n  return {\n    rigor: Math.min(Math.max((longWords / wordCount) * 300, 20), 98),\n    semanticDensity: Math.min(Math.max((uniqueWords / lowerWords.length || 1) * 150, 10), 95),\n  };\n}, [content]);"
+      },
+      {
+        "language": "js",
+        "code": "// AFTER:\nconst send = useCallback(async (msg) => {\n  // ...existing logic\n}, [activeCourse, messages, loading]);"
+      },
+      {
+        "language": "js",
+        "code": "// AFTER: memoize the highlighted HTML\nconst densityHTML = useMemo(() => {\n  let html = section.content || '';\n  fillers.forEach(f => {\n    html = html.replace(new RegExp(`\\\\b${f}\\\\b`, 'gi'), `<mark class=\"filler\">$&</mark>`);\n  });\n  return html;\n}, [section.content]); // only recompute when content changes\n\n// then in JSX:\n<div dangerouslySetInnerHTML={{ __html: densityHTML }} />"
+      },
+      {
+        "language": "js",
+        "code": "useEffect(() => {\n  const id = setInterval(updateLineCoords, 500);\n  return () => clearInterval(id);\n}, []); // already done — just verify it's not in an outer closure"
+      },
+      {
+        "language": "js",
+        "code": "// AFTER: memoize word nodes\nconst wordNodes = useMemo(() =>\n  (section.content || '').split(' ').map((word, i) => (\n    <span key={i} className={highlights.has(i) ? 'highlight' : ''}>\n      {word}{' '}\n    </span>\n  )),\n[section.content, highlights]);"
+      },
+      {
+        "language": "js",
+        "code": "const { totalWords, masteryActive } = useMemo(() => {\n  const totalWords = pillar.blocks.reduce((sum, b) => sum + (b.wordCount || 0), 0);\n  const totalPct = (totalWords / targetWords) * 100;\n  return { totalWords, masteryActive: totalPct >= 60 };\n}, [pillar.blocks, targetWords]);"
+      }
+    ]
+  },
+  "durationMs": 160850,
+  "model": "sonnet",
+  "sandboxMode": "permissive",
+  "workerType": "optimize",
+  "timestamp": "2026-05-10T22:17:01.118Z",
+  "executionId": "optimize_1778451260268_uivyu5"
+}

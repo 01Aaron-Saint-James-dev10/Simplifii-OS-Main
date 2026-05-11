@@ -1,0 +1,103 @@
+[2026-05-10T21:49:29.695Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/App.js\",\n      \"line\": 28,\n      \"description\": \"Query parameter `?reset=true` clears all localStorage without authentication or CSRF protection. Attacker can forge URL and trick user into clearing data. No confirmation dialog.\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 1,\n      \"description\": \"Passphrase-based encryption system exists but no UI flow shown to set/unlock it. `unlockWithPassphrase()` is never called in visible codebase, rendering encryption non-functional. Users bypass protection silently.\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/frontend/App.js, MasterDashboard.js, ProjectContext.js\",\n      \"line\": 0,\n      \"description\": \"No authentication system. Any user can access dashboard without login. No permission checks anywhere. Institutional isolation (multi-tenant) has no guard rails.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/App.js\",\n      \"line\": 22,\n      \"description\": \"Sensitive state stored in localStorage (`simplifii_onboarding_complete`). Accessible to any script on domain. No encryption at this layer.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/EventBus.js\",\n      \"line\": 45,\n      \"description\": \"Silent error handling: appendEvent failures caught without throwing. Errors only logged to console. Malformed events silently drop without alerting caller.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/SovereignBus.js\",\n      \"line\": 35,\n      \"description\": \"Silent vault-locked drops: events silently discarded when vault is locked. No queue, no persistence, no alert. User work vanishes without notification.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/backend/LMSConnector.js\",\n      \"line\": 1,\n      \"description\": \"No input validation on `courseCode` parameter. Accepts any string and uses in responses without sanitization. Could be manipulated in data flows.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/frontend/MasterDashboard.js, SmartIntake.js\",\n      \"line\": 0,\n      \"description\": \"No CSRF protection on state-changing operations (onboarding completion, focus session start). POST/PUT operations vulnerable to cross-site request forgery.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/backend/NeuralAuditPipeline.js\",\n      \"line\": 3,\n      \"description\": \"Hardcoded course codes `['BABS1201', 'BABS1202']` used for logic branching. Violates CLAUDE.md rule: 'Do not reference specific university course codes inside engineering specs.' Breaks multi-tenant design.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/LiteralMode.js\",\n      \"line\": 55,\n      \"description\": \"Output from `literalise()` performs regex replacements on user input. While React escapes by default, future dangerouslySetInnerHTML use could introduce XSS. Output should be marked read-only.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 100,\n      \"description\": \"Salt stored in plain localStorage (base64 encoded only). Web Crypto best practice: salt should not be recoverable. Consider hardware-backed key derivation if available.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"scripts/check-style.js, check-style.js\",\n      \"line\": 0,\n      \"description\": \"No rate limiting or throttling visible anywhere in frontend. Users can spam focus session starts, playtime grants, or event bus records without limit.\"\n    }\n  ],\n  \"riskScore\": 68,\n  \"recommendations\": [\n    \"URGENT: Implement authentication system (OAuth2/OIDC, or at minimum session-based). Passphrase encryption is non-functional without unlock flow.\",\n    \"URGENT: Remove course code hardcoding. Move `BABS1201`, `BABS1202`, `ARTS5200` to database or config. Breaks Blueprint rule 3 (Universal Architecture).\",\n    \"URGENT: Require CSRF token (or SameSite cookies) for all state changes. Add token to forms and validate on all mutations.\",\n    \"Remove `?reset=true` query parameter or require multi-step confirmation. Prevent accidental/malicious localStorage wipe.\",\n    \"Wrap passphrase unlock in visible UI flow (modal, settings page, first-launch dialog). Call `unlockWithPassphrase()` on app mount or user action.\",\n    \"Add input validation to `fetchLMSData(courseCode)`. Whitelist valid codes or reject invalid input with clear error.\",\n    \"Implement proper error propagation: throw on appendEvent fail instead of silent console.warn. Let caller decide on retry/fallback.\",\n    \"Persist queued events when vault is locked, don't silently drop. Resume sync when unlocked. Or surface warning to user.\",\n    \"Add rate limiting: debounce focus session calls, cap event submissions to 100/min per session.\",\n    \"Encrypt localStorage at rest. Current plaintext salt + stored state is visible in DevTools. Consider using a service worker + IndexedDB with encryption.\",\n    \"Add CORS headers if serving from different origin. CSP headers to block inline scripts.\",\n    \"Document the intended authentication model in CLAUDE.md. Current code has no clear security model.\"\n  ]\n}\n```\n\n---\n\n## **Critical Issues**\n\n**Risk Score: 68/100** — Multiple high-severity gaps.\n\n### Why This Score\n\n1. **No authentication** — Anyone can access the dashboard. Multi-tenant isolation is completely absent.\n2. **Encryption never unlocked** — The HistoryOfThought passphrase system is dead code; no UI calls `unlockWithPassphrase()`.\n3. **Query param bypass** — `?reset=true` silently wipes localStorage without consent.\n4. **Multi-tenant violation** — Course codes hardcoded in logic break the \"Universal Architecture\" rule in your CLAUDE.md.\n5. **Silent failures** — Errors vanish into console, hiding real problems from users.\n\n### What to Fix First\n\n1. Wire up the passphrase unlock UI (settings modal, first-launch flow).\n2. Add authentication (even basic session-based is better than none).\n3. Remove the hardcoded course codes and move them to a config/database.\n4. Require CSRF tokens on all state mutations.\n\nThe codebase is well-structured and React's auto-escaping prevents obvious XSS, but **the absence of auth + the defunct encryption are load-bearing vulnerabilities** that need immediate attention before production use.\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "high",
+        "file": "src/App.js",
+        "line": 28,
+        "description": "Query parameter `?reset=true` clears all localStorage without authentication or CSRF protection. Attacker can forge URL and trick user into clearing data. No confirmation dialog."
+      },
+      {
+        "severity": "high",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 1,
+        "description": "Passphrase-based encryption system exists but no UI flow shown to set/unlock it. `unlockWithPassphrase()` is never called in visible codebase, rendering encryption non-functional. Users bypass protection silently."
+      },
+      {
+        "severity": "high",
+        "file": "src/frontend/App.js, MasterDashboard.js, ProjectContext.js",
+        "line": 0,
+        "description": "No authentication system. Any user can access dashboard without login. No permission checks anywhere. Institutional isolation (multi-tenant) has no guard rails."
+      },
+      {
+        "severity": "medium",
+        "file": "src/App.js",
+        "line": 22,
+        "description": "Sensitive state stored in localStorage (`simplifii_onboarding_complete`). Accessible to any script on domain. No encryption at this layer."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/EventBus.js",
+        "line": 45,
+        "description": "Silent error handling: appendEvent failures caught without throwing. Errors only logged to console. Malformed events silently drop without alerting caller."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/SovereignBus.js",
+        "line": 35,
+        "description": "Silent vault-locked drops: events silently discarded when vault is locked. No queue, no persistence, no alert. User work vanishes without notification."
+      },
+      {
+        "severity": "medium",
+        "file": "src/backend/LMSConnector.js",
+        "line": 1,
+        "description": "No input validation on `courseCode` parameter. Accepts any string and uses in responses without sanitization. Could be manipulated in data flows."
+      },
+      {
+        "severity": "medium",
+        "file": "src/frontend/MasterDashboard.js, SmartIntake.js",
+        "line": 0,
+        "description": "No CSRF protection on state-changing operations (onboarding completion, focus session start). POST/PUT operations vulnerable to cross-site request forgery."
+      },
+      {
+        "severity": "medium",
+        "file": "src/backend/NeuralAuditPipeline.js",
+        "line": 3,
+        "description": "Hardcoded course codes `['BABS1201', 'BABS1202']` used for logic branching. Violates CLAUDE.md rule: 'Do not reference specific university course codes inside engineering specs.' Breaks multi-tenant design."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/LiteralMode.js",
+        "line": 55,
+        "description": "Output from `literalise()` performs regex replacements on user input. While React escapes by default, future dangerouslySetInnerHTML use could introduce XSS. Output should be marked read-only."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 100,
+        "description": "Salt stored in plain localStorage (base64 encoded only). Web Crypto best practice: salt should not be recoverable. Consider hardware-backed key derivation if available."
+      },
+      {
+        "severity": "low",
+        "file": "scripts/check-style.js, check-style.js",
+        "line": 0,
+        "description": "No rate limiting or throttling visible anywhere in frontend. Users can spam focus session starts, playtime grants, or event bus records without limit."
+      }
+    ],
+    "riskScore": 68,
+    "recommendations": [
+      "URGENT: Implement authentication system (OAuth2/OIDC, or at minimum session-based). Passphrase encryption is non-functional without unlock flow.",
+      "URGENT: Remove course code hardcoding. Move `BABS1201`, `BABS1202`, `ARTS5200` to database or config. Breaks Blueprint rule 3 (Universal Architecture).",
+      "URGENT: Require CSRF token (or SameSite cookies) for all state changes. Add token to forms and validate on all mutations.",
+      "Remove `?reset=true` query parameter or require multi-step confirmation. Prevent accidental/malicious localStorage wipe.",
+      "Wrap passphrase unlock in visible UI flow (modal, settings page, first-launch dialog). Call `unlockWithPassphrase()` on app mount or user action.",
+      "Add input validation to `fetchLMSData(courseCode)`. Whitelist valid codes or reject invalid input with clear error.",
+      "Implement proper error propagation: throw on appendEvent fail instead of silent console.warn. Let caller decide on retry/fallback.",
+      "Persist queued events when vault is locked, don't silently drop. Resume sync when unlocked. Or surface warning to user.",
+      "Add rate limiting: debounce focus session calls, cap event submissions to 100/min per session.",
+      "Encrypt localStorage at rest. Current plaintext salt + stored state is visible in DevTools. Consider using a service worker + IndexedDB with encryption.",
+      "Add CORS headers if serving from different origin. CSP headers to block inline scripts.",
+      "Document the intended authentication model in CLAUDE.md. Current code has no clear security model."
+    ]
+  },
+  "durationMs": 41522,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-10T21:49:29.695Z",
+  "executionId": "audit_1778449728173_zilg0v"
+}

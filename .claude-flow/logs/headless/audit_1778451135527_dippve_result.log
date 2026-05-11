@@ -1,0 +1,72 @@
+[2026-05-10T22:12:53.939Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/backend/LMSConnector.js\",\n      \"line\": 1,\n      \"description\": \"No authentication required to fetch LMS data. The fetchLMSData() function accepts only a courseCode parameter and would return sensitive educational data without verifying the requester's identity or permissions in production.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 70,\n      \"description\": \"Weak passphrase validation: minimum 4 characters with no complexity requirements. This is insufficient for cryptographic key derivation. Recommend minimum 12 characters with mixed case, numbers, and symbols.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/App.js\",\n      \"line\": 25,\n      \"description\": \"Unsafe URL parameter handling: window.location.search is used to check reset=true without validation. Could be exploited for phishing or unintended state manipulation. Validate and sanitize URL parameters.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 45,\n      \"description\": \"PBKDF2 salt stored in localStorage as base64-encoded string. While encoded, localStorage is vulnerable to XSS attacks. Consider using a secure storage mechanism or deriving salt from passphrase instead.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/backend/NeuralAuditPipeline.js\",\n      \"line\": 3,\n      \"description\": \"Hardcoded course codes ['BABS1201', 'BABS1202'] embedded in business logic violates the 'Universal Architecture' rule (per CLAUDE.md). Course-specific data must live in schema/config, not architecture. This creates tight coupling and security boundaries violation.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/frontend/MasterDashboard.js\",\n      \"line\": 50,\n      \"description\": \"User input from textarea (project.currentDraft) is stored without validation or sanitization. While React auto-escapes JSX, any future rendering to HTML via innerHTML or external systems could expose XSS vulnerabilities.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/EventBus.js\",\n      \"line\": 45,\n      \"description\": \"User ID hardcoded as 'local' string throughout event logging. Lacks proper user identification mechanism. When multi-user support is added, this will create audit and security issues.\"\n    }\n  ],\n  \"riskScore\": 48,\n  \"recommendations\": [\n    \"Implement OAuth2 or JWT-based authentication for LMSConnector.fetchLMSData() before accepting production requests\",\n    \"Enforce minimum passphrase length of 12+ characters with complexity requirements (uppercase, lowercase, numbers, symbols)\",\n    \"Validate and whitelist URL parameters; use window.location.search only after explicit validation against known safe values\",\n    \"Migrate salt storage from localStorage to memory-only or derive it from passphrase to prevent XSS-based secrets extraction\",\n    \"Extract hardcoded course codes from NeuralAuditPipeline.js; move to a config schema file and load at runtime (aligns with CLAUDE.md Universal Architecture rule)\",\n    \"Add input validation and sanitization for textarea content; define max length, allowed characters, and strip dangerous patterns before storage\",\n    \"Implement proper user identification in event logging; replace hardcoded 'local' with actual user context or session token\",\n    \"Add Content-Security-Policy headers to prevent inline script injection and restrict resource origins\",\n    \"Implement CSRF protection tokens for any state-changing API calls (when LMSConnector moves to real backend)\",\n    \"Add rate limiting and request throttling to LMSConnector to prevent brute-force enumeration of courses\",\n    \"Implement comprehensive error handling that avoids leaking sensitive information (e.g., 'course not found' vs 'authentication failed')\"\n  ]\n}\n```\n\n## Summary\n\n**Risk areas found:**\n1. **Authentication gap** (HIGH) — LMS connector lacks credential validation entirely\n2. **Weak crypto validation** (MEDIUM) — Passphrases accept 4-character strings\n3. **Unsafe state handling** (MEDIUM) — URL parameters and localStorage manipulation not guarded\n4. **Architecture violation** (MEDIUM) — Course codes hardcoded against CLAUDE.md guidelines\n5. **Input gaps** (LOW) — User content stored without validation\n\n**Positive notes:**\n- Proper AES-GCM + PBKDF2 (600k iterations) encryption implementation\n- React's built-in XSS protection via JSX\n- Local-first, opt-in cloud sync posture aligns with sovereignty goals\n- Event bus silently drops when vault locked (no plaintext leakage)\n\nThe codebase is **low risk for most attack vectors** (no SQL, no public APIs exposed, frontend-heavy) but **needs authentication hardening** before production.\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "high",
+        "file": "src/backend/LMSConnector.js",
+        "line": 1,
+        "description": "No authentication required to fetch LMS data. The fetchLMSData() function accepts only a courseCode parameter and would return sensitive educational data without verifying the requester's identity or permissions in production."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 70,
+        "description": "Weak passphrase validation: minimum 4 characters with no complexity requirements. This is insufficient for cryptographic key derivation. Recommend minimum 12 characters with mixed case, numbers, and symbols."
+      },
+      {
+        "severity": "medium",
+        "file": "src/App.js",
+        "line": 25,
+        "description": "Unsafe URL parameter handling: window.location.search is used to check reset=true without validation. Could be exploited for phishing or unintended state manipulation. Validate and sanitize URL parameters."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 45,
+        "description": "PBKDF2 salt stored in localStorage as base64-encoded string. While encoded, localStorage is vulnerable to XSS attacks. Consider using a secure storage mechanism or deriving salt from passphrase instead."
+      },
+      {
+        "severity": "medium",
+        "file": "src/backend/NeuralAuditPipeline.js",
+        "line": 3,
+        "description": "Hardcoded course codes ['BABS1201', 'BABS1202'] embedded in business logic violates the 'Universal Architecture' rule (per CLAUDE.md). Course-specific data must live in schema/config, not architecture. This creates tight coupling and security boundaries violation."
+      },
+      {
+        "severity": "low",
+        "file": "src/frontend/MasterDashboard.js",
+        "line": 50,
+        "description": "User input from textarea (project.currentDraft) is stored without validation or sanitization. While React auto-escapes JSX, any future rendering to HTML via innerHTML or external systems could expose XSS vulnerabilities."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/EventBus.js",
+        "line": 45,
+        "description": "User ID hardcoded as 'local' string throughout event logging. Lacks proper user identification mechanism. When multi-user support is added, this will create audit and security issues."
+      }
+    ],
+    "riskScore": 48,
+    "recommendations": [
+      "Implement OAuth2 or JWT-based authentication for LMSConnector.fetchLMSData() before accepting production requests",
+      "Enforce minimum passphrase length of 12+ characters with complexity requirements (uppercase, lowercase, numbers, symbols)",
+      "Validate and whitelist URL parameters; use window.location.search only after explicit validation against known safe values",
+      "Migrate salt storage from localStorage to memory-only or derive it from passphrase to prevent XSS-based secrets extraction",
+      "Extract hardcoded course codes from NeuralAuditPipeline.js; move to a config schema file and load at runtime (aligns with CLAUDE.md Universal Architecture rule)",
+      "Add input validation and sanitization for textarea content; define max length, allowed characters, and strip dangerous patterns before storage",
+      "Implement proper user identification in event logging; replace hardcoded 'local' with actual user context or session token",
+      "Add Content-Security-Policy headers to prevent inline script injection and restrict resource origins",
+      "Implement CSRF protection tokens for any state-changing API calls (when LMSConnector moves to real backend)",
+      "Add rate limiting and request throttling to LMSConnector to prevent brute-force enumeration of courses",
+      "Implement comprehensive error handling that avoids leaking sensitive information (e.g., 'course not found' vs 'authentication failed')"
+    ]
+  },
+  "durationMs": 38412,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-10T22:12:53.939Z",
+  "executionId": "audit_1778451135527_dippve"
+}

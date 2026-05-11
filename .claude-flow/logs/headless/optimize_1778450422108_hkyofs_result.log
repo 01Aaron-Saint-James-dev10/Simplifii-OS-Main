@@ -1,0 +1,73 @@
+[2026-05-10T22:02:36.547Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "## Performance Analysis\n\nHere are the key issues found across the codebase, prioritised by impact:\n\n---\n\n### 1. Missing `useMemo` — Inline Filters on Every Render\n\n**`MasterDashboard.js` ~line 1224**\n\nThe archive sidebar runs a filter inside an IIFE on every parent render:\n\n```javascript\n// BAD — runs on every render\n{(() => {\n  const courseAssets = globalGhostAssets.filter(a => a.courseId === activeCourseId);\n  return courseAssets.map(asset => ...);\n})()}\n\n// FIX\nconst courseAssets = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);\n```\n\n---\n\n### 2. Expensive Regex on Every Keystroke\n\n**`LinearCanvas.js` ~lines 23–90** — `ToneHUD` and `SectionHealth` both run `content.match(...)` on every render:\n\n```javascript\n// BAD — O(n) regex runs every keystroke\nconst wordCount = (content.match(/\\S+/g) || []).length;\nconst longWords = (content.match(/\\b\\w{8,}\\b/g) || []).length;\n\n// FIX — wrap both components\nconst SectionHealth = React.memo(({ content, target = 200 }) => {\n  const { wordCount, strokeDashoffset } = useMemo(() => {\n    const count = (content.match(/\\S+/g) || []).length;\n    const pct = Math.min((count / target) * 100, 100);\n    return { wordCount: count, strokeDashoffset: 113 - (pct / 100) * 113 };\n  }, [content, target]);\n  // ...\n});\n```\n\n---\n\n### 3. Memory Leak — Uncleared Timeouts\n\n**`LinearCanvas.js` ~lines 729, 736** — `handleContentChange` creates `setTimeout` calls without cleanup, accumulating them over a long session:\n\n```javascript\n// FIX — use refs to track and clear\nconst pulseTimeoutRef = useRef(null);\n\nif (currentWordCount - lastPulseCount.current >= 100) {\n  setShowSuccessPulse(true);\n  clearTimeout(pulseTimeoutRef.current);\n  pulseTimeoutRef.current = setTimeout(() => setShowSuccessPulse(false), 2000);\n}\n\n// On unmount:\nuseEffect(() => () => clearTimeout(pulseTimeoutRef.current), []);\n```\n\n---\n\n### 4. `useEffect` Dependency Array Causes Constant Re-attachment\n\n**`LinearCanvas.js` ~line 677** — resize listener and interval are torn down and re-added whenever any UI state changes:\n\n```javascript\n// BAD — re-adds window listener on every hover/collapse state change\nuseEffect(() => {\n  window.addEventListener('resize', updateLineCoords);\n  const interval = setInterval(updateLineCoords, 500);\n  return () => { window.removeEventListener('resize', updateLineCoords); clearInterval(interval); };\n}, [mappedBlocks, activeSectionId, hoveredBlockId, isZenMode, isLeftCollapsed, isRightCollapsed]);\n\n// FIX — split into two effects\nuseEffect(() => {\n  window.addEventListener('resize', updateLineCoords);\n  const interval = setInterval(updateLineCoords, 500);\n  return () => { window.removeEventListener('resize', updateLineCoords); clearInterval(interval); };\n}, []); // mount/unmount only\n\nuseEffect(() => { updateLineCoords(); }, [mappedBlocks, activeSectionId, hoveredBlockId]);\n```\n\n---\n\n### 5. History Effect — Potential Infinite Loop\n\n**`LinearCanvas.js` ~lines 134–146** — `history` is a dependency, but the effect updates `history`, creating a loop every 15 seconds:\n\n```javascript\n// BAD\nuseEffect(() => {\n  const timer = setTimeout(() => {\n    if (history.length === 0 || history[history.length - 1].content !== currentContent) {\n      saveBlockSnapshot(...).then(() => getBlockHistory(...).then(setHistory)); // updates history dep!\n    }\n  }, 15000);\n  return () => clearTimeout(timer);\n}, [currentContent, history, blockId]); // history causes re-trigger\n\n// FIX — remove history from deps; check inside the async call\nuseEffect(() => {\n  const timer = setTimeout(() => {\n    getBlockHistory(blockId).then(saved => {\n      if (!saved.length || saved.at(-1).content !== currentContent) {\n        saveBlockSnapshot(blockId, currentContent)\n          .then(() => getBlockHistory(blockId))\n          .then(data => { setHistory(data); setSliderVal(data.length - 1); });\n      }\n    });\n  }, 15000);\n  return () => clearTimeout(timer);\n}, [currentContent, blockId]); // no history\n```\n\n---\n\n### Priority Summary\n\n| # | File | Issue | Priority |\n|---|------|-------|----------|\n| 1 | `LinearCanvas.js:677` | `useEffect` re-attaches listeners on every render | **High** |\n| 2 | `LinearCanvas.js:729` | Uncleared timeouts accumulate in long sessions | **High** |\n| 3 | `LinearCanvas.js:134` | History dep causes effect loop | **High** |\n| 4 | `LinearCanvas.js:23` | Regex computed every keystroke in `ToneHUD` | **Medium** |\n| 5 | `MasterDashboard.js:1224` | Array filter runs in IIFE on every render | **Medium** |\n| 6 | `LinearCanvas.js:92` | `SectionHealth` not wrapped in `React.memo` | **Low** |\n\nThe timeout leak (#2) and the listener effect (#1) are the most likely to cause degraded performance in a long writing session. Fix those first.\n",
+  "parsedOutput": {
+    "sections": [
+      {
+        "title": "Performance Analysis",
+        "content": "\nHere are the key issues found across the codebase, prioritised by impact:\n\n---\n\n",
+        "level": 2
+      },
+      {
+        "title": "1. Missing `useMemo` — Inline Filters on Every Render",
+        "content": "\n**`MasterDashboard.js` ~line 1224**\n\nThe archive sidebar runs a filter inside an IIFE on every parent render:\n\n```javascript\n// BAD — runs on every render\n{(() => {\n  const courseAssets = globalGhostAssets.filter(a => a.courseId === activeCourseId);\n  return courseAssets.map(asset => ...);\n})()}\n\n// FIX\nconst courseAssets = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "2. Expensive Regex on Every Keystroke",
+        "content": "\n**`LinearCanvas.js` ~lines 23–90** — `ToneHUD` and `SectionHealth` both run `content.match(...)` on every render:\n\n```javascript\n// BAD — O(n) regex runs every keystroke\nconst wordCount = (content.match(/\\S+/g) || []).length;\nconst longWords = (content.match(/\\b\\w{8,}\\b/g) || []).length;\n\n// FIX — wrap both components\nconst SectionHealth = React.memo(({ content, target = 200 }) => {\n  const { wordCount, strokeDashoffset } = useMemo(() => {\n    const count = (content.match(/\\S+/g) || []).length;\n    const pct = Math.min((count / target) * 100, 100);\n    return { wordCount: count, strokeDashoffset: 113 - (pct / 100) * 113 };\n  }, [content, target]);\n  // ...\n});\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "3. Memory Leak — Uncleared Timeouts",
+        "content": "\n**`LinearCanvas.js` ~lines 729, 736** — `handleContentChange` creates `setTimeout` calls without cleanup, accumulating them over a long session:\n\n```javascript\n// FIX — use refs to track and clear\nconst pulseTimeoutRef = useRef(null);\n\nif (currentWordCount - lastPulseCount.current >= 100) {\n  setShowSuccessPulse(true);\n  clearTimeout(pulseTimeoutRef.current);\n  pulseTimeoutRef.current = setTimeout(() => setShowSuccessPulse(false), 2000);\n}\n\n// On unmount:\nuseEffect(() => () => clearTimeout(pulseTimeoutRef.current), []);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "4. `useEffect` Dependency Array Causes Constant Re-attachment",
+        "content": "\n**`LinearCanvas.js` ~line 677** — resize listener and interval are torn down and re-added whenever any UI state changes:\n\n```javascript\n// BAD — re-adds window listener on every hover/collapse state change\nuseEffect(() => {\n  window.addEventListener('resize', updateLineCoords);\n  const interval = setInterval(updateLineCoords, 500);\n  return () => { window.removeEventListener('resize', updateLineCoords); clearInterval(interval); };\n}, [mappedBlocks, activeSectionId, hoveredBlockId, isZenMode, isLeftCollapsed, isRightCollapsed]);\n\n// FIX — split into two effects\nuseEffect(() => {\n  window.addEventListener('resize', updateLineCoords);\n  const interval = setInterval(updateLineCoords, 500);\n  return () => { window.removeEventListener('resize', updateLineCoords); clearInterval(interval); };\n}, []); // mount/unmount only\n\nuseEffect(() => { updateLineCoords(); }, [mappedBlocks, activeSectionId, hoveredBlockId]);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "5. History Effect — Potential Infinite Loop",
+        "content": "\n**`LinearCanvas.js` ~lines 134–146** — `history` is a dependency, but the effect updates `history`, creating a loop every 15 seconds:\n\n```javascript\n// BAD\nuseEffect(() => {\n  const timer = setTimeout(() => {\n    if (history.length === 0 || history[history.length - 1].content !== currentContent) {\n      saveBlockSnapshot(...).then(() => getBlockHistory(...).then(setHistory)); // updates history dep!\n    }\n  }, 15000);\n  return () => clearTimeout(timer);\n}, [currentContent, history, blockId]); // history causes re-trigger\n\n// FIX — remove history from deps; check inside the async call\nuseEffect(() => {\n  const timer = setTimeout(() => {\n    getBlockHistory(blockId).then(saved => {\n      if (!saved.length || saved.at(-1).content !== currentContent) {\n        saveBlockSnapshot(blockId, currentContent)\n          .then(() => getBlockHistory(blockId))\n          .then(data => { setHistory(data); setSliderVal(data.length - 1); });\n      }\n    });\n  }, 15000);\n  return () => clearTimeout(timer);\n}, [currentContent, blockId]); // no history\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Priority Summary",
+        "content": "| # | File | Issue | Priority |\n|---|------|-------|----------|\n| 1 | `LinearCanvas.js:677` | `useEffect` re-attaches listeners on every render | **High** |\n| 2 | `LinearCanvas.js:729` | Uncleared timeouts accumulate in long sessions | **High** |\n| 3 | `LinearCanvas.js:134` | History dep causes effect loop | **High** |\n| 4 | `LinearCanvas.js:23` | Regex computed every keystroke in `ToneHUD` | **Medium** |\n| 5 | `MasterDashboard.js:1224` | Array filter runs in IIFE on every render | **Medium** |\n| 6 | `LinearCanvas.js:92` | `SectionHealth` not wrapped in `React.memo` | **Low** |\n\nThe timeout leak (#2) and the listener effect (#1) are the most likely to cause degraded performance in a long writing session. Fix those first.",
+        "level": 3
+      }
+    ],
+    "codeBlocks": [
+      {
+        "language": "javascript",
+        "code": "// BAD — runs on every render\n{(() => {\n  const courseAssets = globalGhostAssets.filter(a => a.courseId === activeCourseId);\n  return courseAssets.map(asset => ...);\n})()}\n\n// FIX\nconst courseAssets = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);"
+      },
+      {
+        "language": "javascript",
+        "code": "// BAD — O(n) regex runs every keystroke\nconst wordCount = (content.match(/\\S+/g) || []).length;\nconst longWords = (content.match(/\\b\\w{8,}\\b/g) || []).length;\n\n// FIX — wrap both components\nconst SectionHealth = React.memo(({ content, target = 200 }) => {\n  const { wordCount, strokeDashoffset } = useMemo(() => {\n    const count = (content.match(/\\S+/g) || []).length;\n    const pct = Math.min((count / target) * 100, 100);\n    return { wordCount: count, strokeDashoffset: 113 - (pct / 100) * 113 };\n  }, [content, target]);\n  // ...\n});"
+      },
+      {
+        "language": "javascript",
+        "code": "// FIX — use refs to track and clear\nconst pulseTimeoutRef = useRef(null);\n\nif (currentWordCount - lastPulseCount.current >= 100) {\n  setShowSuccessPulse(true);\n  clearTimeout(pulseTimeoutRef.current);\n  pulseTimeoutRef.current = setTimeout(() => setShowSuccessPulse(false), 2000);\n}\n\n// On unmount:\nuseEffect(() => () => clearTimeout(pulseTimeoutRef.current), []);"
+      },
+      {
+        "language": "javascript",
+        "code": "// BAD — re-adds window listener on every hover/collapse state change\nuseEffect(() => {\n  window.addEventListener('resize', updateLineCoords);\n  const interval = setInterval(updateLineCoords, 500);\n  return () => { window.removeEventListener('resize', updateLineCoords); clearInterval(interval); };\n}, [mappedBlocks, activeSectionId, hoveredBlockId, isZenMode, isLeftCollapsed, isRightCollapsed]);\n\n// FIX — split into two effects\nuseEffect(() => {\n  window.addEventListener('resize', updateLineCoords);\n  const interval = setInterval(updateLineCoords, 500);\n  return () => { window.removeEventListener('resize', updateLineCoords); clearInterval(interval); };\n}, []); // mount/unmount only\n\nuseEffect(() => { updateLineCoords(); }, [mappedBlocks, activeSectionId, hoveredBlockId]);"
+      },
+      {
+        "language": "javascript",
+        "code": "// BAD\nuseEffect(() => {\n  const timer = setTimeout(() => {\n    if (history.length === 0 || history[history.length - 1].content !== currentContent) {\n      saveBlockSnapshot(...).then(() => getBlockHistory(...).then(setHistory)); // updates history dep!\n    }\n  }, 15000);\n  return () => clearTimeout(timer);\n}, [currentContent, history, blockId]); // history causes re-trigger\n\n// FIX — remove history from deps; check inside the async call\nuseEffect(() => {\n  const timer = setTimeout(() => {\n    getBlockHistory(blockId).then(saved => {\n      if (!saved.length || saved.at(-1).content !== currentContent) {\n        saveBlockSnapshot(blockId, currentContent)\n          .then(() => getBlockHistory(blockId))\n          .then(data => { setHistory(data); setSliderVal(data.length - 1); });\n      }\n    });\n  }, 15000);\n  return () => clearTimeout(timer);\n}, [currentContent, blockId]); // no history"
+      }
+    ]
+  },
+  "durationMs": 134439,
+  "model": "sonnet",
+  "sandboxMode": "permissive",
+  "workerType": "optimize",
+  "timestamp": "2026-05-10T22:02:36.547Z",
+  "executionId": "optimize_1778450422108_hkyofs"
+}

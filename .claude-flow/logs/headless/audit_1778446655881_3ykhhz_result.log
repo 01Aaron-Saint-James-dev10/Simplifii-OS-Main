@@ -1,0 +1,89 @@
+[2026-05-10T20:58:14.650Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/App.js\",\n      \"line\": 21,\n      \"description\": \"Authentication bypass via localStorage. The onboarding flag can be spoofed in DevTools: `localStorage.getItem('simplifii_onboarding_complete') === 'true'` has no validation. An attacker can set this key to bypass the landing page entirely.\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/App.js\",\n      \"line\": 29,\n      \"description\": \"Unsafe URL-based state reset without confirmation. `?reset=true` parameter clears all localStorage data without user confirmation dialog. An attacker could craft a malicious link to wipe user data.\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/frontend/MasterDashboard.js\",\n      \"line\": 32,\n      \"description\": \"No credential validation in LMS sync. `handleSync()` only sets a boolean flag with no OAuth flow, credential exchange, or server-side validation. Any user can claim to be synced to any LMS.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 34,\n      \"description\": \"Passphrase salt stored in localStorage alongside passphrase. Salt should never be in localStorage with the passphrase — enables rainbow table attacks. Move salt to memory or use a server-side derivation.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 33,\n      \"description\": \"Passphrase hint stored in localStorage (PASSPHRASE_HINT_KEY). Hints can leak information about the passphrase. Store only in memory or not at all.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/ExecutiveSpine.js\",\n      \"line\": 36,\n      \"description\": \"Sensitive state stored unencrypted in localStorage. FOCUS_KEY, HEALTH_KEY, CREDITS_KEY, PLAYTIME_KEY contain session data in plaintext. Users on shared devices can read this data.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/frontend/MasterDashboard.js\",\n      \"line\": 85,\n      \"description\": \"Potential XSS via dynamic data in style attributes. `style={{ height: ... }}` uses unsanitized `log.length` values. If log data is user-controlled or externally sourced, malicious CSS could be injected.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/backend/LMSConnector.js\",\n      \"line\": 1,\n      \"description\": \"No input validation on courseCode parameter. If `fetchLMSData(courseCode)` is ever connected to a real API endpoint, the courseCode should be validated/escaped before use in URLs or queries.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 91,\n      \"description\": \"Passphrase comparison not timing-safe. String comparison via `passphrase === ...` could leak timing information. Use constant-time comparison (though impact is minimal for client-side local app).\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 28,\n      \"description\": \"Console logging may leak internal state. Multiple console.warn/info calls expose event bus activity and storage operations in browser DevTools. Remove or gate behind debug flag.\"\n    }\n  ],\n  \"riskScore\": 48,\n  \"recommendations\": [\n    \"Replace localStorage auth flag with in-memory session state or implement a real authentication mechanism (OAuth 2.0 / OpenID Connect for university SSO)\",\n    \"Add user confirmation dialog before allowing `?reset=true` parameter to execute — or remove this feature entirely and require in-app reset flow\",\n    \"Implement proper LMS OAuth 2.0 handshake instead of client-side 'sync' flag. Validate tokens server-side\",\n    \"Move passphrase salt and hint to memory only; do not persist to localStorage. If persistence is required, encrypt with a key derived from the passphrase itself (nested key derivation)\",\n    \"Encrypt sensitive spine state (focus session, health, credits) before storing in localStorage using the user's derived encryption key from HistoryOfThought\",\n    \"Sanitize all dynamic values inserted into style attributes; use CSS class names or validated numeric ranges instead\",\n    \"Add allowlist validation for courseCode parameter: validate against known institutional course codes before use\",\n    \"Use timing-safe comparison for passphrase validation if implemented server-side (Node.js crypto.timingSafeEqual)\",\n    \"Gate all console logging behind a debug flag; remove public-facing logging of auth events and state changes\",\n    \"Add Content Security Policy (CSP) headers to mitigate XSS if this app is served over HTTPS\"\n  ]\n}\n```\n\n---\n\n## Key Findings Summary\n\n**Critical Issues:**\n1. **No real authentication** — localStorage flag can be spoofed in DevTools\n2. **Unsafe URL-based reset** — `?reset=true` wipes data without confirmation\n3. **LMS sync is client-side only** — no credential validation or OAuth flow\n\n**Design Trade-offs to Review:**\n- The \"sovereign\" local-first architecture is good for privacy, but localStorage secrets leak easily on shared devices\n- Salt + passphrase both in localStorage enables offline rainbow table attacks if the device is compromised\n- Focus/health/credits unencrypted in localStorage are visible to browser extensions and DevTools\n\n**Immediate Actions:**\n1. Move all auth state to memory (in-memory session object, not localStorage)\n2. Remove or require confirmation for `?reset=true`\n3. Implement actual OAuth 2.0 for LMS sync, or remove the feature\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "high",
+        "file": "src/App.js",
+        "line": 21,
+        "description": "Authentication bypass via localStorage. The onboarding flag can be spoofed in DevTools: `localStorage.getItem('simplifii_onboarding_complete') === 'true'` has no validation. An attacker can set this key to bypass the landing page entirely."
+      },
+      {
+        "severity": "high",
+        "file": "src/App.js",
+        "line": 29,
+        "description": "Unsafe URL-based state reset without confirmation. `?reset=true` parameter clears all localStorage data without user confirmation dialog. An attacker could craft a malicious link to wipe user data."
+      },
+      {
+        "severity": "high",
+        "file": "src/frontend/MasterDashboard.js",
+        "line": 32,
+        "description": "No credential validation in LMS sync. `handleSync()` only sets a boolean flag with no OAuth flow, credential exchange, or server-side validation. Any user can claim to be synced to any LMS."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 34,
+        "description": "Passphrase salt stored in localStorage alongside passphrase. Salt should never be in localStorage with the passphrase — enables rainbow table attacks. Move salt to memory or use a server-side derivation."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 33,
+        "description": "Passphrase hint stored in localStorage (PASSPHRASE_HINT_KEY). Hints can leak information about the passphrase. Store only in memory or not at all."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/ExecutiveSpine.js",
+        "line": 36,
+        "description": "Sensitive state stored unencrypted in localStorage. FOCUS_KEY, HEALTH_KEY, CREDITS_KEY, PLAYTIME_KEY contain session data in plaintext. Users on shared devices can read this data."
+      },
+      {
+        "severity": "medium",
+        "file": "src/frontend/MasterDashboard.js",
+        "line": 85,
+        "description": "Potential XSS via dynamic data in style attributes. `style={{ height: ... }}` uses unsanitized `log.length` values. If log data is user-controlled or externally sourced, malicious CSS could be injected."
+      },
+      {
+        "severity": "medium",
+        "file": "src/backend/LMSConnector.js",
+        "line": 1,
+        "description": "No input validation on courseCode parameter. If `fetchLMSData(courseCode)` is ever connected to a real API endpoint, the courseCode should be validated/escaped before use in URLs or queries."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 91,
+        "description": "Passphrase comparison not timing-safe. String comparison via `passphrase === ...` could leak timing information. Use constant-time comparison (though impact is minimal for client-side local app)."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 28,
+        "description": "Console logging may leak internal state. Multiple console.warn/info calls expose event bus activity and storage operations in browser DevTools. Remove or gate behind debug flag."
+      }
+    ],
+    "riskScore": 48,
+    "recommendations": [
+      "Replace localStorage auth flag with in-memory session state or implement a real authentication mechanism (OAuth 2.0 / OpenID Connect for university SSO)",
+      "Add user confirmation dialog before allowing `?reset=true` parameter to execute — or remove this feature entirely and require in-app reset flow",
+      "Implement proper LMS OAuth 2.0 handshake instead of client-side 'sync' flag. Validate tokens server-side",
+      "Move passphrase salt and hint to memory only; do not persist to localStorage. If persistence is required, encrypt with a key derived from the passphrase itself (nested key derivation)",
+      "Encrypt sensitive spine state (focus session, health, credits) before storing in localStorage using the user's derived encryption key from HistoryOfThought",
+      "Sanitize all dynamic values inserted into style attributes; use CSS class names or validated numeric ranges instead",
+      "Add allowlist validation for courseCode parameter: validate against known institutional course codes before use",
+      "Use timing-safe comparison for passphrase validation if implemented server-side (Node.js crypto.timingSafeEqual)",
+      "Gate all console logging behind a debug flag; remove public-facing logging of auth events and state changes",
+      "Add Content Security Policy (CSP) headers to mitigate XSS if this app is served over HTTPS"
+    ]
+  },
+  "durationMs": 38769,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-10T20:58:14.650Z",
+  "executionId": "audit_1778446655881_3ykhhz"
+}

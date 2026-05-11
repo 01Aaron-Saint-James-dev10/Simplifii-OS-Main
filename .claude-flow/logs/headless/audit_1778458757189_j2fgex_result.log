@@ -1,0 +1,83 @@
+[2026-05-11T00:20:20.085Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "Based on my analysis of the codebase, here's the security audit report:\n\n```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 109,\n      \"description\": \"Weak passphrase validation (4 character minimum) for encryption key derivation. A 4-character passphrase has ~167 bits of entropy at best, but realistically allows brute-force attacks. For AES-GCM encryption protecting sensitive data, minimum 12 characters with complexity requirements should be enforced.\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/frontend/MasterDashboard.js\",\n      \"line\": 709,\n      \"description\": \"Hardcoded course code 'BABS1201' in sorting logic violates 'Universal Architecture' principle from CLAUDE.md (line 3: 'course-specific data lives in schema and on disk, not in architecture'). This creates architecture coupling and prevents generalization across institutions.\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/backend/NeuralAuditPipeline.js\",\n      \"line\": 3,\n      \"description\": \"Hardcoded SCIENCE_CODES array ['BABS1201', 'BABS1202'] in application logic violates Universal Architecture principle. Course detection should be data-driven, not hardcoded, to support arbitrary institutions.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/backend/LMSConnector.js\",\n      \"line\": 1,\n      \"description\": \"No input validation on courseCode parameter. When real LMS integration replaces this mock, the courseCode will be passed to external APIs without sanitization, creating injection vulnerabilities if used in API URLs or queries.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/frontend/ProjectContext.js\",\n      \"line\": 71,\n      \"description\": \"User input (currentDraft textarea) stored in state without sanitization. If this content is ever rendered as HTML (via dangerouslySetInnerHTML or innerHTML) elsewhere, stored XSS risk exists. Confirm all rendering paths use text content only.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 60,\n      \"description\": \"Encryption salt stored in localStorage as base64. While the salt is not secret, localStorage is vulnerable to XSS attacks. A successful XSS injection can read the salt and encrypted event log. No Content Security Policy or XSS protection mentioned in codebase.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/frontend/MasterDashboard.js\",\n      \"line\": 92,\n      \"description\": \"localStorage.clear() triggered by ?reset=true query parameter without user confirmation. A malicious link could wipe user data. Should require explicit confirmation or secondary validation.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/ExecutiveSpine.js\",\n      \"line\": 78,\n      \"description\": \"JSON.parse() of localStorage data without schema validation. While low risk (data is internal), malformed data could cause silent failures or unexpected behavior if localStorage is corrupted.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/LiteralMode.js\",\n      \"line\": 60,\n      \"description\": \"Regex-based text transformation output should be escaped before HTML rendering. While the transformation itself is safe, confirm consuming components render as text, not HTML.\"\n    }\n  ],\n  \"riskScore\": 71,\n  \"recommendations\": [\n    \"CRITICAL: Increase passphrase minimum length to 12+ characters and add complexity requirements (uppercase, number, symbol). Consider ZXCVBN entropy estimation library.\",\n    \"CRITICAL: Remove hardcoded BABS1201/BABS1202 from NeuralAuditPipeline.js and MasterDashboard.js. Load course-specific logic from a data-driven schema/config file instead.\",\n    \"HIGH: Add input validation to LMSConnector.js courseCode parameter. Use regex to validate format (e.g., /^[A-Z]{3,4}\\\\d{4}$/) before use in any API calls.\",\n    \"HIGH: Add Content Security Policy (CSP) headers to prevent XSS attacks. Restrict script-src, style-src, and use nonce for inline scripts if needed.\",\n    \"HIGH: Audit all code paths that handle project.currentDraft. Ensure it's always rendered as text content (.textContent, <textarea>, etc.), never as HTML.\",\n    \"MEDIUM: Require explicit user confirmation before executing ?reset=true. Implement a confirmation dialog or double-submit pattern.\",\n    \"MEDIUM: Implement CORS and origin validation if this app makes requests to external LMS APIs. Validate all LMS responses.\",\n    \"MEDIUM: Consider moving sensitive data (encryption keys, salt) from localStorage to sessionStorage or IndexedDB with stronger isolation boundaries.\",\n    \"MEDIUM: Add schema validation when parsing JSON from localStorage (e.g., using a library like Zod or Yup).\",\n    \"LOW: Add exhaustive NaN/undefined checks on numeric values before arithmetic (e.g., in CourseTrack.js and ProjectContext.js calculations).\"\n  ]\n}\n```\n\n### Key Findings\n\n**Architecture Violation:** The codebase contains hardcoded course codes (`BABS1201`, `BABS1202`) in 3+ locations, directly contradicting your stated CLAUDE.md principle that course-specific data must be in schema/disk, not architecture. This couples the codebase to UNSW and prevents institutional generalization.\n\n**Encryption Design Flaw:** The 4-character passphrase minimum is far too weak for the cryptographic purpose. This defeats the entire security model of HistoryOfThought.\n\n**XSS Attack Surface:** No CSP headers, localStorage vulnerable to script injection, and user draft content handling needs verification for safe rendering everywhere it's used.\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "high",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 109,
+        "description": "Weak passphrase validation (4 character minimum) for encryption key derivation. A 4-character passphrase has ~167 bits of entropy at best, but realistically allows brute-force attacks. For AES-GCM encryption protecting sensitive data, minimum 12 characters with complexity requirements should be enforced."
+      },
+      {
+        "severity": "high",
+        "file": "src/frontend/MasterDashboard.js",
+        "line": 709,
+        "description": "Hardcoded course code 'BABS1201' in sorting logic violates 'Universal Architecture' principle from CLAUDE.md (line 3: 'course-specific data lives in schema and on disk, not in architecture'). This creates architecture coupling and prevents generalization across institutions."
+      },
+      {
+        "severity": "high",
+        "file": "src/backend/NeuralAuditPipeline.js",
+        "line": 3,
+        "description": "Hardcoded SCIENCE_CODES array ['BABS1201', 'BABS1202'] in application logic violates Universal Architecture principle. Course detection should be data-driven, not hardcoded, to support arbitrary institutions."
+      },
+      {
+        "severity": "medium",
+        "file": "src/backend/LMSConnector.js",
+        "line": 1,
+        "description": "No input validation on courseCode parameter. When real LMS integration replaces this mock, the courseCode will be passed to external APIs without sanitization, creating injection vulnerabilities if used in API URLs or queries."
+      },
+      {
+        "severity": "medium",
+        "file": "src/frontend/ProjectContext.js",
+        "line": 71,
+        "description": "User input (currentDraft textarea) stored in state without sanitization. If this content is ever rendered as HTML (via dangerouslySetInnerHTML or innerHTML) elsewhere, stored XSS risk exists. Confirm all rendering paths use text content only."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 60,
+        "description": "Encryption salt stored in localStorage as base64. While the salt is not secret, localStorage is vulnerable to XSS attacks. A successful XSS injection can read the salt and encrypted event log. No Content Security Policy or XSS protection mentioned in codebase."
+      },
+      {
+        "severity": "medium",
+        "file": "src/frontend/MasterDashboard.js",
+        "line": 92,
+        "description": "localStorage.clear() triggered by ?reset=true query parameter without user confirmation. A malicious link could wipe user data. Should require explicit confirmation or secondary validation."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/ExecutiveSpine.js",
+        "line": 78,
+        "description": "JSON.parse() of localStorage data without schema validation. While low risk (data is internal), malformed data could cause silent failures or unexpected behavior if localStorage is corrupted."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/LiteralMode.js",
+        "line": 60,
+        "description": "Regex-based text transformation output should be escaped before HTML rendering. While the transformation itself is safe, confirm consuming components render as text, not HTML."
+      }
+    ],
+    "riskScore": 71,
+    "recommendations": [
+      "CRITICAL: Increase passphrase minimum length to 12+ characters and add complexity requirements (uppercase, number, symbol). Consider ZXCVBN entropy estimation library.",
+      "CRITICAL: Remove hardcoded BABS1201/BABS1202 from NeuralAuditPipeline.js and MasterDashboard.js. Load course-specific logic from a data-driven schema/config file instead.",
+      "HIGH: Add input validation to LMSConnector.js courseCode parameter. Use regex to validate format (e.g., /^[A-Z]{3,4}\\d{4}$/) before use in any API calls.",
+      "HIGH: Add Content Security Policy (CSP) headers to prevent XSS attacks. Restrict script-src, style-src, and use nonce for inline scripts if needed.",
+      "HIGH: Audit all code paths that handle project.currentDraft. Ensure it's always rendered as text content (.textContent, <textarea>, etc.), never as HTML.",
+      "MEDIUM: Require explicit user confirmation before executing ?reset=true. Implement a confirmation dialog or double-submit pattern.",
+      "MEDIUM: Implement CORS and origin validation if this app makes requests to external LMS APIs. Validate all LMS responses.",
+      "MEDIUM: Consider moving sensitive data (encryption keys, salt) from localStorage to sessionStorage or IndexedDB with stronger isolation boundaries.",
+      "MEDIUM: Add schema validation when parsing JSON from localStorage (e.g., using a library like Zod or Yup).",
+      "LOW: Add exhaustive NaN/undefined checks on numeric values before arithmetic (e.g., in CourseTrack.js and ProjectContext.js calculations)."
+    ]
+  },
+  "durationMs": 62895,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-11T00:20:20.084Z",
+  "executionId": "audit_1778458757189_j2fgex"
+}

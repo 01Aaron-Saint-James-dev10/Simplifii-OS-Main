@@ -1,0 +1,84 @@
+[2026-05-10T21:01:09.131Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/frontend/SmartIntake.js\",\n      \"line\": 6,\n      \"description\": \"Hardcoded institution name 'UNSW Moodle' and course code 'ARTS5200' in source. Violates CLAUDE.md guideline: 'Do not reference specific university course codes inside engineering specs'. Creates data leakage risk if source is exposed or public-facing.\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/App.js\",\n      \"line\": 23,\n      \"description\": \"Unconfirmed localStorage wipe via query parameter. The `?reset=true` parameter triggers `localStorage.clear()` without user confirmation. Exploitable for social engineering attacks (e.g., phishing links that erase user data). Should require explicit user action to proceed.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/frontend/ProjectContext.js\",\n      \"line\": 11,\n      \"description\": \"No input size validation on `updateDraft()`. User can paste arbitrary large text (no upper limit checked), causing potential DoS via memory exhaustion or slow rendering. Textarea should have `maxLength` attribute.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/ExecutiveSpine.js\",\n      \"line\": 19,\n      \"description\": \"Session and health data stored in plaintext localStorage (FOCUS_KEY, HEALTH_KEY, CREDITS_KEY). Although CLAUDE.md emphasizes local-first design, taskId and timing metadata exposed. Should be encrypted at rest using the same PBKDF2+AES-GCM as HistoryOfThought.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/backend/LMSConnector.js\",\n      \"line\": 1,\n      \"description\": \"No CSRF token or request validation visible. Future real LMS API calls will require CSRF protection, SameSite cookies, and request signing. Mock implementation needs hardened before production use.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/frontend/SettingsContext.js\",\n      \"line\": 15,\n      \"description\": \"Font family values (`OpenDyslexic`, `Inter`) come from state but are injected directly into inline style. If these values ever become user-controllable, CSS injection is possible. Should validate against a whitelist.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"scripts/check-style.js\",\n      \"line\": 37,\n      \"description\": \"File-level directive `allow-style:file` can opt out of spelling checks (em-dash check still runs). Could be abused to bypass security audits. Consider removing the bypass or requiring explicit approval.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"scripts/copy-pdf-worker.js\",\n      \"line\": 28,\n      \"description\": \"No integrity check (hash/signature) on copied PDF worker files. If `node_modules/pdfjs-dist` is compromised, malicious code lands in `public/`. Add SRI or hash validation.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 52,\n      \"description\": \"PBKDF2 salt stored in localStorage in Base64. While the encryption key itself is not stored, the salt is retrievable and could aid offline brute-force attacks if the passphrase is weak (though 600k iterations + 256-bit AES mitigate this somewhat).\"\n    }\n  ],\n  \"riskScore\": 32,\n  \"recommendations\": [\n    \"CRITICAL: Move institution/course names from SmartIntake.js into a schema-anchored configuration file (e.g., `config/institutions.json`) that is loaded at runtime and not committed to source. Update NeuralAuditPipeline.js to read from config, not from hardcoded arrays.\",\n    \"CRITICAL: Require explicit user confirmation (e.g., password prompt or button click) before `localStorage.clear()` is triggered via query parameter. Remove the automatic reset; make it an opt-in debug feature behind a feature flag.\",\n    \"HIGH: Add `maxLength={5000}` attribute to the textarea in MasterDashboard.js (line ~85) and implement client-side validation with warning feedback at 80% capacity.\",\n    \"HIGH: Encrypt localStorage entries (FOCUS_KEY, HEALTH_KEY, CREDITS_KEY) using the same PBKDF2+AES-GCM stack as HistoryOfThought, or move them to IndexedDB with encryption.\",\n    \"MEDIUM: Before wiring LMSConnector.js to a real API, add CSRF token validation, SameSite cookie enforcement, and request signing. Use a secrets manager for any API credentials (never commit).\",\n    \"MEDIUM: Validate `mode` against a whitelist in SettingsContext.js: `const VALID_MODES = ['standard', 'adhd', 'dyslexia']`. Reject invalid values and log warnings.\",\n    \"LOW: Replace inline font-family with CSS classes and a theme enum to prevent CSS injection if mode ever becomes user-input.\",\n    \"LOW: Remove or restrict the `allow-style:file` bypass in check-style.js. If necessary, require explicit per-line comments instead.\",\n    \"LOW: Add SHA-256 hash validation to copy-pdf-worker.js. Verify the copied file hash against a hardcoded expected hash before proceeding.\",\n    \"LOW: Document the threat model for passphrase-based encryption in HistoryOfThought.js. Recommend users choose passphrases with >= 16 entropy bits; consider enforcing a minimum length of 12 characters.\",\n    \"ONGOING: Run `npx audit` and `npx audit fix` to check for vulnerable transitive dependencies (pdfjs-dist, lucide-react, etc.). Pin versions in package-lock.json and automate dependency scanning in CI.\"\n  ]\n}\n```\n\n---\n\n**Summary:**  \nYour risk score is **32/100** (low-to-moderate). The main exposures are:\n\n1. **Hardcoded course codes** leaking institution specifics (violates your own CLAUDE.md)\n2. **Unprotected reset parameter** that can wipe user data without consent\n3. **Plaintext session data** in localStorage that should be encrypted\n\nThe encryption in HistoryOfThought and EventBus is well-designed. The attack surface is small because this is client-side only with no backend auth yet. Once you wire LMSConnector to a real API, add CSRF tokens and request signing immediately.\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "high",
+        "file": "src/frontend/SmartIntake.js",
+        "line": 6,
+        "description": "Hardcoded institution name 'UNSW Moodle' and course code 'ARTS5200' in source. Violates CLAUDE.md guideline: 'Do not reference specific university course codes inside engineering specs'. Creates data leakage risk if source is exposed or public-facing."
+      },
+      {
+        "severity": "high",
+        "file": "src/App.js",
+        "line": 23,
+        "description": "Unconfirmed localStorage wipe via query parameter. The `?reset=true` parameter triggers `localStorage.clear()` without user confirmation. Exploitable for social engineering attacks (e.g., phishing links that erase user data). Should require explicit user action to proceed."
+      },
+      {
+        "severity": "medium",
+        "file": "src/frontend/ProjectContext.js",
+        "line": 11,
+        "description": "No input size validation on `updateDraft()`. User can paste arbitrary large text (no upper limit checked), causing potential DoS via memory exhaustion or slow rendering. Textarea should have `maxLength` attribute."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/ExecutiveSpine.js",
+        "line": 19,
+        "description": "Session and health data stored in plaintext localStorage (FOCUS_KEY, HEALTH_KEY, CREDITS_KEY). Although CLAUDE.md emphasizes local-first design, taskId and timing metadata exposed. Should be encrypted at rest using the same PBKDF2+AES-GCM as HistoryOfThought."
+      },
+      {
+        "severity": "medium",
+        "file": "src/backend/LMSConnector.js",
+        "line": 1,
+        "description": "No CSRF token or request validation visible. Future real LMS API calls will require CSRF protection, SameSite cookies, and request signing. Mock implementation needs hardened before production use."
+      },
+      {
+        "severity": "low",
+        "file": "src/frontend/SettingsContext.js",
+        "line": 15,
+        "description": "Font family values (`OpenDyslexic`, `Inter`) come from state but are injected directly into inline style. If these values ever become user-controllable, CSS injection is possible. Should validate against a whitelist."
+      },
+      {
+        "severity": "low",
+        "file": "scripts/check-style.js",
+        "line": 37,
+        "description": "File-level directive `allow-style:file` can opt out of spelling checks (em-dash check still runs). Could be abused to bypass security audits. Consider removing the bypass or requiring explicit approval."
+      },
+      {
+        "severity": "low",
+        "file": "scripts/copy-pdf-worker.js",
+        "line": 28,
+        "description": "No integrity check (hash/signature) on copied PDF worker files. If `node_modules/pdfjs-dist` is compromised, malicious code lands in `public/`. Add SRI or hash validation."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 52,
+        "description": "PBKDF2 salt stored in localStorage in Base64. While the encryption key itself is not stored, the salt is retrievable and could aid offline brute-force attacks if the passphrase is weak (though 600k iterations + 256-bit AES mitigate this somewhat)."
+      }
+    ],
+    "riskScore": 32,
+    "recommendations": [
+      "CRITICAL: Move institution/course names from SmartIntake.js into a schema-anchored configuration file (e.g., `config/institutions.json`) that is loaded at runtime and not committed to source. Update NeuralAuditPipeline.js to read from config, not from hardcoded arrays.",
+      "CRITICAL: Require explicit user confirmation (e.g., password prompt or button click) before `localStorage.clear()` is triggered via query parameter. Remove the automatic reset; make it an opt-in debug feature behind a feature flag.",
+      "HIGH: Add `maxLength={5000}` attribute to the textarea in MasterDashboard.js (line ~85) and implement client-side validation with warning feedback at 80% capacity.",
+      "HIGH: Encrypt localStorage entries (FOCUS_KEY, HEALTH_KEY, CREDITS_KEY) using the same PBKDF2+AES-GCM stack as HistoryOfThought, or move them to IndexedDB with encryption.",
+      "MEDIUM: Before wiring LMSConnector.js to a real API, add CSRF token validation, SameSite cookie enforcement, and request signing. Use a secrets manager for any API credentials (never commit).",
+      "MEDIUM: Validate `mode` against a whitelist in SettingsContext.js: `const VALID_MODES = ['standard', 'adhd', 'dyslexia']`. Reject invalid values and log warnings.",
+      "LOW: Replace inline font-family with CSS classes and a theme enum to prevent CSS injection if mode ever becomes user-input.",
+      "LOW: Remove or restrict the `allow-style:file` bypass in check-style.js. If necessary, require explicit per-line comments instead.",
+      "LOW: Add SHA-256 hash validation to copy-pdf-worker.js. Verify the copied file hash against a hardcoded expected hash before proceeding.",
+      "LOW: Document the threat model for passphrase-based encryption in HistoryOfThought.js. Recommend users choose passphrases with >= 16 entropy bits; consider enforcing a minimum length of 12 characters.",
+      "ONGOING: Run `npx audit` and `npx audit fix` to check for vulnerable transitive dependencies (pdfjs-dist, lucide-react, etc.). Pin versions in package-lock.json and automate dependency scanning in CI."
+    ]
+  },
+  "durationMs": 46293,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-10T21:01:09.130Z",
+  "executionId": "audit_1778446822837_9axojy"
+}

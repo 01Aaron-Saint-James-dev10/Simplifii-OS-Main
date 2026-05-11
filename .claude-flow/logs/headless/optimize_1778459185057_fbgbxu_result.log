@@ -1,0 +1,85 @@
+[2026-05-11T00:29:21.579Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "## Performance Analysis: Simplifii OS\n\nHere are the findings across all five categories, ordered by impact:\n\n---\n\n### 1. N+1 Query Patterns\n\n**`src/services/IndexedDBService.js` — New DB connection per operation**\n\nEvery service call invokes `initDB()` which opens a fresh connection. Fix: singleton pattern.\n\n```javascript\n// Before: New connection every call\nconst saveBlockHistory = async (blocks) => {\n  const db = await initDB();\n};\n\n// After: Reuse cached connection\nlet __db = null;\nconst getDB = async () => { if (!__db) __db = await initDB(); return __db; };\n```\n\n**`src/services/BriefService.js` ~lines 148-184 — Multiple regex passes over same text**\n\nFour separate `.match()` calls scan the full text sequentially. Combine into one `exec` loop.\n\n---\n\n### 2. Unnecessary Re-renders\n\n**`src/frontend/SettingsContext.js` ~line 40 — Single useEffect with 20+ dependencies**\n\nAny setting change (even unrelated) re-runs the whole effect, dispatches a `simplifii:lod-change` event, and persists everything. Split by concern:\n\n```javascript\n// Separate dispatch from persistence\nuseEffect(() => { localStorage.setItem('persona', persona); }, [persona]);\nuseEffect(() => {\n  window.dispatchEvent(new CustomEvent('simplifii:lod-change', { detail: { lodLevel } }));\n}, [lodLevel]); // Only fires when LOD actually changes\n```\n\n**`src/frontend/LinearCanvas.js` ~line 672 — State update 2x/second for SVG coords**\n\n`updateLineCoords()` calls `setState` inside `setInterval(fn, 500)`, re-rendering the entire SVG layer twice per second. Use a ref for the live value; sync to state less frequently:\n\n```javascript\nconst lineCoordsRef = useRef([]);\nsetInterval(() => { lineCoordsRef.current = calculateLineCoords(); }, 500); // No re-render\nsetInterval(() => { setLineCoords(lineCoordsRef.current); }, 2000);         // Render 0.5x/sec\n```\n\n**`src/frontend/SimplifiiStudio.js` ~line 1033 — `buildPillarsFromBriefs` on every render**\n\n```javascript\n// Wrap in useMemo\nconst pillars = useMemo(\n  () => buildPillarsFromBriefs(activeCourse.extractionData?.assessmentBriefs),\n  [activeCourse.extractionData?.assessmentBriefs]\n);\n```\n\n---\n\n### 3. Caching Opportunities\n\n**`src/services/ChatService.js` ~line 40 — localStorage read on every `askAura` call**\n\n```javascript\nlet __config = null;\nconst getConfig = () => {\n  if (!__config) __config = {\n    endpoint: safeReadLS(OLLAMA_ENDPOINT_KEY, DEFAULT_OLLAMA_ENDPOINT),\n    model: safeReadLS(OLLAMA_MODEL_KEY, DEFAULT_OLLAMA_MODEL),\n  };\n  return __config;\n};\n```\n\n**`src/services/MicroStepService.js` ~line 24 — Steering dials read multiple times per request**\n\nAdd a 1-second TTL cache for all five localStorage reads that `generateMicroSteps` uses.\n\n**`src/services/RewriteService.js` ~line 85 — Regex rebuilt per invocation**\n\n```javascript\nconst __levelRegexCache = {};\nconst buildLevelRegex = (level) => {\n  if (__levelRegexCache[level]) return __levelRegexCache[level];\n  const pattern = Object.keys(LEVEL_SYNONYMS[level] || {}).map(k => `\\\\b${k}\\\\b`).join('|');\n  return (__levelRegexCache[level] = new RegExp(pattern, 'gi'));\n};\n```\n\n---\n\n### 4. Memory Leaks\n\n**`src/frontend/MasterDashboard.js` ~line 436 — Async fetch, no cancellation**\n\nPromise resolves after unmount and calls `setState` on a dead component:\n\n```javascript\nuseEffect(() => {\n  let cancelled = false;\n  getAllGhostAssets().then(assets => {\n    if (!cancelled) setGhostAssets(assets);\n  });\n  return () => { cancelled = true; };\n}, []);\n```\n\n**`src/frontend/MasterDashboard.js` ~lines 372-471 — Three separate event listener effects**\n\nConsolidate into one `useEffect` to reduce mount/unmount churn and ensure all listeners are always removed together.\n\n---\n\n### 5. Redundant Computations\n\n**`src/frontend/CourseTrack.js` ~line 10 — `islands` array recomputed every render**\n\n```javascript\nconst islands = useMemo(() => {\n  let cumulative = 0;\n  return blocks.map((b, i) => { cumulative += b.targetWords || 0; return { ... }; });\n}, [blocks, currentWords, verifications, targetWords]);\n```\n\n**`src/frontend/BionicText.js` ~line 18 — `vowels` Set recreated inside render**\n\nMove `const vowels = new Set([...])` to module scope so it's created once.\n\n**`src/frontend/ProjectContext.js` ~lines 248-281 — `__overriddenExtractionData` / `__overriddenRoadmap` recomputed on every render**\n\nBoth derive from `__schemaPillars` — wrap both in `useMemo([__schemaPillars])`.\n\n---\n\n### Priority Summary\n\n| Priority | Issue | File |\n|---|---|---|\n| High | DB connection per operation | `IndexedDBService.js` |\n| High | setState after unmount | `MasterDashboard.js:436` |\n| High | 20-dep single effect dispatching on every setting change | `SettingsContext.js:40` |\n| High | SVG state update 2x/sec | `LinearCanvas.js:672` |\n| Medium | localStorage re-read on every AI call | `ChatService.js`, `MicroStepService.js` |\n| Medium | Pillar/extraction recompute on render | `ProjectContext.js`, `SimplifiiStudio.js` |\n| Low | Regex rebuilt per call | `RewriteService.js` |\n| Low | `vowels` Set in render body | `BionicText.js` |\n",
+  "parsedOutput": {
+    "sections": [
+      {
+        "title": "Performance Analysis: Simplifii OS",
+        "content": "\nHere are the findings across all five categories, ordered by impact:\n\n---\n\n",
+        "level": 2
+      },
+      {
+        "title": "1. N+1 Query Patterns",
+        "content": "\n**`src/services/IndexedDBService.js` — New DB connection per operation**\n\nEvery service call invokes `initDB()` which opens a fresh connection. Fix: singleton pattern.\n\n```javascript\n// Before: New connection every call\nconst saveBlockHistory = async (blocks) => {\n  const db = await initDB();\n};\n\n// After: Reuse cached connection\nlet __db = null;\nconst getDB = async () => { if (!__db) __db = await initDB(); return __db; };\n```\n\n**`src/services/BriefService.js` ~lines 148-184 — Multiple regex passes over same text**\n\nFour separate `.match()` calls scan the full text sequentially. Combine into one `exec` loop.\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "2. Unnecessary Re-renders",
+        "content": "\n**`src/frontend/SettingsContext.js` ~line 40 — Single useEffect with 20+ dependencies**\n\nAny setting change (even unrelated) re-runs the whole effect, dispatches a `simplifii:lod-change` event, and persists everything. Split by concern:\n\n```javascript\n// Separate dispatch from persistence\nuseEffect(() => { localStorage.setItem('persona', persona); }, [persona]);\nuseEffect(() => {\n  window.dispatchEvent(new CustomEvent('simplifii:lod-change', { detail: { lodLevel } }));\n}, [lodLevel]); // Only fires when LOD actually changes\n```\n\n**`src/frontend/LinearCanvas.js` ~line 672 — State update 2x/second for SVG coords**\n\n`updateLineCoords()` calls `setState` inside `setInterval(fn, 500)`, re-rendering the entire SVG layer twice per second. Use a ref for the live value; sync to state less frequently:\n\n```javascript\nconst lineCoordsRef = useRef([]);\nsetInterval(() => { lineCoordsRef.current = calculateLineCoords(); }, 500); // No re-render\nsetInterval(() => { setLineCoords(lineCoordsRef.current); }, 2000);         // Render 0.5x/sec\n```\n\n**`src/frontend/SimplifiiStudio.js` ~line 1033 — `buildPillarsFromBriefs` on every render**\n\n```javascript\n// Wrap in useMemo\nconst pillars = useMemo(\n  () => buildPillarsFromBriefs(activeCourse.extractionData?.assessmentBriefs),\n  [activeCourse.extractionData?.assessmentBriefs]\n);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "3. Caching Opportunities",
+        "content": "\n**`src/services/ChatService.js` ~line 40 — localStorage read on every `askAura` call**\n\n```javascript\nlet __config = null;\nconst getConfig = () => {\n  if (!__config) __config = {\n    endpoint: safeReadLS(OLLAMA_ENDPOINT_KEY, DEFAULT_OLLAMA_ENDPOINT),\n    model: safeReadLS(OLLAMA_MODEL_KEY, DEFAULT_OLLAMA_MODEL),\n  };\n  return __config;\n};\n```\n\n**`src/services/MicroStepService.js` ~line 24 — Steering dials read multiple times per request**\n\nAdd a 1-second TTL cache for all five localStorage reads that `generateMicroSteps` uses.\n\n**`src/services/RewriteService.js` ~line 85 — Regex rebuilt per invocation**\n\n```javascript\nconst __levelRegexCache = {};\nconst buildLevelRegex = (level) => {\n  if (__levelRegexCache[level]) return __levelRegexCache[level];\n  const pattern = Object.keys(LEVEL_SYNONYMS[level] || {}).map(k => `\\\\b${k}\\\\b`).join('|');\n  return (__levelRegexCache[level] = new RegExp(pattern, 'gi'));\n};\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "4. Memory Leaks",
+        "content": "\n**`src/frontend/MasterDashboard.js` ~line 436 — Async fetch, no cancellation**\n\nPromise resolves after unmount and calls `setState` on a dead component:\n\n```javascript\nuseEffect(() => {\n  let cancelled = false;\n  getAllGhostAssets().then(assets => {\n    if (!cancelled) setGhostAssets(assets);\n  });\n  return () => { cancelled = true; };\n}, []);\n```\n\n**`src/frontend/MasterDashboard.js` ~lines 372-471 — Three separate event listener effects**\n\nConsolidate into one `useEffect` to reduce mount/unmount churn and ensure all listeners are always removed together.\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "5. Redundant Computations",
+        "content": "\n**`src/frontend/CourseTrack.js` ~line 10 — `islands` array recomputed every render**\n\n```javascript\nconst islands = useMemo(() => {\n  let cumulative = 0;\n  return blocks.map((b, i) => { cumulative += b.targetWords || 0; return { ... }; });\n}, [blocks, currentWords, verifications, targetWords]);\n```\n\n**`src/frontend/BionicText.js` ~line 18 — `vowels` Set recreated inside render**\n\nMove `const vowels = new Set([...])` to module scope so it's created once.\n\n**`src/frontend/ProjectContext.js` ~lines 248-281 — `__overriddenExtractionData` / `__overriddenRoadmap` recomputed on every render**\n\nBoth derive from `__schemaPillars` — wrap both in `useMemo([__schemaPillars])`.\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Priority Summary",
+        "content": "| Priority | Issue | File |\n|---|---|---|\n| High | DB connection per operation | `IndexedDBService.js` |\n| High | setState after unmount | `MasterDashboard.js:436` |\n| High | 20-dep single effect dispatching on every setting change | `SettingsContext.js:40` |\n| High | SVG state update 2x/sec | `LinearCanvas.js:672` |\n| Medium | localStorage re-read on every AI call | `ChatService.js`, `MicroStepService.js` |\n| Medium | Pillar/extraction recompute on render | `ProjectContext.js`, `SimplifiiStudio.js` |\n| Low | Regex rebuilt per call | `RewriteService.js` |\n| Low | `vowels` Set in render body | `BionicText.js` |",
+        "level": 3
+      }
+    ],
+    "codeBlocks": [
+      {
+        "language": "javascript",
+        "code": "// Before: New connection every call\nconst saveBlockHistory = async (blocks) => {\n  const db = await initDB();\n};\n\n// After: Reuse cached connection\nlet __db = null;\nconst getDB = async () => { if (!__db) __db = await initDB(); return __db; };"
+      },
+      {
+        "language": "javascript",
+        "code": "// Separate dispatch from persistence\nuseEffect(() => { localStorage.setItem('persona', persona); }, [persona]);\nuseEffect(() => {\n  window.dispatchEvent(new CustomEvent('simplifii:lod-change', { detail: { lodLevel } }));\n}, [lodLevel]); // Only fires when LOD actually changes"
+      },
+      {
+        "language": "javascript",
+        "code": "const lineCoordsRef = useRef([]);\nsetInterval(() => { lineCoordsRef.current = calculateLineCoords(); }, 500); // No re-render\nsetInterval(() => { setLineCoords(lineCoordsRef.current); }, 2000);         // Render 0.5x/sec"
+      },
+      {
+        "language": "javascript",
+        "code": "// Wrap in useMemo\nconst pillars = useMemo(\n  () => buildPillarsFromBriefs(activeCourse.extractionData?.assessmentBriefs),\n  [activeCourse.extractionData?.assessmentBriefs]\n);"
+      },
+      {
+        "language": "javascript",
+        "code": "let __config = null;\nconst getConfig = () => {\n  if (!__config) __config = {\n    endpoint: safeReadLS(OLLAMA_ENDPOINT_KEY, DEFAULT_OLLAMA_ENDPOINT),\n    model: safeReadLS(OLLAMA_MODEL_KEY, DEFAULT_OLLAMA_MODEL),\n  };\n  return __config;\n};"
+      },
+      {
+        "language": "javascript",
+        "code": "const __levelRegexCache = {};\nconst buildLevelRegex = (level) => {\n  if (__levelRegexCache[level]) return __levelRegexCache[level];\n  const pattern = Object.keys(LEVEL_SYNONYMS[level] || {}).map(k => `\\\\b${k}\\\\b`).join('|');\n  return (__levelRegexCache[level] = new RegExp(pattern, 'gi'));\n};"
+      },
+      {
+        "language": "javascript",
+        "code": "useEffect(() => {\n  let cancelled = false;\n  getAllGhostAssets().then(assets => {\n    if (!cancelled) setGhostAssets(assets);\n  });\n  return () => { cancelled = true; };\n}, []);"
+      },
+      {
+        "language": "javascript",
+        "code": "const islands = useMemo(() => {\n  let cumulative = 0;\n  return blocks.map((b, i) => { cumulative += b.targetWords || 0; return { ... }; });\n}, [blocks, currentWords, verifications, targetWords]);"
+      }
+    ]
+  },
+  "durationMs": 176522,
+  "model": "sonnet",
+  "sandboxMode": "permissive",
+  "workerType": "optimize",
+  "timestamp": "2026-05-11T00:29:21.579Z",
+  "executionId": "optimize_1778459185057_fbgbxu"
+}

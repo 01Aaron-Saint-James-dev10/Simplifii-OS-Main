@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { ArrowRight, User, Calendar, BookOpen, Brain, UploadCloud, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, User, Calendar, BookOpen, Brain, UploadCloud, Loader2, AlertCircle, Shield } from 'lucide-react';
 import { processDocumentWithGCP } from '../services/DocumentAIService';
 import { extractDeepCourseData, mergeExtractionData } from '../services/BriefService';
 import { speakSystemMessage } from '../services/MessagingHub';
@@ -197,14 +198,13 @@ export function CourseDefinition({ onComplete, profile, setProfile }) {
 
 export function Grounding({ onComplete, profile }) {
   const [parsingFiles, setParsingFiles] = useState(false);
+  const [ingestStatus, setIngestStatus] = useState('');
   const [extractionError, setExtractionError] = useState(null);
   const [aggregated, setAggregated] = useState(null);
   const [fileNames, setFileNames] = useState([]);
+  const [isOver, setIsOver] = useState(false);
   const fileInputRef = useRef(null);
-  // Paste-as-text path. Some students do not have a clean PDF (the
-  // brief lives in their Canvas page text, or they're typing it from
-  // a printout). The textarea accepts pasted assessment text and feeds
-  // it through the same extractDeepCourseData pipeline as a PDF.
+
   const [pasteMode, setPasteMode] = useState(false);
   const [pastedText, setPastedText] = useState('');
 
@@ -222,6 +222,7 @@ export function Grounding({ onComplete, profile }) {
     }
     setExtractionError(null);
     setParsingFiles(true);
+    setIngestStatus('Initialising Grouping...');
     try {
       const next = aggregated || baseFromProfile();
       const deepData = extractDeepCourseData(text);
@@ -229,29 +230,21 @@ export function Grounding({ onComplete, profile }) {
       setAggregated(merged);
       setFileNames(prev => [...prev, 'Pasted text']);
       setPastedText('');
+      setIngestStatus('Neural Map Ready');
     } catch (err) {
       setExtractionError(err?.message || 'Could not parse the pasted text.');
     } finally {
       setParsingFiles(false);
+      setTimeout(() => setIngestStatus(''), 2000);
     }
   };
 
-  // Master-Schema priority: process files in a fixed order regardless of
-  // the order the student dropped them. Course Outline is the canonical
-  // source of the assessment list (the table on page 4). Brief zooms in
-  // on one task. Rubric is criteria for grading. By processing Outline
-  // first, the merged rawText starts with the outline content, so:
-  //   - the Ollama extractor's first 25k char window includes the outline
-  //     assessment table early
-  //   - the AURA chat context's first 8k chars open with the outline
-  //   - regex pre-extraction sees outline weightings before brief
-  //     component weightings
   const classifyFile = (file) => {
     const n = (file.name || '').toLowerCase();
-    if (/outline|course[ _-]?info|co[_-]/i.test(n)) return 0; // master
+    if (/outline|course[ _-]?info|co[_-]/i.test(n)) return 0;
     if (/brief|assess|task|instruction/i.test(n)) return 1;
     if (/rubric|criteria|marking/i.test(n)) return 2;
-    return 3; // unknown, last
+    return 3;
   };
 
   const handleFileUpload = async (e) => {
@@ -260,27 +253,52 @@ export function Grounding({ onComplete, profile }) {
 
     setExtractionError(null);
     setParsingFiles(true);
+    setIngestStatus('Initialising Grouping...');
+
     try {
-      let next = aggregated || baseFromProfile();
+      // Course-Aware Splitting: group files by unit code before extraction
+      // so each code (e.g. BABS1201 vs BABS1202) gets its own aggregation
+      const codeRegex = /\b([A-Z]{3,4}\d{4})\b/;
+      const groups = {};
       for (const file of files) {
-        if (typeof console !== 'undefined') console.info('[Grounding] processing', file.name, 'class=', classifyFile(file));
-        const text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
-        const deepData = extractDeepCourseData(text);
-        next = mergeExtractionData(next, { ...deepData, rawText: text });
+        const match = (file.name || '').match(codeRegex);
+        const code = match ? match[1] : (profile.courseName || 'General');
+        if (!groups[code]) groups[code] = [];
+        groups[code].push(file);
       }
-      setAggregated(next);
-      setFileNames(prev => [...prev, ...files.map(f => f.name)]);
+      const codes = Object.keys(groups);
+      if (codes.length > 1) {
+        setIngestStatus(`Detected ${codes.length} unit codes: ${codes.join(', ')}`);
+      }
+
+      // Process each group independently so each code becomes a distinct pillar
+      let combinedAggregated = aggregated;
+      const allNames = [];
+      for (const code of codes) {
+        const groupFiles = groups[code].sort((a, b) => classifyFile(a) - classifyFile(b));
+        setIngestStatus(`Sorting by Unit Code: ${code}`);
+        let next = combinedAggregated || baseFromProfile();
+        // Override unitCode for this group
+        next = { ...next, unitCode: code };
+        for (const file of groupFiles) {
+          setIngestStatus(`Processing: ${file.name}`);
+          const text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
+          const deepData = extractDeepCourseData(text);
+          next = mergeExtractionData(next, { ...deepData, rawText: text });
+        }
+        combinedAggregated = next;
+        allNames.push(...groupFiles.map(f => f.name));
+      }
+      setAggregated(combinedAggregated);
+      setFileNames(prev => [...prev, ...allNames]);
+      setIngestStatus('Neural Map Ready');
     } catch (error) {
       console.error("Critical extraction failure:", error);
-      const msg = error?.message || '';
-      if (/worker/i.test(msg)) {
-        try { speakSystemMessage('System breach. PDF engine offline.', 'PDF engine offline.'); } catch { /* speech unavailable */ }
-      }
-      setExtractionError(msg || 'Could not read that file. Try another PDF.');
+      setExtractionError(error?.message || 'Could not read that file. Try another PDF.');
     } finally {
       setParsingFiles(false);
-      // Reset the input so the same filename can be re-selected.
       if (fileInputRef.current) fileInputRef.current.value = '';
+      setTimeout(() => setIngestStatus(''), 3000);
     }
   };
 
@@ -289,104 +307,179 @@ export function Grounding({ onComplete, profile }) {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center relative p-12 bg-[#07080D] text-white overflow-y-auto">
+    <div className="flex-1 flex flex-col items-center justify-center relative p-8 md:p-12 bg-zinc-50 text-zinc-900 overflow-y-auto font-sans">
       <div className="w-full max-w-2xl z-10 text-center animate-fade-in">
-        <div className="mb-8">
-          <Brain size={64} className="text-emerald-500 mx-auto drop-shadow-[0_0_20px_rgba(52,211,153,0.5)]" />
-        </div>
-        <h2 className="text-4xl font-black text-white tracking-tight mb-4">Triple-Stage Grounding</h2>
-        <p className="text-zinc-400 font-medium mb-8 text-lg">Drop your Outline, Brief, and Rubric, or paste assessment text directly.</p>
+        <header className="mb-10">
+          <div className="inline-block p-4 border border-zinc-200 mb-6 bg-white shadow-sm rounded-md">
+            <Brain size={36} className="text-emerald-600" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2 text-zinc-900">Ingestion Drive</h2>
+          <p className="text-sm text-zinc-500">Stage 02: Upload your syllabus, brief, or rubric to ground the OS.</p>
+        </header>
 
-        <div className="flex justify-center gap-2 mb-6">
+        {/* Mode switcher */}
+        <div className="flex justify-center gap-3 mb-8">
           <button
             type="button"
             onClick={() => setPasteMode(false)}
-            className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest border transition-all ${!pasteMode ? 'bg-emerald-500 text-black border-emerald-500' : 'bg-transparent text-zinc-400 border-zinc-700 hover:text-white'}`}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide border transition-all focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none ${!pasteMode ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-500 border-zinc-300 hover:border-zinc-400'}`}
           >
-            Drop PDF
+            <UploadCloud size={14} />
+            <span>Upload files</span>
           </button>
           <button
             type="button"
             onClick={() => setPasteMode(true)}
-            className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest border transition-all ${pasteMode ? 'bg-emerald-500 text-black border-emerald-500' : 'bg-transparent text-zinc-400 border-zinc-700 hover:text-white'}`}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide border transition-all focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none ${pasteMode ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-500 border-zinc-300 hover:border-zinc-400'}`}
           >
-            Paste Text
+            <BookOpen size={14} />
+            <span>Paste text</span>
           </button>
         </div>
 
-        {pasteMode && (
-          <div className="mb-8">
+        {pasteMode ? (
+          <div className="mb-8 animate-fade-in">
             <textarea
               value={pastedText}
               onChange={(e) => setPastedText(e.target.value)}
-              placeholder="Paste the assessment description, brief, or rubric text here. The cockpit will run the same extraction it does on a PDF."
-              className="w-full h-48 bg-zinc-900 border border-zinc-700 focus:border-emerald-500 rounded-2xl p-4 text-sm text-white placeholder-zinc-500 outline-none font-mono leading-relaxed resize-none"
+              placeholder="Paste assessment description or rubric text here..."
+              className="w-full h-48 bg-white border border-zinc-300 rounded-lg p-5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none font-mono leading-relaxed resize-none transition-colors focus-visible:ring-3 focus-visible:ring-emerald-500"
               spellCheck={false}
             />
-            <div className="flex justify-end mt-3">
+            <div className="flex justify-end mt-4">
               <button
                 onClick={handlePasteSubmit}
                 disabled={parsingFiles || pastedText.trim().length < 100}
-                className="px-6 py-3 rounded-2xl bg-emerald-500 text-black font-black uppercase tracking-widest hover:bg-emerald-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed text-sm"
+                className="px-6 py-3 rounded-lg bg-zinc-900 hover:bg-black text-white text-sm font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none"
               >
-                {parsingFiles ? 'Parsing...' : 'Process pasted text'}
+                {parsingFiles ? 'Initialising...' : 'Process Text'}
               </button>
             </div>
           </div>
+        ) : (
+          <button
+            type="button"
+            className="relative w-full group cursor-pointer focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none rounded-lg"
+            onDragOver={(e) => { e.preventDefault(); setIsOver(true); }}
+            onDragLeave={() => setIsOver(false)}
+            onDrop={(e) => { e.preventDefault(); setIsOver(false); handleFileUpload({ target: { files: e.dataTransfer.files } }); }}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {/* Siltbrand Pulse: 1px emerald-500 perimeter on hover/drag */}
+            <AnimatePresence>
+              {(isOver || parsingFiles) && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0, 1, 0] }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute -inset-[1px] border border-emerald-500 rounded-lg pointer-events-none z-0"
+                />
+              )}
+            </AnimatePresence>
+
+            <input
+              type="file"
+              accept=".pdf"
+              multiple
+              className="hidden"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              tabIndex={-1}
+            />
+
+            <div className={`relative z-10 w-full py-14 rounded-lg bg-white border-2 border-dashed ${isOver ? 'border-emerald-500 bg-emerald-50/50' : 'border-zinc-300 group-hover:border-zinc-400'} transition-all flex flex-col items-center justify-center gap-4 ${parsingFiles ? 'opacity-60 cursor-wait' : ''}`}>
+              {parsingFiles ? (
+                <Loader2 size={28} className="animate-spin text-emerald-600" />
+              ) : (
+                <UploadCloud size={28} className={`${isOver ? 'text-emerald-600' : 'text-zinc-400'} group-hover:text-emerald-600 transition-colors`} />
+              )}
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-bold text-zinc-700 group-hover:text-zinc-900 transition-colors">
+                  {parsingFiles ? 'Processing files...' : fileNames.length === 0 ? 'Drop PDF files here or click to browse' : 'Add more files'}
+                </span>
+                <span className="text-xs text-zinc-400 font-mono" role="status" aria-live="polite">
+                  {ingestStatus || 'Accepts outlines, briefs, and rubrics'}
+                </span>
+              </div>
+            </div>
+          </button>
         )}
 
-        <input
-          type="file"
-          accept=".pdf"
-          multiple
-          className="hidden"
-          ref={fileInputRef}
-          onChange={handleFileUpload}
-        />
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={parsingFiles}
-          className="w-full py-8 rounded-3xl bg-zinc-900 border-2 border-dashed border-zinc-700 hover:border-emerald-500 hover:bg-emerald-500/5 transition-all flex flex-col items-center justify-center gap-4 group cursor-pointer disabled:opacity-50"
-        >
-          {parsingFiles ? <Loader2 size={48} className="animate-spin text-emerald-500" /> : <UploadCloud size={48} className="text-zinc-600 group-hover:text-emerald-500 transition-colors" />}
-          <span className="text-xl font-black uppercase tracking-widest text-zinc-400 group-hover:text-emerald-400 transition-colors">
-            {parsingFiles
-              ? 'Extracting Metadata...'
-              : fileNames.length === 0
-                ? 'Drop Documents Here'
-                : '+ Add Another File'}
-          </span>
-        </button>
-        {extractionError && (
-          <div role="alert" className="mt-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-left">
-            <p className="text-red-400 text-sm font-bold mb-1">Extraction failed</p>
-            <p className="text-red-300/80 text-xs font-medium leading-relaxed">{extractionError}</p>
+        {/* Ingested files list */}
+        {fileNames.length > 0 && !aggregated && (
+          <div className="mt-4 flex flex-wrap justify-center gap-1.5">
+            {fileNames.map((name, i) => (
+              <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-zinc-100 border border-zinc-200 text-zinc-600 text-xs font-medium rounded-md">
+                <UploadCloud size={10} className="flex-shrink-0" />
+                <span className="truncate max-w-[180px]">{name}</span>
+              </span>
+            ))}
           </div>
+        )}
+
+        {extractionError && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-6 p-4 border border-red-200 bg-red-50 rounded-lg text-left flex items-start gap-3"
+          >
+            <AlertCircle size={16} className="text-red-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-bold text-red-800 mb-1">Extraction failed</p>
+              <p className="text-sm text-red-600">{extractionError}</p>
+            </div>
+          </motion.div>
         )}
 
         {aggregated && fileNames.length > 0 && (
-          <div className="mt-6 p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/30 text-left">
-            <p className="text-emerald-400 text-xs font-black uppercase tracking-widest mb-3">{fileNames.length} file{fileNames.length === 1 ? '' : 's'} aggregated</p>
-            <ul className="text-zinc-400 text-xs font-medium space-y-1 mb-4">
-              {fileNames.map((name, i) => <li key={i}>· {name}</li>)}
-            </ul>
-            <div className="grid grid-cols-3 gap-3 text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">
-              <div><span className="text-emerald-400 block text-xl font-black">{aggregated.learningOutcomes?.length || 0}</span>Learning Outcomes</div>
-              <div><span className="text-emerald-400 block text-xl font-black">{aggregated.assessmentDates?.length || 0}</span>Dates</div>
-              <div><span className="text-emerald-400 block text-xl font-black">{aggregated.udlPrinciples?.length || 0}</span>UDL Principles</div>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-8 p-6 border border-emerald-200 bg-emerald-50 rounded-lg text-left"
+          >
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <p className="text-sm font-bold text-emerald-800 mb-1">Grounding successful</p>
+                <p className="text-xs text-emerald-600">
+                  {fileNames.length} source{fileNames.length === 1 ? '' : 's'} integrated
+                  {aggregated.academicTier ? ` (Tier: ${aggregated.academicTier})` : ''}
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-emerald-300 text-emerald-700 text-xs font-bold rounded-md">
+                <Shield size={12} />
+                <span>Local only</span>
+              </span>
             </div>
+
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="border-l-2 border-emerald-300 pl-3">
+                <span className="text-zinc-900 block text-lg font-bold">{aggregated.assessmentTitles?.length || 0}</span>
+                <span className="text-xs text-zinc-500 font-medium">Assessments</span>
+              </div>
+              <div className="border-l-2 border-emerald-300 pl-3">
+                <span className="text-zinc-900 block text-lg font-bold">{aggregated.learningOutcomes?.length || 0}</span>
+                <span className="text-xs text-zinc-500 font-medium">Outcomes</span>
+              </div>
+              <div className="border-l-2 border-emerald-300 pl-3">
+                <span className="text-zinc-900 block text-lg font-bold">{aggregated.udlPrinciples?.length || 0}</span>
+                <span className="text-xs text-zinc-500 font-medium">UDL Tags</span>
+              </div>
+            </div>
+
             <button
               onClick={handleContinue}
-              className="w-full py-3 rounded-xl bg-emerald-500 text-black font-black uppercase tracking-widest hover:bg-emerald-400 transition-all"
+              className="w-full py-4 bg-zinc-900 hover:bg-black text-white text-sm font-bold rounded-lg transition-all focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none shadow-md"
             >
-              Continue to Canvas
+              Enter Dashboard
             </button>
-          </div>
+          </motion.div>
         )}
 
-        <p className="mt-6 text-[10px] uppercase tracking-widest text-zinc-600 font-bold">
-          Parsed locally on your Mac. The file does not leave this device.
-        </p>
+        <footer className="mt-12 border-t border-zinc-200 pt-6 flex items-center justify-center gap-3 text-zinc-400">
+          <Shield size={14} />
+          <span className="text-xs font-medium">Zero-Disclosure: All data stays on this device.</span>
+        </footer>
       </div>
     </div>
   );

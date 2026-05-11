@@ -1,0 +1,85 @@
+[2026-05-10T21:24:16.008Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 75,\n      \"description\": \"Weak passphrase minimum (4 characters). For AES-GCM-256 encryption, passphrase should require minimum 12-16 characters. Current threshold allows dictionary attacks.\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/frontend/MasterDashboard.js\",\n      \"line\": 11,\n      \"description\": \"Hardcoded institution reference 'UNSW Moodle' violates CLAUDE.md rule: 'Do not reference specific university course codes inside engineering specs'. Breaks universal architecture requirement.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/ExecutiveSpine.js\",\n      \"line\": 42,\n      \"description\": \"Session state (focus, health, credits) stored in unencrypted localStorage. Vulnerable to XSS attacks. Should be in-memory only or use encrypted storage.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"scripts/build-grounding-manifest.js\",\n      \"line\": 13,\n      \"description\": \"No filename validation on fs.readdirSync output. Malicious filenames or path traversal attempts not filtered before writing to manifest JSON. Should validate against whitelist patterns.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/backend/NeuralAuditPipeline.js\",\n      \"line\": 3,\n      \"description\": \"Hardcoded course codes ['BABS1201', 'BABS1202'] in source code. Should be externalized to config. Violates universal architecture principle (institution-specific data in logic).\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 165,\n      \"description\": \"Encryption salt stored in unencrypted localStorage (readSalt/writeSalt). While salt is non-secret, storing with encrypted IndexedDB log creates XSS window for brute-force attacks.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/frontend/ProjectContext.js\",\n      \"line\": 12,\n      \"description\": \"No length validation on user draft input. Large paste operations could cause memory pressure or DoS. Should validate max content length.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/App.js\",\n      \"line\": 13,\n      \"description\": \"Error boundary logs full error object to console. Could expose sensitive stack traces or internal state if error contains user data.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 145,\n      \"description\": \"Salt length checked for >= 16 bytes but should enforce exactly 32 bytes to match crypto best practices. Variable-length salt reduces entropy.\"\n    }\n  ],\n  \"riskScore\": 68,\n  \"recommendations\": [\n    \"Increase passphrase minimum to 12-16 characters in HistoryOfThought.js (line 75). Update validation and user-facing guidance.\",\n    \"Remove hardcoded institution references. Create InstitutionalContext to inject 'UNSW Moodle' and course codes from config/state, not string literals.\",\n    \"Move ExecutiveSpine localStorage keys to sessionStorage (in-memory when tab closes) or encrypt with HistoryOfThought key. Never store unencrypted user session state.\",\n    \"Add filename whitelist validation in build-grounding-manifest.js: reject filenames containing '..' or special chars. Only allow [a-zA-Z0-9._-].\",\n    \"Externalize course codes to environment variables or config file (src/config/courses.json). Load dynamically instead of hardcoding.\",\n    \"Do not persist encryption salt to localStorage alongside IndexedDB log. Consider: (a) derive salt from passphrase hash + timestamp, or (b) store only in IndexedDB after first unlock.\",\n    \"Add maxLength validation in ProjectContext.updateDraft(): reject pastes > 50,000 characters. Prevents unbounded memory growth.\",\n    \"Update ViewBoundary error boundary to strip sensitive fields before console.error(). Example: log only err.name and err.message, not full stack if it contains user content.\",\n    \"Enforce exactly 32-byte salt in ensureSalt() (line 150). Change `salt.length >= 16` to `salt.length === 32`.\",\n    \"Run `npm audit` regularly. Verify no deprecated pdfjs-dist or other library versions ship with known CVEs.\",\n    \"Consider adding Content-Security-Policy headers: `script-src 'self'; object-src 'none'; base-uri 'self'` to mitigate XSS impact on localStorage.\",\n    \"Audit EventBus and SovereignBus event handlers (src/core/) for noisy payloads. Verify sensitive fields are stripped before encryption per line 204 pickSafePayload().\"\n  ]\n}\n```\n\n---\n\n## Summary\n\n**Key Findings:**\n\nThe codebase has a **68/100 risk score** due to three main categories:\n\n1. **Crypto & Authentication** (High) – 4-character passphrase minimum is dangerously weak for AES-GCM key derivation. Should be 12–16 characters.\n\n2. **Architecture Violations** (Medium) – Hardcoded institution data (\"UNSW\", \"BABS1201\") violates the \"Universal Architecture\" rule in CLAUDE.md. This breaks portability for other universities.\n\n3. **Storage Security** (Medium) – Session state lives in unencrypted localStorage, exposed to any XSS. Critical data (focus session, section health) should not persist client-side unencrypted.\n\n**Good Security Practices Observed:**\n- ✅ PBKDF2 with 600k iterations (strong)\n- ✅ AES-GCM-256 encryption for vault\n- ✅ React auto-escapes JSX (no direct XSS in components)\n- ✅ Proper error boundary fallback\n- ✅ No hardcoded API keys or secrets in shown code\n\n**Next Steps:** Prioritize passphrase strength, remove institution hardcodes, and encrypt session storage before production.\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "high",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 75,
+        "description": "Weak passphrase minimum (4 characters). For AES-GCM-256 encryption, passphrase should require minimum 12-16 characters. Current threshold allows dictionary attacks."
+      },
+      {
+        "severity": "high",
+        "file": "src/frontend/MasterDashboard.js",
+        "line": 11,
+        "description": "Hardcoded institution reference 'UNSW Moodle' violates CLAUDE.md rule: 'Do not reference specific university course codes inside engineering specs'. Breaks universal architecture requirement."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/ExecutiveSpine.js",
+        "line": 42,
+        "description": "Session state (focus, health, credits) stored in unencrypted localStorage. Vulnerable to XSS attacks. Should be in-memory only or use encrypted storage."
+      },
+      {
+        "severity": "medium",
+        "file": "scripts/build-grounding-manifest.js",
+        "line": 13,
+        "description": "No filename validation on fs.readdirSync output. Malicious filenames or path traversal attempts not filtered before writing to manifest JSON. Should validate against whitelist patterns."
+      },
+      {
+        "severity": "medium",
+        "file": "src/backend/NeuralAuditPipeline.js",
+        "line": 3,
+        "description": "Hardcoded course codes ['BABS1201', 'BABS1202'] in source code. Should be externalized to config. Violates universal architecture principle (institution-specific data in logic)."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 165,
+        "description": "Encryption salt stored in unencrypted localStorage (readSalt/writeSalt). While salt is non-secret, storing with encrypted IndexedDB log creates XSS window for brute-force attacks."
+      },
+      {
+        "severity": "low",
+        "file": "src/frontend/ProjectContext.js",
+        "line": 12,
+        "description": "No length validation on user draft input. Large paste operations could cause memory pressure or DoS. Should validate max content length."
+      },
+      {
+        "severity": "low",
+        "file": "src/App.js",
+        "line": 13,
+        "description": "Error boundary logs full error object to console. Could expose sensitive stack traces or internal state if error contains user data."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 145,
+        "description": "Salt length checked for >= 16 bytes but should enforce exactly 32 bytes to match crypto best practices. Variable-length salt reduces entropy."
+      }
+    ],
+    "riskScore": 68,
+    "recommendations": [
+      "Increase passphrase minimum to 12-16 characters in HistoryOfThought.js (line 75). Update validation and user-facing guidance.",
+      "Remove hardcoded institution references. Create InstitutionalContext to inject 'UNSW Moodle' and course codes from config/state, not string literals.",
+      "Move ExecutiveSpine localStorage keys to sessionStorage (in-memory when tab closes) or encrypt with HistoryOfThought key. Never store unencrypted user session state.",
+      "Add filename whitelist validation in build-grounding-manifest.js: reject filenames containing '..' or special chars. Only allow [a-zA-Z0-9._-].",
+      "Externalize course codes to environment variables or config file (src/config/courses.json). Load dynamically instead of hardcoding.",
+      "Do not persist encryption salt to localStorage alongside IndexedDB log. Consider: (a) derive salt from passphrase hash + timestamp, or (b) store only in IndexedDB after first unlock.",
+      "Add maxLength validation in ProjectContext.updateDraft(): reject pastes > 50,000 characters. Prevents unbounded memory growth.",
+      "Update ViewBoundary error boundary to strip sensitive fields before console.error(). Example: log only err.name and err.message, not full stack if it contains user content.",
+      "Enforce exactly 32-byte salt in ensureSalt() (line 150). Change `salt.length >= 16` to `salt.length === 32`.",
+      "Run `npm audit` regularly. Verify no deprecated pdfjs-dist or other library versions ship with known CVEs.",
+      "Consider adding Content-Security-Policy headers: `script-src 'self'; object-src 'none'; base-uri 'self'` to mitigate XSS impact on localStorage.",
+      "Audit EventBus and SovereignBus event handlers (src/core/) for noisy payloads. Verify sensitive fields are stripped before encryption per line 204 pickSafePayload()."
+    ]
+  },
+  "durationMs": 44904,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-10T21:24:16.008Z",
+  "executionId": "audit_1778448211104_iill8o"
+}

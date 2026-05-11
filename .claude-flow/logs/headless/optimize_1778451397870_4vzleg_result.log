@@ -1,0 +1,153 @@
+[2026-05-10T22:19:20.317Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "## Performance Analysis\n\nHere's the breakdown of performance issues found across the codebase, ranked by impact:\n\n---\n\n## 1. N+1 Query Patterns\n\n### IndexedDB re-opened on every call (High severity)\nEvery service function calls `initDB()` independently, so each DB operation opens a new connection.\n\n**Fix:** Singleton pattern in `IndexedDBService.js`:\n```javascript\nlet cachedDB = null;\nconst getDB = async () => {\n  if (cachedDB) return cachedDB;\n  cachedDB = await initDB();\n  return cachedDB;\n};\n```\n\n### Ghost asset migration loop (`MasterDashboard.js:284-305`)\nSequential `await saveGhostAsset()` in a `for` loop — one DB write per asset.\n\n**Fix:** Batch into a single transaction using `Promise.all()` or a batch write function.\n\n### Sequential file ingestion (`UniversalOnboarding.js:259-264`)\nFiles processed one-at-a-time in a `for` loop.\n\n**Fix:**\n```javascript\nawait Promise.all(files.map(file => processDocumentWithGCP(file)));\n```\n\n---\n\n## 2. Unnecessary Re-renders\n\n### `ToneHUD` regex runs on every keystroke (`LinearCanvas.js:23-30`, **High**)\nThree regex operations and a `Math.min/max` run each render even when content hasn't changed.\n\n**Fix:** Wrap in `useMemo` and wrap component in `React.memo`:\n```javascript\nconst ToneHUD = React.memo(function ToneHUD({ content, ...props }) {\n  const { wordCount, rigor } = useMemo(() => {\n    const wc = (content.match(/\\S+/g) || []).length;\n    const lw = (content.match(/\\b\\w{8,}\\b/g) || []).length;\n    return { wordCount: wc, rigor: Math.min(Math.max((lw / (wc || 1)) * 300, 20), 98) };\n  }, [content]);\n  // ...\n});\n```\n\n### Ghost asset filtering on every render (`MasterDashboard.js`)\n```javascript\n// BAD\nconst filtered = globalGhostAssets.filter(a => a.courseId === activeCourseId);\n\n// GOOD\nconst filtered = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);\n```\n\n### Chat history using index as key (`AskAura.js:106-115`)\n`key={i}` forces full re-renders when messages are added. Use a stable ID derived from content + role + position.\n\n---\n\n## 3. Caching Opportunities\n\n### Context block rebuilt on every AURA prompt (`ChatService.js:95-138`)\nThe syllabus context (up to 8000 chars) is reconstructed on every message, even though course data rarely changes.\n\n**Fix:** Cache by `course.id`, invalidate only on course change:\n```javascript\nlet contextCache = { courseId: null, block: null };\nconst getCachedContext = (course) => {\n  if (contextCache.courseId === course?.id) return contextCache.block;\n  contextCache = { courseId: course?.id, block: buildContextBlock(course) };\n  return contextCache.block;\n};\n```\n\n### BriefService regex extraction called repeatedly (`BriefService.js:245-276`)\nSame syllabus text gets regex-parsed on multiple calls. Cache by a content hash:\n```javascript\nconst cache = new Map();\nexport function extractAssessments(text) {\n  const key = text.slice(0, 100) + text.length;\n  if (cache.has(key)) return cache.get(key);\n  const result = /* ...extraction... */;\n  cache.set(key, result);\n  return result;\n}\n```\n\n---\n\n## 4. Memory Leaks\n\n### Speech synthesis not cancelled on unmount (`MasterDashboard.js:230-237`)\n`window.speechSynthesis.speak()` continues after component unmount.\n\n**Fix:** Add cleanup:\n```javascript\nreturn () => window.speechSynthesis?.cancel();\n```\n\n### Snapshot `setTimeout` depends on `history` (`LinearCanvas.js:134-146`)\nIncluding `history` in the dependency array means the 15-second debounce timer resets every time a snapshot is saved — defeating the debounce entirely.\n\n**Fix:** Remove `history` from deps, use a `ref` for the previous value comparison:\n```javascript\nuseEffect(() => {\n  const timer = setTimeout(() => { /* save */ }, 15000);\n  return () => clearTimeout(timer);\n}, [currentContent, blockId]);  // history removed\n```\n\n---\n\n## 5. Redundant Computations\n\n### `SettingsContext` mega-effect with 20+ deps (`SettingsContext.js:40-64`, **High**)\nA single `useEffect` watching all settings causes 20+ `localStorage.setItem` calls whenever *any* setting changes.\n\n**Fix:** Split into per-setting effects:\n```javascript\nuseEffect(() => { localStorage.setItem('mode', mode); }, [mode]);\nuseEffect(() => { localStorage.setItem('lodLevel', lodLevel);\n  window.dispatchEvent(new CustomEvent('simplifii:lod-change', { detail: { lodLevel } }));\n}, [lodLevel]);\n// ... one per setting\n```\n\n### `ProjectContext` migration runs inside `useEffect` (`ProjectContext.js:146-152`)\nThe roadmap purge compares all courses on effect run. Move it to the lazy `useState` initialiser so it runs exactly once at mount:\n```javascript\nconst [courses, setCourses] = useState(() => {\n  const stored = loadJSON('simplifii_courses_v1', DEFAULT_COURSES);\n  return performRoadmapPurge(stored); // runs once, not in effect\n});\n```\n\n---\n\n## Priority Summary\n\n| Severity | Issue | File |\n|---|---|---|\n| **High** | IndexedDB re-opened per call | `IndexedDBService.js` |\n| **High** | `ToneHUD` regex on every keystroke | `LinearCanvas.js:23` |\n| **High** | Settings mega-effect (20+ deps) | `SettingsContext.js:40` |\n| **Med** | Ghost asset migration N+1 | `MasterDashboard.js:284` |\n| **Med** | Sequential file ingestion | `UniversalOnboarding.js:259` |\n| **Med** | Context block rebuilt per message | `ChatService.js:95` |\n| **Med** | BriefService repeated extraction | `BriefService.js:245` |\n| **Low** | Speech synthesis no cleanup | `MasterDashboard.js:230` |\n| **Low** | Snapshot debounce broken by `history` dep | `LinearCanvas.js:134` |\n\nStart with the `IndexedDBService.js` singleton — it's the root cause of multiple N+1 patterns and is a single-file change with broad impact.\n",
+  "parsedOutput": {
+    "sections": [
+      {
+        "title": "Performance Analysis",
+        "content": "\nHere's the breakdown of performance issues found across the codebase, ranked by impact:\n\n---\n\n",
+        "level": 2
+      },
+      {
+        "title": "1. N+1 Query Patterns",
+        "content": "\n",
+        "level": 2
+      },
+      {
+        "title": "IndexedDB re-opened on every call (High severity)",
+        "content": "Every service function calls `initDB()` independently, so each DB operation opens a new connection.\n\n**Fix:** Singleton pattern in `IndexedDBService.js`:\n```javascript\nlet cachedDB = null;\nconst getDB = async () => {\n  if (cachedDB) return cachedDB;\n  cachedDB = await initDB();\n  return cachedDB;\n};\n```\n\n",
+        "level": 3
+      },
+      {
+        "title": "Ghost asset migration loop (`MasterDashboard.js:284-305`)",
+        "content": "Sequential `await saveGhostAsset()` in a `for` loop — one DB write per asset.\n\n**Fix:** Batch into a single transaction using `Promise.all()` or a batch write function.\n\n",
+        "level": 3
+      },
+      {
+        "title": "Sequential file ingestion (`UniversalOnboarding.js:259-264`)",
+        "content": "Files processed one-at-a-time in a `for` loop.\n\n**Fix:**\n```javascript\nawait Promise.all(files.map(file => processDocumentWithGCP(file)));\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "2. Unnecessary Re-renders",
+        "content": "\n",
+        "level": 2
+      },
+      {
+        "title": "`ToneHUD` regex runs on every keystroke (`LinearCanvas.js:23-30`, **High**)",
+        "content": "Three regex operations and a `Math.min/max` run each render even when content hasn't changed.\n\n**Fix:** Wrap in `useMemo` and wrap component in `React.memo`:\n```javascript\nconst ToneHUD = React.memo(function ToneHUD({ content, ...props }) {\n  const { wordCount, rigor } = useMemo(() => {\n    const wc = (content.match(/\\S+/g) || []).length;\n    const lw = (content.match(/\\b\\w{8,}\\b/g) || []).length;\n    return { wordCount: wc, rigor: Math.min(Math.max((lw / (wc || 1)) * 300, 20), 98) };\n  }, [content]);\n  // ...\n});\n```\n\n",
+        "level": 3
+      },
+      {
+        "title": "Ghost asset filtering on every render (`MasterDashboard.js`)",
+        "content": "```javascript\n// BAD\nconst filtered = globalGhostAssets.filter(a => a.courseId === activeCourseId);\n\n// GOOD\nconst filtered = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);\n```\n\n",
+        "level": 3
+      },
+      {
+        "title": "Chat history using index as key (`AskAura.js:106-115`)",
+        "content": "`key={i}` forces full re-renders when messages are added. Use a stable ID derived from content + role + position.\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "3. Caching Opportunities",
+        "content": "\n",
+        "level": 2
+      },
+      {
+        "title": "Context block rebuilt on every AURA prompt (`ChatService.js:95-138`)",
+        "content": "The syllabus context (up to 8000 chars) is reconstructed on every message, even though course data rarely changes.\n\n**Fix:** Cache by `course.id`, invalidate only on course change:\n```javascript\nlet contextCache = { courseId: null, block: null };\nconst getCachedContext = (course) => {\n  if (contextCache.courseId === course?.id) return contextCache.block;\n  contextCache = { courseId: course?.id, block: buildContextBlock(course) };\n  return contextCache.block;\n};\n```\n\n",
+        "level": 3
+      },
+      {
+        "title": "BriefService regex extraction called repeatedly (`BriefService.js:245-276`)",
+        "content": "Same syllabus text gets regex-parsed on multiple calls. Cache by a content hash:\n```javascript\nconst cache = new Map();\nexport function extractAssessments(text) {\n  const key = text.slice(0, 100) + text.length;\n  if (cache.has(key)) return cache.get(key);\n  const result = /* ...extraction... */;\n  cache.set(key, result);\n  return result;\n}\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "4. Memory Leaks",
+        "content": "\n",
+        "level": 2
+      },
+      {
+        "title": "Speech synthesis not cancelled on unmount (`MasterDashboard.js:230-237`)",
+        "content": "`window.speechSynthesis.speak()` continues after component unmount.\n\n**Fix:** Add cleanup:\n```javascript\nreturn () => window.speechSynthesis?.cancel();\n```\n\n",
+        "level": 3
+      },
+      {
+        "title": "Snapshot `setTimeout` depends on `history` (`LinearCanvas.js:134-146`)",
+        "content": "Including `history` in the dependency array means the 15-second debounce timer resets every time a snapshot is saved — defeating the debounce entirely.\n\n**Fix:** Remove `history` from deps, use a `ref` for the previous value comparison:\n```javascript\nuseEffect(() => {\n  const timer = setTimeout(() => { /* save */ }, 15000);\n  return () => clearTimeout(timer);\n}, [currentContent, blockId]);  // history removed\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "5. Redundant Computations",
+        "content": "\n",
+        "level": 2
+      },
+      {
+        "title": "`SettingsContext` mega-effect with 20+ deps (`SettingsContext.js:40-64`, **High**)",
+        "content": "A single `useEffect` watching all settings causes 20+ `localStorage.setItem` calls whenever *any* setting changes.\n\n**Fix:** Split into per-setting effects:\n```javascript\nuseEffect(() => { localStorage.setItem('mode', mode); }, [mode]);\nuseEffect(() => { localStorage.setItem('lodLevel', lodLevel);\n  window.dispatchEvent(new CustomEvent('simplifii:lod-change', { detail: { lodLevel } }));\n}, [lodLevel]);\n// ... one per setting\n```\n\n",
+        "level": 3
+      },
+      {
+        "title": "`ProjectContext` migration runs inside `useEffect` (`ProjectContext.js:146-152`)",
+        "content": "The roadmap purge compares all courses on effect run. Move it to the lazy `useState` initialiser so it runs exactly once at mount:\n```javascript\nconst [courses, setCourses] = useState(() => {\n  const stored = loadJSON('simplifii_courses_v1', DEFAULT_COURSES);\n  return performRoadmapPurge(stored); // runs once, not in effect\n});\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Priority Summary",
+        "content": "| Severity | Issue | File |\n|---|---|---|\n| **High** | IndexedDB re-opened per call | `IndexedDBService.js` |\n| **High** | `ToneHUD` regex on every keystroke | `LinearCanvas.js:23` |\n| **High** | Settings mega-effect (20+ deps) | `SettingsContext.js:40` |\n| **Med** | Ghost asset migration N+1 | `MasterDashboard.js:284` |\n| **Med** | Sequential file ingestion | `UniversalOnboarding.js:259` |\n| **Med** | Context block rebuilt per message | `ChatService.js:95` |\n| **Med** | BriefService repeated extraction | `BriefService.js:245` |\n| **Low** | Speech synthesis no cleanup | `MasterDashboard.js:230` |\n| **Low** | Snapshot debounce broken by `history` dep | `LinearCanvas.js:134` |\n\nStart with the `IndexedDBService.js` singleton — it's the root cause of multiple N+1 patterns and is a single-file change with broad impact.",
+        "level": 2
+      }
+    ],
+    "codeBlocks": [
+      {
+        "language": "javascript",
+        "code": "let cachedDB = null;\nconst getDB = async () => {\n  if (cachedDB) return cachedDB;\n  cachedDB = await initDB();\n  return cachedDB;\n};"
+      },
+      {
+        "language": "javascript",
+        "code": "await Promise.all(files.map(file => processDocumentWithGCP(file)));"
+      },
+      {
+        "language": "javascript",
+        "code": "const ToneHUD = React.memo(function ToneHUD({ content, ...props }) {\n  const { wordCount, rigor } = useMemo(() => {\n    const wc = (content.match(/\\S+/g) || []).length;\n    const lw = (content.match(/\\b\\w{8,}\\b/g) || []).length;\n    return { wordCount: wc, rigor: Math.min(Math.max((lw / (wc || 1)) * 300, 20), 98) };\n  }, [content]);\n  // ...\n});"
+      },
+      {
+        "language": "javascript",
+        "code": "// BAD\nconst filtered = globalGhostAssets.filter(a => a.courseId === activeCourseId);\n\n// GOOD\nconst filtered = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);"
+      },
+      {
+        "language": "javascript",
+        "code": "let contextCache = { courseId: null, block: null };\nconst getCachedContext = (course) => {\n  if (contextCache.courseId === course?.id) return contextCache.block;\n  contextCache = { courseId: course?.id, block: buildContextBlock(course) };\n  return contextCache.block;\n};"
+      },
+      {
+        "language": "javascript",
+        "code": "const cache = new Map();\nexport function extractAssessments(text) {\n  const key = text.slice(0, 100) + text.length;\n  if (cache.has(key)) return cache.get(key);\n  const result = /* ...extraction... */;\n  cache.set(key, result);\n  return result;\n}"
+      },
+      {
+        "language": "javascript",
+        "code": "return () => window.speechSynthesis?.cancel();"
+      },
+      {
+        "language": "javascript",
+        "code": "useEffect(() => {\n  const timer = setTimeout(() => { /* save */ }, 15000);\n  return () => clearTimeout(timer);\n}, [currentContent, blockId]);  // history removed"
+      },
+      {
+        "language": "javascript",
+        "code": "useEffect(() => { localStorage.setItem('mode', mode); }, [mode]);\nuseEffect(() => { localStorage.setItem('lodLevel', lodLevel);\n  window.dispatchEvent(new CustomEvent('simplifii:lod-change', { detail: { lodLevel } }));\n}, [lodLevel]);\n// ... one per setting"
+      },
+      {
+        "language": "javascript",
+        "code": "const [courses, setCourses] = useState(() => {\n  const stored = loadJSON('simplifii_courses_v1', DEFAULT_COURSES);\n  return performRoadmapPurge(stored); // runs once, not in effect\n});"
+      }
+    ]
+  },
+  "durationMs": 162445,
+  "model": "sonnet",
+  "sandboxMode": "permissive",
+  "workerType": "optimize",
+  "timestamp": "2026-05-10T22:19:20.315Z",
+  "executionId": "optimize_1778451397870_4vzleg"
+}

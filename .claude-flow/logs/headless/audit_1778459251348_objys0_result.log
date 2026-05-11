@@ -1,0 +1,64 @@
+[2026-05-11T00:28:13.132Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/App.js\",\n      \"line\": 28,\n      \"description\": \"Unrestricted localStorage reset via URL parameter. Any user can append `?reset=true` to clear all application data (onboarding state) without authentication or CSRF protection. Allows state tampering attacks.\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 76,\n      \"description\": \"Weak passphrase validation: minimum 4 characters is insufficient for cryptographic security. Easily brute-forceable with modern hardware. Should enforce 8-12+ character minimum.\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 81,\n      \"description\": \"No rate limiting on passphrase unlock attempts. Function `unlockWithPassphrase()` allows unlimited rapid guesses, enabling offline brute-force attacks against the vault encryption key.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/backend/LMSConnector.js\",\n      \"line\": 1,\n      \"description\": \"No input validation on `courseCode` parameter. If this function connects to a real backend in future, unsanitized courseCode could enable injection attacks or path traversal.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/backend/NeuralAuditPipeline.js\",\n      \"line\": 3,\n      \"description\": \"Hardcoded course code 'BABS1201' in feature logic. Violates CLAUDE.md architecture rule: course codes must not appear in hardcoded logic or feature flags (only in schema/data).\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/frontend/ProjectContext.js\",\n      \"line\": 17,\n      \"description\": \"Using array index as React list key in integrityLog mapping (MasterDashboard.js:173). Can cause bugs if list is reordered; use stable IDs instead. Not a security issue but poor practice.\"\n    }\n  ],\n  \"riskScore\": 72,\n  \"recommendations\": [\n    \"**URGENT**: Add CSRF token validation to localStorage reset trigger. Require explicit user confirmation (modal) before `localStorage.clear()` executes.\",\n    \"**URGENT**: Enforce minimum 12-character passphrase in `HistoryOfThought.js:unlockWithPassphrase()`. Consider passphrase strength meter UI.\",\n    \"**URGENT**: Implement exponential backoff + temporary lockout after 5 failed passphrase attempts to prevent brute-force vault access.\",\n    \"Add input sanitization layer to `LMSConnector.fetchLMSData()`: validate courseCode format (regex) before any downstream use.\",\n    \"Move hardcoded course codes (BABS1201, BABS1202) from `NeuralAuditPipeline.js` into a config file or schema import. Respect CLAUDE.md architecture rule.\",\n    \"Replace array index keys in integrityLog rendering with stable event IDs (timestamp + hash or UUID).\",\n    \"Run `npm audit` to check pdfjs-dist and all other transitive dependencies for known vulnerabilities.\",\n    \"Add HTTP security headers (CSP, X-Frame-Options) to deployment if served over HTTP. Currently relying on SOP only.\",\n    \"Document passphrase policy: minimum length, character requirements, and recovery mechanism if passphrase is forgotten (currently unrecoverable).\"\n  ]\n}\n```\n\n---\n\n## Summary\n\n**Risk Score: 72/100** — Moderate-High Risk\n\nThe codebase has **3 high-severity issues**:\n\n1. **Unrestricted state reset** via `?reset=true` URL parameter (no auth check)\n2. **Weak passphrase minimum** (4 chars is cryptographically unsafe)\n3. **No rate limiting** on vault unlock attempts (brute-forceable)\n\nThe encryption architecture itself (AES-GCM + PBKDF2) is sound, but the key derivation is undermined by weak passphrase enforcement and no attempt throttling. The localStorage reset vulnerability breaks user trust—any malicious link can wipe user progress.\n\nNo SQL injection, XSS, or hardcoded secrets detected. The main attack surface is the vault passphrase and the reset endpoint.\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "high",
+        "file": "src/App.js",
+        "line": 28,
+        "description": "Unrestricted localStorage reset via URL parameter. Any user can append `?reset=true` to clear all application data (onboarding state) without authentication or CSRF protection. Allows state tampering attacks."
+      },
+      {
+        "severity": "high",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 76,
+        "description": "Weak passphrase validation: minimum 4 characters is insufficient for cryptographic security. Easily brute-forceable with modern hardware. Should enforce 8-12+ character minimum."
+      },
+      {
+        "severity": "high",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 81,
+        "description": "No rate limiting on passphrase unlock attempts. Function `unlockWithPassphrase()` allows unlimited rapid guesses, enabling offline brute-force attacks against the vault encryption key."
+      },
+      {
+        "severity": "medium",
+        "file": "src/backend/LMSConnector.js",
+        "line": 1,
+        "description": "No input validation on `courseCode` parameter. If this function connects to a real backend in future, unsanitized courseCode could enable injection attacks or path traversal."
+      },
+      {
+        "severity": "medium",
+        "file": "src/backend/NeuralAuditPipeline.js",
+        "line": 3,
+        "description": "Hardcoded course code 'BABS1201' in feature logic. Violates CLAUDE.md architecture rule: course codes must not appear in hardcoded logic or feature flags (only in schema/data)."
+      },
+      {
+        "severity": "low",
+        "file": "src/frontend/ProjectContext.js",
+        "line": 17,
+        "description": "Using array index as React list key in integrityLog mapping (MasterDashboard.js:173). Can cause bugs if list is reordered; use stable IDs instead. Not a security issue but poor practice."
+      }
+    ],
+    "riskScore": 72,
+    "recommendations": [
+      "**URGENT**: Add CSRF token validation to localStorage reset trigger. Require explicit user confirmation (modal) before `localStorage.clear()` executes.",
+      "**URGENT**: Enforce minimum 12-character passphrase in `HistoryOfThought.js:unlockWithPassphrase()`. Consider passphrase strength meter UI.",
+      "**URGENT**: Implement exponential backoff + temporary lockout after 5 failed passphrase attempts to prevent brute-force vault access.",
+      "Add input sanitization layer to `LMSConnector.fetchLMSData()`: validate courseCode format (regex) before any downstream use.",
+      "Move hardcoded course codes (BABS1201, BABS1202) from `NeuralAuditPipeline.js` into a config file or schema import. Respect CLAUDE.md architecture rule.",
+      "Replace array index keys in integrityLog rendering with stable event IDs (timestamp + hash or UUID).",
+      "Run `npm audit` to check pdfjs-dist and all other transitive dependencies for known vulnerabilities.",
+      "Add HTTP security headers (CSP, X-Frame-Options) to deployment if served over HTTP. Currently relying on SOP only.",
+      "Document passphrase policy: minimum length, character requirements, and recovery mechanism if passphrase is forgotten (currently unrecoverable)."
+    ]
+  },
+  "durationMs": 41784,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-11T00:28:13.132Z",
+  "executionId": "audit_1778459251348_objys0"
+}

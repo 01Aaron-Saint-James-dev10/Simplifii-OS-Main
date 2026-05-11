@@ -1,0 +1,92 @@
+[2026-05-10T21:48:48.169Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "Here's the full performance audit based on analysis of your source files:\n\n---\n\n## Performance Analysis: Simplifii OS\n\n### 1. Memory Leaks\n\n**1.1 Resize interval + listener without cleanup** (`LinearCanvas.js` ~L671)\n```javascript\n// BUG: interval may accumulate across effect runs\nwindow.addEventListener('resize', updateLineCoords);\nconst interval = setInterval(updateLineCoords, 500);\n\n// FIX:\nreturn () => {\n  window.removeEventListener('resize', updateLineCoords);\n  clearInterval(interval);\n};\n```\n\n**1.2 EventBus never stopped on app unmount** (`EventBus.js`)\n```javascript\n// In MasterDashboard root effect:\nuseEffect(() => {\n  startEventBus(getContext);\n  return () => stopEventBus(); // missing\n}, []);\n```\n\n---\n\n### 2. N+1 Query Patterns\n\n**2.1 Double IndexedDB fetch after save** (`LinearCanvas.js` ~L127)\n\nAfter `saveBlockSnapshot()`, the code re-fetches the entire history from IndexedDB instead of appending locally:\n```javascript\n// BUG: full re-fetch after every save\nsaveBlockSnapshot(blockId, currentContent).then(() =>\n  getBlockHistory(blockId).then(data => setHistory(data)) // N+1\n);\n\n// FIX: optimistic append\nsaveBlockSnapshot(blockId, currentContent).then(snapshot => {\n  setHistory(prev => [...prev, snapshot]);\n  setSliderVal(prev => prev + 1);\n});\n```\n\n**2.2 `buildDerived()` called multiple times per course creation** (`MasterDashboard.js` ~L328, L375)\n\nWrap with `useCallback` so regex parsing doesn't repeat:\n```javascript\nconst buildDerived = useCallback((candidateBriefs) => {\n  const reconciledBriefs = reconcileBriefs(candidateBriefs);\n  // ...\n}, []);\n```\n\n---\n\n### 3. Unnecessary Re-renders\n\n**3.1 Entire app re-renders on any setting change** (`SettingsContext.js`)\n\nEvery consumer re-renders when any single setting changes. Split the context or memoize the value:\n```javascript\nconst contextValue = useMemo(() => ({\n  mode, setMode, eduLevel, darkMode, /* ... */\n}), [mode, eduLevel, darkMode /* only relevant deps */]);\n\nreturn <SettingsContext.Provider value={contextValue}>{children}</SettingsContext.Provider>;\n```\n\n**3.2 `tasks.map()` using index as key + no memo** (`MasterDashboard.js` ~L1108)\n```javascript\n// BUG: forces full remount on reorder\ntasks.map((t, i) => <TaskCard key={i} task={t} ... />)\n\n// FIX:\nconst MemoTaskCard = React.memo(TaskCard);\ntasks.map(t => <MemoTaskCard key={t.id} task={t} ... />)\n```\n\n**3.3 `renderContent()` recreated every render** (`MasterDashboard.js` ~L595)\n```javascript\n// FIX: wrap with useCallback\nconst renderContent = useCallback(() => {\n  switch (currentStage) { ... }\n}, [currentStage, profile, handleStageTransition]);\n```\n\n**3.4 Course asset filter inline in JSX** (`MasterDashboard.js` ~L1201)\n```javascript\n// BUG: filters on every render\n{(() => { const courseAssets = globalGhostAssets.filter(...); ... })()}\n\n// FIX:\nconst courseAssets = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);\n```\n\n---\n\n### 4. Caching Opportunities\n\n**4.1 Regex compiled on every call** (`BriefService.js` ~L46, L67, L88)\n\nMove regex to module level constants — they're currently recreated on every `extractEvidenceFormula()` call:\n```javascript\n// Module level (once):\nconst PRIMARY_RE = /(?:need|require)?\\s*(\\d+|one|two)\\s+(?:primary|peer-reviewed)..../i;\nconst REVIEW_RE  = /(?:need|require)?\\s*(\\d+|one|two)\\s+(?:review|secondary)..../i;\n\n// Inside function (fast lookup, no recompile):\nconst primaryMatch = lowerText.match(PRIMARY_RE);\n```\n\n**4.2 Shared word count hook** (`LinearCanvas.js` ~L24, L93, L165)\n\nWord count is computed identically in at least 3 components. Extract to a shared hook:\n```javascript\nconst useWordCount = (content) =>\n  useMemo(() => (content.match(/\\S+/g) || []).length, [content]);\n```\n\n**4.3 Batch localStorage writes** (`ProjectContext.js` ~L137)\n\nThree separate effects write to localStorage independently, triggering 3 flushes per state change:\n```javascript\n// FIX: debounced single effect\nuseEffect(() => {\n  const t = setTimeout(() => {\n    localStorage.setItem('simplifii_profile', JSON.stringify(profile));\n    localStorage.setItem('simplifii_courses_v1', JSON.stringify(courses));\n    localStorage.setItem('simplifii_activeCourseId', activeCourseId);\n  }, 300);\n  return () => clearTimeout(t);\n}, [profile, courses, activeCourseId]);\n```\n\n---\n\n### Priority Order\n\n| Priority | Issue | File | Impact |\n|---|---|---|---|\n| 1 | SettingsContext context object not memoized | `SettingsContext.js` | Every consumer re-renders on any setting |\n| 2 | Resize interval accumulating | `LinearCanvas.js:671` | Memory grows over session |\n| 3 | Double IndexedDB fetch after save | `LinearCanvas.js:127` | Doubled DB reads on every autosave |\n| 4 | Regex recompilation per call | `BriefService.js` | Slows every PDF extraction |\n| 5 | `buildDerived` called multiple times | `MasterDashboard.js` | Redundant reconciliation passes |\n| 6 | Batched localStorage writes | `ProjectContext.js` | 3x unnecessary storage flushes |\n| 7 | `tasks.map` with index keys | `MasterDashboard.js` | Full TaskCard remount on reorder |\n\nThe SettingsContext and memory leak fixes will have the highest compound impact over long sessions.\n",
+  "parsedOutput": {
+    "sections": [
+      {
+        "title": "Performance Analysis: Simplifii OS",
+        "content": "\n",
+        "level": 2
+      },
+      {
+        "title": "1. Memory Leaks",
+        "content": "\n**1.1 Resize interval + listener without cleanup** (`LinearCanvas.js` ~L671)\n```javascript\n// BUG: interval may accumulate across effect runs\nwindow.addEventListener('resize', updateLineCoords);\nconst interval = setInterval(updateLineCoords, 500);\n\n// FIX:\nreturn () => {\n  window.removeEventListener('resize', updateLineCoords);\n  clearInterval(interval);\n};\n```\n\n**1.2 EventBus never stopped on app unmount** (`EventBus.js`)\n```javascript\n// In MasterDashboard root effect:\nuseEffect(() => {\n  startEventBus(getContext);\n  return () => stopEventBus(); // missing\n}, []);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "2. N+1 Query Patterns",
+        "content": "\n**2.1 Double IndexedDB fetch after save** (`LinearCanvas.js` ~L127)\n\nAfter `saveBlockSnapshot()`, the code re-fetches the entire history from IndexedDB instead of appending locally:\n```javascript\n// BUG: full re-fetch after every save\nsaveBlockSnapshot(blockId, currentContent).then(() =>\n  getBlockHistory(blockId).then(data => setHistory(data)) // N+1\n);\n\n// FIX: optimistic append\nsaveBlockSnapshot(blockId, currentContent).then(snapshot => {\n  setHistory(prev => [...prev, snapshot]);\n  setSliderVal(prev => prev + 1);\n});\n```\n\n**2.2 `buildDerived()` called multiple times per course creation** (`MasterDashboard.js` ~L328, L375)\n\nWrap with `useCallback` so regex parsing doesn't repeat:\n```javascript\nconst buildDerived = useCallback((candidateBriefs) => {\n  const reconciledBriefs = reconcileBriefs(candidateBriefs);\n  // ...\n}, []);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "3. Unnecessary Re-renders",
+        "content": "\n**3.1 Entire app re-renders on any setting change** (`SettingsContext.js`)\n\nEvery consumer re-renders when any single setting changes. Split the context or memoize the value:\n```javascript\nconst contextValue = useMemo(() => ({\n  mode, setMode, eduLevel, darkMode, /* ... */\n}), [mode, eduLevel, darkMode /* only relevant deps */]);\n\nreturn <SettingsContext.Provider value={contextValue}>{children}</SettingsContext.Provider>;\n```\n\n**3.2 `tasks.map()` using index as key + no memo** (`MasterDashboard.js` ~L1108)\n```javascript\n// BUG: forces full remount on reorder\ntasks.map((t, i) => <TaskCard key={i} task={t} ... />)\n\n// FIX:\nconst MemoTaskCard = React.memo(TaskCard);\ntasks.map(t => <MemoTaskCard key={t.id} task={t} ... />)\n```\n\n**3.3 `renderContent()` recreated every render** (`MasterDashboard.js` ~L595)\n```javascript\n// FIX: wrap with useCallback\nconst renderContent = useCallback(() => {\n  switch (currentStage) { ... }\n}, [currentStage, profile, handleStageTransition]);\n```\n\n**3.4 Course asset filter inline in JSX** (`MasterDashboard.js` ~L1201)\n```javascript\n// BUG: filters on every render\n{(() => { const courseAssets = globalGhostAssets.filter(...); ... })()}\n\n// FIX:\nconst courseAssets = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "4. Caching Opportunities",
+        "content": "\n**4.1 Regex compiled on every call** (`BriefService.js` ~L46, L67, L88)\n\nMove regex to module level constants — they're currently recreated on every `extractEvidenceFormula()` call:\n```javascript\n// Module level (once):\nconst PRIMARY_RE = /(?:need|require)?\\s*(\\d+|one|two)\\s+(?:primary|peer-reviewed)..../i;\nconst REVIEW_RE  = /(?:need|require)?\\s*(\\d+|one|two)\\s+(?:review|secondary)..../i;\n\n// Inside function (fast lookup, no recompile):\nconst primaryMatch = lowerText.match(PRIMARY_RE);\n```\n\n**4.2 Shared word count hook** (`LinearCanvas.js` ~L24, L93, L165)\n\nWord count is computed identically in at least 3 components. Extract to a shared hook:\n```javascript\nconst useWordCount = (content) =>\n  useMemo(() => (content.match(/\\S+/g) || []).length, [content]);\n```\n\n**4.3 Batch localStorage writes** (`ProjectContext.js` ~L137)\n\nThree separate effects write to localStorage independently, triggering 3 flushes per state change:\n```javascript\n// FIX: debounced single effect\nuseEffect(() => {\n  const t = setTimeout(() => {\n    localStorage.setItem('simplifii_profile', JSON.stringify(profile));\n    localStorage.setItem('simplifii_courses_v1', JSON.stringify(courses));\n    localStorage.setItem('simplifii_activeCourseId', activeCourseId);\n  }, 300);\n  return () => clearTimeout(t);\n}, [profile, courses, activeCourseId]);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Priority Order",
+        "content": "| Priority | Issue | File | Impact |\n|---|---|---|---|\n| 1 | SettingsContext context object not memoized | `SettingsContext.js` | Every consumer re-renders on any setting |\n| 2 | Resize interval accumulating | `LinearCanvas.js:671` | Memory grows over session |\n| 3 | Double IndexedDB fetch after save | `LinearCanvas.js:127` | Doubled DB reads on every autosave |\n| 4 | Regex recompilation per call | `BriefService.js` | Slows every PDF extraction |\n| 5 | `buildDerived` called multiple times | `MasterDashboard.js` | Redundant reconciliation passes |\n| 6 | Batched localStorage writes | `ProjectContext.js` | 3x unnecessary storage flushes |\n| 7 | `tasks.map` with index keys | `MasterDashboard.js` | Full TaskCard remount on reorder |\n\nThe SettingsContext and memory leak fixes will have the highest compound impact over long sessions.",
+        "level": 3
+      }
+    ],
+    "codeBlocks": [
+      {
+        "language": "javascript",
+        "code": "// BUG: interval may accumulate across effect runs\nwindow.addEventListener('resize', updateLineCoords);\nconst interval = setInterval(updateLineCoords, 500);\n\n// FIX:\nreturn () => {\n  window.removeEventListener('resize', updateLineCoords);\n  clearInterval(interval);\n};"
+      },
+      {
+        "language": "javascript",
+        "code": "// In MasterDashboard root effect:\nuseEffect(() => {\n  startEventBus(getContext);\n  return () => stopEventBus(); // missing\n}, []);"
+      },
+      {
+        "language": "javascript",
+        "code": "// BUG: full re-fetch after every save\nsaveBlockSnapshot(blockId, currentContent).then(() =>\n  getBlockHistory(blockId).then(data => setHistory(data)) // N+1\n);\n\n// FIX: optimistic append\nsaveBlockSnapshot(blockId, currentContent).then(snapshot => {\n  setHistory(prev => [...prev, snapshot]);\n  setSliderVal(prev => prev + 1);\n});"
+      },
+      {
+        "language": "javascript",
+        "code": "const buildDerived = useCallback((candidateBriefs) => {\n  const reconciledBriefs = reconcileBriefs(candidateBriefs);\n  // ...\n}, []);"
+      },
+      {
+        "language": "javascript",
+        "code": "const contextValue = useMemo(() => ({\n  mode, setMode, eduLevel, darkMode, /* ... */\n}), [mode, eduLevel, darkMode /* only relevant deps */]);\n\nreturn <SettingsContext.Provider value={contextValue}>{children}</SettingsContext.Provider>;"
+      },
+      {
+        "language": "javascript",
+        "code": "// BUG: forces full remount on reorder\ntasks.map((t, i) => <TaskCard key={i} task={t} ... />)\n\n// FIX:\nconst MemoTaskCard = React.memo(TaskCard);\ntasks.map(t => <MemoTaskCard key={t.id} task={t} ... />)"
+      },
+      {
+        "language": "javascript",
+        "code": "// FIX: wrap with useCallback\nconst renderContent = useCallback(() => {\n  switch (currentStage) { ... }\n}, [currentStage, profile, handleStageTransition]);"
+      },
+      {
+        "language": "javascript",
+        "code": "// BUG: filters on every render\n{(() => { const courseAssets = globalGhostAssets.filter(...); ... })()}\n\n// FIX:\nconst courseAssets = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);"
+      },
+      {
+        "language": "javascript",
+        "code": "// Module level (once):\nconst PRIMARY_RE = /(?:need|require)?\\s*(\\d+|one|two)\\s+(?:primary|peer-reviewed)..../i;\nconst REVIEW_RE  = /(?:need|require)?\\s*(\\d+|one|two)\\s+(?:review|secondary)..../i;\n\n// Inside function (fast lookup, no recompile):\nconst primaryMatch = lowerText.match(PRIMARY_RE);"
+      },
+      {
+        "language": "javascript",
+        "code": "const useWordCount = (content) =>\n  useMemo(() => (content.match(/\\S+/g) || []).length, [content]);"
+      },
+      {
+        "language": "javascript",
+        "code": "// FIX: debounced single effect\nuseEffect(() => {\n  const t = setTimeout(() => {\n    localStorage.setItem('simplifii_profile', JSON.stringify(profile));\n    localStorage.setItem('simplifii_courses_v1', JSON.stringify(courses));\n    localStorage.setItem('simplifii_activeCourseId', activeCourseId);\n  }, 300);\n  return () => clearTimeout(t);\n}, [profile, courses, activeCourseId]);"
+      }
+    ]
+  },
+  "durationMs": 127683,
+  "model": "sonnet",
+  "sandboxMode": "permissive",
+  "workerType": "optimize",
+  "timestamp": "2026-05-10T21:48:48.169Z",
+  "executionId": "optimize_1778449600486_dqg1er"
+}

@@ -1,0 +1,97 @@
+[2026-05-11T00:19:17.187Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "## Performance Analysis Report\n\nHere are the most impactful issues found across the codebase, with fixes:\n\n---\n\n### N+1 Query Patterns\n\n**`MasterDashboard.js` — unguarded asset filter inside render (~line 1495)**\n\nEvery render calls `.filter()` over the entire `globalGhostAssets` array:\n\n```js\n// Problem\nconst courseAssets = globalGhostAssets.filter(a => a.courseId === activeCourseId);\n\n// Fix — derive once, cache until dependencies change\nconst courseAssets = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);\n```\n\n**`MasterDashboard.js` — `Object.entries().slice()` on every render (~line 119 in `PillarGallery`)**\n\n```js\n// Fix\nconst entries = useMemo(() => Object.entries(courses).slice(0, 5), [courses]);\n```\n\n---\n\n### Unnecessary Re-renders\n\n**`AskAura.js` — `submit` handler recreated every render (~line 57)**\n\n```js\n// Problem\nconst submit = async (e) => { ... };\n\n// Fix\nconst submit = useCallback(async (e) => {\n  if (e) e.preventDefault();\n  // ...\n}, [input, history, loading, speakReplies, activeCourse]);\n```\n\n**`AskAura.js` — index-as-key causes full list reconciliation (~line 106)**\n\n```js\n// Problem\n{history.map((turn, i) => <div key={i} ...>)}\n\n// Fix — stable key + memoised item\nconst HistoryItem = React.memo(({ turn }) => <div ...>{/* content */}</div>);\n\n{history.map((turn, i) => (\n  <HistoryItem key={`${i}-${turn.role}-${turn.ts}`} turn={turn} />\n))}\n```\n\n**`AskAura.js` — scroll effect fires on both `history` AND `loading` (~line 53)**\n\n```js\n// Problem\nuseEffect(() => { scrollToBottom(); }, [history, loading]);\n\n// Fix — scroll only when a message is actually added\nuseEffect(() => { scrollToBottom(); }, [history.length]);\n```\n\n---\n\n### Caching Opportunities\n\n**`BriefService.js` — regexes recompiled inside function calls (~lines 238-246)**\n\n```js\n// Problem — compiled inside each call to extractDeepCourseData\nconst anchorRegex = /(?:Assessment(?:\\s+Task)?|Task|AT)\\s*(\\d+)/gi;\n\n// Fix — module-level constants\nconst ANCHOR_REGEX = /(?:Assessment(?:\\s+Task)?|Task|AT)\\s*(\\d+)/gi;\nconst NAV_NOISE = /\\b(moodle|canvas|...|url)\\b/i;\n```\n\n**`SovereignRouter.js` — `applyTheme` iterates all CSS vars on every call (~line 114)**\n\n```js\n// Fix — skip if this exact stream object was already applied\nconst __appliedThemes = new WeakSet();\n\nexport const applyTheme = (stream) => {\n  if (!stream?.theme || __appliedThemes.has(stream)) return;\n  const root = document.documentElement;\n  for (const [k, v] of Object.entries(stream.theme)) {\n    if (k.startsWith('--')) root.style.setProperty(k, v);\n  }\n  __appliedThemes.add(stream);\n};\n```\n\n**`HistoryOfThought.js` — `new TextEncoder()` allocated on every encrypt call (~line 157)**\n\n```js\n// Fix — module-level singletons\nconst __encoder = new TextEncoder();\nconst __decoder = new TextDecoder();\n```\n\n---\n\n### Memory Leaks\n\n**`ExecutiveSpine.js` — `grantPlayTime` `setTimeout` leaks on rapid repeated calls (~line 224)**\n\n```js\n// Fix — track and cancel previous timeout\nlet __playtimeTimeout = null;\n\nexport const grantPlayTime = ({ minutes = 7, reason = 'section-health' } = {}) => {\n  const until = Date.now() + Math.max(60_000, minutes * 60_000);\n  safeWriteLS(PLAYTIME_KEY, String(until));\n  document.documentElement.setAttribute('data-playtime-active', 'true');\n\n  if (__playtimeTimeout) clearTimeout(__playtimeTimeout);\n  __playtimeTimeout = setTimeout(() => {\n    const stored = Number(safeReadLS(PLAYTIME_KEY, '0'));\n    if (Date.now() >= stored) {\n      document.documentElement.removeAttribute('data-playtime-active');\n      dispatch('simplifii:playtime-expired', { reason: 'time-up' });\n    }\n    __playtimeTimeout = null;\n  }, until - Date.now() + 200);\n};\n```\n\n**`UniversalOnboarding.js` — file loop continues after unmount (~line 260)**\n\n```js\n// Fix — cancellation ref\nconst cancelledRef = useRef(false);\nuseEffect(() => () => { cancelledRef.current = true; }, []);\n\nconst handleFileUpload = async (e) => {\n  for (const file of files) {\n    if (cancelledRef.current) break;\n    const text = await processDocumentWithGCP(file, token);\n    // ...\n  }\n};\n```\n\n---\n\n### Redundant Computations\n\n**`HistoryOfThought.js` — cursor loop when `getAll` suffices (~line 253)**\n\nThe IndexedDB cursor iterates one record at a time. Replace with a batch read:\n\n```js\n// Problem — one IPC round-trip per record\nconst req = idx.openCursor(IDBKeyRange.only(user_id), 'next');\nreq.onsuccess = (e) => {\n  const cur = e.target.result;\n  if (cur && out.length < limit) { out.push(cur.value); cur.continue(); }\n  else resolve(out);\n};\n\n// Fix — single round-trip\nconst req = idx.getAll(IDBKeyRange.only(user_id), limit);\nreq.onsuccess = (e) => resolve(e.target.result || []);\nreq.onerror = () => reject(req.error);\n```\n\n**`BriefService.js` — `dedupeStrings` called once per array in `mergeExtractionData` (~line 341)** — the spread + dedupe on every field is fine functionally but adds 6 separate iteration passes. Consider a single helper that merges all arrays in one pass if `mergeExtractionData` becomes a hot path.\n\n---\n\n### Priority Order\n\n| Issue | File | Severity |\n|---|---|---|\n| Unguarded `.filter()` in render | `MasterDashboard.js:1495` | High |\n| `key={i}` list reconciliation | `AskAura.js:106` | High |\n| `submit` not `useCallback` | `AskAura.js:57` | Medium |\n| `TextEncoder` per encrypt call | `HistoryOfThought.js:157` | Medium |\n| IDB cursor vs `getAll` | `HistoryOfThought.js:253` | Medium |\n| PlayTime timeout leak | `ExecutiveSpine.js:224` | Medium |\n| File loop no cancellation | `UniversalOnboarding.js:260` | Medium |\n| Regex not module-level | `BriefService.js:246` | Low |\n| `applyTheme` no cache | `SovereignRouter.js:114` | Low |\n",
+  "parsedOutput": {
+    "sections": [
+      {
+        "title": "Performance Analysis Report",
+        "content": "\nHere are the most impactful issues found across the codebase, with fixes:\n\n---\n\n",
+        "level": 2
+      },
+      {
+        "title": "N+1 Query Patterns",
+        "content": "\n**`MasterDashboard.js` — unguarded asset filter inside render (~line 1495)**\n\nEvery render calls `.filter()` over the entire `globalGhostAssets` array:\n\n```js\n// Problem\nconst courseAssets = globalGhostAssets.filter(a => a.courseId === activeCourseId);\n\n// Fix — derive once, cache until dependencies change\nconst courseAssets = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);\n```\n\n**`MasterDashboard.js` — `Object.entries().slice()` on every render (~line 119 in `PillarGallery`)**\n\n```js\n// Fix\nconst entries = useMemo(() => Object.entries(courses).slice(0, 5), [courses]);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Unnecessary Re-renders",
+        "content": "\n**`AskAura.js` — `submit` handler recreated every render (~line 57)**\n\n```js\n// Problem\nconst submit = async (e) => { ... };\n\n// Fix\nconst submit = useCallback(async (e) => {\n  if (e) e.preventDefault();\n  // ...\n}, [input, history, loading, speakReplies, activeCourse]);\n```\n\n**`AskAura.js` — index-as-key causes full list reconciliation (~line 106)**\n\n```js\n// Problem\n{history.map((turn, i) => <div key={i} ...>)}\n\n// Fix — stable key + memoised item\nconst HistoryItem = React.memo(({ turn }) => <div ...>{/* content */}</div>);\n\n{history.map((turn, i) => (\n  <HistoryItem key={`${i}-${turn.role}-${turn.ts}`} turn={turn} />\n))}\n```\n\n**`AskAura.js` — scroll effect fires on both `history` AND `loading` (~line 53)**\n\n```js\n// Problem\nuseEffect(() => { scrollToBottom(); }, [history, loading]);\n\n// Fix — scroll only when a message is actually added\nuseEffect(() => { scrollToBottom(); }, [history.length]);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Caching Opportunities",
+        "content": "\n**`BriefService.js` — regexes recompiled inside function calls (~lines 238-246)**\n\n```js\n// Problem — compiled inside each call to extractDeepCourseData\nconst anchorRegex = /(?:Assessment(?:\\s+Task)?|Task|AT)\\s*(\\d+)/gi;\n\n// Fix — module-level constants\nconst ANCHOR_REGEX = /(?:Assessment(?:\\s+Task)?|Task|AT)\\s*(\\d+)/gi;\nconst NAV_NOISE = /\\b(moodle|canvas|...|url)\\b/i;\n```\n\n**`SovereignRouter.js` — `applyTheme` iterates all CSS vars on every call (~line 114)**\n\n```js\n// Fix — skip if this exact stream object was already applied\nconst __appliedThemes = new WeakSet();\n\nexport const applyTheme = (stream) => {\n  if (!stream?.theme || __appliedThemes.has(stream)) return;\n  const root = document.documentElement;\n  for (const [k, v] of Object.entries(stream.theme)) {\n    if (k.startsWith('--')) root.style.setProperty(k, v);\n  }\n  __appliedThemes.add(stream);\n};\n```\n\n**`HistoryOfThought.js` — `new TextEncoder()` allocated on every encrypt call (~line 157)**\n\n```js\n// Fix — module-level singletons\nconst __encoder = new TextEncoder();\nconst __decoder = new TextDecoder();\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Memory Leaks",
+        "content": "\n**`ExecutiveSpine.js` — `grantPlayTime` `setTimeout` leaks on rapid repeated calls (~line 224)**\n\n```js\n// Fix — track and cancel previous timeout\nlet __playtimeTimeout = null;\n\nexport const grantPlayTime = ({ minutes = 7, reason = 'section-health' } = {}) => {\n  const until = Date.now() + Math.max(60_000, minutes * 60_000);\n  safeWriteLS(PLAYTIME_KEY, String(until));\n  document.documentElement.setAttribute('data-playtime-active', 'true');\n\n  if (__playtimeTimeout) clearTimeout(__playtimeTimeout);\n  __playtimeTimeout = setTimeout(() => {\n    const stored = Number(safeReadLS(PLAYTIME_KEY, '0'));\n    if (Date.now() >= stored) {\n      document.documentElement.removeAttribute('data-playtime-active');\n      dispatch('simplifii:playtime-expired', { reason: 'time-up' });\n    }\n    __playtimeTimeout = null;\n  }, until - Date.now() + 200);\n};\n```\n\n**`UniversalOnboarding.js` — file loop continues after unmount (~line 260)**\n\n```js\n// Fix — cancellation ref\nconst cancelledRef = useRef(false);\nuseEffect(() => () => { cancelledRef.current = true; }, []);\n\nconst handleFileUpload = async (e) => {\n  for (const file of files) {\n    if (cancelledRef.current) break;\n    const text = await processDocumentWithGCP(file, token);\n    // ...\n  }\n};\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Redundant Computations",
+        "content": "\n**`HistoryOfThought.js` — cursor loop when `getAll` suffices (~line 253)**\n\nThe IndexedDB cursor iterates one record at a time. Replace with a batch read:\n\n```js\n// Problem — one IPC round-trip per record\nconst req = idx.openCursor(IDBKeyRange.only(user_id), 'next');\nreq.onsuccess = (e) => {\n  const cur = e.target.result;\n  if (cur && out.length < limit) { out.push(cur.value); cur.continue(); }\n  else resolve(out);\n};\n\n// Fix — single round-trip\nconst req = idx.getAll(IDBKeyRange.only(user_id), limit);\nreq.onsuccess = (e) => resolve(e.target.result || []);\nreq.onerror = () => reject(req.error);\n```\n\n**`BriefService.js` — `dedupeStrings` called once per array in `mergeExtractionData` (~line 341)** — the spread + dedupe on every field is fine functionally but adds 6 separate iteration passes. Consider a single helper that merges all arrays in one pass if `mergeExtractionData` becomes a hot path.\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Priority Order",
+        "content": "| Issue | File | Severity |\n|---|---|---|\n| Unguarded `.filter()` in render | `MasterDashboard.js:1495` | High |\n| `key={i}` list reconciliation | `AskAura.js:106` | High |\n| `submit` not `useCallback` | `AskAura.js:57` | Medium |\n| `TextEncoder` per encrypt call | `HistoryOfThought.js:157` | Medium |\n| IDB cursor vs `getAll` | `HistoryOfThought.js:253` | Medium |\n| PlayTime timeout leak | `ExecutiveSpine.js:224` | Medium |\n| File loop no cancellation | `UniversalOnboarding.js:260` | Medium |\n| Regex not module-level | `BriefService.js:246` | Low |\n| `applyTheme` no cache | `SovereignRouter.js:114` | Low |",
+        "level": 3
+      }
+    ],
+    "codeBlocks": [
+      {
+        "language": "js",
+        "code": "// Problem\nconst courseAssets = globalGhostAssets.filter(a => a.courseId === activeCourseId);\n\n// Fix — derive once, cache until dependencies change\nconst courseAssets = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);"
+      },
+      {
+        "language": "js",
+        "code": "// Fix\nconst entries = useMemo(() => Object.entries(courses).slice(0, 5), [courses]);"
+      },
+      {
+        "language": "js",
+        "code": "// Problem\nconst submit = async (e) => { ... };\n\n// Fix\nconst submit = useCallback(async (e) => {\n  if (e) e.preventDefault();\n  // ...\n}, [input, history, loading, speakReplies, activeCourse]);"
+      },
+      {
+        "language": "js",
+        "code": "// Problem\n{history.map((turn, i) => <div key={i} ...>)}\n\n// Fix — stable key + memoised item\nconst HistoryItem = React.memo(({ turn }) => <div ...>{/* content */}</div>);\n\n{history.map((turn, i) => (\n  <HistoryItem key={`${i}-${turn.role}-${turn.ts}`} turn={turn} />\n))}"
+      },
+      {
+        "language": "js",
+        "code": "// Problem\nuseEffect(() => { scrollToBottom(); }, [history, loading]);\n\n// Fix — scroll only when a message is actually added\nuseEffect(() => { scrollToBottom(); }, [history.length]);"
+      },
+      {
+        "language": "js",
+        "code": "// Problem — compiled inside each call to extractDeepCourseData\nconst anchorRegex = /(?:Assessment(?:\\s+Task)?|Task|AT)\\s*(\\d+)/gi;\n\n// Fix — module-level constants\nconst ANCHOR_REGEX = /(?:Assessment(?:\\s+Task)?|Task|AT)\\s*(\\d+)/gi;\nconst NAV_NOISE = /\\b(moodle|canvas|...|url)\\b/i;"
+      },
+      {
+        "language": "js",
+        "code": "// Fix — skip if this exact stream object was already applied\nconst __appliedThemes = new WeakSet();\n\nexport const applyTheme = (stream) => {\n  if (!stream?.theme || __appliedThemes.has(stream)) return;\n  const root = document.documentElement;\n  for (const [k, v] of Object.entries(stream.theme)) {\n    if (k.startsWith('--')) root.style.setProperty(k, v);\n  }\n  __appliedThemes.add(stream);\n};"
+      },
+      {
+        "language": "js",
+        "code": "// Fix — module-level singletons\nconst __encoder = new TextEncoder();\nconst __decoder = new TextDecoder();"
+      },
+      {
+        "language": "js",
+        "code": "// Fix — track and cancel previous timeout\nlet __playtimeTimeout = null;\n\nexport const grantPlayTime = ({ minutes = 7, reason = 'section-health' } = {}) => {\n  const until = Date.now() + Math.max(60_000, minutes * 60_000);\n  safeWriteLS(PLAYTIME_KEY, String(until));\n  document.documentElement.setAttribute('data-playtime-active', 'true');\n\n  if (__playtimeTimeout) clearTimeout(__playtimeTimeout);\n  __playtimeTimeout = setTimeout(() => {\n    const stored = Number(safeReadLS(PLAYTIME_KEY, '0'));\n    if (Date.now() >= stored) {\n      document.documentElement.removeAttribute('data-playtime-active');\n      dispatch('simplifii:playtime-expired', { reason: 'time-up' });\n    }\n    __playtimeTimeout = null;\n  }, until - Date.now() + 200);\n};"
+      },
+      {
+        "language": "js",
+        "code": "// Fix — cancellation ref\nconst cancelledRef = useRef(false);\nuseEffect(() => () => { cancelledRef.current = true; }, []);\n\nconst handleFileUpload = async (e) => {\n  for (const file of files) {\n    if (cancelledRef.current) break;\n    const text = await processDocumentWithGCP(file, token);\n    // ...\n  }\n};"
+      },
+      {
+        "language": "js",
+        "code": "// Problem — one IPC round-trip per record\nconst req = idx.openCursor(IDBKeyRange.only(user_id), 'next');\nreq.onsuccess = (e) => {\n  const cur = e.target.result;\n  if (cur && out.length < limit) { out.push(cur.value); cur.continue(); }\n  else resolve(out);\n};\n\n// Fix — single round-trip\nconst req = idx.getAll(IDBKeyRange.only(user_id), limit);\nreq.onsuccess = (e) => resolve(e.target.result || []);\nreq.onerror = () => reject(req.error);"
+      }
+    ]
+  },
+  "durationMs": 117347,
+  "model": "sonnet",
+  "sandboxMode": "permissive",
+  "workerType": "optimize",
+  "timestamp": "2026-05-11T00:19:17.186Z",
+  "executionId": "optimize_1778458639839_8a9y5h"
+}

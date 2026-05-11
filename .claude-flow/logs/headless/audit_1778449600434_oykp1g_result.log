@@ -1,0 +1,77 @@
+[2026-05-10T21:47:22.373Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 125,\n      \"description\": \"Weak passphrase requirement (minimum 4 characters). Combined with PBKDF2 derivation, this is vulnerable to brute-force attacks if attacker gains access to salt + encrypted data. Recommend minimum 12-16 characters with entropy check.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/ExecutiveSpine.js\",\n      \"line\": 58,\n      \"description\": \"Unencrypted localStorage usage for session state (focus sessions, section health, credits). While non-critical, sensitive workflow state is stored in plain text. Should use encrypted storage or relocate to IndexedDB vault.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/App.js\",\n      \"line\": 39,\n      \"description\": \"localStorage.clear() triggered by URL parameter without user confirmation. While the string comparison is safe, clearing all user data silently via URL is user-hostile. Recommend adding confirmation dialog or removing this feature.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/App.js\",\n      \"line\": 34,\n      \"description\": \"Error boundary logs full error objects to console in production. Could leak sensitive information (file paths, variable names, internal API details) to browser console where it may be captured by monitoring tools.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/LiteralMode.js\",\n      \"line\": 29,\n      \"description\": \"Text transformation via hardcoded regex patterns. If text parameter ever receives unsanitized user input (despite documentation), could be exploited. Add explicit input validation and sanitization checks regardless.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/frontend/SettingsContext.js\",\n      \"line\": 12,\n      \"description\": \"Font family name from settings context used directly in inline style. If ever sourced from user input, XSS vector. Currently safe but add validation when connecting to user-configurable themes.\"\n    },\n    {\n      \"severity\": \"info\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 155,\n      \"description\": \"Passphrase hint stored in plain text localStorage (PASSPHRASE_HINT_KEY). If hint is sensitive, this leaks information to attackers with local access. Consider documenting that hints should never contain sensitive info.\"\n    },\n    {\n      \"severity\": \"info\",\n      \"file\": \"scripts/check-style.js\",\n      \"line\": 1,\n      \"description\": \"Pre-commit hook contains hardcoded US spelling checks. While this enforces style, it prevents legitimate use of proper nouns, abbreviations, or technical terms with US origins. Could be overly strict in some contexts.\"\n    }\n  ],\n  \"riskScore\": 28,\n  \"recommendations\": [\n    \"**Increase passphrase entropy requirements**: Change HistoryOfThought.js minimum from 4 to 12+ characters and add complexity checks (numbers, symbols)\",\n    \"**Encrypt local storage**: Move simplifii_spine_* and navigation state into IndexedDB vault or use Web Crypto to encrypt localStorage values\",\n    \"**Remove or secure URL reset feature**: Either require confirmation dialog before localStorage.clear() or disable the reset=true parameter entirely\",\n    \"**Add Content Security Policy**: Implement CSP headers to prevent inline script injection and restrict script sources\",\n    \"**Add CORS configuration**: Configure proper CORS headers for any future API endpoints; currently none found but needed before cloud sync\",\n    \"**Sanitize error logging**: Remove or redact sensitive info from error boundary console.error() logs; implement structured error tracking in production\",\n    \"**Validate and sanitize all text transformations**: In LiteralMode.js, add explicit input validation before regex replacement regardless of upstream promises\",\n    \"**Document security assumptions**: Add comments explaining why font-family from context is safe, and why user_id='local' is intentional\",\n    \"**Review pdf.js version**: Verify pdfjs-dist version in package.json for known vulnerabilities; consider using npm audit regularly\",\n    \"**Add passphrase strength meter**: When unlocking vault, show user real-time feedback on passphrase entropy to encourage stronger choices\"\n  ]\n}\n```\n\n**Summary**: Your codebase is **relatively secure** for a client-side educational app. The strongest point is the HistoryOfThought encryption layer using AES-GCM-256 and PBKDF2. The main risks are:\n\n1. **Weak passphrase requirements** (4 chars is too lenient for vault encryption)\n2. **Unencrypted session state in localStorage** (medium-sensitivity workflow data exposed)\n3. **Silent data-wipe via URL parameter** (UX/safety issue, not strict security)\n\nNo hardcoded API keys, no SQL injection vectors, and no obvious XSS found. The architecture explicitly prevents plaintext leakage when vault is locked, which is a strong design choice.\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 125,
+        "description": "Weak passphrase requirement (minimum 4 characters). Combined with PBKDF2 derivation, this is vulnerable to brute-force attacks if attacker gains access to salt + encrypted data. Recommend minimum 12-16 characters with entropy check."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/ExecutiveSpine.js",
+        "line": 58,
+        "description": "Unencrypted localStorage usage for session state (focus sessions, section health, credits). While non-critical, sensitive workflow state is stored in plain text. Should use encrypted storage or relocate to IndexedDB vault."
+      },
+      {
+        "severity": "low",
+        "file": "src/App.js",
+        "line": 39,
+        "description": "localStorage.clear() triggered by URL parameter without user confirmation. While the string comparison is safe, clearing all user data silently via URL is user-hostile. Recommend adding confirmation dialog or removing this feature."
+      },
+      {
+        "severity": "low",
+        "file": "src/App.js",
+        "line": 34,
+        "description": "Error boundary logs full error objects to console in production. Could leak sensitive information (file paths, variable names, internal API details) to browser console where it may be captured by monitoring tools."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/LiteralMode.js",
+        "line": 29,
+        "description": "Text transformation via hardcoded regex patterns. If text parameter ever receives unsanitized user input (despite documentation), could be exploited. Add explicit input validation and sanitization checks regardless."
+      },
+      {
+        "severity": "low",
+        "file": "src/frontend/SettingsContext.js",
+        "line": 12,
+        "description": "Font family name from settings context used directly in inline style. If ever sourced from user input, XSS vector. Currently safe but add validation when connecting to user-configurable themes."
+      },
+      {
+        "severity": "info",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 155,
+        "description": "Passphrase hint stored in plain text localStorage (PASSPHRASE_HINT_KEY). If hint is sensitive, this leaks information to attackers with local access. Consider documenting that hints should never contain sensitive info."
+      },
+      {
+        "severity": "info",
+        "file": "scripts/check-style.js",
+        "line": 1,
+        "description": "Pre-commit hook contains hardcoded US spelling checks. While this enforces style, it prevents legitimate use of proper nouns, abbreviations, or technical terms with US origins. Could be overly strict in some contexts."
+      }
+    ],
+    "riskScore": 28,
+    "recommendations": [
+      "**Increase passphrase entropy requirements**: Change HistoryOfThought.js minimum from 4 to 12+ characters and add complexity checks (numbers, symbols)",
+      "**Encrypt local storage**: Move simplifii_spine_* and navigation state into IndexedDB vault or use Web Crypto to encrypt localStorage values",
+      "**Remove or secure URL reset feature**: Either require confirmation dialog before localStorage.clear() or disable the reset=true parameter entirely",
+      "**Add Content Security Policy**: Implement CSP headers to prevent inline script injection and restrict script sources",
+      "**Add CORS configuration**: Configure proper CORS headers for any future API endpoints; currently none found but needed before cloud sync",
+      "**Sanitize error logging**: Remove or redact sensitive info from error boundary console.error() logs; implement structured error tracking in production",
+      "**Validate and sanitize all text transformations**: In LiteralMode.js, add explicit input validation before regex replacement regardless of upstream promises",
+      "**Document security assumptions**: Add comments explaining why font-family from context is safe, and why user_id='local' is intentional",
+      "**Review pdf.js version**: Verify pdfjs-dist version in package.json for known vulnerabilities; consider using npm audit regularly",
+      "**Add passphrase strength meter**: When unlocking vault, show user real-time feedback on passphrase entropy to encourage stronger choices"
+    ]
+  },
+  "durationMs": 41939,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-10T21:47:22.373Z",
+  "executionId": "audit_1778449600434_oykp1g"
+}

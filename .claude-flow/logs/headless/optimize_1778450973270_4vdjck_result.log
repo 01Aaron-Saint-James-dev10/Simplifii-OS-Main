@@ -1,0 +1,97 @@
+[2026-05-10T22:12:15.526Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "Here's the full performance analysis of the Simplifii-OS codebase:\n\n---\n\n## Performance Analysis: 16 Issues Found\n\n### Priority 1 — Memory Leaks (Critical)\n\n**4.1 `MasterDashboard.js` ~160-180: Event listeners not cleaned up**\n```javascript\n// Bug: listeners accumulate on re-render\nuseEffect(() => {\n  window.addEventListener('simplifii:assessment-complete', handleAssessmentComplete);\n  // ❌ No return cleanup\n}, []);\n\n// Fix:\nuseEffect(() => {\n  window.addEventListener('simplifii:assessment-complete', handleAssessmentComplete);\n  return () => window.removeEventListener('simplifii:assessment-complete', handleAssessmentComplete);\n}, []);\n```\n\n**4.2 `ExecutiveSpine.js`: `setInterval` IDs never stored → stacked intervals**\n```javascript\n// Bug: calling startIdleDetection twice creates two concurrent intervals\nsetInterval(() => { ... }, 5000); // ID discarded\n\n// Fix:\nlet idleIntervalId = null;\nexport function startIdleDetection(options) {\n  if (idleIntervalId !== null) clearInterval(idleIntervalId);\n  idleIntervalId = setInterval(() => { ... }, 5000);\n}\nexport function stopIdleDetection() {\n  clearInterval(idleIntervalId);\n  idleIntervalId = null;\n}\n```\n\n---\n\n### Priority 2 — Unnecessary Re-renders (High)\n\n**2.3 `MasterDashboard.js` ~150: Stale closures from missing useEffect deps**\n```javascript\n// Bug: uses 'courses' but array not in deps → stale closure\nuseEffect(() => {\n  window.addEventListener('simplifii:event', (e) => {\n    courses.find(c => c.id === e.detail.id); // stale!\n  });\n}, []); // ❌ missing: courses, selectedStream\n\n// Fix: include all referenced values in deps array\n```\n\n**2.4 `ProjectContext.js`: Monolithic context causes cascade re-renders**\n\nEvery `setCurrentBrief` re-renders components that only need `stream`. Split into focused contexts:\n```javascript\nconst StreamContext = React.createContext();\nconst BriefContext = React.createContext();\n// Components subscribe only to what they need\nexport const useStream = () => useContext(StreamContext);\nexport const useBrief = () => useContext(BriefContext);\n```\n\n**2.1 `IdleNudge.js` ~37: Avatar recreated on every render**\n```javascript\n// Fix:\nconst StreamAvatar = useMemo(\n  () => getAvatarByStream(stream?.streamId, { gritLevel, ariaLabel }),\n  [stream?.streamId, gritLevel, ariaLabel]\n);\n```\n\n---\n\n### Priority 3 — N+1 Patterns (High)\n\n**1.1 `MasterDashboard.js` ~442: Sequential file extraction blocks main thread**\n```javascript\n// Bug: awaits each file one-by-one\nfor (const file of files) {\n  const extracted = await BriefService.extractDeepCourseData(file);\n}\n\n// Fix: batch with Promise.all\nconst allExtractions = await Promise.all(\n  files.map(file => BriefService.extractDeepCourseData(file))\n);\n```\n\n**1.2 `ExecutiveSpine.js`: Multiple localStorage reads/writes per event**\n```javascript\n// Fix: debounce writes to storage\nlet pendingUpdates = {};\nlet flushTimer = null;\nfunction queueUpdate(key, value) {\n  pendingUpdates[key] = value;\n  clearTimeout(flushTimer);\n  flushTimer = setTimeout(flushToStorage, 500);\n}\n```\n\n---\n\n### Priority 4 — Redundant Computations (Medium-High)\n\n**5.2 `BriefService.js` ~317: O(n²) array concatenation in mergeExtractionData**\n```javascript\n// Bug: concat creates new arrays each iteration\nmerged.assessments = merged.assessments.concat(data.assessments); // O(n²)\n\n// Fix:\nreturn {\n  assessments: dataArray.flatMap(d => d.assessments || []),\n  learningOutcomes: dataArray.flatMap(d => d.learningOutcomes || []),\n  contentBlocks: dataArray.flatMap(d => d.contentBlocks || [])\n};\n```\n\n**5.4 `UniversalOnboarding.js` ~249: `Array.find` inside nested loop → O(n²)**\n```javascript\n// Fix: build Map before looping\nconst metadataMap = new Map(allMetadata.map(m => [m.id, m]));\n// Then O(1) lookups inside the loop\nconst metadata = metadataMap.get(assessment.id);\n```\n\n---\n\n### Priority 5 — Caching Opportunities (Medium)\n\n**3.1 `BriefService.js` ~120: Regex recompiled per file**\n```javascript\n// Fix: hoist to module scope\nconst REGEX = {\n  title: /^#{1,4}\\s+(.+?)(?:—|$)/gm,\n  outcome: /Learning Outcomes?:?\\s*\\n(.+?)(?:\\n|$)/i,\n};\n// Remember to reset .lastIndex = 0 before reuse of global flags\n```\n\n**3.2 `BriefService.js` ~382: `deriveRoadmapFromAssessments` uncached**\n```javascript\n// Fix: simple identity cache\nlet _lastInput = null, _lastResult = null;\nexport function deriveRoadmapFromAssessments(assessments) {\n  if (assessments === _lastInput) return _lastResult;\n  _lastResult = computeRoadmap(assessments);\n  _lastInput = assessments;\n  return _lastResult;\n}\n```\n\n---\n\n### Summary\n\n| Category | Count | Severity |\n|---|---|---|\n| Memory leaks | 3 | Critical |\n| Unnecessary re-renders | 4 | High |\n| N+1 patterns | 2 | High |\n| Redundant computations | 4 | Medium-High |\n| Caching opportunities | 3 | Medium |\n\n**Start with the `ExecutiveSpine.js` interval leak and `MasterDashboard.js` listener cleanup** — those compound silently over a session and are the easiest to verify with DevTools Memory profiler.\n",
+  "parsedOutput": {
+    "sections": [
+      {
+        "title": "Performance Analysis: 16 Issues Found",
+        "content": "\n",
+        "level": 2
+      },
+      {
+        "title": "Priority 1 — Memory Leaks (Critical)",
+        "content": "\n**4.1 `MasterDashboard.js` ~160-180: Event listeners not cleaned up**\n```javascript\n// Bug: listeners accumulate on re-render\nuseEffect(() => {\n  window.addEventListener('simplifii:assessment-complete', handleAssessmentComplete);\n  // ❌ No return cleanup\n}, []);\n\n// Fix:\nuseEffect(() => {\n  window.addEventListener('simplifii:assessment-complete', handleAssessmentComplete);\n  return () => window.removeEventListener('simplifii:assessment-complete', handleAssessmentComplete);\n}, []);\n```\n\n**4.2 `ExecutiveSpine.js`: `setInterval` IDs never stored → stacked intervals**\n```javascript\n// Bug: calling startIdleDetection twice creates two concurrent intervals\nsetInterval(() => { ... }, 5000); // ID discarded\n\n// Fix:\nlet idleIntervalId = null;\nexport function startIdleDetection(options) {\n  if (idleIntervalId !== null) clearInterval(idleIntervalId);\n  idleIntervalId = setInterval(() => { ... }, 5000);\n}\nexport function stopIdleDetection() {\n  clearInterval(idleIntervalId);\n  idleIntervalId = null;\n}\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Priority 2 — Unnecessary Re-renders (High)",
+        "content": "\n**2.3 `MasterDashboard.js` ~150: Stale closures from missing useEffect deps**\n```javascript\n// Bug: uses 'courses' but array not in deps → stale closure\nuseEffect(() => {\n  window.addEventListener('simplifii:event', (e) => {\n    courses.find(c => c.id === e.detail.id); // stale!\n  });\n}, []); // ❌ missing: courses, selectedStream\n\n// Fix: include all referenced values in deps array\n```\n\n**2.4 `ProjectContext.js`: Monolithic context causes cascade re-renders**\n\nEvery `setCurrentBrief` re-renders components that only need `stream`. Split into focused contexts:\n```javascript\nconst StreamContext = React.createContext();\nconst BriefContext = React.createContext();\n// Components subscribe only to what they need\nexport const useStream = () => useContext(StreamContext);\nexport const useBrief = () => useContext(BriefContext);\n```\n\n**2.1 `IdleNudge.js` ~37: Avatar recreated on every render**\n```javascript\n// Fix:\nconst StreamAvatar = useMemo(\n  () => getAvatarByStream(stream?.streamId, { gritLevel, ariaLabel }),\n  [stream?.streamId, gritLevel, ariaLabel]\n);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Priority 3 — N+1 Patterns (High)",
+        "content": "\n**1.1 `MasterDashboard.js` ~442: Sequential file extraction blocks main thread**\n```javascript\n// Bug: awaits each file one-by-one\nfor (const file of files) {\n  const extracted = await BriefService.extractDeepCourseData(file);\n}\n\n// Fix: batch with Promise.all\nconst allExtractions = await Promise.all(\n  files.map(file => BriefService.extractDeepCourseData(file))\n);\n```\n\n**1.2 `ExecutiveSpine.js`: Multiple localStorage reads/writes per event**\n```javascript\n// Fix: debounce writes to storage\nlet pendingUpdates = {};\nlet flushTimer = null;\nfunction queueUpdate(key, value) {\n  pendingUpdates[key] = value;\n  clearTimeout(flushTimer);\n  flushTimer = setTimeout(flushToStorage, 500);\n}\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Priority 4 — Redundant Computations (Medium-High)",
+        "content": "\n**5.2 `BriefService.js` ~317: O(n²) array concatenation in mergeExtractionData**\n```javascript\n// Bug: concat creates new arrays each iteration\nmerged.assessments = merged.assessments.concat(data.assessments); // O(n²)\n\n// Fix:\nreturn {\n  assessments: dataArray.flatMap(d => d.assessments || []),\n  learningOutcomes: dataArray.flatMap(d => d.learningOutcomes || []),\n  contentBlocks: dataArray.flatMap(d => d.contentBlocks || [])\n};\n```\n\n**5.4 `UniversalOnboarding.js` ~249: `Array.find` inside nested loop → O(n²)**\n```javascript\n// Fix: build Map before looping\nconst metadataMap = new Map(allMetadata.map(m => [m.id, m]));\n// Then O(1) lookups inside the loop\nconst metadata = metadataMap.get(assessment.id);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Priority 5 — Caching Opportunities (Medium)",
+        "content": "\n**3.1 `BriefService.js` ~120: Regex recompiled per file**\n```javascript\n// Fix: hoist to module scope\nconst REGEX = {\n  title: /^#{1,4}\\s+(.+?)(?:—|$)/gm,\n  outcome: /Learning Outcomes?:?\\s*\\n(.+?)(?:\\n|$)/i,\n};\n// Remember to reset .lastIndex = 0 before reuse of global flags\n```\n\n**3.2 `BriefService.js` ~382: `deriveRoadmapFromAssessments` uncached**\n```javascript\n// Fix: simple identity cache\nlet _lastInput = null, _lastResult = null;\nexport function deriveRoadmapFromAssessments(assessments) {\n  if (assessments === _lastInput) return _lastResult;\n  _lastResult = computeRoadmap(assessments);\n  _lastInput = assessments;\n  return _lastResult;\n}\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Summary",
+        "content": "| Category | Count | Severity |\n|---|---|---|\n| Memory leaks | 3 | Critical |\n| Unnecessary re-renders | 4 | High |\n| N+1 patterns | 2 | High |\n| Redundant computations | 4 | Medium-High |\n| Caching opportunities | 3 | Medium |\n\n**Start with the `ExecutiveSpine.js` interval leak and `MasterDashboard.js` listener cleanup** — those compound silently over a session and are the easiest to verify with DevTools Memory profiler.",
+        "level": 3
+      }
+    ],
+    "codeBlocks": [
+      {
+        "language": "javascript",
+        "code": "// Bug: listeners accumulate on re-render\nuseEffect(() => {\n  window.addEventListener('simplifii:assessment-complete', handleAssessmentComplete);\n  // ❌ No return cleanup\n}, []);\n\n// Fix:\nuseEffect(() => {\n  window.addEventListener('simplifii:assessment-complete', handleAssessmentComplete);\n  return () => window.removeEventListener('simplifii:assessment-complete', handleAssessmentComplete);\n}, []);"
+      },
+      {
+        "language": "javascript",
+        "code": "// Bug: calling startIdleDetection twice creates two concurrent intervals\nsetInterval(() => { ... }, 5000); // ID discarded\n\n// Fix:\nlet idleIntervalId = null;\nexport function startIdleDetection(options) {\n  if (idleIntervalId !== null) clearInterval(idleIntervalId);\n  idleIntervalId = setInterval(() => { ... }, 5000);\n}\nexport function stopIdleDetection() {\n  clearInterval(idleIntervalId);\n  idleIntervalId = null;\n}"
+      },
+      {
+        "language": "javascript",
+        "code": "// Bug: uses 'courses' but array not in deps → stale closure\nuseEffect(() => {\n  window.addEventListener('simplifii:event', (e) => {\n    courses.find(c => c.id === e.detail.id); // stale!\n  });\n}, []); // ❌ missing: courses, selectedStream\n\n// Fix: include all referenced values in deps array"
+      },
+      {
+        "language": "javascript",
+        "code": "const StreamContext = React.createContext();\nconst BriefContext = React.createContext();\n// Components subscribe only to what they need\nexport const useStream = () => useContext(StreamContext);\nexport const useBrief = () => useContext(BriefContext);"
+      },
+      {
+        "language": "javascript",
+        "code": "// Fix:\nconst StreamAvatar = useMemo(\n  () => getAvatarByStream(stream?.streamId, { gritLevel, ariaLabel }),\n  [stream?.streamId, gritLevel, ariaLabel]\n);"
+      },
+      {
+        "language": "javascript",
+        "code": "// Bug: awaits each file one-by-one\nfor (const file of files) {\n  const extracted = await BriefService.extractDeepCourseData(file);\n}\n\n// Fix: batch with Promise.all\nconst allExtractions = await Promise.all(\n  files.map(file => BriefService.extractDeepCourseData(file))\n);"
+      },
+      {
+        "language": "javascript",
+        "code": "// Fix: debounce writes to storage\nlet pendingUpdates = {};\nlet flushTimer = null;\nfunction queueUpdate(key, value) {\n  pendingUpdates[key] = value;\n  clearTimeout(flushTimer);\n  flushTimer = setTimeout(flushToStorage, 500);\n}"
+      },
+      {
+        "language": "javascript",
+        "code": "// Bug: concat creates new arrays each iteration\nmerged.assessments = merged.assessments.concat(data.assessments); // O(n²)\n\n// Fix:\nreturn {\n  assessments: dataArray.flatMap(d => d.assessments || []),\n  learningOutcomes: dataArray.flatMap(d => d.learningOutcomes || []),\n  contentBlocks: dataArray.flatMap(d => d.contentBlocks || [])\n};"
+      },
+      {
+        "language": "javascript",
+        "code": "// Fix: build Map before looping\nconst metadataMap = new Map(allMetadata.map(m => [m.id, m]));\n// Then O(1) lookups inside the loop\nconst metadata = metadataMap.get(assessment.id);"
+      },
+      {
+        "language": "javascript",
+        "code": "// Fix: hoist to module scope\nconst REGEX = {\n  title: /^#{1,4}\\s+(.+?)(?:—|$)/gm,\n  outcome: /Learning Outcomes?:?\\s*\\n(.+?)(?:\\n|$)/i,\n};\n// Remember to reset .lastIndex = 0 before reuse of global flags"
+      },
+      {
+        "language": "javascript",
+        "code": "// Fix: simple identity cache\nlet _lastInput = null, _lastResult = null;\nexport function deriveRoadmapFromAssessments(assessments) {\n  if (assessments === _lastInput) return _lastResult;\n  _lastResult = computeRoadmap(assessments);\n  _lastInput = assessments;\n  return _lastResult;\n}"
+      }
+    ]
+  },
+  "durationMs": 162255,
+  "model": "sonnet",
+  "sandboxMode": "permissive",
+  "workerType": "optimize",
+  "timestamp": "2026-05-10T22:12:15.525Z",
+  "executionId": "optimize_1778450973270_4vdjck"
+}

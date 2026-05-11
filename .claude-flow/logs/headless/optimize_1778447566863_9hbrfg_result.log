@@ -1,0 +1,102 @@
+[2026-05-10T21:14:56.047Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "## Performance Analysis: Simplifii-OS Master\n\nHere are the findings organized by severity with actionable fixes:\n\n---\n\n### 1. Memory Leaks (HIGH)\n\n**`src/core/EventBus.js`** — `startEventBus()` adds 8+ window listeners with no re-entrancy guard. Calling it twice doubles all listeners.\n\n**`src/core/ExecutiveSpine.js:146-167`** — `startIdleDetection()` attaches 3 capture listeners on every call without checking if already attached (only guards via `__idleListenerAttached` flag, which may be stale).\n\n**`src/frontend/ZenTools.js:28-48`** — Recursive `setTimeout` breathing animation leaks after unmount:\n\n```js\n// CURRENT — leaks on unmount\nuseEffect(() => {\n  const tick = () => {\n    setPhase(p => ...);\n    setTimeout(tick, delay); // no way to cancel this\n  };\n  setTimeout(tick, delay);\n}, []);\n\n// FIX — use ref to cancel\nuseEffect(() => {\n  let id;\n  const tick = () => {\n    setPhase(p => ...);\n    id = setTimeout(tick, delay);\n  };\n  id = setTimeout(tick, delay);\n  return () => clearTimeout(id);\n}, [delay]);\n```\n\n**`src/frontend/LinearCanvas.js:665-672`** — `setInterval(updateLineCoords, 500)` inside a visibility-change handler may never clear if the component unmounts while visible.\n\n---\n\n### 2. Missing `useCallback`/`useMemo` (HIGH)\n\n**`src/frontend/MasterDashboard.js:132-136`** — Inline handler recreated every render, then added as an event listener:\n\n```js\n// CURRENT\nuseEffect(() => {\n  window.addEventListener('toggle-accessibility', (e) => setAccessibilityMode(e.detail));\n}, []);\n\n// FIX\nconst handleToggleAccessibility = useCallback((e) => setAccessibilityMode(e.detail), []);\nuseEffect(() => {\n  window.addEventListener('toggle-accessibility', handleToggleAccessibility);\n  return () => window.removeEventListener('toggle-accessibility', handleToggleAccessibility);\n}, [handleToggleAccessibility]);\n```\n\n**`src/frontend/LinearCanvas.js` (ToneHUD component)** — Regex computed on every render:\n\n```js\n// CURRENT — runs on every render\nconst wordCount = content.match(/\\S+/g)?.length ?? 0;\nconst longWords = content.toLowerCase().match(/\\b[a-z]{4,}\\b/g)?.length ?? 0;\n\n// FIX\nconst { wordCount, longWords } = useMemo(() => ({\n  wordCount: content.match(/\\S+/g)?.length ?? 0,\n  longWords: content.toLowerCase().match(/\\b[a-z]{4,}\\b/g)?.length ?? 0,\n}), [content]);\n```\n\n**`src/frontend/LinearCanvas.js:591`** — `handleMouseMove` called raw on `mousemove` when ruler is active. Needs debouncing on high-DPI displays:\n\n```js\nconst handleMouseMove = useCallback(\n  debounce((e) => { /* ruler logic */ }, 16), // ~60fps\n  []\n);\n```\n\n---\n\n### 3. N+1 Patterns (MEDIUM)\n\n**`src/frontend/MasterDashboard.js:474-496`** — Sequential `await` per PDF file during grounding ingestion:\n\n```js\n// CURRENT — sequential, blocks UI\nfor (const file of files) {\n  await processDocumentWithGCP(file);\n  await handleSprintCreation(file);\n}\n\n// FIX — parallel ingestion\nconst results = await Promise.all(\n  files.map(file => processDocumentWithGCP(file))\n);\nawait Promise.all(results.map(r => handleSprintCreation(r)));\n```\n\n**`src/services/BriefService.js:224-253`** — Two sequential `text.matchAll()` passes over the same string. Unify into one pass.\n\n---\n\n### 4. Unbatched IndexedDB (MEDIUM)\n\n**`src/core/HistoryOfThought.js:127-148`** — `openDB()` called on every `appendEvent()` and `listEvents()`. Cache the connection:\n\n```js\nlet _db = null;\n\nasync function getDB() {\n  if (_db) return _db;\n  _db = await openDB(); // only opens once\n  return _db;\n}\n```\n\n**`src/services/IndexedDBService.js:18-28`** — Multi-asset saves use separate transactions. Batch with a single transaction:\n\n```js\n// FIX — one transaction, multiple puts\nasync function saveGhostAssets(assets) {\n  const db = await getDB();\n  const tx = db.transaction('ghostAssets', 'readwrite');\n  await Promise.all(assets.map(a => tx.store.put(a)));\n  await tx.done;\n}\n```\n\n**`src/services/IndexedDBService.js:30-44`** — `getBlockHistory()` fetches all records then filters in JS. Use the `by_blockId` index:\n\n```js\n// CURRENT — loads everything\nconst all = await store.getAll();\nreturn all.filter(r => r.blockId === blockId);\n\n// FIX — query the index directly\nconst index = store.index('by_blockId');\nreturn await index.getAll(blockId);\n```\n\n---\n\n### 5. State Architecture (MEDIUM)\n\n**`src/frontend/MasterDashboard.js:65-103`** — 39 separate `useState` hooks. Every unrelated state update re-renders the entire component. Consolidate UI state into a reducer:\n\n```js\nconst [ui, dispatch] = useReducer(uiReducer, {\n  showStudio: false,\n  accessibilityMode: false,\n  isRulerActive: false,\n  // ... group related flags\n});\n```\n\n**`src/frontend/MasterDashboard.js:237-239`** — Spreading entire asset array on every add is O(n):\n\n```js\n// CURRENT\nsetGlobalGhostAssets(prev => [...prev, newAsset]);\n\n// For large collections, consider a Map keyed by id\nsetGhostAssetMap(prev => new Map(prev).set(newAsset.id, newAsset));\n```\n\n---\n\n### 6. Missing/Unstable List Keys (LOW)\n\n**`src/frontend/MasterDashboard.js:1047-1056, 1108-1110`** — Index-based keys cause state misalignment on reorder:\n\n```js\n// CURRENT — unstable\n{tasks.map((t, i) => <TaskCard key={i} task={t} />)}\n\n// FIX — stable identity\n{tasks.map(t => <TaskCard key={t.id} task={t} />)}\n```\n\n---\n\n### Priority Order\n\n| # | Fix | Files | Impact |\n|---|-----|-------|--------|\n| 1 | Cache IndexedDB connection | `HistoryOfThought.js` | Eliminates per-event DB open overhead |\n| 2 | Fix recursive timeout leak | `ZenTools.js` | Stops memory growth over session |\n| 3 | Add EventBus re-entrancy guard | `EventBus.js` | Prevents listener doubling |\n| 4 | Memoize ToneHUD regex | `LinearCanvas.js` | Stops per-keystroke regex cost |\n| 5 | Batch PDF ingestion | `MasterDashboard.js` | Unblocks UI during grounding ingest |\n| 6 | Batch IndexedDB writes | `IndexedDBService.js` | Reduces transaction overhead |\n| 7 | Replace index list keys | `MasterDashboard.js` | Prevents state corruption on reorder |\n| 8 | Consolidate 39 useState | `MasterDashboard.js` | Reduces cascading re-renders |\n",
+  "parsedOutput": {
+    "sections": [
+      {
+        "title": "Performance Analysis: Simplifii-OS Master",
+        "content": "\nHere are the findings organized by severity with actionable fixes:\n\n---\n\n",
+        "level": 2
+      },
+      {
+        "title": "1. Memory Leaks (HIGH)",
+        "content": "\n**`src/core/EventBus.js`** — `startEventBus()` adds 8+ window listeners with no re-entrancy guard. Calling it twice doubles all listeners.\n\n**`src/core/ExecutiveSpine.js:146-167`** — `startIdleDetection()` attaches 3 capture listeners on every call without checking if already attached (only guards via `__idleListenerAttached` flag, which may be stale).\n\n**`src/frontend/ZenTools.js:28-48`** — Recursive `setTimeout` breathing animation leaks after unmount:\n\n```js\n// CURRENT — leaks on unmount\nuseEffect(() => {\n  const tick = () => {\n    setPhase(p => ...);\n    setTimeout(tick, delay); // no way to cancel this\n  };\n  setTimeout(tick, delay);\n}, []);\n\n// FIX — use ref to cancel\nuseEffect(() => {\n  let id;\n  const tick = () => {\n    setPhase(p => ...);\n    id = setTimeout(tick, delay);\n  };\n  id = setTimeout(tick, delay);\n  return () => clearTimeout(id);\n}, [delay]);\n```\n\n**`src/frontend/LinearCanvas.js:665-672`** — `setInterval(updateLineCoords, 500)` inside a visibility-change handler may never clear if the component unmounts while visible.\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "2. Missing `useCallback`/`useMemo` (HIGH)",
+        "content": "\n**`src/frontend/MasterDashboard.js:132-136`** — Inline handler recreated every render, then added as an event listener:\n\n```js\n// CURRENT\nuseEffect(() => {\n  window.addEventListener('toggle-accessibility', (e) => setAccessibilityMode(e.detail));\n}, []);\n\n// FIX\nconst handleToggleAccessibility = useCallback((e) => setAccessibilityMode(e.detail), []);\nuseEffect(() => {\n  window.addEventListener('toggle-accessibility', handleToggleAccessibility);\n  return () => window.removeEventListener('toggle-accessibility', handleToggleAccessibility);\n}, [handleToggleAccessibility]);\n```\n\n**`src/frontend/LinearCanvas.js` (ToneHUD component)** — Regex computed on every render:\n\n```js\n// CURRENT — runs on every render\nconst wordCount = content.match(/\\S+/g)?.length ?? 0;\nconst longWords = content.toLowerCase().match(/\\b[a-z]{4,}\\b/g)?.length ?? 0;\n\n// FIX\nconst { wordCount, longWords } = useMemo(() => ({\n  wordCount: content.match(/\\S+/g)?.length ?? 0,\n  longWords: content.toLowerCase().match(/\\b[a-z]{4,}\\b/g)?.length ?? 0,\n}), [content]);\n```\n\n**`src/frontend/LinearCanvas.js:591`** — `handleMouseMove` called raw on `mousemove` when ruler is active. Needs debouncing on high-DPI displays:\n\n```js\nconst handleMouseMove = useCallback(\n  debounce((e) => { /* ruler logic */ }, 16), // ~60fps\n  []\n);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "3. N+1 Patterns (MEDIUM)",
+        "content": "\n**`src/frontend/MasterDashboard.js:474-496`** — Sequential `await` per PDF file during grounding ingestion:\n\n```js\n// CURRENT — sequential, blocks UI\nfor (const file of files) {\n  await processDocumentWithGCP(file);\n  await handleSprintCreation(file);\n}\n\n// FIX — parallel ingestion\nconst results = await Promise.all(\n  files.map(file => processDocumentWithGCP(file))\n);\nawait Promise.all(results.map(r => handleSprintCreation(r)));\n```\n\n**`src/services/BriefService.js:224-253`** — Two sequential `text.matchAll()` passes over the same string. Unify into one pass.\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "4. Unbatched IndexedDB (MEDIUM)",
+        "content": "\n**`src/core/HistoryOfThought.js:127-148`** — `openDB()` called on every `appendEvent()` and `listEvents()`. Cache the connection:\n\n```js\nlet _db = null;\n\nasync function getDB() {\n  if (_db) return _db;\n  _db = await openDB(); // only opens once\n  return _db;\n}\n```\n\n**`src/services/IndexedDBService.js:18-28`** — Multi-asset saves use separate transactions. Batch with a single transaction:\n\n```js\n// FIX — one transaction, multiple puts\nasync function saveGhostAssets(assets) {\n  const db = await getDB();\n  const tx = db.transaction('ghostAssets', 'readwrite');\n  await Promise.all(assets.map(a => tx.store.put(a)));\n  await tx.done;\n}\n```\n\n**`src/services/IndexedDBService.js:30-44`** — `getBlockHistory()` fetches all records then filters in JS. Use the `by_blockId` index:\n\n```js\n// CURRENT — loads everything\nconst all = await store.getAll();\nreturn all.filter(r => r.blockId === blockId);\n\n// FIX — query the index directly\nconst index = store.index('by_blockId');\nreturn await index.getAll(blockId);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "5. State Architecture (MEDIUM)",
+        "content": "\n**`src/frontend/MasterDashboard.js:65-103`** — 39 separate `useState` hooks. Every unrelated state update re-renders the entire component. Consolidate UI state into a reducer:\n\n```js\nconst [ui, dispatch] = useReducer(uiReducer, {\n  showStudio: false,\n  accessibilityMode: false,\n  isRulerActive: false,\n  // ... group related flags\n});\n```\n\n**`src/frontend/MasterDashboard.js:237-239`** — Spreading entire asset array on every add is O(n):\n\n```js\n// CURRENT\nsetGlobalGhostAssets(prev => [...prev, newAsset]);\n\n// For large collections, consider a Map keyed by id\nsetGhostAssetMap(prev => new Map(prev).set(newAsset.id, newAsset));\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "6. Missing/Unstable List Keys (LOW)",
+        "content": "\n**`src/frontend/MasterDashboard.js:1047-1056, 1108-1110`** — Index-based keys cause state misalignment on reorder:\n\n```js\n// CURRENT — unstable\n{tasks.map((t, i) => <TaskCard key={i} task={t} />)}\n\n// FIX — stable identity\n{tasks.map(t => <TaskCard key={t.id} task={t} />)}\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Priority Order",
+        "content": "| # | Fix | Files | Impact |\n|---|-----|-------|--------|\n| 1 | Cache IndexedDB connection | `HistoryOfThought.js` | Eliminates per-event DB open overhead |\n| 2 | Fix recursive timeout leak | `ZenTools.js` | Stops memory growth over session |\n| 3 | Add EventBus re-entrancy guard | `EventBus.js` | Prevents listener doubling |\n| 4 | Memoize ToneHUD regex | `LinearCanvas.js` | Stops per-keystroke regex cost |\n| 5 | Batch PDF ingestion | `MasterDashboard.js` | Unblocks UI during grounding ingest |\n| 6 | Batch IndexedDB writes | `IndexedDBService.js` | Reduces transaction overhead |\n| 7 | Replace index list keys | `MasterDashboard.js` | Prevents state corruption on reorder |\n| 8 | Consolidate 39 useState | `MasterDashboard.js` | Reduces cascading re-renders |",
+        "level": 3
+      }
+    ],
+    "codeBlocks": [
+      {
+        "language": "js",
+        "code": "// CURRENT — leaks on unmount\nuseEffect(() => {\n  const tick = () => {\n    setPhase(p => ...);\n    setTimeout(tick, delay); // no way to cancel this\n  };\n  setTimeout(tick, delay);\n}, []);\n\n// FIX — use ref to cancel\nuseEffect(() => {\n  let id;\n  const tick = () => {\n    setPhase(p => ...);\n    id = setTimeout(tick, delay);\n  };\n  id = setTimeout(tick, delay);\n  return () => clearTimeout(id);\n}, [delay]);"
+      },
+      {
+        "language": "js",
+        "code": "// CURRENT\nuseEffect(() => {\n  window.addEventListener('toggle-accessibility', (e) => setAccessibilityMode(e.detail));\n}, []);\n\n// FIX\nconst handleToggleAccessibility = useCallback((e) => setAccessibilityMode(e.detail), []);\nuseEffect(() => {\n  window.addEventListener('toggle-accessibility', handleToggleAccessibility);\n  return () => window.removeEventListener('toggle-accessibility', handleToggleAccessibility);\n}, [handleToggleAccessibility]);"
+      },
+      {
+        "language": "js",
+        "code": "// CURRENT — runs on every render\nconst wordCount = content.match(/\\S+/g)?.length ?? 0;\nconst longWords = content.toLowerCase().match(/\\b[a-z]{4,}\\b/g)?.length ?? 0;\n\n// FIX\nconst { wordCount, longWords } = useMemo(() => ({\n  wordCount: content.match(/\\S+/g)?.length ?? 0,\n  longWords: content.toLowerCase().match(/\\b[a-z]{4,}\\b/g)?.length ?? 0,\n}), [content]);"
+      },
+      {
+        "language": "js",
+        "code": "const handleMouseMove = useCallback(\n  debounce((e) => { /* ruler logic */ }, 16), // ~60fps\n  []\n);"
+      },
+      {
+        "language": "js",
+        "code": "// CURRENT — sequential, blocks UI\nfor (const file of files) {\n  await processDocumentWithGCP(file);\n  await handleSprintCreation(file);\n}\n\n// FIX — parallel ingestion\nconst results = await Promise.all(\n  files.map(file => processDocumentWithGCP(file))\n);\nawait Promise.all(results.map(r => handleSprintCreation(r)));"
+      },
+      {
+        "language": "js",
+        "code": "let _db = null;\n\nasync function getDB() {\n  if (_db) return _db;\n  _db = await openDB(); // only opens once\n  return _db;\n}"
+      },
+      {
+        "language": "js",
+        "code": "// FIX — one transaction, multiple puts\nasync function saveGhostAssets(assets) {\n  const db = await getDB();\n  const tx = db.transaction('ghostAssets', 'readwrite');\n  await Promise.all(assets.map(a => tx.store.put(a)));\n  await tx.done;\n}"
+      },
+      {
+        "language": "js",
+        "code": "// CURRENT — loads everything\nconst all = await store.getAll();\nreturn all.filter(r => r.blockId === blockId);\n\n// FIX — query the index directly\nconst index = store.index('by_blockId');\nreturn await index.getAll(blockId);"
+      },
+      {
+        "language": "js",
+        "code": "const [ui, dispatch] = useReducer(uiReducer, {\n  showStudio: false,\n  accessibilityMode: false,\n  isRulerActive: false,\n  // ... group related flags\n});"
+      },
+      {
+        "language": "js",
+        "code": "// CURRENT\nsetGlobalGhostAssets(prev => [...prev, newAsset]);\n\n// For large collections, consider a Map keyed by id\nsetGhostAssetMap(prev => new Map(prev).set(newAsset.id, newAsset));"
+      },
+      {
+        "language": "js",
+        "code": "// CURRENT — unstable\n{tasks.map((t, i) => <TaskCard key={i} task={t} />)}\n\n// FIX — stable identity\n{tasks.map(t => <TaskCard key={t.id} task={t} />)}"
+      }
+    ]
+  },
+  "durationMs": 129183,
+  "model": "sonnet",
+  "sandboxMode": "permissive",
+  "workerType": "optimize",
+  "timestamp": "2026-05-10T21:14:56.046Z",
+  "executionId": "optimize_1778447566863_9hbrfg"
+}

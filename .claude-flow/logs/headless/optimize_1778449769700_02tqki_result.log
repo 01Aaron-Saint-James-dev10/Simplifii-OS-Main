@@ -1,0 +1,97 @@
+[2026-05-10T21:52:00.677Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "## Performance Analysis: Simplifii-OS\n\n---\n\n### 1. Memory Leaks (Critical)\n\n**`MasterDashboard.js` — 3 uncleared event listeners**\n\nEvent listeners added with no cleanup. They accumulate on every mount/re-render.\n\n```js\n// Lines ~134, 160-164, 221-232 — ALL follow this pattern:\n\n// BAD (current):\nwindow.addEventListener('toggle-accessibility', () => { ... });\ndocument.addEventListener('pointerdown', unlockAudio);\ndocument.addEventListener('keydown', handler);\n\n// FIX — wrap in useEffect with cleanup:\nuseEffect(() => {\n  const handler = () => { ... };\n  window.addEventListener('toggle-accessibility', handler);\n  return () => window.removeEventListener('toggle-accessibility', handler);\n}, []);\n```\n\n**`ExecutiveSpine.js` ~L83 — Idle interval never cleared on crash**\n\n```js\n// FIX: Guard against duplicate intervals\nfunction startIdleDetection() {\n  if (__idleInterval) clearInterval(__idleInterval); // add this guard\n  __idleInterval = setInterval(() => { ... }, 1000);\n}\n```\n\n**`ExecutiveSpine.js` ~L219 — Orphaned playtime `setTimeout`s**\n\n```js\nlet __playtimeTimeout = null;\nfunction grantPlayTime(minutes) {\n  if (__playtimeTimeout) clearTimeout(__playtimeTimeout); // add guard\n  __playtimeTimeout = setTimeout(() => { ... }, 2000);\n}\n```\n\n---\n\n### 2. N+1 Query Pattern (Critical)\n\n**`MasterDashboard.js` `handleIngestGrounding` ~L440-510**\n\nNested loop fires one `processDocumentWithGCP()` call per file — 50 sequential awaits for 50 files.\n\n```js\n// BAD (current):\nfor (let [groupName, files] of Object.entries(groupedFiles)) {\n  for (let file of files) {\n    const response = await processDocumentWithGCP(file); // serial!\n  }\n}\n\n// FIX — batch with Promise.all:\nconst allFiles = Object.values(groupedFiles).flat();\nconst responses = await Promise.all(\n  allFiles.map(file => processDocumentWithGCP(file))\n);\n```\n\n---\n\n### 3. Unnecessary Re-renders\n\n**`SettingsContext.js` ~L40-64 — 19-dependency mega-useEffect**\n\nEvery setting change triggers a full localStorage write for all 19 settings, causing the entire app tree to re-render.\n\n```js\n// BAD (current):\nuseEffect(() => {\n  localStorage.setItem('mode', mode);\n  // ... 18 more writes\n}, [mode, eduLevel, highContrast, /* ...16 more */]);\n\n// FIX — split into focused effects:\nuseEffect(() => {\n  localStorage.setItem('mode', mode);\n  localStorage.setItem('eduLevel', eduLevel);\n}, [mode, eduLevel]);\n\nuseEffect(() => {\n  localStorage.setItem('highContrast', highContrast);\n  localStorage.setItem('reducedMotion', reducedMotion);\n}, [highContrast, reducedMotion]);\n```\n\n**`MasterDashboard.js` ~L270-282 — `buildDerived()` called every render**\n\n```js\n// BAD (current):\nconst { reconciledBriefs, assessmentTitles } = buildDerived(); // recalculated every render\n\n// FIX:\nconst { reconciledBriefs, assessmentTitles } = useMemo(\n  () => buildDerived(),\n  [courses, documents, tasks, profile]\n);\n```\n\n**`SimplifiiStudio.js` ~L922 — Inline `send` callback recreated every render**\n\n```js\n// FIX:\nconst send = useCallback((text) => {\n  // ... body\n}, [/* actual dependencies */]);\n<AuraPanel send={send} />\n```\n\n---\n\n### 4. Caching Opportunities\n\n**`HistoryOfThought.js` ~L87 — PBKDF2 re-derived on every call (600k iterations)**\n\nThis is the most expensive operation in the app and runs repeatedly.\n\n```js\nlet __cachedKey = null;\nlet __cachedPassphrase = null;\n\nasync function deriveKey(passphrase) {\n  if (passphrase === __cachedPassphrase && __cachedKey) {\n    return __cachedKey; // skip 600k iterations\n  }\n  const key = await crypto.subtle.deriveKey(/* ... */);\n  __cachedKey = key;\n  __cachedPassphrase = passphrase;\n  return key;\n}\n```\n\n**`HistoryOfThought.js` ~L246 — `listEvents` uses cursor iteration instead of `getAll()`**\n\n```js\n// BAD: one record at a time via cursor\n// FIX:\nconst events = await store.getAll(); // single batch read\n```\n\n**`ProjectContext.js` ~L208 — `localStorage.getItem` called on every context access**\n\n```js\n// FIX: memoize at context creation\nconst schemaOverride = useMemo(\n  () => localStorage.getItem('__schemaOverride'),\n  [] // read once\n);\n```\n\n---\n\n### 5. Redundant Computations\n\n**`LiteralMode.js` ~L70-91 — 23 sequential regex passes over same string**\n\n```js\n// BAD: 23 passes, 23 intermediate strings\nPATTERNS.forEach(({ from, to }) => {\n  result = result.replace(from, to);\n});\n\n// FIX: single combined replace\nconst REPLACEMENT_MAP = new Map(PATTERNS.map(p => [p.from.source, p.to]));\nconst COMBINED = new RegExp(PATTERNS.map(p => p.from.source).join('|'), 'g');\nfunction literalise(text) {\n  return text.replace(COMBINED, match =>\n    REPLACEMENT_MAP.get(PATTERNS.find(p => p.from.test(match))?.from.source) ?? match\n  );\n}\n```\n\n**`SettingsContext.js` — all 19 settings in one context**\n\nAny setting change re-renders every subscriber. Long-term fix: split into `UDLSettingsContext`, `LayoutSettingsContext`, `AISettingsContext`.\n\n---\n\n### Priority Order\n\n| Severity | Issue | File |\n|----------|-------|------|\n| Critical | PBKDF2 re-derived on every call | `HistoryOfThought.js:87` |\n| Critical | N+1 API calls in grounding ingest | `MasterDashboard.js:440` |\n| Critical | 3 leaking event listeners | `MasterDashboard.js:134,160,221` |\n| Critical | 19-dep mega-useEffect | `SettingsContext.js:40` |\n| High | `buildDerived()` not memoized | `MasterDashboard.js:270` |\n| High | Idle interval not guarded | `ExecutiveSpine.js:83` |\n| Medium | 23-pass regex in LiteralMode | `LiteralMode.js:70` |\n| Medium | Missing `useCallback` on `send` | `SimplifiiStudio.js:922` |\n\nStart with the PBKDF2 cache and the N+1 ingest loop — those will have the most perceptible impact on responsiveness.\n",
+  "parsedOutput": {
+    "sections": [
+      {
+        "title": "Performance Analysis: Simplifii-OS",
+        "content": "\n---\n\n",
+        "level": 2
+      },
+      {
+        "title": "1. Memory Leaks (Critical)",
+        "content": "\n**`MasterDashboard.js` — 3 uncleared event listeners**\n\nEvent listeners added with no cleanup. They accumulate on every mount/re-render.\n\n```js\n// Lines ~134, 160-164, 221-232 — ALL follow this pattern:\n\n// BAD (current):\nwindow.addEventListener('toggle-accessibility', () => { ... });\ndocument.addEventListener('pointerdown', unlockAudio);\ndocument.addEventListener('keydown', handler);\n\n// FIX — wrap in useEffect with cleanup:\nuseEffect(() => {\n  const handler = () => { ... };\n  window.addEventListener('toggle-accessibility', handler);\n  return () => window.removeEventListener('toggle-accessibility', handler);\n}, []);\n```\n\n**`ExecutiveSpine.js` ~L83 — Idle interval never cleared on crash**\n\n```js\n// FIX: Guard against duplicate intervals\nfunction startIdleDetection() {\n  if (__idleInterval) clearInterval(__idleInterval); // add this guard\n  __idleInterval = setInterval(() => { ... }, 1000);\n}\n```\n\n**`ExecutiveSpine.js` ~L219 — Orphaned playtime `setTimeout`s**\n\n```js\nlet __playtimeTimeout = null;\nfunction grantPlayTime(minutes) {\n  if (__playtimeTimeout) clearTimeout(__playtimeTimeout); // add guard\n  __playtimeTimeout = setTimeout(() => { ... }, 2000);\n}\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "2. N+1 Query Pattern (Critical)",
+        "content": "\n**`MasterDashboard.js` `handleIngestGrounding` ~L440-510**\n\nNested loop fires one `processDocumentWithGCP()` call per file — 50 sequential awaits for 50 files.\n\n```js\n// BAD (current):\nfor (let [groupName, files] of Object.entries(groupedFiles)) {\n  for (let file of files) {\n    const response = await processDocumentWithGCP(file); // serial!\n  }\n}\n\n// FIX — batch with Promise.all:\nconst allFiles = Object.values(groupedFiles).flat();\nconst responses = await Promise.all(\n  allFiles.map(file => processDocumentWithGCP(file))\n);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "3. Unnecessary Re-renders",
+        "content": "\n**`SettingsContext.js` ~L40-64 — 19-dependency mega-useEffect**\n\nEvery setting change triggers a full localStorage write for all 19 settings, causing the entire app tree to re-render.\n\n```js\n// BAD (current):\nuseEffect(() => {\n  localStorage.setItem('mode', mode);\n  // ... 18 more writes\n}, [mode, eduLevel, highContrast, /* ...16 more */]);\n\n// FIX — split into focused effects:\nuseEffect(() => {\n  localStorage.setItem('mode', mode);\n  localStorage.setItem('eduLevel', eduLevel);\n}, [mode, eduLevel]);\n\nuseEffect(() => {\n  localStorage.setItem('highContrast', highContrast);\n  localStorage.setItem('reducedMotion', reducedMotion);\n}, [highContrast, reducedMotion]);\n```\n\n**`MasterDashboard.js` ~L270-282 — `buildDerived()` called every render**\n\n```js\n// BAD (current):\nconst { reconciledBriefs, assessmentTitles } = buildDerived(); // recalculated every render\n\n// FIX:\nconst { reconciledBriefs, assessmentTitles } = useMemo(\n  () => buildDerived(),\n  [courses, documents, tasks, profile]\n);\n```\n\n**`SimplifiiStudio.js` ~L922 — Inline `send` callback recreated every render**\n\n```js\n// FIX:\nconst send = useCallback((text) => {\n  // ... body\n}, [/* actual dependencies */]);\n<AuraPanel send={send} />\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "4. Caching Opportunities",
+        "content": "\n**`HistoryOfThought.js` ~L87 — PBKDF2 re-derived on every call (600k iterations)**\n\nThis is the most expensive operation in the app and runs repeatedly.\n\n```js\nlet __cachedKey = null;\nlet __cachedPassphrase = null;\n\nasync function deriveKey(passphrase) {\n  if (passphrase === __cachedPassphrase && __cachedKey) {\n    return __cachedKey; // skip 600k iterations\n  }\n  const key = await crypto.subtle.deriveKey(/* ... */);\n  __cachedKey = key;\n  __cachedPassphrase = passphrase;\n  return key;\n}\n```\n\n**`HistoryOfThought.js` ~L246 — `listEvents` uses cursor iteration instead of `getAll()`**\n\n```js\n// BAD: one record at a time via cursor\n// FIX:\nconst events = await store.getAll(); // single batch read\n```\n\n**`ProjectContext.js` ~L208 — `localStorage.getItem` called on every context access**\n\n```js\n// FIX: memoize at context creation\nconst schemaOverride = useMemo(\n  () => localStorage.getItem('__schemaOverride'),\n  [] // read once\n);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "5. Redundant Computations",
+        "content": "\n**`LiteralMode.js` ~L70-91 — 23 sequential regex passes over same string**\n\n```js\n// BAD: 23 passes, 23 intermediate strings\nPATTERNS.forEach(({ from, to }) => {\n  result = result.replace(from, to);\n});\n\n// FIX: single combined replace\nconst REPLACEMENT_MAP = new Map(PATTERNS.map(p => [p.from.source, p.to]));\nconst COMBINED = new RegExp(PATTERNS.map(p => p.from.source).join('|'), 'g');\nfunction literalise(text) {\n  return text.replace(COMBINED, match =>\n    REPLACEMENT_MAP.get(PATTERNS.find(p => p.from.test(match))?.from.source) ?? match\n  );\n}\n```\n\n**`SettingsContext.js` — all 19 settings in one context**\n\nAny setting change re-renders every subscriber. Long-term fix: split into `UDLSettingsContext`, `LayoutSettingsContext`, `AISettingsContext`.\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Priority Order",
+        "content": "| Severity | Issue | File |\n|----------|-------|------|\n| Critical | PBKDF2 re-derived on every call | `HistoryOfThought.js:87` |\n| Critical | N+1 API calls in grounding ingest | `MasterDashboard.js:440` |\n| Critical | 3 leaking event listeners | `MasterDashboard.js:134,160,221` |\n| Critical | 19-dep mega-useEffect | `SettingsContext.js:40` |\n| High | `buildDerived()` not memoized | `MasterDashboard.js:270` |\n| High | Idle interval not guarded | `ExecutiveSpine.js:83` |\n| Medium | 23-pass regex in LiteralMode | `LiteralMode.js:70` |\n| Medium | Missing `useCallback` on `send` | `SimplifiiStudio.js:922` |\n\nStart with the PBKDF2 cache and the N+1 ingest loop — those will have the most perceptible impact on responsiveness.",
+        "level": 3
+      }
+    ],
+    "codeBlocks": [
+      {
+        "language": "js",
+        "code": "// Lines ~134, 160-164, 221-232 — ALL follow this pattern:\n\n// BAD (current):\nwindow.addEventListener('toggle-accessibility', () => { ... });\ndocument.addEventListener('pointerdown', unlockAudio);\ndocument.addEventListener('keydown', handler);\n\n// FIX — wrap in useEffect with cleanup:\nuseEffect(() => {\n  const handler = () => { ... };\n  window.addEventListener('toggle-accessibility', handler);\n  return () => window.removeEventListener('toggle-accessibility', handler);\n}, []);"
+      },
+      {
+        "language": "js",
+        "code": "// FIX: Guard against duplicate intervals\nfunction startIdleDetection() {\n  if (__idleInterval) clearInterval(__idleInterval); // add this guard\n  __idleInterval = setInterval(() => { ... }, 1000);\n}"
+      },
+      {
+        "language": "js",
+        "code": "let __playtimeTimeout = null;\nfunction grantPlayTime(minutes) {\n  if (__playtimeTimeout) clearTimeout(__playtimeTimeout); // add guard\n  __playtimeTimeout = setTimeout(() => { ... }, 2000);\n}"
+      },
+      {
+        "language": "js",
+        "code": "// BAD (current):\nfor (let [groupName, files] of Object.entries(groupedFiles)) {\n  for (let file of files) {\n    const response = await processDocumentWithGCP(file); // serial!\n  }\n}\n\n// FIX — batch with Promise.all:\nconst allFiles = Object.values(groupedFiles).flat();\nconst responses = await Promise.all(\n  allFiles.map(file => processDocumentWithGCP(file))\n);"
+      },
+      {
+        "language": "js",
+        "code": "// BAD (current):\nuseEffect(() => {\n  localStorage.setItem('mode', mode);\n  // ... 18 more writes\n}, [mode, eduLevel, highContrast, /* ...16 more */]);\n\n// FIX — split into focused effects:\nuseEffect(() => {\n  localStorage.setItem('mode', mode);\n  localStorage.setItem('eduLevel', eduLevel);\n}, [mode, eduLevel]);\n\nuseEffect(() => {\n  localStorage.setItem('highContrast', highContrast);\n  localStorage.setItem('reducedMotion', reducedMotion);\n}, [highContrast, reducedMotion]);"
+      },
+      {
+        "language": "js",
+        "code": "// BAD (current):\nconst { reconciledBriefs, assessmentTitles } = buildDerived(); // recalculated every render\n\n// FIX:\nconst { reconciledBriefs, assessmentTitles } = useMemo(\n  () => buildDerived(),\n  [courses, documents, tasks, profile]\n);"
+      },
+      {
+        "language": "js",
+        "code": "// FIX:\nconst send = useCallback((text) => {\n  // ... body\n}, [/* actual dependencies */]);\n<AuraPanel send={send} />"
+      },
+      {
+        "language": "js",
+        "code": "let __cachedKey = null;\nlet __cachedPassphrase = null;\n\nasync function deriveKey(passphrase) {\n  if (passphrase === __cachedPassphrase && __cachedKey) {\n    return __cachedKey; // skip 600k iterations\n  }\n  const key = await crypto.subtle.deriveKey(/* ... */);\n  __cachedKey = key;\n  __cachedPassphrase = passphrase;\n  return key;\n}"
+      },
+      {
+        "language": "js",
+        "code": "// BAD: one record at a time via cursor\n// FIX:\nconst events = await store.getAll(); // single batch read"
+      },
+      {
+        "language": "js",
+        "code": "// FIX: memoize at context creation\nconst schemaOverride = useMemo(\n  () => localStorage.getItem('__schemaOverride'),\n  [] // read once\n);"
+      },
+      {
+        "language": "js",
+        "code": "// BAD: 23 passes, 23 intermediate strings\nPATTERNS.forEach(({ from, to }) => {\n  result = result.replace(from, to);\n});\n\n// FIX: single combined replace\nconst REPLACEMENT_MAP = new Map(PATTERNS.map(p => [p.from.source, p.to]));\nconst COMBINED = new RegExp(PATTERNS.map(p => p.from.source).join('|'), 'g');\nfunction literalise(text) {\n  return text.replace(COMBINED, match =>\n    REPLACEMENT_MAP.get(PATTERNS.find(p => p.from.test(match))?.from.source) ?? match\n  );\n}"
+      }
+    ]
+  },
+  "durationMs": 150977,
+  "model": "sonnet",
+  "sandboxMode": "permissive",
+  "workerType": "optimize",
+  "timestamp": "2026-05-10T21:52:00.677Z",
+  "executionId": "optimize_1778449769700_02tqki"
+}

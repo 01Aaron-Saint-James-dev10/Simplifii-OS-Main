@@ -1,0 +1,83 @@
+[2026-05-10T22:00:22.108Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/backend/LMSConnector.js\",\n      \"line\": 1,\n      \"description\": \"courseCode parameter used directly without validation. Could allow injection or reflect unsanitized data. If connected to real LMS APIs, parameter could be exploited (SQL injection, LDAP injection, or path traversal).\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/backend/NeuralAuditPipeline.js\",\n      \"line\": 3,\n      \"description\": \"Hardcoded course codes (BABS1201, BABS1202) violate CLAUDE.md 'Universal Architecture' rule: course-specific data must live in schema/disk, not engineering specs. Architectural vulnerability that could break when scaled to other institutions.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 120,\n      \"description\": \"Passphrase hint stored unencrypted in localStorage (PASSPHRASE_HINT_KEY). If hint reveals structure of actual passphrase, could aid brute-force attacks.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/frontend/MasterDashboard.js\",\n      \"line\": 24,\n      \"description\": \"Hardcoded course reference 'ARTS5200' in JSX violates Universal Architecture rule. Course-specific strings must not be embedded in source; should come from schema/config.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 14,\n      \"description\": \"Derived encryption key (__derivedKey) stored in module scope without automatic cleanup. If session remains open after user leaves device, key persists in memory until manual lockSession() call. Consider auto-lock on page unload.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/frontend/ProjectContext.js\",\n      \"line\": 6,\n      \"description\": \"User draft text stored in plain React state/memory without encryption. Sensitive academic work is readable by any XSS payload or memory dump. Acknowledged by design but represents data-at-rest risk.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/App.js\",\n      \"line\": 15,\n      \"description\": \"Query parameter 'reset=true' clears localStorage without rate-limiting. Not exploitable for data exfiltration but could enable nuisance attacks (e.g. clearing user progress repeatedly).\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/EventBus.js\",\n      \"line\": 28,\n      \"description\": \"Window CustomEvents (simplifii:focus-start, etc.) could theoretically be spoofed by other scripts on the same origin. Listeners trust event.detail without validation. Low risk due to same-origin policy but should validate event source.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 68,\n      \"description\": \"Salt stored in localStorage as base64. While salt doesn't need to be secret (by design), base64 encoding provides no additional security; storing as binary would be slightly better.\"\n    }\n  ],\n  \"riskScore\": 42,\n  \"recommendations\": [\n    \"**URGENT**: Validate courseCode parameter in LMSConnector.js against whitelist before use. Reject anything not matching /^[A-Z0-9]{4,8}$/ pattern.\",\n    \"Refactor all hardcoded course codes (BABS1201, ARTS5200, UNSW references) into a schema-driven config. Read from schema at runtime, not source code.\",\n    \"Add auto-lock on page unload: call lockSession() from window.beforeunload to clear __derivedKey from memory when user leaves tab.\",\n    \"Implement passphrase strength requirements and never store passphrase hints; instead store only salted hash of passphrase for comparison.\",\n    \"Encrypt user draft text at rest: either serialize to IndexedDB encrypted, or use in-memory encryption with key derived from passphrase.\",\n    \"Add rate-limiting or CSRF token validation to the 'reset=true' query parameter to prevent repeated state-clearing attacks.\",\n    \"Validate event sources in EventBus listeners; check that events originate from expected internal dispatch sites.\",\n    \"Run `npm audit` to scan for known vulnerabilities in pdfjs-dist and other dependencies; currently unknown if versions are patched.\",\n    \"Add Content-Security-Policy headers (if behind a server) to mitigate XSS from DOM-based courseCode injection vectors.\",\n    \"Document that this app holds sensitive student work in plaintext memory; users should not assume privacy until HistoryOfThought vault is explicitly unlocked and committed.\"\n  ]\n}\n```\n\n**Summary**: The app has solid encryption infrastructure (AES-GCM-256 in HistoryOfThought) but leaks sensitive data in transit (unvalidated parameters, unencrypted drafts in memory). The main risk is unvalidated `courseCode` in LMSConnector.js combined with hardcoded institution-specific values that violate your architecture rules. Recommend fixing parameter validation first, then migrating all course codes to schema-driven config.\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "high",
+        "file": "src/backend/LMSConnector.js",
+        "line": 1,
+        "description": "courseCode parameter used directly without validation. Could allow injection or reflect unsanitized data. If connected to real LMS APIs, parameter could be exploited (SQL injection, LDAP injection, or path traversal)."
+      },
+      {
+        "severity": "medium",
+        "file": "src/backend/NeuralAuditPipeline.js",
+        "line": 3,
+        "description": "Hardcoded course codes (BABS1201, BABS1202) violate CLAUDE.md 'Universal Architecture' rule: course-specific data must live in schema/disk, not engineering specs. Architectural vulnerability that could break when scaled to other institutions."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 120,
+        "description": "Passphrase hint stored unencrypted in localStorage (PASSPHRASE_HINT_KEY). If hint reveals structure of actual passphrase, could aid brute-force attacks."
+      },
+      {
+        "severity": "medium",
+        "file": "src/frontend/MasterDashboard.js",
+        "line": 24,
+        "description": "Hardcoded course reference 'ARTS5200' in JSX violates Universal Architecture rule. Course-specific strings must not be embedded in source; should come from schema/config."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 14,
+        "description": "Derived encryption key (__derivedKey) stored in module scope without automatic cleanup. If session remains open after user leaves device, key persists in memory until manual lockSession() call. Consider auto-lock on page unload."
+      },
+      {
+        "severity": "medium",
+        "file": "src/frontend/ProjectContext.js",
+        "line": 6,
+        "description": "User draft text stored in plain React state/memory without encryption. Sensitive academic work is readable by any XSS payload or memory dump. Acknowledged by design but represents data-at-rest risk."
+      },
+      {
+        "severity": "low",
+        "file": "src/App.js",
+        "line": 15,
+        "description": "Query parameter 'reset=true' clears localStorage without rate-limiting. Not exploitable for data exfiltration but could enable nuisance attacks (e.g. clearing user progress repeatedly)."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/EventBus.js",
+        "line": 28,
+        "description": "Window CustomEvents (simplifii:focus-start, etc.) could theoretically be spoofed by other scripts on the same origin. Listeners trust event.detail without validation. Low risk due to same-origin policy but should validate event source."
+      },
+      {
+        "severity": "low",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 68,
+        "description": "Salt stored in localStorage as base64. While salt doesn't need to be secret (by design), base64 encoding provides no additional security; storing as binary would be slightly better."
+      }
+    ],
+    "riskScore": 42,
+    "recommendations": [
+      "**URGENT**: Validate courseCode parameter in LMSConnector.js against whitelist before use. Reject anything not matching /^[A-Z0-9]{4,8}$/ pattern.",
+      "Refactor all hardcoded course codes (BABS1201, ARTS5200, UNSW references) into a schema-driven config. Read from schema at runtime, not source code.",
+      "Add auto-lock on page unload: call lockSession() from window.beforeunload to clear __derivedKey from memory when user leaves tab.",
+      "Implement passphrase strength requirements and never store passphrase hints; instead store only salted hash of passphrase for comparison.",
+      "Encrypt user draft text at rest: either serialize to IndexedDB encrypted, or use in-memory encryption with key derived from passphrase.",
+      "Add rate-limiting or CSRF token validation to the 'reset=true' query parameter to prevent repeated state-clearing attacks.",
+      "Validate event sources in EventBus listeners; check that events originate from expected internal dispatch sites.",
+      "Run `npm audit` to scan for known vulnerabilities in pdfjs-dist and other dependencies; currently unknown if versions are patched.",
+      "Add Content-Security-Policy headers (if behind a server) to mitigate XSS from DOM-based courseCode injection vectors.",
+      "Document that this app holds sensitive student work in plaintext memory; users should not assume privacy until HistoryOfThought vault is explicitly unlocked and committed."
+    ]
+  },
+  "durationMs": 46715,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-10T22:00:22.108Z",
+  "executionId": "audit_1778450375393_xm6au3"
+}

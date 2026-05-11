@@ -1,0 +1,77 @@
+[2026-05-10T21:56:29.189Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/App.js\",\n      \"line\": 27,\n      \"description\": \"URL parameter 'reset' allows unauthenticated session wipe via localStorage.clear(). Attackers can craft URLs to destroy user data without verification. No CSRF or authentication checks.\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/App.js\",\n      \"line\": 15,\n      \"description\": \"Authentication state (simplifii_onboarding_complete) stored in client-side localStorage and trusted on render. Can be manipulated via browser console. No server-side verification of user state.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 71,\n      \"description\": \"Passphrase minimum length is only 4 characters. Extremely weak—vulnerable to brute-force attacks. Current: pass.length < 4 check only. Recommend 12+ chars + entropy validation.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 18,\n      \"description\": \"Derived encryption key (__derivedKey) cached in memory indefinitely until manual lockSession() call. No automatic timeout. Session key exposed to heap inspection if process is compromised.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/ExecutiveSpine.js\",\n      \"line\": 37,\n      \"description\": \"Session metadata (taskId, timestamps, health dots) stored plaintext in localStorage. Accessible to XSS payloads. Could leak activity timeline and task IDs.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 38,\n      \"description\": \"Encryption salt stored plaintext in localStorage. While salt doesn't require secrecy, localStorage is still client-accessible. Combined with weak passphrase, reduces effective key entropy.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/backend/NeuralAuditPipeline.js\",\n      \"line\": 3,\n      \"description\": \"Science course codes (BABS1201, BABS1202) hardcoded in source. Violates CLAUDE.md rule: 'course-specific data lives in schema and on disk, not in architecture.'\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/frontend/SmartIntake.js\",\n      \"line\": 12,\n      \"description\": \"Hardcoded institution name ('UNSW Moodle') and course code ('ARTS5200') in UI. Leaks supported institutions to reconnaissance; conflicts with 'Universal Architecture' rule in CLAUDE.md.\"\n    }\n  ],\n  \"riskScore\": 65,\n  \"recommendations\": [\n    \"Require authentication for URL-based state changes. Replace `params.get('reset')` with a secure token-verified endpoint; do not expose reset via GET query parameter.\",\n    \"Move onboarding state to a secure, server-backed session store with HTTPS-only, SameSite=Strict cookies. Do not trust localStorage for access control.\",\n    \"Increase passphrase minimum to 12+ characters; add strength checking (entropy > 50 bits). Consider passphrase manager integration hint.\",\n    \"Implement automatic key timeout: lock session after 15 minutes of inactivity. Add user-facing 'Session locked due to inactivity' prompt.\",\n    \"Move session metadata (taskId, timestamps) from localStorage to sessionStorage (memory-only, cleared on tab close). Encrypts data in transit only.\",\n    \"Extract course codes (BABS1201, BABS1202, ARTS5200) from source; load from `/config/courses.json` or database at runtime per CLAUDE.md architecture rule.\",\n    \"Add Content-Security-Policy header to block inline scripts and restrict XSS surface on localStorage reads.\",\n    \"Implement rate-limiting on passphrase unlock attempts (e.g., max 5 attempts, 30-second lockout) to prevent brute-force.\",\n    \"Add user warning: 'Forgotten passphrases cannot be recovered. Your data will remain encrypted and inaccessible.'\",\n    \"Validate courseCode in `LMSConnector.js`: whitelist against known course IDs; reject malformed or missing codes before API call.\"\n  ]\n}\n```\n\n---\n\n## Key Findings\n\n**Highest Risk:** The URL-based reset (`?reset=true`) and client-side auth flag in `localStorage` are the primary attack surface. Both allow data destruction or session hijacking without authentication.\n\n**Encryption Concerns:** While AES-GCM-256 + PBKDF2 600k is cryptographically sound, the 4-character passphrase minimum and indefinite key caching undermine the security.\n\n**Architecture Violations:** Course codes hardcoded in `NeuralAuditPipeline.js` and `SmartIntake.js` violate the \"Universal Architecture\" rule in CLAUDE.md (section 3: \"Do not reference specific university course codes inside engineering specs\").\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "high",
+        "file": "src/App.js",
+        "line": 27,
+        "description": "URL parameter 'reset' allows unauthenticated session wipe via localStorage.clear(). Attackers can craft URLs to destroy user data without verification. No CSRF or authentication checks."
+      },
+      {
+        "severity": "high",
+        "file": "src/App.js",
+        "line": 15,
+        "description": "Authentication state (simplifii_onboarding_complete) stored in client-side localStorage and trusted on render. Can be manipulated via browser console. No server-side verification of user state."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 71,
+        "description": "Passphrase minimum length is only 4 characters. Extremely weak—vulnerable to brute-force attacks. Current: pass.length < 4 check only. Recommend 12+ chars + entropy validation."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 18,
+        "description": "Derived encryption key (__derivedKey) cached in memory indefinitely until manual lockSession() call. No automatic timeout. Session key exposed to heap inspection if process is compromised."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/ExecutiveSpine.js",
+        "line": 37,
+        "description": "Session metadata (taskId, timestamps, health dots) stored plaintext in localStorage. Accessible to XSS payloads. Could leak activity timeline and task IDs."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 38,
+        "description": "Encryption salt stored plaintext in localStorage. While salt doesn't require secrecy, localStorage is still client-accessible. Combined with weak passphrase, reduces effective key entropy."
+      },
+      {
+        "severity": "low",
+        "file": "src/backend/NeuralAuditPipeline.js",
+        "line": 3,
+        "description": "Science course codes (BABS1201, BABS1202) hardcoded in source. Violates CLAUDE.md rule: 'course-specific data lives in schema and on disk, not in architecture.'"
+      },
+      {
+        "severity": "low",
+        "file": "src/frontend/SmartIntake.js",
+        "line": 12,
+        "description": "Hardcoded institution name ('UNSW Moodle') and course code ('ARTS5200') in UI. Leaks supported institutions to reconnaissance; conflicts with 'Universal Architecture' rule in CLAUDE.md."
+      }
+    ],
+    "riskScore": 65,
+    "recommendations": [
+      "Require authentication for URL-based state changes. Replace `params.get('reset')` with a secure token-verified endpoint; do not expose reset via GET query parameter.",
+      "Move onboarding state to a secure, server-backed session store with HTTPS-only, SameSite=Strict cookies. Do not trust localStorage for access control.",
+      "Increase passphrase minimum to 12+ characters; add strength checking (entropy > 50 bits). Consider passphrase manager integration hint.",
+      "Implement automatic key timeout: lock session after 15 minutes of inactivity. Add user-facing 'Session locked due to inactivity' prompt.",
+      "Move session metadata (taskId, timestamps) from localStorage to sessionStorage (memory-only, cleared on tab close). Encrypts data in transit only.",
+      "Extract course codes (BABS1201, BABS1202, ARTS5200) from source; load from `/config/courses.json` or database at runtime per CLAUDE.md architecture rule.",
+      "Add Content-Security-Policy header to block inline scripts and restrict XSS surface on localStorage reads.",
+      "Implement rate-limiting on passphrase unlock attempts (e.g., max 5 attempts, 30-second lockout) to prevent brute-force.",
+      "Add user warning: 'Forgotten passphrases cannot be recovered. Your data will remain encrypted and inaccessible.'",
+      "Validate courseCode in `LMSConnector.js`: whitelist against known course IDs; reject malformed or missing codes before API call."
+    ]
+  },
+  "durationMs": 41725,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-10T21:56:29.189Z",
+  "executionId": "audit_1778450147464_aweges"
+}

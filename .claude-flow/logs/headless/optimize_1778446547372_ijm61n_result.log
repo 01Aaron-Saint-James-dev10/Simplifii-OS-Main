@@ -1,0 +1,104 @@
+[2026-05-10T20:57:35.878Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "## Performance Analysis: Simplifii-OS\n\nHere are the most impactful issues found, ordered by severity.\n\n---\n\n### 1. N+1 Query — IndexedDB Full Table Scan\n\n**`src/services/IndexedDBService.js` ~L30-44**\n\n`getBlockHistory` fetches ALL records then filters in JavaScript — O(n) on every lookup.\n\n```js\n// Current (broken)\nconst request = store.getAll(); // scans entire table\nrequest.onsuccess = () => {\n  const history = request.result.filter(item => item.blockId === blockId);\n};\n\n// Fix: add an index, then use it\nconst store = tx.objectStore('blockHistory');\nconst index = store.index('blockId'); // requires index in schema\nconst request = index.getAll(blockId); // O(log n)\n```\n\nAdd the index in your `onupgradeneeded`:\n```js\nstore.createIndex('blockId', 'blockId', { unique: false });\n```\n\n---\n\n### 2. N+1 Query — Ghost Assets Migration Double-Read\n\n**`src/frontend/MasterDashboard.js` ~L196-217**\n\nThe migration reads the full DB, writes, then reads it again needlessly.\n\n```js\n// Current\nconst assets = await getAllGhostAssets(); // read 1\nfor (const a of needs) { await saveGhostAsset(...); }\nconst refreshed = await getAllGhostAssets(); // read 2 (unnecessary)\n\n// Fix: compute the refreshed list from data you already have\nconst migrated = needs.map(a => ({ ...a, courseId: fallback }));\nconst refreshed = [...assets.filter(a => a.courseId), ...migrated];\nsetGlobalGhostAssets(refreshed); // no second DB call\n```\n\n---\n\n### 3. Unnecessary Re-render — Inline Filter on Every Render\n\n**`src/frontend/MasterDashboard.js` ~L1200-1220**\n\nAn IIFE runs `.filter()` over all ghost assets on every parent render.\n\n```js\n// Current\n{(() => {\n  const courseAssets = globalGhostAssets.filter(a => a.courseId === activeCourseId);\n  return courseAssets.map(asset => ...);\n})()}\n\n// Fix: move to useMemo at the top of the component\nconst courseAssets = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);\n```\n\n---\n\n### 4. Unnecessary Re-render — ToneHUD Regex on Every Keystroke\n\n**`src/frontend/LinearCanvas.js` ~L23-89**\n\nThree regex operations fire on the full document content on every render.\n\n```js\n// Current — runs every render\nfunction ToneHUD({ content, onRigorDrop, isTyping }) {\n  const wordCount = (content.match(/\\S+/g) || []).length;\n  const longWords = (content.match(/\\b\\w{8,}\\b/g) || []).length;\n  const words = content.toLowerCase().match(/\\b[a-z]{4,}\\b/g) || [];\n\n// Fix: memoize all derived values\nfunction ToneHUD({ content, onRigorDrop, isTyping }) {\n  const metrics = useMemo(() => {\n    const wordCount = (content.match(/\\S+/g) || []).length;\n    const longWords = (content.match(/\\b\\w{8,}\\b/g) || []).length;\n    const words = content.toLowerCase().match(/\\b[a-z]{4,}\\b/g) || [];\n    const uniqueWords = new Set(words).size;\n    const rigor = Math.min(Math.max((longWords / (wordCount || 1)) * 300, 20), 98);\n    const semanticDensity = Math.min(Math.max((uniqueWords / (words.length || 1)) * 150, 10), 95);\n    return { wordCount, rigor, semanticDensity };\n  }, [content]);\n```\n\n---\n\n### 5. Sequential Async — File Processing Blocks on Each File\n\n**`src/frontend/MasterDashboard.js` ~L474-496**\n\nFiles are processed one at a time; 5 files at 2s each = 10s instead of 2s.\n\n```js\n// Current\nfor (const file of groupFiles) {\n  const text = await processDocumentWithGCP(file, token); // sequential\n}\n\n// Fix: parallelize\nconst results = await Promise.all(\n  groupFiles.map(file => processDocumentWithGCP(file, token))\n);\n```\n\n---\n\n### 6. Memory Leak — Sequential Async Migration Can Hang\n\n**`src/frontend/MasterDashboard.js` ~L204-206**\n\nThe `for...of await` loop has no timeout. A stalled IndexedDB write blocks all subsequent assets.\n\n```js\n// Fix: parallelize writes with a timeout guard\nconst WRITE_TIMEOUT_MS = 5000;\nconst withTimeout = (promise) =>\n  Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), WRITE_TIMEOUT_MS))]);\n\nawait Promise.allSettled(needs.map(a => withTimeout(saveGhostAsset({ ...a, courseId: fallback }))));\n```\n\n---\n\n### 7. Redundant Computation — Regex Recompiled in Two Functions\n\n**`src/frontend/MasterDashboard.js` ~L292, L454**\n\nThe same unit-code regex is defined twice and matched per-file inside loops.\n\n```js\n// Fix: module-level constant (compiled once)\nconst UNIT_CODE_RE = /\\b([A-Z]{3,4}\\d{4})\\b/;\n\n// Then in both handlers:\nconst match = name.match(UNIT_CODE_RE); // reuses compiled regex\n```\n\n---\n\n### 8. Caching Opportunity — RewriteService Chains N `.replace()` Calls\n\n**`src/services/RewriteService.js` ~L85-91**\n\nEach synonym gets its own `.replace()` pass over the full string.\n\n```js\n// Current — O(n) passes over string\nreturn Object.entries(dict).reduce(\n  (acc, [from, to]) => acc.replace(new RegExp(`\\\\b${from}\\\\b`, 'gi'), to),\n  text\n);\n\n// Fix: single-pass replacement using a combined regex\nconst precompile = (dict) => {\n  const pattern = Object.keys(dict).map(k => `\\\\b${k}\\\\b`).join('|');\n  const re = new RegExp(pattern, 'gi');\n  return (text) => text.replace(re, match => dict[match.toLowerCase()] ?? match);\n};\n\n// Call precompile() once per level at module load time, cache the result\nconst REWRITERS = {\n  tertiary: precompile(SYNONYMS_TERTIARY),\n  // ...\n};\n```\n\n---\n\n### Priority Summary\n\n| # | Issue | File | Impact |\n|---|-------|------|--------|\n| 1 | IndexedDB full table scan | `IndexedDBService.js` | High |\n| 2 | Ghost assets double DB read | `MasterDashboard.js` | High |\n| 3 | `courseAssets` filter on every render | `MasterDashboard.js` | High |\n| 4 | ToneHUD regex on every keystroke | `LinearCanvas.js` | High |\n| 5 | Sequential file processing | `MasterDashboard.js` | High |\n| 6 | Async migration hang | `MasterDashboard.js` | Medium |\n| 7 | Regex recompiled in loops | `MasterDashboard.js` | Medium |\n| 8 | N replace passes in RewriteService | `RewriteService.js` | Medium |\n\nIssues 4 and 5 will give the most immediate user-visible improvement — keystroke lag on the canvas and multi-file ingest time respectively.\n",
+  "parsedOutput": {
+    "sections": [
+      {
+        "title": "Performance Analysis: Simplifii-OS",
+        "content": "\nHere are the most impactful issues found, ordered by severity.\n\n---\n\n",
+        "level": 2
+      },
+      {
+        "title": "1. N+1 Query — IndexedDB Full Table Scan",
+        "content": "\n**`src/services/IndexedDBService.js` ~L30-44**\n\n`getBlockHistory` fetches ALL records then filters in JavaScript — O(n) on every lookup.\n\n```js\n// Current (broken)\nconst request = store.getAll(); // scans entire table\nrequest.onsuccess = () => {\n  const history = request.result.filter(item => item.blockId === blockId);\n};\n\n// Fix: add an index, then use it\nconst store = tx.objectStore('blockHistory');\nconst index = store.index('blockId'); // requires index in schema\nconst request = index.getAll(blockId); // O(log n)\n```\n\nAdd the index in your `onupgradeneeded`:\n```js\nstore.createIndex('blockId', 'blockId', { unique: false });\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "2. N+1 Query — Ghost Assets Migration Double-Read",
+        "content": "\n**`src/frontend/MasterDashboard.js` ~L196-217**\n\nThe migration reads the full DB, writes, then reads it again needlessly.\n\n```js\n// Current\nconst assets = await getAllGhostAssets(); // read 1\nfor (const a of needs) { await saveGhostAsset(...); }\nconst refreshed = await getAllGhostAssets(); // read 2 (unnecessary)\n\n// Fix: compute the refreshed list from data you already have\nconst migrated = needs.map(a => ({ ...a, courseId: fallback }));\nconst refreshed = [...assets.filter(a => a.courseId), ...migrated];\nsetGlobalGhostAssets(refreshed); // no second DB call\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "3. Unnecessary Re-render — Inline Filter on Every Render",
+        "content": "\n**`src/frontend/MasterDashboard.js` ~L1200-1220**\n\nAn IIFE runs `.filter()` over all ghost assets on every parent render.\n\n```js\n// Current\n{(() => {\n  const courseAssets = globalGhostAssets.filter(a => a.courseId === activeCourseId);\n  return courseAssets.map(asset => ...);\n})()}\n\n// Fix: move to useMemo at the top of the component\nconst courseAssets = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "4. Unnecessary Re-render — ToneHUD Regex on Every Keystroke",
+        "content": "\n**`src/frontend/LinearCanvas.js` ~L23-89**\n\nThree regex operations fire on the full document content on every render.\n\n```js\n// Current — runs every render\nfunction ToneHUD({ content, onRigorDrop, isTyping }) {\n  const wordCount = (content.match(/\\S+/g) || []).length;\n  const longWords = (content.match(/\\b\\w{8,}\\b/g) || []).length;\n  const words = content.toLowerCase().match(/\\b[a-z]{4,}\\b/g) || [];\n\n// Fix: memoize all derived values\nfunction ToneHUD({ content, onRigorDrop, isTyping }) {\n  const metrics = useMemo(() => {\n    const wordCount = (content.match(/\\S+/g) || []).length;\n    const longWords = (content.match(/\\b\\w{8,}\\b/g) || []).length;\n    const words = content.toLowerCase().match(/\\b[a-z]{4,}\\b/g) || [];\n    const uniqueWords = new Set(words).size;\n    const rigor = Math.min(Math.max((longWords / (wordCount || 1)) * 300, 20), 98);\n    const semanticDensity = Math.min(Math.max((uniqueWords / (words.length || 1)) * 150, 10), 95);\n    return { wordCount, rigor, semanticDensity };\n  }, [content]);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "5. Sequential Async — File Processing Blocks on Each File",
+        "content": "\n**`src/frontend/MasterDashboard.js` ~L474-496**\n\nFiles are processed one at a time; 5 files at 2s each = 10s instead of 2s.\n\n```js\n// Current\nfor (const file of groupFiles) {\n  const text = await processDocumentWithGCP(file, token); // sequential\n}\n\n// Fix: parallelize\nconst results = await Promise.all(\n  groupFiles.map(file => processDocumentWithGCP(file, token))\n);\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "6. Memory Leak — Sequential Async Migration Can Hang",
+        "content": "\n**`src/frontend/MasterDashboard.js` ~L204-206**\n\nThe `for...of await` loop has no timeout. A stalled IndexedDB write blocks all subsequent assets.\n\n```js\n// Fix: parallelize writes with a timeout guard\nconst WRITE_TIMEOUT_MS = 5000;\nconst withTimeout = (promise) =>\n  Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), WRITE_TIMEOUT_MS))]);\n\nawait Promise.allSettled(needs.map(a => withTimeout(saveGhostAsset({ ...a, courseId: fallback }))));\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "7. Redundant Computation — Regex Recompiled in Two Functions",
+        "content": "\n**`src/frontend/MasterDashboard.js` ~L292, L454**\n\nThe same unit-code regex is defined twice and matched per-file inside loops.\n\n```js\n// Fix: module-level constant (compiled once)\nconst UNIT_CODE_RE = /\\b([A-Z]{3,4}\\d{4})\\b/;\n\n// Then in both handlers:\nconst match = name.match(UNIT_CODE_RE); // reuses compiled regex\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "8. Caching Opportunity — RewriteService Chains N `.replace()` Calls",
+        "content": "\n**`src/services/RewriteService.js` ~L85-91**\n\nEach synonym gets its own `.replace()` pass over the full string.\n\n```js\n// Current — O(n) passes over string\nreturn Object.entries(dict).reduce(\n  (acc, [from, to]) => acc.replace(new RegExp(`\\\\b${from}\\\\b`, 'gi'), to),\n  text\n);\n\n// Fix: single-pass replacement using a combined regex\nconst precompile = (dict) => {\n  const pattern = Object.keys(dict).map(k => `\\\\b${k}\\\\b`).join('|');\n  const re = new RegExp(pattern, 'gi');\n  return (text) => text.replace(re, match => dict[match.toLowerCase()] ?? match);\n};\n\n// Call precompile() once per level at module load time, cache the result\nconst REWRITERS = {\n  tertiary: precompile(SYNONYMS_TERTIARY),\n  // ...\n};\n```\n\n---\n\n",
+        "level": 3
+      },
+      {
+        "title": "Priority Summary",
+        "content": "| # | Issue | File | Impact |\n|---|-------|------|--------|\n| 1 | IndexedDB full table scan | `IndexedDBService.js` | High |\n| 2 | Ghost assets double DB read | `MasterDashboard.js` | High |\n| 3 | `courseAssets` filter on every render | `MasterDashboard.js` | High |\n| 4 | ToneHUD regex on every keystroke | `LinearCanvas.js` | High |\n| 5 | Sequential file processing | `MasterDashboard.js` | High |\n| 6 | Async migration hang | `MasterDashboard.js` | Medium |\n| 7 | Regex recompiled in loops | `MasterDashboard.js` | Medium |\n| 8 | N replace passes in RewriteService | `RewriteService.js` | Medium |\n\nIssues 4 and 5 will give the most immediate user-visible improvement — keystroke lag on the canvas and multi-file ingest time respectively.",
+        "level": 3
+      }
+    ],
+    "codeBlocks": [
+      {
+        "language": "js",
+        "code": "// Current (broken)\nconst request = store.getAll(); // scans entire table\nrequest.onsuccess = () => {\n  const history = request.result.filter(item => item.blockId === blockId);\n};\n\n// Fix: add an index, then use it\nconst store = tx.objectStore('blockHistory');\nconst index = store.index('blockId'); // requires index in schema\nconst request = index.getAll(blockId); // O(log n)"
+      },
+      {
+        "language": "js",
+        "code": "store.createIndex('blockId', 'blockId', { unique: false });"
+      },
+      {
+        "language": "js",
+        "code": "// Current\nconst assets = await getAllGhostAssets(); // read 1\nfor (const a of needs) { await saveGhostAsset(...); }\nconst refreshed = await getAllGhostAssets(); // read 2 (unnecessary)\n\n// Fix: compute the refreshed list from data you already have\nconst migrated = needs.map(a => ({ ...a, courseId: fallback }));\nconst refreshed = [...assets.filter(a => a.courseId), ...migrated];\nsetGlobalGhostAssets(refreshed); // no second DB call"
+      },
+      {
+        "language": "js",
+        "code": "// Current\n{(() => {\n  const courseAssets = globalGhostAssets.filter(a => a.courseId === activeCourseId);\n  return courseAssets.map(asset => ...);\n})()}\n\n// Fix: move to useMemo at the top of the component\nconst courseAssets = useMemo(\n  () => globalGhostAssets.filter(a => a.courseId === activeCourseId),\n  [globalGhostAssets, activeCourseId]\n);"
+      },
+      {
+        "language": "js",
+        "code": "// Current — runs every render\nfunction ToneHUD({ content, onRigorDrop, isTyping }) {\n  const wordCount = (content.match(/\\S+/g) || []).length;\n  const longWords = (content.match(/\\b\\w{8,}\\b/g) || []).length;\n  const words = content.toLowerCase().match(/\\b[a-z]{4,}\\b/g) || [];\n\n// Fix: memoize all derived values\nfunction ToneHUD({ content, onRigorDrop, isTyping }) {\n  const metrics = useMemo(() => {\n    const wordCount = (content.match(/\\S+/g) || []).length;\n    const longWords = (content.match(/\\b\\w{8,}\\b/g) || []).length;\n    const words = content.toLowerCase().match(/\\b[a-z]{4,}\\b/g) || [];\n    const uniqueWords = new Set(words).size;\n    const rigor = Math.min(Math.max((longWords / (wordCount || 1)) * 300, 20), 98);\n    const semanticDensity = Math.min(Math.max((uniqueWords / (words.length || 1)) * 150, 10), 95);\n    return { wordCount, rigor, semanticDensity };\n  }, [content]);"
+      },
+      {
+        "language": "js",
+        "code": "// Current\nfor (const file of groupFiles) {\n  const text = await processDocumentWithGCP(file, token); // sequential\n}\n\n// Fix: parallelize\nconst results = await Promise.all(\n  groupFiles.map(file => processDocumentWithGCP(file, token))\n);"
+      },
+      {
+        "language": "js",
+        "code": "// Fix: parallelize writes with a timeout guard\nconst WRITE_TIMEOUT_MS = 5000;\nconst withTimeout = (promise) =>\n  Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), WRITE_TIMEOUT_MS))]);\n\nawait Promise.allSettled(needs.map(a => withTimeout(saveGhostAsset({ ...a, courseId: fallback }))));"
+      },
+      {
+        "language": "js",
+        "code": "// Fix: module-level constant (compiled once)\nconst UNIT_CODE_RE = /\\b([A-Z]{3,4}\\d{4})\\b/;\n\n// Then in both handlers:\nconst match = name.match(UNIT_CODE_RE); // reuses compiled regex"
+      },
+      {
+        "language": "js",
+        "code": "// Current — O(n) passes over string\nreturn Object.entries(dict).reduce(\n  (acc, [from, to]) => acc.replace(new RegExp(`\\\\b${from}\\\\b`, 'gi'), to),\n  text\n);\n\n// Fix: single-pass replacement using a combined regex\nconst precompile = (dict) => {\n  const pattern = Object.keys(dict).map(k => `\\\\b${k}\\\\b`).join('|');\n  const re = new RegExp(pattern, 'gi');\n  return (text) => text.replace(re, match => dict[match.toLowerCase()] ?? match);\n};\n\n// Call precompile() once per level at module load time, cache the result\nconst REWRITERS = {\n  tertiary: precompile(SYNONYMS_TERTIARY),\n  // ...\n};"
+      }
+    ]
+  },
+  "durationMs": 108506,
+  "model": "sonnet",
+  "sandboxMode": "permissive",
+  "workerType": "optimize",
+  "timestamp": "2026-05-10T20:57:35.878Z",
+  "executionId": "optimize_1778446547372_ijm61n"
+}

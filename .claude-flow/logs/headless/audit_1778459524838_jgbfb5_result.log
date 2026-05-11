@@ -1,0 +1,17 @@
+[2026-05-11T00:32:15.404Z] RESULT
+============================================================
+{
+  "success": false,
+  "output": "You've hit your limit · resets 11:50am (Australia/Sydney)\n",
+  "parsedOutput": {
+    "parseError": true,
+    "rawOutput": "You've hit your limit · resets 11:50am (Australia/Sydney)\n"
+  },
+  "durationMs": 10566,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-11T00:32:15.404Z",
+  "executionId": "audit_1778459524838_jgbfb5",
+  "error": "SessionEnd hook [sh -c 'exec node \"${CLAUDE_PROJECT_DIR:-.}/.claude/helpers/hook-handler.cjs\" session-end'] failed: node:internal/modules/cjs/loader:1459\n  throw err;\n  ^\n\nError: Cannot find module '/Users/adonis666/Simplifii-OS_Master/.claude/helpers/hook-handler.cjs'\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1456:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)\n    at Module._load (node:internal/modules/cjs/loader:1242:25)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v24.14.1\n\n"
+}

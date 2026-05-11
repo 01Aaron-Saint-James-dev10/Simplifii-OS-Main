@@ -1,0 +1,85 @@
+[2026-05-10T22:06:32.744Z] RESULT
+============================================================
+{
+  "success": true,
+  "output": "```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/frontend/MasterDashboard.js\",\n      \"line\": 57,\n      \"description\": \"XSS vulnerability: textarea directly renders user-controlled content (project.currentDraft) without sanitization. If this data comes from untrusted sources or external APIs, attackers could inject malicious scripts.\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 34,\n      \"description\": \"Weak passphrase validation: minimum length of 4 characters is insufficient. This allows trivial brute-force attacks on the derived encryption key.\"\n    },\n    {\n      \"severity\": \"high\",\n      \"file\": \"src/core/HistoryOfThought.js\",\n      \"line\": 50,\n      \"description\": \"Insecure secret storage: encryption salt stored in localStorage in base64 encoding. localStorage is accessible to any JavaScript on the page and can be accessed by XSS attacks. Salt should be truly random and never accessible to potential attackers.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/frontend/ProjectContext.js\",\n      \"line\": 10,\n      \"description\": \"Missing input validation: updateDraft() accepts raw user input without validation or sanitization, enabling potential injection attacks or malformed data.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/ExecutiveSpine.js\",\n      \"line\": 30,\n      \"description\": \"Sensitive data in localStorage: session timestamps, task IDs, and playtime information stored in plaintext localStorage. localStorage is not secure for sensitive data and is vulnerable to XSS and other client-side attacks.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/core/EventBus.js\",\n      \"line\": 48,\n      \"description\": \"Unvalidated event payload: event payloads are forwarded to HistoryOfThought without strict schema validation. Malformed events could corrupt the event log.\"\n    },\n    {\n      \"severity\": \"medium\",\n      \"file\": \"src/frontend/MasterDashboard.js\",\n      \"line\": 1,\n      \"description\": \"Missing Content Security Policy: no CSP headers visible. Without CSP, inline scripts and unsafe sources could be executed, increasing XSS impact.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/backend/NeuralAuditPipeline.js\",\n      \"line\": 3,\n      \"description\": \"Hardcoded institution identifiers: SCIENCE_CODES array reveals university-specific course codes. While not a direct vulnerability, this couples the architecture to specific institutions violating the 'Universal Architecture' principle (CLAUDE.md).\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"src/frontend/SmartIntake.js\",\n      \"line\": 12,\n      \"description\": \"Hardcoded institutional reference: text reveals 'UNSW Moodle' integration. Per CLAUDE.md, course-specific data should not appear in engineering specs; this violates the 'Universal Architecture' rule.\"\n    }\n  ],\n  \"riskScore\": 68,\n  \"recommendations\": [\n    \"Implement strict input sanitization on the textarea using DOMPurify or similar library before rendering user content.\",\n    \"Increase passphrase minimum length to 16+ characters and enforce complexity requirements (mixed case, numbers, symbols).\",\n    \"Move encryption salt from localStorage to a secure memory-only store or generate it on first unlock and never persist it.\",\n    \"Add schema validation for all user inputs using a library like Zod or Yup; validate before state updates.\",\n    \"Remove sensitive data from localStorage; use sessionStorage for non-persistent session data only, with aggressive cleanup on logout.\",\n    \"Implement Content Security Policy headers with strict directives (no-unsafe-inline, specific script-src allowlist).\",\n    \"Validate all event payloads against a strict schema before appending to HistoryOfThought; reject invalid events.\",\n    \"Refactor NeuralAuditPipeline and SmartIntake to externalize institution-specific config from code (move SCIENCE_CODES and institution names to config files or environment variables).\",\n    \"Add HTTPS-only flag to cookies (if any are used) and implement SameSite=Strict.\",\n    \"Implement subresource integrity (SRI) for externally loaded scripts (e.g., pdf.worker.min.js).\",\n    \"Add security headers: X-Content-Type-Options: nosniff, X-Frame-Options: DENY, X-XSS-Protection: 1; mode=block.\",\n    \"Consider using Web Worker sandboxing for PDF processing to isolate pdf.js from the main thread.\"\n  ]\n}\n```\n\n## Key Findings\n\n**Critical Issues:**\n1. **XSS exposure** in the textarea — user content is rendered directly without escaping\n2. **Weak encryption** — 4-char passphrase + localStorage-stored salt defeats the encryption's purpose\n3. **localStorage misuse** — storing sensitive session and encryption data in plaintext\n\n**Architectural Violation:**\nYour `CLAUDE.md` mandates \"Universal Architecture\" (no course-specific data in code), but `NeuralAuditPipeline.js` and `SmartIntake.js` hardcode UNSW/ARTS5200/BABS codes. This couples the codebase to specific institutions.\n\n**Next Steps:**\nStart with the textarea sanitization (high impact, low effort). Then harden passphrase policy and move encryption materials out of localStorage. The institutional codes should move to a config layer.\n",
+  "parsedOutput": {
+    "vulnerabilities": [
+      {
+        "severity": "high",
+        "file": "src/frontend/MasterDashboard.js",
+        "line": 57,
+        "description": "XSS vulnerability: textarea directly renders user-controlled content (project.currentDraft) without sanitization. If this data comes from untrusted sources or external APIs, attackers could inject malicious scripts."
+      },
+      {
+        "severity": "high",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 34,
+        "description": "Weak passphrase validation: minimum length of 4 characters is insufficient. This allows trivial brute-force attacks on the derived encryption key."
+      },
+      {
+        "severity": "high",
+        "file": "src/core/HistoryOfThought.js",
+        "line": 50,
+        "description": "Insecure secret storage: encryption salt stored in localStorage in base64 encoding. localStorage is accessible to any JavaScript on the page and can be accessed by XSS attacks. Salt should be truly random and never accessible to potential attackers."
+      },
+      {
+        "severity": "medium",
+        "file": "src/frontend/ProjectContext.js",
+        "line": 10,
+        "description": "Missing input validation: updateDraft() accepts raw user input without validation or sanitization, enabling potential injection attacks or malformed data."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/ExecutiveSpine.js",
+        "line": 30,
+        "description": "Sensitive data in localStorage: session timestamps, task IDs, and playtime information stored in plaintext localStorage. localStorage is not secure for sensitive data and is vulnerable to XSS and other client-side attacks."
+      },
+      {
+        "severity": "medium",
+        "file": "src/core/EventBus.js",
+        "line": 48,
+        "description": "Unvalidated event payload: event payloads are forwarded to HistoryOfThought without strict schema validation. Malformed events could corrupt the event log."
+      },
+      {
+        "severity": "medium",
+        "file": "src/frontend/MasterDashboard.js",
+        "line": 1,
+        "description": "Missing Content Security Policy: no CSP headers visible. Without CSP, inline scripts and unsafe sources could be executed, increasing XSS impact."
+      },
+      {
+        "severity": "low",
+        "file": "src/backend/NeuralAuditPipeline.js",
+        "line": 3,
+        "description": "Hardcoded institution identifiers: SCIENCE_CODES array reveals university-specific course codes. While not a direct vulnerability, this couples the architecture to specific institutions violating the 'Universal Architecture' principle (CLAUDE.md)."
+      },
+      {
+        "severity": "low",
+        "file": "src/frontend/SmartIntake.js",
+        "line": 12,
+        "description": "Hardcoded institutional reference: text reveals 'UNSW Moodle' integration. Per CLAUDE.md, course-specific data should not appear in engineering specs; this violates the 'Universal Architecture' rule."
+      }
+    ],
+    "riskScore": 68,
+    "recommendations": [
+      "Implement strict input sanitization on the textarea using DOMPurify or similar library before rendering user content.",
+      "Increase passphrase minimum length to 16+ characters and enforce complexity requirements (mixed case, numbers, symbols).",
+      "Move encryption salt from localStorage to a secure memory-only store or generate it on first unlock and never persist it.",
+      "Add schema validation for all user inputs using a library like Zod or Yup; validate before state updates.",
+      "Remove sensitive data from localStorage; use sessionStorage for non-persistent session data only, with aggressive cleanup on logout.",
+      "Implement Content Security Policy headers with strict directives (no-unsafe-inline, specific script-src allowlist).",
+      "Validate all event payloads against a strict schema before appending to HistoryOfThought; reject invalid events.",
+      "Refactor NeuralAuditPipeline and SmartIntake to externalize institution-specific config from code (move SCIENCE_CODES and institution names to config files or environment variables).",
+      "Add HTTPS-only flag to cookies (if any are used) and implement SameSite=Strict.",
+      "Implement subresource integrity (SRI) for externally loaded scripts (e.g., pdf.worker.min.js).",
+      "Add security headers: X-Content-Type-Options: nosniff, X-Frame-Options: DENY, X-XSS-Protection: 1; mode=block.",
+      "Consider using Web Worker sandboxing for PDF processing to isolate pdf.js from the main thread."
+    ]
+  },
+  "durationMs": 38111,
+  "model": "haiku",
+  "sandboxMode": "strict",
+  "workerType": "audit",
+  "timestamp": "2026-05-10T22:06:32.743Z",
+  "executionId": "audit_1778450754632_ddgnk1"
+}

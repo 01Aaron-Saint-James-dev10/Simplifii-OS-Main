@@ -1,100 +1,15 @@
 {
-  "timestamp": "2026-05-10T12:47:37.939Z",
+  "timestamp": "2026-05-11T00:32:27.470Z",
   "mode": "headless",
   "workerType": "optimize",
   "model": "sonnet",
-  "durationMs": 135298,
-  "executionId": "optimize_1778417122641_9a5ktq",
-  "success": true,
+  "durationMs": 7594,
+  "executionId": "optimize_1778459539876_cywnz7",
+  "success": false,
   "findings": {
-    "sections": [
-      {
-        "title": "Performance Analysis: Simplifii-OS",
-        "content": "\nHere's a full breakdown of the 14 issues found across 5 categories:\n\n---\n\n",
-        "level": 2
-      },
-      {
-        "title": "1. N+1 Query Patterns",
-        "content": "\n**`UniversalOnboarding.js:265-270` — Sequential file processing**\n```js\n// BAD: N sequential API calls\nfor (const file of files) {\n  const extracted = await processDocumentWithGCP(file);\n}\n\n// GOOD: Parallel batch\nconst allExtractions = await Promise.all(files.map(f => processDocumentWithGCP(f)));\n```\n\n**`NeuralAuditPipeline.js:6-7` — Unnecessary array join**\n```js\n// BAD: joins entire array just to search it\nconst joined = activeFiles.join(' ');\nconst matched = SCIENCE_CODES.some(code => joined.includes(code));\n\n// GOOD: short-circuit without join\nconst matched = SCIENCE_CODES.some(code => activeFiles.some(f => f.includes(code)));\n```\n\n---\n\n",
-        "level": 3
-      },
-      {
-        "title": "2. Unnecessary React Re-renders",
-        "content": "\n**`MasterDashboard.js:122-156, 165-223` — useEffect missing dependency arrays + no cleanup**\n```js\n// BAD: runs every render, leaks listeners\nuseEffect(() => {\n  window.addEventListener('toggle-accessibility', handler);\n}); // no deps, no return\n\n// GOOD:\nuseEffect(() => {\n  const handle = () => { /* ... */ };\n  window.addEventListener('toggle-accessibility', handle);\n  return () => window.removeEventListener('toggle-accessibility', handle);\n}, []);\n```\n\n**`MasterDashboard.js` — Inline objects in JSX props break React.memo**\n```js\n// BAD: new object reference every render\n<CourseModal config={{ title: 'Add Course', maxLength: 100 }} />\n\n// GOOD:\nconst courseModalConfig = useMemo(() => ({ title: 'Add Course', maxLength: 100 }), []);\n<CourseModal config={courseModalConfig} />\n```\n\n---\n\n",
-        "level": 3
-      },
-      {
-        "title": "3. Caching Opportunities",
-        "content": "\n**`BriefService.js:44-100` — Regex compiled on every call**\n```js\n// BAD: compiled per invocation\nconst match = text.match(/theme:\\s*(\\w+)/gi);\n\n// GOOD: module-level constant\nconst THEME_PATTERN = /theme:\\s*(\\w+)/gi;\n```\n\n**`BriefService.js:102-301` — `extractDeepCourseData` does heavy regex work with no cache**\n```js\nconst extractionCache = new Map();\nfunction extractDeepCourseData(text) {\n  const key = text.length + text.charCodeAt(0) + text.charCodeAt(text.length - 1);\n  if (extractionCache.has(key)) return extractionCache.get(key);\n  const result = { /* ... regex work ... */ };\n  extractionCache.set(key, result);\n  return result;\n}\n```\n\n**`SovereignRouter.js:114-120` — Theme applied to DOM every call regardless of change**\n```js\nlet __appliedTheme = null;\nfunction applyTheme(streamKey, profileKey) {\n  const key = `${streamKey}:${profileKey}`;\n  if (__appliedTheme === key) return; // skip if unchanged\n  // ... apply CSS vars\n  __appliedTheme = key;\n}\n```\n\n---\n\n",
-        "level": 3
-      },
-      {
-        "title": "4. Memory Leaks",
-        "content": "\n**`ExecutiveSpine.js:152-158` — Idle detection listeners and interval can accumulate if `startIdleDetection` is called multiple times**\n```js\nfunction startIdleDetection() {\n  stopIdleDetection(); // Always clear first\n  document.addEventListener('keydown', __onAnyInput);\n  document.addEventListener('mousedown', __onAnyInput);\n  __idleInterval = setInterval(checkIdle, 15000);\n}\n```\n\n**`EventBus.js:74-86` — `startEventBus` adds 9 window listeners with no guard against duplicate calls**\n```js\nlet __busStarted = false;\nfunction startEventBus() {\n  if (__busStarted) return;\n  // ... add listeners\n  __busStarted = true;\n}\n```\n\n---\n\n",
-        "level": 3
-      },
-      {
-        "title": "5. Redundant Computations",
-        "content": "\n**`LiteralMode.js:22-82` — 22 sequential regex replacements, uncached**\n```js\nconst literaliseCache = new Map();\nfunction literalise(output) {\n  if (literaliseCache.has(output)) return literaliseCache.get(output);\n  let result = output;\n  for (const [p, r] of PATTERNS) result = result.replace(p, r);\n  literaliseCache.set(output, result);\n  return result;\n}\n```\n\n**`BriefService.js:222-253` — O(n²) deduplication via `.some()`**\n```js\n// BAD: O(n²)\nconst unique = allAssessments.filter((a, i, arr) => arr.findIndex(b => b.id === a.id) === i);\n\n// GOOD: O(n)\nconst seen = new Set();\nconst unique = allAssessments.filter(a => !seen.has(a.id) && seen.add(a.id));\n```\n\n**`SovereignRouter.js` — All 12 stream profiles eagerly imported at module load**\n```js\n// GOOD: lazy-load only what's needed\nconst PROFILE_LOADERS = {\n  SCHOLAR: () => import('./profiles/ProdScholar'),\n  CREATIVE: () => import('./profiles/ProdCreative'),\n};\nasync function hydrate(streamKey, profileKey) {\n  const { default: profile } = await PROFILE_LOADERS[profileKey]();\n  // ...\n}\n```\n\n---\n\n",
-        "level": 3
-      },
-      {
-        "title": "Priority Order",
-        "content": "| Priority | Issue | Impact |\n|---|---|---|\n| 1 | Memory leaks in `MasterDashboard` + `ExecutiveSpine` | Runtime crashes over time |\n| 2 | N+1 in `UniversalOnboarding` | UX stall on multi-file upload |\n| 3 | Missing `useEffect` deps + missing cleanup | Re-render cascades |\n| 4 | `BriefService` regex cache | CPU spike on large docs |\n| 5 | Eager stream profile imports | Bundle/startup cost |",
-        "level": 3
-      }
-    ],
-    "codeBlocks": [
-      {
-        "language": "js",
-        "code": "// BAD: N sequential API calls\nfor (const file of files) {\n  const extracted = await processDocumentWithGCP(file);\n}\n\n// GOOD: Parallel batch\nconst allExtractions = await Promise.all(files.map(f => processDocumentWithGCP(f)));"
-      },
-      {
-        "language": "js",
-        "code": "// BAD: joins entire array just to search it\nconst joined = activeFiles.join(' ');\nconst matched = SCIENCE_CODES.some(code => joined.includes(code));\n\n// GOOD: short-circuit without join\nconst matched = SCIENCE_CODES.some(code => activeFiles.some(f => f.includes(code)));"
-      },
-      {
-        "language": "js",
-        "code": "// BAD: runs every render, leaks listeners\nuseEffect(() => {\n  window.addEventListener('toggle-accessibility', handler);\n}); // no deps, no return\n\n// GOOD:\nuseEffect(() => {\n  const handle = () => { /* ... */ };\n  window.addEventListener('toggle-accessibility', handle);\n  return () => window.removeEventListener('toggle-accessibility', handle);\n}, []);"
-      },
-      {
-        "language": "js",
-        "code": "// BAD: new object reference every render\n<CourseModal config={{ title: 'Add Course', maxLength: 100 }} />\n\n// GOOD:\nconst courseModalConfig = useMemo(() => ({ title: 'Add Course', maxLength: 100 }), []);\n<CourseModal config={courseModalConfig} />"
-      },
-      {
-        "language": "js",
-        "code": "// BAD: compiled per invocation\nconst match = text.match(/theme:\\s*(\\w+)/gi);\n\n// GOOD: module-level constant\nconst THEME_PATTERN = /theme:\\s*(\\w+)/gi;"
-      },
-      {
-        "language": "js",
-        "code": "const extractionCache = new Map();\nfunction extractDeepCourseData(text) {\n  const key = text.length + text.charCodeAt(0) + text.charCodeAt(text.length - 1);\n  if (extractionCache.has(key)) return extractionCache.get(key);\n  const result = { /* ... regex work ... */ };\n  extractionCache.set(key, result);\n  return result;\n}"
-      },
-      {
-        "language": "js",
-        "code": "let __appliedTheme = null;\nfunction applyTheme(streamKey, profileKey) {\n  const key = `${streamKey}:${profileKey}`;\n  if (__appliedTheme === key) return; // skip if unchanged\n  // ... apply CSS vars\n  __appliedTheme = key;\n}"
-      },
-      {
-        "language": "js",
-        "code": "function startIdleDetection() {\n  stopIdleDetection(); // Always clear first\n  document.addEventListener('keydown', __onAnyInput);\n  document.addEventListener('mousedown', __onAnyInput);\n  __idleInterval = setInterval(checkIdle, 15000);\n}"
-      },
-      {
-        "language": "js",
-        "code": "let __busStarted = false;\nfunction startEventBus() {\n  if (__busStarted) return;\n  // ... add listeners\n  __busStarted = true;\n}"
-      },
-      {
-        "language": "js",
-        "code": "const literaliseCache = new Map();\nfunction literalise(output) {\n  if (literaliseCache.has(output)) return literaliseCache.get(output);\n  let result = output;\n  for (const [p, r] of PATTERNS) result = result.replace(p, r);\n  literaliseCache.set(output, result);\n  return result;\n}"
-      },
-      {
-        "language": "js",
-        "code": "// BAD: O(n²)\nconst unique = allAssessments.filter((a, i, arr) => arr.findIndex(b => b.id === a.id) === i);\n\n// GOOD: O(n)\nconst seen = new Set();\nconst unique = allAssessments.filter(a => !seen.has(a.id) && seen.add(a.id));"
-      },
-      {
-        "language": "js",
-        "code": "// GOOD: lazy-load only what's needed\nconst PROFILE_LOADERS = {\n  SCHOLAR: () => import('./profiles/ProdScholar'),\n  CREATIVE: () => import('./profiles/ProdCreative'),\n};\nasync function hydrate(streamKey, profileKey) {\n  const { default: profile } = await PROFILE_LOADERS[profileKey]();\n  // ...\n}"
-      }
-    ]
+    "sections": [],
+    "codeBlocks": []
   },
-  "rawOutputPreview": "## Performance Analysis: Simplifii-OS\n\nHere's a full breakdown of the 14 issues found across 5 categories:\n\n---\n\n### 1. N+1 Query Patterns\n\n**`UniversalOnboarding.js:265-270` — Sequential file processing**\n```js\n// BAD: N sequential API calls\nfor (const file of files) {\n  const extracted = await processDocumentWithGCP(file);\n}\n\n// GOOD: Parallel batch\nconst allExtractions = await Promise.all(files.map(f => processDocumentWithGCP(f)));\n```\n\n**`NeuralAuditPipeline.js:6-7` — Unnecessary array join**\n```js\n// BAD: joins entire array just to search it\nconst joined = activeFiles.join(' ');\nconst matched = SCIENCE_CODES.some(code => joined.includes(code));\n\n// GOOD: short-circuit without join\nconst matched = SCIENCE_CODES.some(code => activeFiles.some(f => f.includes(code)));\n```\n\n---\n\n### 2. Unnecessary React Re-renders\n\n**`MasterDashboard.js:122-156, 165-223` — useEffect missing dependency arrays + no cleanup**\n```js\n// BAD: runs every render, leaks listeners\nuseEffect(() => {\n  window.addEventListener('toggle-accessibility', handler);\n}); // no deps, no return\n\n// GOOD:\nuseEffect(() => {\n  const handle = () => { /* ... */ };\n  window.addEventListener('toggle-accessibility', handle);\n  return () => window.removeEventListener('toggle-accessibility', handle);\n}, []);\n```\n\n**`MasterDashboard.js` — Inline objects in JSX props break React.memo**\n```js\n// BAD: new object reference every render\n<CourseModal config={{ title: 'Add Course', maxLength: 100 }} />\n\n// GOOD:\nconst courseModalConfig = useMemo(() => ({ title: 'Add Course', maxLength: 100 }), []);\n<CourseModal config={courseModalConfig} />\n```\n\n---\n\n### 3. Caching Opportunities\n\n**`BriefService.js:44-100` — Regex compiled on every call**\n```js\n// BAD: compiled per invocation\nconst match = text.match(/theme:\\s*(\\w+)/gi);\n\n// GOOD: module-level constant\nconst THEME_PATTERN = /theme:\\s*(\\w+)/gi;\n```\n\n**`BriefService.js:102-301` — `extractDeepCourseData` does heavy regex work with no cache**\n```js\nconst extractionCache = new",
-  "rawOutputLength": 4794
+  "rawOutputPreview": "You've hit your limit · resets 11:50am (Australia/Sydney)\n",
+  "rawOutputLength": 58
 }

@@ -1,166 +1,196 @@
 import React, { useState } from 'react';
-import { Brain, Shield, FileText, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
-import { mockGoogleAuth, fetchContextualHistory } from '../services/AuthService';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useSettings } from './SettingsContext';
-import { Personas } from '../services/PersonaEngine';
+import { Terminal, Shield, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
+import { unlockWithPassphrase } from '../core/HistoryOfThought';
 
+/**
+ * LandingPage - Stage 01: The Sovereign Handshake
+ * Redesigned for Accessibility and UDL 3.0 compliance.
+ * Features: High contrast light theme, clean typography, recognisable input.
+ */
 export default function LandingPage({ onGetStarted }) {
-  const [step, setStep] = useState(0); // 0: hero, 1: auth, 2: persona, 3: confirm
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncData, setSyncData] = useState(null);
-  const { setEduLevel, setPersona } = useSettings();
+  const [accessCode, setAccessCode] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const [isInitialising, setIsInitialising] = useState(false);
+  const [error, setError] = useState(null);
 
-  const handleGoogleSync = async () => {
-    setIsSyncing(true);
+  const { 
+    lodLevel, setLodLevel, 
+    isZenMode, setIsZenMode, 
+    highContrast, setHighContrast 
+  } = useSettings();
+
+  // Focus Mode vs Clarity Mode (UDL 3.0 Override - Guideline 7.1)
+  const isFocusModeActive = isZenMode && lodLevel === 'compass';
+
+  const toggleUDLMode = () => {
+    if (isFocusModeActive) {
+      setLodLevel('map');
+      setIsZenMode(false);
+      setHighContrast(true);
+    } else {
+      setLodLevel('compass');
+      setIsZenMode(true);
+      setHighContrast(false);
+    }
+  };
+
+  const handleInitialise = async (e) => {
+    e.preventDefault();
+    setError(null);
+
+    if (accessCode.trim().length < 4) {
+      setError('Passphrase must be at least 4 characters.');
+      return;
+    }
+
+    setIsInitialising(true);
     try {
-      const auth = await mockGoogleAuth();
-      const history = await fetchContextualHistory(auth.token);
-      setSyncData({ user: auth.user, history });
-      setStep(2);
+      await unlockWithPassphrase(accessCode.trim());
+      onGetStarted();
     } catch (err) {
-      console.error(err);
+      console.error('[Handshake] Initialisation failed:', err);
+      setError('Vault initialisation failed. Check system console.');
     } finally {
-      setIsSyncing(false);
+      setIsInitialising(false);
     }
-  };
-
-  const selectPersona = (personaKey) => {
-    setPersona(personaKey);
-    setEduLevel(syncData?.history?.inferredTier || 'tertiary');
-    setStep(3);
-  };
-
-  const [isLaunching, setIsLaunching] = useState(false);
-
-  const handleLaunch = async () => {
-    setIsLaunching(true);
-    // Pass the inferred focus to local storage so the OS can utilize it
-    if (syncData) {
-      localStorage.setItem('simplifii_inferred_focus', syncData.history.inferredFocus);
-      localStorage.setItem('simplifii_user_name', syncData.user.name);
-    }
-    // Brief scan delay so the user sees confirmation
-    await new Promise(r => setTimeout(r, 1200));
-    onGetStarted();
   };
 
   return (
-    <div className="min-h-screen bg-[#07080D] text-white font-sans overflow-hidden relative flex flex-col items-center justify-center">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none"></div>
-      
-      {step === 0 && (
-        <div className="text-center max-w-4xl mx-auto z-10 animate-fade-in">
-          <div className="flex justify-center mb-8">
-            <div className="bg-emerald-500 p-4 rounded-3xl shadow-glow-emerald-lg">
-              <Brain size={48} className="text-black" />
-            </div>
-          </div>
-          <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-8 leading-tight">
-            Simplifii<br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500">The Universal Sovereign OS.</span>
-          </h1>
-          <p className="text-xl text-zinc-400 font-medium leading-relaxed mb-12 max-w-2xl mx-auto">
-            A local-first research environment that adapts to your processing style.
-          </p>
-          <button
-            onClick={() => setStep(1)}
-            className="px-10 py-5 rounded-full bg-emerald-500 text-black font-black text-lg uppercase tracking-widest hover:shadow-glow-emerald-lg hover:bg-emerald-400 transition-all flex items-center gap-3 mx-auto group cursor-pointer"
-          >
-            Initiate Local Handshake
-            <ArrowRight className="transform group-hover:translate-x-1 transition-transform" />
-          </button>
-          <div className="mt-10 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/60 border border-zinc-800 text-[10px] font-black uppercase tracking-widest text-emerald-400">
-            <Shield size={12} /> Local-First. Zero Disclosure.
-          </div>
-        </div>
-      )}
+    <div className="min-h-screen bg-zinc-50 text-zinc-900 font-sans flex flex-col selection:bg-emerald-500/30">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .font-sans { font-family: 'Inter', sans-serif; }
+      `}</style>
 
-      {step === 1 && (
-        <div className="text-center max-w-2xl mx-auto z-10 animate-fade-in">
-          <h2 className="text-4xl font-black mb-6">Step 1: Sync by Permission</h2>
-          <p className="text-zinc-400 mb-6 text-lg">
-            Optional. The live sync surface is sandboxed in this build. Real-time Google Context import lands in a future release.
-          </p>
-          <p className="text-amber-400/80 mb-10 text-xs font-bold uppercase tracking-widest border border-amber-500/30 bg-amber-500/5 rounded-xl py-3 px-4">
-            Preview Sync. No data is being moved. Nothing leaves your device.
-          </p>
-          <button
-            onClick={handleGoogleSync}
-            disabled={isSyncing}
-            className="w-full bg-white text-black hover:bg-gray-100 font-black uppercase tracking-widest py-4 rounded-2xl transition-all flex items-center justify-center gap-3 text-lg"
-          >
-            {isSyncing ? <Loader2 className="animate-spin" /> : <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google" className="w-6 h-6" />}
-            {isSyncing ? 'Loading sandboxed preview...' : 'Preview Context Sync (Demo Only)'}
-          </button>
-          <button
-            onClick={onGetStarted}
-            className="mt-6 text-zinc-500 hover:text-emerald-400 text-sm font-bold uppercase tracking-widest transition-colors"
-          >
-            Skip and work locally only
-          </button>
-        </div>
-      )}
+      {/* UDL 3.0 Override Toggle */}
+      <div className="absolute top-6 right-6 z-50">
+        <button
+          onClick={toggleUDLMode}
+          className="flex items-center gap-3 px-4 py-2 border border-zinc-300 hover:border-zinc-400 bg-white rounded-sm text-[10px] font-bold uppercase tracking-wider transition-all group focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none"
+        >
+          {isFocusModeActive ? (
+            <>
+              <EyeOff size={14} className="text-zinc-400 group-hover:text-emerald-600" />
+              <span>Focus Mode Active</span>
+            </>
+          ) : (
+            <>
+              <Eye size={14} className="text-zinc-400 group-hover:text-emerald-600" />
+              <span>Clarity Mode Active</span>
+            </>
+          )}
+        </button>
+      </div>
 
-      {step === 2 && (
-        <div className="text-center max-w-4xl mx-auto z-10 animate-fade-in w-full px-6">
-          <h2 className="text-4xl font-black mb-4">Step 2: Choose Your Executive Partner</h2>
-          <p className="text-zinc-400 mb-10">Select the persona that best fits your current cognitive needs.</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {Object.entries(Personas).map(([key, persona]) => (
-              <div 
-                key={key} 
-                onClick={() => selectPersona(key)}
-                className="bg-zinc-900/80 border border-zinc-800 hover:border-emerald-500 hover:shadow-glow-emerald p-8 rounded-3xl cursor-pointer transition-all flex flex-col text-left group"
-              >
-                <h3 className="text-2xl font-black mb-2 text-white group-hover:text-emerald-400">{persona.name}</h3>
-                <div className="text-xs font-black text-emerald-500/70 uppercase tracking-widest mb-6">
-                  {persona.tone}
-                </div>
-                <p className="text-zinc-400 font-medium italic mb-4 flex-1">
-                  "{persona.greetings[0]}"
-                </p>
-                <div className="text-xs font-black uppercase text-zinc-500 group-hover:text-emerald-500 flex items-center gap-2">
-                  Select Persona <ArrowRight size={14} />
-                </div>
+      <main className="flex-1 flex flex-col items-center justify-center p-6">
+        <div className="w-full max-w-sm">
+          <header className="mb-12 text-center">
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="inline-block p-4 border border-zinc-200 mb-8 bg-white shadow-sm"
+            >
+              <Terminal size={40} className="text-emerald-600" />
+            </motion.div>
+            <h1 className="text-3xl font-bold mb-2 text-zinc-900">
+              Simplifii-OS
+            </h1>
+            <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-wide">
+              Sovereign Handshake
+            </p>
+          </header>
+
+          <form onSubmit={handleInitialise} className="relative">
+            <div className="mb-4">
+              <label htmlFor="passphrase" className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2">
+                Vault Passphrase
+              </label>
+              <div className="relative">
+                <input
+                  id="passphrase"
+                  type="password"
+                  value={accessCode}
+                  onChange={(e) => setAccessCode(e.target.value)}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  placeholder="Enter access code..."
+                  className="w-full bg-white border border-zinc-300 rounded-md px-4 py-4 text-zinc-900 placeholder:text-zinc-400 font-mono text-sm transition-colors shadow-sm outline-none focus-visible:ring-3 focus-visible:ring-emerald-500"
+                  autoFocus
+                  disabled={isInitialising}
+                />
+                
+                {/* The Siltbrand Handshake: Perimeter Pulse */}
+                <AnimatePresence>
+                  {isFocused && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: [0, 0.5, 0] }}
+                      exit={{ opacity: 0 }}
+                      transition={{ 
+                        duration: 2, 
+                        repeat: Infinity, 
+                        ease: "easeInOut" 
+                      }}
+                      className="absolute -inset-[2px] border border-emerald-500 rounded-md pointer-events-none -z-10"
+                    />
+                  )}
+                </AnimatePresence>
               </div>
-            ))}
+            </div>
+
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="mt-4 flex items-center gap-2 text-red-600 text-[11px] font-medium"
+              >
+                <AlertCircle size={14} />
+                <span>{error}</span>
+              </motion.div>
+            )}
+
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              type="submit"
+              disabled={accessCode.trim().length < 4 || isInitialising}
+              className="w-full mt-6 py-4 bg-zinc-900 hover:bg-black text-white text-xs font-bold uppercase tracking-wide rounded-md transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-md flex items-center justify-center gap-2 focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none"
+            >
+              {isInitialising ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Initialising Vault...</span>
+                </>
+              ) : (
+                'Enter Gateway'
+              )}
+            </motion.button>
+          </form>
+
+          <div className="mt-12 text-center">
+            <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
+              {isInitialising ? 'Decrypting Local Spine...' : 'System Status: Awaiting Authorisation'}
+            </p>
           </div>
         </div>
-      )}
+      </main>
 
-      {step === 3 && syncData && (
-        <div className="text-center max-w-2xl mx-auto z-10 animate-fade-in bg-zinc-900/80 border border-zinc-800 p-10 rounded-3xl shadow-2xl backdrop-blur-xl">
-          <div className="flex justify-center mb-6">
-            <CheckCircle2 size={64} className="text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.6)]" />
-          </div>
-          <h2 className="text-3xl font-black mb-2">Sync Complete</h2>
-          <p className="text-zinc-400 mb-8">Welcome back, {syncData.user.name}.</p>
-          
-          <div className="bg-black/50 rounded-2xl p-6 text-left border border-zinc-800 mb-8 space-y-4">
-            <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
-              <span className="text-xs font-black uppercase text-zinc-500 tracking-widest">Inferred Focus</span>
-              <span className="text-emerald-400 font-bold">{syncData.history.inferredFocus}</span>
-            </div>
-            <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
-              <span className="text-xs font-black uppercase text-zinc-500 tracking-widest">Education Tier</span>
-              <span className="text-emerald-400 font-bold uppercase">{syncData.history.inferredTier}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-black uppercase text-zinc-500 tracking-widest">Upcoming Deadline</span>
-              <span className="text-emerald-400 font-bold">{syncData.history.calendarScrape[0]?.event || 'None synced'}</span>
-            </div>
-          </div>
-
-          <button
-            onClick={handleLaunch}
-            disabled={isLaunching}
-            className="w-full px-8 py-4 rounded-xl bg-emerald-500 text-black font-black uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-glow-emerald disabled:opacity-70 disabled:cursor-wait flex items-center justify-center gap-3"
-          >
-            {isLaunching ? <><Loader2 className="animate-spin" size={20} /> Scanning...</> : 'Enter Dashboard'}
-          </button>
+      {/* Zero-Disclosure Banner (Pinned Footer) */}
+      <footer className="w-full border-t border-zinc-200 py-6 px-10 flex flex-col md:flex-row justify-between items-center bg-white gap-4">
+        <div className="flex items-center gap-4 text-zinc-600">
+          <Shield size={16} className="text-emerald-600" />
+          <span className="text-[11px] font-medium">
+            Zero-Disclosure: Local processing only. No data leaves this device.
+          </span>
         </div>
-      )}
+        <div className="flex items-center gap-6 text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
+          <span>AU-EN Protocol</span>
+          <span>Sovereign v1.0.0</span>
+        </div>
+      </footer>
     </div>
   );
 }
