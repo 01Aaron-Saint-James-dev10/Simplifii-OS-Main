@@ -5,7 +5,7 @@ export const Personas = {
     speechRate: 1.1,
     pitch: 0.8,
     greetings: [
-      "Systems online, {{name}}. Let's optimize this.",
+      "Systems online, {{name}}. Let's optimise this.",
       "Drop the files, {{name}}. I don't have all day."
     ],
     prompts: {
@@ -58,7 +58,7 @@ export const getPersonaResponse = (personaKey, eventType) => {
     return `Systems online. Handshake complete. I've mapped your identity, ${userName}. I'm your Cognitive Partner. Before we open the canvas, I need to calibrate the environment to your specific brain-state. Ready to build your profile?`;
   }
   if (eventType === 'ignition_stage2') {
-    return `I'm looking at your timeline. I see the ${eventName} deadline approaching on ${eventDate}. I've adjusted your 'Friction Map' to prioritize high-impact drafting today. Is this the sprint we're focusing on, or are we starting something fresh?`;
+    return `I'm looking at your timeline. I see the ${eventName} deadline approaching on ${eventDate}. I've adjusted your 'Friction Map' to prioritise high-impact drafting today. Is this the sprint we're focusing on, or are we starting something fresh?`;
   }
   if (eventType === 'ignition_stage3') {
     return `Understood. Mapping the ${courseName} context. Whether this is a high school lab or a doctoral thesis, I'm locking the grounding sensors to this specific academic level. I've initialised the Knowledge Graph for this subject. Let's feed it some data.`;

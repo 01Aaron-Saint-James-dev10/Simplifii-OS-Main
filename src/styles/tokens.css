@@ -1,0 +1,139 @@
+/*
+ * Sovereign Design Tokens
+ *
+ * Single source of truth for the Calm Dashboard System.
+ * Mirrors DESIGN_MANIFEST.md v1.0 (tokens_light + tokens_dark).
+ *
+ * Theme switching is a single attribute flip on <html>:
+ *   default            light theme (per the Manifest, neurodivergent-friendly)
+ *   data-theme="dark"  dark override (for terminal-minimalist views only)
+ *
+ * No component should ship raw hex values. Read tokens via:
+ *   CSS:    color: var(--ink);
+ *   inline: style={{ background: 'var(--bg)' }}
+ *   Tailwind arbitrary: className="bg-[var(--bg)]"
+ *
+ * Tailwind also exposes these as functional colours
+ * (theme.extend.colors.signal, .ink, .surface, etc.) per tailwind.config.js,
+ * so utility classes like text-ink, bg-surface, ring-signal also resolve.
+ */
+
+/* ============================================================
+   LIGHT THEME (default, Calm-Light mapping from the Manifest)
+   ============================================================ */
+:root,
+:root[data-theme="light"] {
+  /* Surfaces */
+  --bg:           #FAFAF9;   /* stone-50, warmer than pure white */
+  --surface:      #FFFFFF;
+  --surface-2:    #F4F4F5;   /* zinc-100 */
+  --surface-3:    #E4E4E7;   /* zinc-200 */
+  --line:         #E4E4E7;   /* zinc-200 */
+  --line-strong:  #D4D4D8;   /* zinc-300 */
+
+  /* Ink */
+  --ink:          #18181B;   /* zinc-900 */
+  --ink-soft:     #3F3F46;   /* zinc-700 */
+  --ink-mute:     #71717A;   /* zinc-500 */
+  --ink-faint:    #A1A1AA;   /* zinc-400 */
+
+  /* Signal (the only accent) */
+  --signal:       #059669;                       /* emerald-600, AA on white */
+  --signal-soft:  rgba(5, 150, 105, 0.10);
+  --signal-line:  rgba(5, 150, 105, 0.28);
+
+  /* Warm (deadline only, always paired with the word "due") */
+  --warm:         #B45309;                       /* amber-700 */
+  --warm-soft:    rgba(180, 83, 9, 0.10);
+
+  /* Backdrop / scrim */
+  --scrim:        rgba(24, 24, 27, 0.45);
+
+  /* Shadows */
+  --shadow-sm:    0 1px 0 rgba(15, 23, 42, 0.04);
+  --shadow-md:    0 6px 24px rgba(15, 23, 42, 0.08);
+  --shadow-lg:    0 18px 48px rgba(15, 23, 42, 0.16);
+}
+
+/* ============================================================
+   DARK THEME (override for terminal-minimalist surfaces)
+   ============================================================ */
+:root[data-theme="dark"] {
+  --bg:           #0B0B0E;
+  --surface:      #111114;
+  --surface-2:    #16161B;
+  --surface-3:    #1C1C22;
+  --line:         #25252C;
+  --line-strong:  #35353D;
+
+  --ink:          #ECECEE;
+  --ink-soft:     #C0C0C6;
+  --ink-mute:     #8A8A92;
+  --ink-faint:    #5A5A62;
+
+  --signal:       #10B981;                       /* emerald-500 */
+  --signal-soft:  rgba(16, 185, 129, 0.16);
+  --signal-line:  rgba(16, 185, 129, 0.30);
+
+  --warm:         #E7A24A;
+  --warm-soft:    rgba(231, 162, 74, 0.14);
+
+  --scrim:        rgba(0, 0, 0, 0.65);
+
+  --shadow-sm:    0 1px 0 rgba(0, 0, 0, 0.30);
+  --shadow-md:    0 6px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg:    0 24px 60px rgba(0, 0, 0, 0.55);
+}
+
+/* ============================================================
+   TYPOGRAPHY
+   ============================================================ */
+:root {
+  --font-sans: 'Geist', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --fs-meta:    0.75rem;     /* 12 px */
+  --fs-label:   0.875rem;    /* 14 px */
+  --fs-body:    1rem;        /* 16 px */
+  --fs-lead:    1.125rem;    /* 18 px */
+  --fs-h3:      1.375rem;    /* 22 px */
+  --fs-h2:      1.75rem;     /* 28 px */
+  --fs-h1:      2.5rem;      /* 40 px */
+  --fs-display: 3.5rem;      /* 56 px */
+}
+
+/* ============================================================
+   SPACING (8 pt spine)
+   ============================================================ */
+:root {
+  --s1:  8px;
+  --s2: 16px;
+  --s3: 24px;
+  --s4: 32px;
+  --s5: 48px;
+  --s6: 64px;
+  --s7: 96px;
+}
+
+/* ============================================================
+   MOTION
+   ============================================================ */
+:root {
+  --t: 180ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================
+   FOCUS RING (the non-negotiable, Rule 03)
+   ============================================================ */
+:focus-visible {
+  outline: 3px solid var(--signal);
+  outline-offset: 2px;
+  border-radius: 3px;
+}

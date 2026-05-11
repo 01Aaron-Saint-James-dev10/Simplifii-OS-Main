@@ -15,7 +15,7 @@ export function StartIgnition({ onStart }) {
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500">Zero Friction.</span>
         </h1>
         <p className="text-xl text-zinc-400 font-medium leading-relaxed mb-10">
-          Connect your digital brain to initialize the Neural-Docs linear editor.
+          Connect your digital brain to initialise the Neural-Docs linear editor.
         </p>
         <button 
           onClick={onStart}

@@ -965,7 +965,7 @@ export default function MasterDashboard() {
   const isBooting = currentStage === 0;
 
   return (
-    <div className={`h-screen w-full bg-black text-zinc-200 flex flex-col font-sans overflow-hidden transition-colors duration-1000 ${getOverlayColor()} ${isZenMode ? 'zen-mode-active' : ''}`}>
+    <div className={`h-screen w-full bg-stone-50 text-zinc-900 flex flex-col font-sans overflow-hidden transition-colors duration-1000 ${getOverlayColor()} ${isZenMode ? 'zen-mode-active' : ''}`}>
       {/* Top Navigation Bar */}
       <div className={`h-[70px] shrink-0 flex items-center justify-between px-8 border-b border-zinc-800 bg-black/80 backdrop-blur-md relative z-[1200] transition-all duration-700 ${isZenMode ? '-translate-y-full' : 'translate-y-0'}`}>
         <div className="flex items-center gap-4">

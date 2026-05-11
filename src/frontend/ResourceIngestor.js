@@ -29,7 +29,7 @@ export default function ResourceIngestor({ evidenceFormula = [], onIngestComplet
     if (type === 'primary') {
       const validDomains = ['.gov', '.edu', 'nature.com', 'ncbi.nlm.nih.gov', 'sciencedirect.com', 'plos.org'];
       const isValid = validDomains.some(domain => lowerUrl.includes(domain));
-      if (!isValid) return 'Rejected: URL does not appear to be from a recognized primary research publisher (.gov, .edu, nature, ncbi, etc.).';
+      if (!isValid) return 'Rejected: URL does not appear to be from a recognised primary research publisher (.gov, .edu, nature, ncbi, etc.).';
     }
     return '';
   };
