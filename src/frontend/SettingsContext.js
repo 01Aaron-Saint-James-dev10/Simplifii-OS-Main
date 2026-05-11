@@ -37,6 +37,26 @@ export const SettingsProvider = ({ children }) => {
   const [gritLevel, setGritLevel] = useState(localStorage.getItem('gritLevel') || 'balanced');
   const [lodLevel, setLodLevel] = useState(localStorage.getItem('lodLevel') || 'compass');
 
+  // Apply dark mode class to document root
+  useEffect(() => {
+    const root = document.documentElement;
+    if (darkMode) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [darkMode]);
+
+  // Apply high contrast class
+  useEffect(() => {
+    const root = document.documentElement;
+    if (highContrast) {
+      root.classList.add('high-contrast');
+    } else {
+      root.classList.remove('high-contrast');
+    }
+  }, [highContrast]);
+
   useEffect(() => {
     localStorage.setItem('mode', mode);
     localStorage.setItem('eduLevel', eduLevel);
@@ -99,7 +119,7 @@ export const SettingsProvider = ({ children }) => {
           lineHeight: rules[mode].lineHeight,
           letterSpacing: rules[mode].letterSpacing
         }}
-        className={`${highContrast ? 'contrast-125 saturate-150' : ''} ${reducedMotion ? 'motion-reduce' : ''} ${!darkMode ? 'invert hue-rotate-180' : ''} h-full transition-all duration-500`}
+        className={`${reducedMotion ? 'motion-reduce' : ''} h-full transition-all duration-300`}
       >
         {children}
       </div>

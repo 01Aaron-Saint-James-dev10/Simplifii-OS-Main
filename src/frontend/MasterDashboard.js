@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Brain, RefreshCw, Sparkles, CheckCircle2, Layout, FileText, Download, Target, AlertTriangle, Shield, ChevronLeft, ChevronRight, Eye, HardDrive, Trash2, FlaskConical, BookOpen, MousePointer2, Plus, Circle } from 'lucide-react';
+import { Brain, RefreshCw, Sparkles, CheckCircle2, Layout, FileText, Download, Target, AlertTriangle, Shield, ChevronLeft, ChevronRight, Eye, HardDrive, Trash2, FlaskConical, BookOpen, MousePointer2, Plus, Circle, Sun, Moon } from 'lucide-react';
 import { useSettings } from './SettingsContext';
 import { useProject } from './ProjectContext';
 import { useInstitution } from './InstitutionalContext';
@@ -274,7 +274,8 @@ export default function MasterDashboard() {
     isZenMode, setIsZenMode,
     isLeftCollapsed, setIsLeftCollapsed,
     isRightCollapsed, setIsRightCollapsed,
-    isLiteralMode, setIsLiteralMode
+    isLiteralMode, setIsLiteralMode,
+    darkMode, setDarkMode
   } = useSettings();
   const {
     project, updateBlock, appendToBlock, receiveMessage, clearMessage, setBlocks, logEffort,
@@ -965,129 +966,116 @@ export default function MasterDashboard() {
   const isBooting = currentStage === 0;
 
   return (
-    <div className={`h-screen w-full bg-black text-zinc-200 flex flex-col font-sans overflow-hidden transition-colors duration-1000 ${getOverlayColor()} ${isZenMode ? 'zen-mode-active' : ''}`}>
+    <div className={`h-screen w-full bg-background text-foreground flex flex-col font-sans overflow-hidden transition-colors duration-300 ${getOverlayColor()} ${isZenMode ? 'zen-mode-active' : ''}`}>
       {/* Top Navigation Bar */}
-      <div className={`h-[70px] shrink-0 flex items-center justify-between px-8 border-b border-zinc-800 bg-black/80 backdrop-blur-md relative z-[1200] transition-all duration-700 ${isZenMode ? '-translate-y-full' : 'translate-y-0'}`}>
+      <nav 
+        className={`h-[70px] shrink-0 flex items-center justify-between px-6 md:px-8 border-b border-border bg-card/80 backdrop-blur-md relative z-[1200] transition-all duration-300 ${isZenMode ? '-translate-y-full' : 'translate-y-0'}`}
+        role="navigation"
+        aria-label="Main navigation"
+      >
         <div className="flex items-center gap-4">
           <button 
             onClick={() => setViewMode('gallery')}
-            className="flex items-center gap-2 hover:opacity-80 transition-opacity group"
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-lg"
+            aria-label="Go to course gallery"
           >
-            <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center group-hover:bg-indigo-500/30 transition-colors">
-              <Brain size={18} className="text-indigo-400" />
+            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
+              <Brain size={18} className="text-primary" />
             </div>
-            <span className="font-black tracking-widest uppercase text-sm bg-gradient-to-r from-indigo-400 to-indigo-600 text-transparent bg-clip-text">
+            <span className="font-black tracking-widest uppercase text-sm text-primary">
               Simplifii
             </span>
           </button>
-          <div className="h-4 w-px bg-zinc-800"></div>
-          <span className="text-[12px] font-bold text-zinc-500 tracking-[0.2em] uppercase">
+          <div className="h-4 w-px bg-border" aria-hidden="true"></div>
+          <span className="text-[11px] font-semibold text-muted-foreground tracking-[0.15em] uppercase hidden sm:block">
             Sovereign OS
           </span>
-          <div className="ml-2 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border border-indigo-500/30 text-indigo-400 bg-indigo-500/10">
+          <div className="hidden md:flex ml-2 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest border border-primary/30 text-primary bg-primary/10">
             Zero Disclosure
           </div>
-          <div className="ml-2 flex items-center gap-2 px-3 py-1 rounded-full border text-[12px] font-black uppercase tracking-widest transition-all bg-emerald-500/10 border-emerald-500/50 text-emerald-400 cursor-help" title="Sovereign Engine Active">
+          <div className="hidden lg:flex ml-2 items-center gap-2 px-3 py-1 rounded-full border text-[11px] font-bold uppercase tracking-widest transition-all bg-primary/10 border-primary/50 text-primary cursor-help" title="Sovereign Engine Active">
             <HardDrive size={10} /> Sovereign
           </div>
-          {/* Shadow State pill. Surfaces while the cockpit is showing
-              regex-derived draft data and the LLM Confirmed Truth pass
-              is still in flight. Disappears the moment the upgrade
-              lands or the no-LLM fallback clears the shadow flag. */}
+          {/* Shadow State pill */}
           {activeCourse?.extractionData?.shadow && (
-            <div className="ml-2 flex items-center gap-2 px-3 py-1 rounded-full border text-[12px] font-black uppercase tracking-widest bg-amber-500/10 border-amber-500/40 text-amber-300 cursor-help" title="Draft roadmap from regex. Refining via Ollama; the cockpit will swap to confirmed truth automatically.">
-              <RefreshCw size={10} className="animate-spin" /> Draft  ·  refining
+            <div className="ml-2 flex items-center gap-2 px-3 py-1 rounded-full border text-[11px] font-bold uppercase tracking-widest bg-amber-500/10 border-amber-500/40 text-amber-400 cursor-help" title="Draft roadmap from regex. Refining via Ollama; the cockpit will swap to confirmed truth automatically.">
+              <RefreshCw size={10} className="animate-spin" /> Draft
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-5 relative z-[1300]">
-          {/* NOT VERIFIED badge: appears when the student opted into
-              Ghost Mode (skipped the vault). Visible signal that
-              History of Thought is NOT capturing this session. */}
+        <div className="flex items-center gap-3 md:gap-4 relative z-[1300]">
+          {/* Ghost Mode badge */}
           {ghostMode && (
             <button
               type="button"
               onClick={() => { setGhostMode(false); setVaultDismissed(false); }}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full border text-[12px] font-black uppercase tracking-widest transition-all cursor-pointer bg-rose-500/10 border-rose-500/40 text-rose-300 hover:bg-rose-500/20"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full border text-[11px] font-bold uppercase tracking-widest transition-all cursor-pointer bg-destructive/10 border-destructive/40 text-destructive hover:bg-destructive/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               title="Ghost Mode: no events recorded. Click to unlock the vault."
+              aria-label="Exit ghost mode and unlock vault"
             >
               <Shield size={11} /> NOT VERIFIED
             </button>
           )}
-          {/* Scaffolder overlay: tiered support engine (Primary / Secondary
-              / Tertiary). Re-renders the active assessment as a quest,
-              checklist, or skeleton timeline depending on the learner's
-              profile.level. */}
-          {/* Peripheral toolbar. data-focus-locked dims these buttons
-              during an active FocusSession so the only visible action
-              surface is the cockpit + AURA + SOS. Setting the attribute
-              on each button (rather than a wrapping div) keeps the
-              flexbox layout untouched. */}
+          
+          {/* Scaffolder Button */}
           <button
             data-focus-locked="true"
             onClick={() => setShowScaffolder(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all cursor-pointer bg-transparent border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+            className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-bold uppercase tracking-widest transition-all cursor-pointer bg-transparent border-amber-500/40 text-amber-400 hover:bg-amber-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
             title="Open Sovereign Scaffolder (tiered support overlay)"
+            aria-label="Open Scaffolder"
           >
             <Sparkles size={14} /> Scaffolder
           </button>
-          {/* Steering Drawer trigger. Persona / Scaffolding / Grit / LOD
-              dials live inside the drawer; this button is the only way
-              in. Stays unlocked during focus sessions because the
-              student may need to dial the OS down without ending the
-              sprint. */}
+          
+          {/* Steering Drawer Button */}
           <button
             onClick={() => setShowSteering(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all cursor-pointer bg-transparent border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
+            className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-bold uppercase tracking-widest transition-all cursor-pointer bg-transparent border-primary/40 text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             title="Open Steering Drawer (Persona, Scaffolding, Grit, LOD)"
+            aria-label="Open Steering controls"
           >
             <Sparkles size={14} /> Steering
           </button>
-          {/* Ingest Grounding Folder. Bridges the gap between the PDFs
-              committed to /src/grounding/active/ and the running
-              cockpit. Disabled when the folder is empty (require.context
-              returned zero files) and while an ingestion is in flight.
-              Stays unlocked during focus sessions; rare but useful if
-              new grounding files arrive mid-sprint. */}
+          
+          {/* Ingest Grounding Folder */}
           {groundingCount > 0 && (
             <button
               onClick={handleIngestGrounding}
               disabled={ingesting}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${ingesting ? 'bg-amber-500/10 border-amber-500/40 text-amber-300 cursor-wait' : 'bg-transparent border-amber-500/40 text-amber-400 hover:bg-amber-500/10'} disabled:cursor-wait`}
-              title={ingesting ? (ingestStatus || 'Scanning grounding folder...') : `Ingest ${groundingCount} PDF${groundingCount === 1 ? '' : 's'} from /src/grounding/active/ into the cockpit.`}
+              className={`hidden lg:flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-bold uppercase tracking-widest transition-all cursor-pointer ${ingesting ? 'bg-amber-500/10 border-amber-500/40 text-amber-300 cursor-wait' : 'bg-transparent border-amber-500/40 text-amber-400 hover:bg-amber-500/10'} disabled:cursor-wait focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500`}
+              title={ingesting ? (ingestStatus || 'Scanning grounding folder...') : `Ingest ${groundingCount} PDF${groundingCount === 1 ? '' : 's'} from /src/grounding/active/`}
+              aria-label={ingesting ? 'Scanning files' : 'Ingest grounding files'}
             >
               {ingesting
                 ? <RefreshCw size={14} className="animate-spin" />
                 : <FileText size={14} />}
-              {ingesting ? 'Scanning...' : 'Ingest Grounding'}
+              {ingesting ? 'Scanning...' : 'Ingest'}
             </button>
           )}
-          {/* Studio toggle: switch between classic LinearCanvas and the
-              tri-column SimplifiiStudio (NotebookLM-style) layout */}
+          
+          {/* Studio/Classic Toggle */}
           <button
             data-focus-locked="true"
             onClick={() => setShowStudio(v => !v)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${showStudio ? 'bg-emerald-500 border-emerald-500 text-black' : 'bg-transparent border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10'}`}
+            className={`hidden lg:flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-bold uppercase tracking-widest transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${showStudio ? 'bg-primary border-primary text-primary-foreground' : 'bg-transparent border-primary/40 text-primary hover:bg-primary/10'}`}
             title={showStudio ? 'Switch to Classic Cockpit' : 'Switch to Studio (tri-column)'}
+            aria-pressed={showStudio}
+            aria-label={showStudio ? 'Switch to Classic view' : 'Switch to Studio view'}
           >
             <Sparkles size={14} /> {showStudio ? 'Classic' : 'Studio'}
           </button>
-          {/* View as Speech Button */}
-          <button
-            data-focus-locked="true"
-            onClick={() => window.dispatchEvent(new CustomEvent('toggle-view-mode'))}
-            className="flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all bg-transparent border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 cursor-pointer"
-          >
-            <Sparkles size={14} /> View as Speech
-          </button>
+          
           {/* UDL Overrides Button */}
           <button
             data-focus-locked="true"
             onClick={() => window.dispatchEvent(new CustomEvent('toggle-accessibility'))}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${isBionicActive || overlayTint !== 'none' || isRulerActive ? 'bg-amber-500/10 border-amber-500/50 text-amber-500' : 'bg-transparent border-zinc-700 text-zinc-400'} hover:text-white hover:border-zinc-500`}
+            className={`flex items-center gap-2 px-3 md:px-4 py-2 rounded-full border text-xs font-bold uppercase tracking-widest transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isBionicActive || overlayTint !== 'none' || isRulerActive ? 'bg-amber-500/10 border-amber-500/50 text-amber-500' : 'bg-transparent border-border text-muted-foreground'} hover:text-foreground hover:border-muted-foreground`}
+            aria-label="Open accessibility settings"
+            aria-pressed={isBionicActive || overlayTint !== 'none' || isRulerActive}
           >
-            <Sparkles size={14} /> UDL Overrides
+            <Eye size={14} /> <span className="hidden sm:inline">UDL</span>
           </button>
 
           {/* Literal Mode Toggle */}
@@ -1098,22 +1086,38 @@ export default function MasterDashboard() {
             aria-checked={isLiteralMode}
             aria-label="Toggle Literal Mode"
             onClick={() => setIsLiteralMode(prev => !prev)}
-            className="flex items-center gap-3 bg-zinc-900/50 px-4 py-2 rounded-full border border-zinc-800 cursor-pointer hover:border-zinc-600 transition-colors"
+            className="hidden lg:flex items-center gap-3 bg-muted/50 px-4 py-2 rounded-full border border-border cursor-pointer hover:border-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <span className="text-[12px] font-bold uppercase tracking-widest text-zinc-500">Literal Mode</span>
-            <span className={`w-10 h-5 rounded-full relative transition-colors ${isLiteralMode ? 'bg-indigo-500' : 'bg-zinc-700'}`}>
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Literal</span>
+            <span className={`w-10 h-5 rounded-full relative transition-colors ${isLiteralMode ? 'bg-indigo-500' : 'bg-muted'}`}>
               <span className={`w-3 h-3 bg-white rounded-full absolute top-1 transition-transform ${isLiteralMode ? 'translate-x-6' : 'translate-x-1'}`}></span>
             </span>
           </button>
 
+          {/* Theme Toggle */}
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className="p-2.5 rounded-full border border-border bg-card hover:bg-muted transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-pressed={darkMode}
+          >
+            {darkMode ? (
+              <Sun size={16} className="text-muted-foreground hover:text-primary transition-colors" />
+            ) : (
+              <Moon size={16} className="text-muted-foreground hover:text-primary transition-colors" />
+            )}
+          </button>
+
+          {/* SOS Button */}
           <button
             onClick={() => setShowSupportBridge(true)}
-            className="flex items-center gap-2 px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all bg-rose-500/10 border border-rose-500/30 text-rose-500 hover:bg-rose-500 hover:text-white shadow-glow-rose cursor-pointer"
+            className="flex items-center gap-2 px-4 md:px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all bg-destructive/10 border border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive cursor-pointer"
+            aria-label="Open emergency support"
           >
             <AlertTriangle size={14} /> SOS
           </button>
         </div>
-      </div>
+      </nav>
 
       {/* Restored Avatar: Fixed Anchor at top:100px (clears the z-1200 nav) */}
       <div className="fixed top-[100px] left-4 z-[1100] w-56 animate-fade-in pointer-events-none">
@@ -1229,15 +1233,18 @@ export default function MasterDashboard() {
       {/* Body row: sidebar + main + right archive share the height below the nav */}
       <div className="flex-1 flex overflow-hidden min-h-0">
 
-      {/* Global Sprints Sidebar (Left). data-focus-locked dims and
-          click-protects the rail when an ExecutiveSpine FocusSession
-          is active (CSS rule: simplifii-studio.css). The active task
-          column stays unlocked. */}
-      <aside data-focus-locked="true" className={`${leftSidebarClass} border-r border-zinc-800/50 bg-black/40 backdrop-blur-xl flex flex-col shrink-0 transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] z-10 relative overflow-hidden pt-44`}>
+      {/* Global Sprints Sidebar (Left) */}
+      <aside 
+        data-focus-locked="true" 
+        className={`${leftSidebarClass} border-r border-border bg-card/40 backdrop-blur-xl flex flex-col shrink-0 transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] z-10 relative overflow-hidden pt-44`}
+        role="complementary"
+        aria-label="Course navigation sidebar"
+      >
         {!isZenMode && (
           <button 
             onClick={() => setIsLeftCollapsed(!isLeftCollapsed)}
-            className="absolute -right-3 top-24 z-50 bg-zinc-800 border border-zinc-700 rounded-full p-1 text-zinc-400 hover:text-white hover:border-emerald-500 transition-all"
+            className="absolute -right-3 top-24 z-50 bg-card border border-border rounded-full p-1 text-muted-foreground hover:text-foreground hover:border-primary transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label={isLeftCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {isLeftCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
           </button>
