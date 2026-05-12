@@ -13,6 +13,9 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useProject } from './ProjectContext';
 import { selectPersona } from '../core/Personas';
+import {
+  SHADOW_FAINT, SHADOW_LIGHT, WHITE_FILL,
+} from '../theme/tokens';
 
 // ============================================================
 // .sm document parser
@@ -153,7 +156,7 @@ function PdmrRail({ prompts, stages, activeIndex, onSelect }) {
         return (
           <button key={i} onClick={() => onSelect(i)} style={{
             background: isActive ? col.bg : 'transparent',
-            border: `1px solid ${isActive ? col.accent + '80' : 'rgba(0,0,0,0.07)'}`,
+            border: `1px solid ${isActive ? col.accent + '80' : SHADOW_FAINT}`,
             borderRadius: 7, padding: '5px 10px', cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: 7, textAlign: 'left',
             transition: 'background 0.15s, border 0.15s',
@@ -199,9 +202,9 @@ function PromptCard({ prompt, stage, answer, onChange, isFirst, isLast, onNext, 
         rows={4}
         disabled={disabled}
         style={{
-          border: '1px solid rgba(0,0,0,0.09)', borderRadius: 8,
+          border: `1px solid ${SHADOW_FAINT}`, borderRadius: 8,
           padding: '9px 11px', fontFamily: 'inherit', fontSize: 13, lineHeight: 1.6,
-          background: disabled ? '#F9FAFB' : 'rgba(255,255,255,0.85)',
+          background: disabled ? '#F9FAFB' : WHITE_FILL,
           resize: 'vertical', boxSizing: 'border-box', width: '100%', outline: 'none',
           color: '#374151',
         }}
@@ -210,7 +213,7 @@ function PromptCard({ prompt, stage, answer, onChange, isFirst, isLast, onNext, 
         {!isFirst && (
           <button onClick={onPrev} disabled={disabled} style={{
             padding: '5px 13px', borderRadius: 6,
-            border: '1px solid rgba(0,0,0,0.12)', background: '#fff',
+            border: `1px solid ${SHADOW_LIGHT}`, background: '#fff',
             fontSize: 12, cursor: 'pointer', color: '#374151',
           }}>Back</button>
         )}
@@ -310,8 +313,8 @@ export default function SmViewer({ smContent, onEdit, readOnly = false }) {
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10, padding: '12px 20px',
-        background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(12px)',
-        borderBottom: '1px solid rgba(0,0,0,0.07)',
+        background: WHITE_FILL, backdropFilter: 'blur(12px)',
+        borderBottom: `1px solid ${SHADOW_FAINT}`,
         flexShrink: 0, zIndex: 10,
       }}>
         {persona && (
@@ -342,7 +345,7 @@ export default function SmViewer({ smContent, onEdit, readOnly = false }) {
           }}>PDMR COMPLETE</span>
         )}
         <button onClick={handleDownload} style={{
-          padding: '4px 11px', borderRadius: 6, border: '1px solid rgba(0,0,0,0.12)',
+          padding: '4px 11px', borderRadius: 6, border: `1px solid ${SHADOW_LIGHT}`,
           background: '#fff', fontSize: 11, cursor: 'pointer', color: '#374151',
           flexShrink: 0,
         }}>Download .sm</button>
@@ -360,7 +363,7 @@ export default function SmViewer({ smContent, onEdit, readOnly = false }) {
         <motion.div
           variants={COLUMN_VARIANTS} initial="hidden" animate="visible" custom={0}
           style={{
-            borderRight: '1px solid rgba(0,0,0,0.06)',
+            borderRight: `1px solid ${SHADOW_FAINT}`,
             overflowY: 'auto', padding: '20px 18px',
             background: '#FFFFFF',
           }}>
@@ -381,7 +384,7 @@ export default function SmViewer({ smContent, onEdit, readOnly = false }) {
         <motion.div
           variants={COLUMN_VARIANTS} initial="hidden" animate="visible" custom={1}
           style={{
-            borderRight: '1px solid rgba(0,0,0,0.06)',
+            borderRight: `1px solid ${SHADOW_FAINT}`,
             overflowY: 'auto', padding: '20px 14px',
             background: '#FCFCFB',
             display: 'flex', flexDirection: 'column', gap: 14,
@@ -461,13 +464,13 @@ export default function SmViewer({ smContent, onEdit, readOnly = false }) {
               placeholder={`Begin your response to "${title}" here.\n\nWork through the Tier 2 prompts first, then draft your assessed response here in your own voice.`}
               style={{
                 flex: 1, minHeight: 'calc(100vh - 160px)',
-                border: '1px solid rgba(0,0,0,0.08)', borderRadius: 10,
+                border: `1px solid ${SHADOW_FAINT}`, borderRadius: 10,
                 padding: '18px 20px',
                 fontFamily: "'Inter', system-ui, sans-serif",
                 fontSize: 14, lineHeight: 1.85, color: '#1F2937',
                 background: '#FFFFFF', resize: 'none', outline: 'none',
                 boxSizing: 'border-box', width: '100%',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                boxShadow: `0 1px 3px ${SHADOW_FAINT}`,
               }}
             />
           )}

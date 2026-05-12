@@ -7,6 +7,7 @@ import {
   ACCENT_PULSE,
   BORDER_RADIUS,
   FONT_SYSTEM,
+  ACCENT_FOCUS, ACCENT_FOCUS_STRONG, ACCENT_BORDER_STRONG,
 } from '../theme/tokens';
 import { SOVEREIGN_DATA_READY } from '../core/Events';
 
@@ -43,8 +44,8 @@ function injectGalleryCSS() {
   transition: border 0.15s;
   outline: none;
 }
-.sov-add-tile:hover { border-color: rgba(16,185,129,0.3); }
-.sov-add-tile:focus-visible { box-shadow: 0 0 0 2px rgba(16,185,129,0.35); }
+.sov-add-tile:hover { border-color: ${ACCENT_FOCUS}; }
+.sov-add-tile:focus-visible { box-shadow: 0 0 0 2px ${ACCENT_FOCUS_STRONG}; }
   `.trim();
   document.head.appendChild(el);
   galleryCSSInjected = true;
@@ -138,7 +139,7 @@ export default function PillarGallery({ courses, activeCourseId, onSelect, onAdd
             fontSize: 9, fontWeight: 700,
             letterSpacing: '0.15em', textTransform: 'uppercase',
             background: 'none', color: ACCENT_PULSE,
-            border: '1px solid rgba(16,185,129,0.25)',
+            border: `1px solid ${ACCENT_BORDER_STRONG}`,
             borderRadius: BORDER_RADIUS, padding: '5px 10px',
             cursor: 'pointer', transition: 'border 0.15s',
           }}

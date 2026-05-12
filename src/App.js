@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import MasterDashboard from './frontend/MasterDashboard';
 import LandingPage from './frontend/LandingPage';
 import { SettingsProvider } from './frontend/SettingsContext';
 import { ProjectProvider } from './frontend/ProjectContext';
 import { InstitutionalProvider } from './frontend/InstitutionalContext';
+import { AuthProvider } from './contexts/AuthContext';
 
 const VIEW = { LANDING: 'landing', DASHBOARD: 'dashboard' };
 
@@ -64,15 +66,21 @@ function AppContent() {
 }
 
 export default function App() {
+  const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID || '';
+
   return (
-    <ViewBoundary>
-      <SettingsProvider>
-        <ProjectProvider>
-          <InstitutionalProvider>
-            <AppContent />
-          </InstitutionalProvider>
-        </ProjectProvider>
-      </SettingsProvider>
-    </ViewBoundary>
+    <GoogleOAuthProvider clientId={clientId}>
+      <AuthProvider>
+        <ViewBoundary>
+          <SettingsProvider>
+            <ProjectProvider>
+              <InstitutionalProvider>
+                <AppContent />
+              </InstitutionalProvider>
+            </ProjectProvider>
+          </SettingsProvider>
+        </ViewBoundary>
+      </AuthProvider>
+    </GoogleOAuthProvider>
   );
 }

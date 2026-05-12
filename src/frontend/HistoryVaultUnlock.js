@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { unlockWithPassphrase, isUnlocked } from '../core/HistoryOfThought';
+import { OVERLAY_BACKDROP, VAULT_GREEN_BORDER, VAULT_GREEN_BORDER_STRONG, WHITE_TINT, VAULT_ERROR_GLASS, VAULT_ERROR_BORDER } from '../theme/tokens';
 
 /**
  * HistoryVaultUnlock
@@ -252,18 +253,18 @@ export default function HistoryVaultUnlock({ onUnlocked, onGhost }) {
 // Inline styles. Keeping the modal independent of simplifii-studio.css
 // so it works whether the cockpit is on Classic, Studio, or Scaffolder.
 const overlayStyle = {
-  position: 'fixed', inset: 0, background: 'rgba(7, 8, 13, 0.94)',
+  position: 'fixed', inset: 0, background: OVERLAY_BACKDROP,
   backdropFilter: 'blur(6px)', zIndex: 3000, display: 'grid', placeItems: 'center',
   padding: 24
 };
 const panelStyle = {
   width: 'min(480px, 100%)', background: '#0E0F12', color: '#E8E8EA',
-  border: '1px solid rgba(80, 200, 120, 0.30)', borderRadius: 18,
+  border: `1px solid ${VAULT_GREEN_BORDER}`, borderRadius: 18,
   padding: '28px 28px 24px', fontFamily: 'var(--f-sans, "Geist", system-ui, sans-serif)',
-  boxShadow: '0 0 60px rgba(80, 200, 120, 0.20)'
+  boxShadow: `0 0 60px ${VAULT_GREEN_BORDER}`
 };
 const inputStyle = {
-  width: '100%', background: '#0B0C10', border: '1px solid rgba(255,255,255,0.10)',
+  width: '100%', background: '#0B0C10', border: `1px solid ${WHITE_TINT}`,
   color: '#E8E8EA', borderRadius: 10, padding: '12px 14px', fontSize: 14,
   fontFamily: 'var(--f-mono, monospace)', outline: 'none'
 };
@@ -272,8 +273,8 @@ const checkboxRow = {
   color: '#B7B7BD', marginTop: 12, cursor: 'pointer'
 };
 const errorStyle = {
-  marginTop: 12, padding: '10px 12px', background: 'rgba(255, 124, 124, 0.08)',
-  border: '1px solid rgba(255, 124, 124, 0.25)', borderRadius: 8,
+  marginTop: 12, padding: '10px 12px', background: VAULT_ERROR_GLASS,
+  border: `1px solid ${VAULT_ERROR_BORDER}`, borderRadius: 8,
   color: '#ff9c9c', fontSize: 12, lineHeight: 1.5
 };
 const primaryButtonStyle = {
@@ -283,11 +284,11 @@ const primaryButtonStyle = {
 };
 const secondaryButtonStyle = {
   padding: '12px 18px', background: 'transparent', color: '#50C878',
-  border: '1px solid rgba(80, 200, 120, 0.40)', borderRadius: 12,
+  border: `1px solid ${VAULT_GREEN_BORDER_STRONG}`, borderRadius: 12,
   fontWeight: 700, fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer'
 };
 const ghostButtonStyle = {
   padding: '12px 18px', background: 'transparent', color: '#B7B7BD',
-  border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12,
+  border: `1px solid ${WHITE_TINT}`, borderRadius: 12,
   fontWeight: 700, fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer'
 };

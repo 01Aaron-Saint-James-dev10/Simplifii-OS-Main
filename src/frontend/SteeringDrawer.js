@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { useSettings } from './SettingsContext';
 import { useProject } from './ProjectContext';
 import { getAvatarByStream } from './AvatarVault';
+import { OVERLAY_MEDIUM } from '../theme/tokens';
 
 /**
  * SteeringDrawer

@@ -5,6 +5,7 @@ import { speakSystemMessage } from '../services/MessagingHub';
 import { useSettings } from './SettingsContext';
 import { useProject } from './ProjectContext';
 import { getPersonaResponse, Personas } from '../services/PersonaEngine';
+import { ACCENT_GLOW_80, ACCENT_GLOW_60, COLOUR_WARN_GLOW_STRONG } from '../theme/tokens';
 
 const AVATAR_MINIMISED_KEY = 'simplifii_avatar_minimised';
 
@@ -177,7 +178,8 @@ export default function AIAvatar({ eventType, isLiteralMode, onClick }) {
         type="button"
         aria-label={isReasoning ? 'AURA Assistant reasoning' : 'Expand AURA Assistant'}
         onClick={(e) => { e.stopPropagation(); setMinimised(false); }}
-        className={`relative w-4 h-4 rounded-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400 group ${isReasoning ? 'bg-emerald-400 shadow-[0_0_22px_rgba(16,185,129,1)]' : 'bg-emerald-500 shadow-[0_0_14px_rgba(16,185,129,0.9)]'}`}
+        className={`relative w-4 h-4 rounded-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400 group ${isReasoning ? 'bg-emerald-400' : 'bg-emerald-500'}`}
+        style={{ boxShadow: isReasoning ? `0 0 22px ${ACCENT_GLOW_80}` : `0 0 14px ${ACCENT_GLOW_80}` }}
       >
         <span
           className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75"
@@ -203,8 +205,8 @@ export default function AIAvatar({ eventType, isLiteralMode, onClick }) {
         <Minimize2 size={12} />
       </button>
       <div onClick={onClick} className="flex flex-col items-center justify-center w-full cursor-pointer hover:scale-105 transition-transform">
-        <div className={`relative w-full h-32 border rounded-xl overflow-hidden bg-black shadow-2xl transition-colors ${isReasoning ? 'border-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.6)] animate-pulse' : 'border-zinc-800/50 group-hover:border-emerald-500/50'}`}
-          style={isReasoning ? { animationDuration: '1s' } : undefined}>
+        <div className={`relative w-full h-32 border rounded-xl overflow-hidden bg-black shadow-2xl transition-colors ${isReasoning ? 'border-emerald-400 animate-pulse' : 'border-zinc-800/50 group-hover:border-emerald-500/50'}`}
+          style={isReasoning ? { animationDuration: '1s', boxShadow: `0 0 30px ${ACCENT_GLOW_60}` } : undefined}>
           <Canvas camera={{ position: [0, 0, 4] }}>
             <ambientLight intensity={0.5} />
             <pointLight position={[10, 10, 10]} intensity={1} />
@@ -212,7 +214,7 @@ export default function AIAvatar({ eventType, isLiteralMode, onClick }) {
           </Canvas>
 
           {isSpeaking && (
-            <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-amber-500 animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.8)]"></div>
+            <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-amber-500 animate-pulse" style={{ boxShadow: `0 0 10px ${COLOUR_WARN_GLOW_STRONG}` }}></div>
           )}
         </div>
 

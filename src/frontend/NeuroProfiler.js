@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ACCENT_GLASS, WHITE_TINT_FAINT, SURFACE_CARD_SOLID } from '../theme/tokens';
 
 /**
  * NeuroProfiler
@@ -71,7 +72,7 @@ const HOMESCHOOL_PLATFORMS = [
 
 const S = {
   tile: (selected) => ({
-    background: selected ? 'rgba(16,185,129,0.08)' : '#18181b',
+    background: selected ? ACCENT_GLASS : '#18181b',
     border: `1px solid ${selected ? '#10b981' : '#27272a'}`,
     borderRadius: 3, padding: '12px 14px', cursor: 'pointer',
     textAlign: 'left', transition: 'border 0.15s, background 0.15s',
@@ -86,7 +87,7 @@ const S = {
     fontSize: 11, fontFamily: "'JetBrains Mono', monospace", fontWeight: 600,
     padding: '5px 12px', borderRadius: 2,
     border: `1px solid ${selected ? '#10b981' : '#27272a'}`,
-    background: selected ? 'rgba(16,185,129,0.08)' : 'transparent',
+    background: selected ? ACCENT_GLASS : 'transparent',
     color: selected ? '#10b981' : '#71717a',
     cursor: 'pointer', transition: 'border 0.15s',
     outline: 'none',
@@ -229,7 +230,7 @@ export default function NeuroProfiler({ onComplete, userName }) {
                   <div style={{
                     border: '1px solid #27272a', borderRadius: 3,
                     padding: '10px 12px', margin: '16px 0 10px',
-                    background: 'rgba(255,255,255,0.02)',
+                    background: WHITE_TINT_FAINT,
                   }}>
                     <p style={{ fontSize: 9, fontFamily: "'JetBrains Mono', monospace", color: '#3f3f46', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>
                       Sovereign Guarantee
@@ -268,7 +269,7 @@ export default function NeuroProfiler({ onComplete, userName }) {
               <div style={{
                 border: '1px solid #27272a', borderRadius: 3,
                 padding: '10px 12px', margin: '16px 0 10px',
-                background: 'rgba(255,255,255,0.02)',
+                background: WHITE_TINT_FAINT,
               }}>
                 <p style={{ fontSize: 9, fontFamily: "'JetBrains Mono', monospace", color: '#3f3f46', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>
                   Sovereign Guarantee
@@ -302,7 +303,7 @@ export default function NeuroProfiler({ onComplete, userName }) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         paddingTop: 16, marginTop: 8,
         borderTop: '1px solid #18181b',
-        background: 'rgba(24,24,27,0.95)',
+        background: SURFACE_CARD_SOLID,
         backdropFilter: 'blur(8px)',
       }}>
         {/* Back */}

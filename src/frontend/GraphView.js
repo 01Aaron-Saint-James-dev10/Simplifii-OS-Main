@@ -1,5 +1,6 @@
 import React from 'react';
 import { Network, Database, Calendar, Search } from 'lucide-react';
+import { OVERLAY_MEDIUM } from '../theme/tokens';
 
 export default function GraphView({ syncData }) {
   // Demo nodes shown until real entities arrive from KnowledgeGraphService.
@@ -34,7 +35,7 @@ export default function GraphView({ syncData }) {
             const Icon = node.icon;
             return (
               <div key={node.id} className="flex flex-col items-center gap-2" style={{ transform: i % 2 !== 0 ? 'translateY(30px)' : 'translateY(-20px)' }}>
-                <div className={`p-4 rounded-full ${node.bg} ${node.color} border border-zinc-800 shadow-[0_0_15px_rgba(0,0,0,0.5)] transition-all hover:scale-110 cursor-pointer`}>
+                <div className={`p-4 rounded-full ${node.bg} ${node.color} border border-zinc-800 transition-all hover:scale-110 cursor-pointer`} style={{ boxShadow: `0 0 15px ${OVERLAY_MEDIUM}` }}>
                   <Icon size={24} />
                 </div>
                 <span className={`text-[10px] font-black uppercase tracking-widest bg-black/80 px-2 py-1 rounded border border-zinc-800 ${node.color}`}>

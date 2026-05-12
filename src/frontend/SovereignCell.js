@@ -7,6 +7,7 @@ import {
   COLOUR_WARN, COLOUR_DANGER,
   BORDER_SHARP, BORDER_RADIUS,
   FONT_SYSTEM,
+  ACCENT_FOCUS_STRONG, ACCENT_GLASS_FAINT, ACCENT_GLOW_50,
 } from '../theme/tokens';
 
 /**
@@ -45,8 +46,8 @@ function injectCellCSS() {
   outline: none; min-height: 160px; position: relative;
 }
 .sov-cell:hover { border-color: ${TEXT_LABEL}; }
-.sov-cell:focus-visible { box-shadow: 0 0 0 2px rgba(16,185,129,0.35); }
-.sov-cell--active { border-color: ${ACCENT_PULSE}; background: rgba(16,185,129,0.03); }
+.sov-cell:focus-visible { box-shadow: 0 0 0 2px ${ACCENT_FOCUS_STRONG}; }
+.sov-cell--active { border-color: ${ACCENT_PULSE}; background: ${ACCENT_GLASS_FAINT}; }
 .sov-cell__cta {
   font-family: ${FONT_SYSTEM};
   font-size: 9px; font-weight: 700;
@@ -154,7 +155,7 @@ export default function SovereignCell({ id, course, isActive, onClick }) {
           <div style={{
             width: 8, height: 8, borderRadius: '50%',
             background: ACCENT_PULSE,
-            boxShadow: '0 0 6px rgba(16,185,129,0.5)',
+            boxShadow: `0 0 6px ${ACCENT_GLOW_50}`,
           }} />
         )}
       </div>

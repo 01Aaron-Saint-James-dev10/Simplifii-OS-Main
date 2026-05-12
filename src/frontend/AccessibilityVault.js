@@ -2,6 +2,7 @@ import React from 'react';
 import { Eye, Type, AlignJustify, X, Palette, Zap, Trash2, CheckCircle2 } from 'lucide-react';
 import { useSettings } from './SettingsContext';
 import { speakSystemMessage } from '../services/MessagingHub';
+import { COLOUR_INFO_BORDER, COLOUR_DANGER_SOLID } from '../theme/tokens';
 
 export default function AccessibilityVault({ onClose }) {
   const { 
@@ -36,7 +37,7 @@ export default function AccessibilityVault({ onClose }) {
 
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-black border border-blue-500/50 rounded-3xl w-[600px] max-w-[90vw] overflow-hidden flex flex-col shadow-[0_0_50px_rgba(59,130,246,0.15)] relative">
+      <div className="bg-black border border-blue-500/50 rounded-3xl w-[600px] max-w-[90vw] overflow-hidden flex flex-col relative" style={{ boxShadow: `0 0 50px ${COLOUR_INFO_BORDER}` }}>
         
         {/* Header */}
         <div className="p-6 border-b border-zinc-800 flex justify-between items-center bg-blue-500/10">
@@ -191,7 +192,7 @@ export default function AccessibilityVault({ onClose }) {
                   {pruneComplete ? '0MB Bloat' : isPruning ? 'Pruning...' : 'Prune Caches'}
                 </button>
                 {/* Sweep Animation */}
-                {isPruning && <div className="absolute top-0 left-0 w-2 h-full bg-rose-500 shadow-[0_0_50px_rgba(244,63,94,1)] animate-sweep"></div>}
+                {isPruning && <div className="absolute top-0 left-0 w-2 h-full bg-rose-500 animate-sweep" style={{ boxShadow: `0 0 50px ${COLOUR_DANGER_SOLID}` }}></div>}
               </div>
             </div>
           </div>

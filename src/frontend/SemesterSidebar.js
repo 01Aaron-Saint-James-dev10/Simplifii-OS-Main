@@ -7,6 +7,7 @@ import {
   ACCENT_PULSE,
   BORDER_SHARP, BORDER_RADIUS,
   FONT_SYSTEM,
+  WHITE_TINT_FAINT, ACCENT_GLASS_SUBTLE, ACCENT_BORDER, ACCENT_BORDER_FAINT, ACCENT_FOCUS, ACCENT_GLOW_50,
 } from '../theme/tokens';
 
 /**
@@ -36,7 +37,7 @@ function injectRailCSS() {
   background: none; border: none; cursor: pointer;
   transition: background 0.15s;
 }
-.smf-rail-icon:hover { background: rgba(255,255,255,0.05); }
+.smf-rail-icon:hover { background: ${WHITE_TINT_FAINT}; }
 .smf-sb-input {
   width: 100%; box-sizing: border-box;
   background: ${SURFACE_BASE}; border: 1px solid ${SURFACE_RAISED}; border-radius: ${BORDER_RADIUS}px;
@@ -199,8 +200,8 @@ export default function SemesterSidebar({
           {/* Pareto weight badge */}
           {activeCourse?.roadmap?.paretoSteps && (
             <div style={{
-              background: `rgba(16,185,129,0.06)`,
-              border: `1px solid rgba(16,185,129,0.2)`,
+              background: ACCENT_GLASS_SUBTLE,
+              border: `1px solid ${ACCENT_BORDER}`,
               borderRadius: BORDER_RADIUS, padding: '6px 10px', textAlign: 'center',
             }}>
               <span style={{ ...SL, color: ACCENT_PULSE, marginBottom: 0 }}>
@@ -252,7 +253,7 @@ export default function SemesterSidebar({
                   className="smf-sb-btn"
                   style={{
                     flex: 1, background: 'none', padding: '6px 0',
-                    border: `1px solid rgba(16,185,129,0.3)`, color: ACCENT_PULSE,
+                    border: `1px solid ${ACCENT_FOCUS}`, color: ACCENT_PULSE,
                   }}
                   title="Drop a syllabus PDF; the OS names the course itself"
                 >
@@ -297,12 +298,12 @@ export default function SemesterSidebar({
               {activeCourse.roadmap.paretoSteps ? (
                 <div style={{
                   background: SURFACE_BASE,
-                  border: `1px solid rgba(16,185,129,0.15)`,
+                  border: `1px solid ${ACCENT_BORDER_FAINT}`,
                   borderRadius: BORDER_RADIUS, padding: '10px 12px',
                 }}>
                   <span style={{ ...SL, color: ACCENT_PULSE, marginBottom: 10 }}>Pareto Steps</span>
                   <div style={{
-                    borderLeft: `1px solid rgba(16,185,129,0.2)`,
+                    borderLeft: `1px solid ${ACCENT_BORDER}`,
                     marginLeft: 3,
                     display: 'flex', flexDirection: 'column', gap: 12,
                     paddingLeft: 14,
@@ -315,7 +316,7 @@ export default function SemesterSidebar({
                           borderRadius: '50%',
                           background: i === 0 ? ACCENT_PULSE : SURFACE_RAISED,
                           border: i === 0 ? 'none' : `1px solid ${TEXT_LABEL}`,
-                          boxShadow: i === 0 ? '0 0 8px rgba(16,185,129,0.5)' : 'none',
+                          boxShadow: i === 0 ? `0 0 8px ${ACCENT_GLOW_50}` : 'none',
                         }} />
                         <span style={{ ...SL, color: i === 0 ? ACCENT_PULSE : TEXT_LABEL, marginBottom: 2 }}>
                           Step {s.rank} / {s.weight}
@@ -341,7 +342,7 @@ export default function SemesterSidebar({
                         position: 'absolute', left: -19, top: 4,
                         width: 8, height: 8, borderRadius: '50%',
                         background: ACCENT_PULSE,
-                        boxShadow: '0 0 8px rgba(16,185,129,0.5)',
+                        boxShadow: `0 0 8px ${ACCENT_GLOW_50}`,
                       }} />
                       <span style={{ ...SL, color: ACCENT_PULSE, marginBottom: 2 }}>Current</span>
                       <p style={{ fontSize: 11, color: TEXT_PRIMARY, margin: 0, lineHeight: 1.4 }}>

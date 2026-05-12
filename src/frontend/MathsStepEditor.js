@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Target, CheckCircle2, ChevronRight, RefreshCw, Zap, Lightbulb, Lock, Unlock } from 'lucide-react';
 import { speakSystemMessage } from '../services/MessagingHub';
+import { COLOUR_WARN_GLASS_STRONG, ACCENT_BORDER } from '../theme/tokens';
 
 export default function MathsStepEditor({ extractionData, profile }) {
   const [decoded, setDecoded] = useState(false);
@@ -98,7 +99,7 @@ export default function MathsStepEditor({ extractionData, profile }) {
         {decoded ? (
           <div className="space-y-6 animate-fade-in">
             <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Neural Scaffolding</p>
-            <div className="p-5 bg-[#0A0A0A] border border-amber-500/30 rounded-2xl relative shadow-[0_0_20px_rgba(245,158,11,0.1)]">
+            <div className="p-5 bg-[#0A0A0A] border border-amber-500/30 rounded-2xl relative" style={{ boxShadow: `0 0 20px ${COLOUR_WARN_GLASS_STRONG}` }}>
               <div className="flex items-center justify-between mb-4">
                 <span className="text-[10px] font-black uppercase tracking-widest text-amber-500">{hintStyles[hintStyleIndex]}</span>
                 <Lightbulb size={16} className="text-amber-500" />
@@ -167,13 +168,14 @@ export default function MathsStepEditor({ extractionData, profile }) {
                 const isSuccess = successPulses[idx];
 
                 return (
-                  <div 
-                    key={step.id} 
+                  <div
+                    key={step.id}
                     className={`relative p-8 rounded-3xl transition-all duration-700 overflow-hidden ${
-                      isLocked ? 'opacity-20 scale-[0.98] blur-[2px] pointer-events-none bg-zinc-900/50' : 
-                      isSuccess ? 'bg-emerald-500/10 border border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.2)]' : 
+                      isLocked ? 'opacity-20 scale-[0.98] blur-[2px] pointer-events-none bg-zinc-900/50' :
+                      isSuccess ? 'bg-emerald-500/10 border border-emerald-500/50' :
                       isActive ? 'bg-[#0A0A0A] border border-zinc-700 shadow-2xl scale-100' : 'bg-zinc-900/50 border border-zinc-800'
                     }`}
+                    style={isSuccess ? { boxShadow: `0 0 30px ${ACCENT_BORDER}` } : undefined}
                   >
                     {/* Success Pulse Animation */}
                     {isSuccess && (

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Link as LinkIcon, Loader2, CheckCircle2, FileText, Search, AlertCircle } from 'lucide-react';
 import { translateToEnglish } from '../services/TranslationService';
 import { extractSemanticEntities } from '../services/KnowledgeGraphService';
+import { ACCENT_BORDER_FAINT, ACCENT_FOCUS } from '../theme/tokens';
 
 export default function ResourceIngestor({ evidenceFormula = [], onIngestComplete }) {
   const slots = useMemo(() => {
@@ -99,7 +100,7 @@ export default function ResourceIngestor({ evidenceFormula = [], onIngestComplet
 
   if (ingested) {
     return (
-      <div className="bg-emerald-500/10 border border-emerald-500/30 p-6 rounded-2xl flex items-center justify-between shadow-[0_0_20px_rgba(16,185,129,0.15)] animate-fade-in">
+      <div className="bg-emerald-500/10 border border-emerald-500/30 p-6 rounded-2xl flex items-center justify-between animate-fade-in" style={{ boxShadow: `0 0 20px ${ACCENT_BORDER_FAINT}` }}>
         <div className="flex items-center gap-4">
           <CheckCircle2 size={24} className="text-emerald-400" />
           <div>
@@ -146,7 +147,8 @@ export default function ResourceIngestor({ evidenceFormula = [], onIngestComplet
       <button 
         onClick={handleScrape}
         disabled={isScraping || urls.every(u => !u)}
-        className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase tracking-widest text-xs py-3.5 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
+        className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase tracking-widest text-xs py-3.5 rounded-xl transition-all disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
+        style={{ boxShadow: `0 0 15px ${ACCENT_FOCUS}` }}
       >
         {isScraping ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
         {isScraping ? 'SCRAPING RESOURCES...' : 'EXTRACT METADATA'}

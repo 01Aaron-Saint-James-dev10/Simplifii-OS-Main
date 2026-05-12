@@ -3,6 +3,7 @@ import { Send, Loader2, X, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import { askAura } from '../services/ChatService';
 import { speakSystemMessage, stopSpeaking } from '../services/MessagingHub';
 import { useProject } from './ProjectContext';
+import { ACCENT_BORDER_STRONG, ACCENT_FOCUS } from '../theme/tokens';
 
 const SPEAK_KEY = 'simplifii_aura_chat_speech';
 const safeReadLS = (key, fallback) => {
@@ -91,7 +92,8 @@ export default function AskAura({ onOpen }) {
           <button
             onClick={() => onOpen ? onOpen() : setOpen(true)}
             type="button"
-            className="flex items-center gap-2 px-5 py-3 rounded-full bg-zinc-950/90 backdrop-blur border border-emerald-500/30 hover:border-emerald-500 text-emerald-400 hover:text-emerald-300 text-xs font-black uppercase tracking-widest transition-all shadow-[0_0_24px_rgba(16,185,129,0.25)]"
+            className="flex items-center gap-2 px-5 py-3 rounded-full bg-zinc-950/90 backdrop-blur border border-emerald-500/30 hover:border-emerald-500 text-emerald-400 hover:text-emerald-300 text-xs font-black uppercase tracking-widest transition-all"
+            style={{ boxShadow: `0 0 24px ${ACCENT_BORDER_STRONG}` }}
             aria-label="Open AURA chat"
           >
             <Sparkles size={14} /> Ask AURA
@@ -100,7 +102,7 @@ export default function AskAura({ onOpen }) {
       )}
 
       {open && (
-        <div className="bg-zinc-950/95 backdrop-blur-md border border-emerald-500/30 rounded-2xl shadow-[0_0_40px_rgba(16,185,129,0.3)] overflow-hidden animate-fade-in pointer-events-auto">
+        <div className="bg-zinc-950/95 backdrop-blur-md border border-emerald-500/30 rounded-2xl overflow-hidden animate-fade-in pointer-events-auto" style={{ boxShadow: `0 0 40px ${ACCENT_FOCUS}` }}>
           {(history.length > 0 || error) && (
             <div ref={scrollRef} className="px-4 py-3 border-b border-zinc-800/80 max-h-[40vh] overflow-y-auto custom-scrollbar space-y-3">
               {history.map((turn, i) => (

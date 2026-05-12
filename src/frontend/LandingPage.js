@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Eye, EyeOff, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { unlockWithUserId, enableCloudSync } from '../core/HistoryOfThought';
 import NeuroProfiler from './NeuroProfiler';
-import { COLOUR_WARN, COLOUR_WARN_GLASS, COLOUR_WARN_BORDER, COLOUR_WARN_BORDER_STRONG, FONT_SYSTEM, BORDER_RADIUS } from '../theme/tokens';
+import { COLOUR_WARN, COLOUR_WARN_GLASS, COLOUR_WARN_BORDER, COLOUR_WARN_BORDER_STRONG, FONT_SYSTEM, BORDER_RADIUS, ACCENT_GLOW_60, ACCENT_BORDER, SURFACE_CARD_GLASS, ACCENT_FOCUS, WHITE_TINT_FAINT, OVERLAY_HEAVY, COLOUR_DANGER_GLASS, COLOUR_DANGER_BORDER, ACCENT_GLASS_FAINT } from '../theme/tokens';
 
 // ============================================================
 // Injected styles: cursor blink + JetBrains Mono import
@@ -20,7 +20,7 @@ const INJECTED_CSS = `
 
 .smf-cursor {
   animation: cursor-blink 0.9s step-end infinite;
-  text-shadow: 0 0 18px rgba(16,185,129,0.65), 0 0 40px rgba(16,185,129,0.2);
+  text-shadow: 0 0 18px ${ACCENT_GLOW_60}, 0 0 40px ${ACCENT_BORDER};
   color: #10b981;
   font-family: 'JetBrains Mono', monospace;
   font-size: 2.4rem;
@@ -34,7 +34,7 @@ const INJECTED_CSS = `
 }
 
 .smf-glass-btn {
-  background: rgba(24,24,27,0.7);
+  background: ${SURFACE_CARD_GLASS};
   border: 1px solid #27272a;
   color: #71717a;
   font-family: 'JetBrains Mono', monospace;
@@ -59,7 +59,7 @@ const INJECTED_CSS = `
 }
 
 .smf-glass-btn:focus-visible {
-  box-shadow: 0 0 0 2px rgba(16,185,129,0.3);
+  box-shadow: 0 0 0 2px ${ACCENT_FOCUS};
 }
 `;
 
@@ -164,7 +164,7 @@ export default function LandingPage({ onGetStarted }) {
     <div style={{
       minHeight: '100vh',
       background: `
-        radial-gradient(ellipse 80% 50% at 50% 0%, rgba(16,185,129,0.04) 0%, transparent 60%),
+        radial-gradient(ellipse 80% 50% at 50% 0%, ${ACCENT_GLASS_FAINT} 0%, transparent 60%),
         #09090b
       `,
       display: 'flex',
@@ -206,12 +206,12 @@ export default function LandingPage({ onGetStarted }) {
         >
           {/* Glass Gate card */}
           <div style={{
-            background: 'rgba(24,24,27,0.65)',
+            background: SURFACE_CARD_GLASS,
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
             border: '1px solid #27272a',
             borderRadius: 4,
-            boxShadow: '0 0 0 1px rgba(255,255,255,0.04) inset, 0 24px 48px rgba(0,0,0,0.6)',
+            boxShadow: `0 0 0 1px ${WHITE_TINT_FAINT} inset, 0 24px 48px ${OVERLAY_HEAVY}`,
             padding: '40px 36px',
           }}>
 
@@ -310,8 +310,8 @@ export default function LandingPage({ onGetStarted }) {
                 style={{
                   marginTop: 16,
                   display: 'flex', alignItems: 'center', gap: 8,
-                  background: 'rgba(239,68,68,0.08)',
-                  border: '1px solid rgba(239,68,68,0.2)',
+                  background: COLOUR_DANGER_GLASS,
+                  border: `1px solid ${COLOUR_DANGER_BORDER}`,
                   borderRadius: 3, padding: '8px 12px',
                 }}
               >

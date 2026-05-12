@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { useProject } from './ProjectContext';
+import { OVERLAY_MEDIUM, COLOUR_WARN_GLASS_STRONG, ACCENT_GLASS_STRONG } from '../theme/tokens';
 
 /**
  * PreviewPane
@@ -98,7 +99,7 @@ export default function PreviewPane({ activePillarId, onClose }) {
           background: '#FDFDFD',
           color: '#1f2937',
           padding: PAGE_PADDING,
-          boxShadow: '0 12px 40px rgba(0,0,0,0.45)',
+          boxShadow: `0 12px 40px ${OVERLAY_MEDIUM}`,
           fontFamily: '"Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif',
           fontSize: 13.5,
           lineHeight: 1.5,
@@ -119,7 +120,7 @@ export default function PreviewPane({ activePillarId, onClose }) {
             textTransform: 'uppercase',
             border: `1px solid ${isDraft ? '#f59e0b' : '#10b981'}`,
             color: isDraft ? '#92400e' : '#065f46',
-            background: isDraft ? 'rgba(245, 158, 11, 0.1)' : 'rgba(16, 185, 129, 0.1)'
+            background: isDraft ? COLOUR_WARN_GLASS_STRONG : ACCENT_GLASS_STRONG
           }}
           title={isDraft ? 'Draft data; refining via Ollama in the background.' : 'Verified against the canonical reconciled briefs.'}
         >

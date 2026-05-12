@@ -1,4 +1,5 @@
 import React from 'react';
+import { VAULT_GREEN_GLOW } from '../theme/tokens';
 
 /**
  * AvatarVault
@@ -36,7 +37,7 @@ const wrapStyle = (size, gritLevel) => {
     borderRadius: '50%',
     background: PALETTE.ink,
     border: `1px solid ${isSocratic ? PALETTE.emerald : '#1f1f22'}`,
-    boxShadow: isSocratic ? `0 0 14px rgba(80, 200, 120, 0.45)` : 'none',
+    boxShadow: isSocratic ? `0 0 14px ${VAULT_GREEN_GLOW}` : 'none',
     transition: 'all 240ms ease'
   };
 };

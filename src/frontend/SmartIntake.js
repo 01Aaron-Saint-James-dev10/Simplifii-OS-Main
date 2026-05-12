@@ -3,6 +3,7 @@ import { Brain, ArrowRight, FileText, CheckCircle2, UploadCloud, Loader2 } from 
 import { extractDeepCourseData, extractDynamicThemes } from '../services/BriefService';
 import { useSettings } from './SettingsContext';
 import { processDocumentWithGCP } from '../services/DocumentAIService';
+import { COLOUR_WARN_BORDER, COLOUR_WARN_GLOW, GLOW_DROP_50 } from '../theme/tokens';
 
 export default function SmartIntake({ task, onSelectPath, onSprintCreated }) {
   const { eduLevel, setEduLevel, setMode } = useSettings();
@@ -140,7 +141,7 @@ export default function SmartIntake({ task, onSelectPath, onSprintCreated }) {
         </div>
 
         {showNeuroSuggest && (
-          <div className="flex items-center justify-between bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl mb-8 animate-fade-in shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+          <div className="flex items-center justify-between bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl mb-8 animate-fade-in" style={{ boxShadow: `0 0 15px ${COLOUR_WARN_BORDER}` }}>
             <div className="flex items-center gap-3">
               <Brain size={24} className="text-amber-500" />
               <div>
@@ -152,7 +153,8 @@ export default function SmartIntake({ task, onSelectPath, onSprintCreated }) {
               <button onClick={() => setShowNeuroSuggest(false)} className="px-4 py-2 text-zinc-500 hover:text-white text-xs font-black uppercase tracking-widest transition-all">Dismiss</button>
               <button 
                 onClick={() => { setMode('lexical'); setShowNeuroSuggest(false); }} 
-                className="px-4 py-2 bg-amber-500 text-black rounded-lg text-xs font-black uppercase tracking-widest hover:bg-amber-400 transition-all shadow-[0_0_10px_rgba(245,158,11,0.5)]"
+                className="px-4 py-2 bg-amber-500 text-black rounded-lg text-xs font-black uppercase tracking-widest hover:bg-amber-400 transition-all"
+                style={{ boxShadow: `0 0 10px ${COLOUR_WARN_GLOW}` }}
               >
                 Enable Layout
               </button>
@@ -163,7 +165,7 @@ export default function SmartIntake({ task, onSelectPath, onSprintCreated }) {
         <div className="grid grid-cols-3 gap-6 mb-10">
           <div className={`p-8 rounded-3xl border transition-all duration-500 relative overflow-hidden flex flex-col items-center text-center ${filesUploaded.outline ? 'bg-emerald-500/5 border-emerald-500/50 shadow-glow-emerald' : 'bg-[#07080D] border-zinc-800 opacity-50'}`}>
             <div className="mb-4">
-              {filesUploaded.outline ? <CheckCircle2 size={40} className="text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]" /> : <FileText size={40} className="text-zinc-600" />}
+              {filesUploaded.outline ? <CheckCircle2 size={40} className="text-emerald-400" style={{ filter: `drop-shadow(0 0 10px ${GLOW_DROP_50})` }} /> : <FileText size={40} className="text-zinc-600" />}
             </div>
             <h3 className={`font-black text-lg mb-2 uppercase tracking-widest ${filesUploaded.outline ? 'text-emerald-400' : 'text-white'}`}>Stage 1: Course Outline</h3>
             {filesUploaded.outline && (
@@ -175,7 +177,7 @@ export default function SmartIntake({ task, onSelectPath, onSprintCreated }) {
 
           <div className={`p-8 rounded-3xl border transition-all duration-500 relative overflow-hidden flex flex-col items-center text-center ${filesUploaded.brief ? 'bg-emerald-500/5 border-emerald-500/50 shadow-glow-emerald' : 'bg-[#07080D] border-zinc-800 opacity-50'}`}>
             <div className="mb-4">
-              {filesUploaded.brief ? <CheckCircle2 size={40} className="text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]" /> : <FileText size={40} className="text-zinc-600" />}
+              {filesUploaded.brief ? <CheckCircle2 size={40} className="text-emerald-400" style={{ filter: `drop-shadow(0 0 10px ${GLOW_DROP_50})` }} /> : <FileText size={40} className="text-zinc-600" />}
             </div>
             <h3 className={`font-black text-lg mb-2 uppercase tracking-widest ${filesUploaded.brief ? 'text-emerald-400' : 'text-white'}`}>Stage 2: Assessment Brief</h3>
             {filesUploaded.brief && (
@@ -187,7 +189,7 @@ export default function SmartIntake({ task, onSelectPath, onSprintCreated }) {
           
           <div className={`p-8 rounded-3xl border transition-all duration-500 relative overflow-hidden flex flex-col items-center text-center ${filesUploaded.rubric ? 'bg-emerald-500/5 border-emerald-500/50 shadow-glow-emerald' : 'bg-[#07080D] border-zinc-800 opacity-50'}`}>
             <div className="mb-4">
-              {filesUploaded.rubric ? <CheckCircle2 size={40} className="text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]" /> : <FileText size={40} className="text-zinc-600" />}
+              {filesUploaded.rubric ? <CheckCircle2 size={40} className="text-emerald-400" style={{ filter: `drop-shadow(0 0 10px ${GLOW_DROP_50})` }} /> : <FileText size={40} className="text-zinc-600" />}
             </div>
             <h3 className={`font-black text-lg mb-2 uppercase tracking-widest ${filesUploaded.rubric ? 'text-emerald-400' : 'text-white'}`}>Stage 3: Marking Rubric</h3>
             {filesUploaded.rubric && (

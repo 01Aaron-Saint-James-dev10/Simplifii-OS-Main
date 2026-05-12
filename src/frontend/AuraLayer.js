@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Loader2, X, Volume2, VolumeX, FileText } from 'lucide-react';
 import { askAura } from '../services/ChatService';
+import { ACCENT_GLOW_60 } from '../theme/tokens';
 import { speakSystemMessage, stopSpeaking } from '../services/MessagingHub';
 import { useProject } from './ProjectContext';
 import { REASONING_START_EVENT, REASONING_END_EVENT } from '../services/RewriteService';
@@ -67,7 +68,7 @@ function NeuralDot({ state }) {
         className={`${baseClasses} bg-emerald-500`}
         animate={{ scale: [1, 1.4, 1], opacity: [1, 0.7, 1] }}
         transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }}
-        style={{ boxShadow: '0 0 10px rgba(16,185,129,0.6)' }}
+        style={{ boxShadow: `0 0 10px ${ACCENT_GLOW_60}` }}
       />
     );
   }

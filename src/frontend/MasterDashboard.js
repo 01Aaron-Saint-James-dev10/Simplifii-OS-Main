@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Brain, RefreshCw, Eye } from 'lucide-react';
-import { SURFACE_BASE, BORDER_RADIUS } from '../theme/tokens';
+import { SURFACE_BASE, BORDER_RADIUS, SURFACE_CARD_SOLID, WHITE_TINT_FAINT, COLOUR_WARN_GLASS_STRONG, COLOUR_WARN_BORDER_HEAVY, ACCENT_BORDER_STRONG, ACCENT_GLASS_STRONG } from '../theme/tokens';
 import { useSettings } from './SettingsContext';
 import { useProject } from './ProjectContext';
 import { useInstitution } from './InstitutionalContext';
@@ -436,8 +436,8 @@ export default function MasterDashboard() {
           return (
             <div className="flex-1 flex flex-col overflow-hidden animate-fade-in relative z-0">
               <div style={{
-                padding: '5px 14px', background: 'rgba(24,24,27,0.95)',
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                padding: '5px 14px', background: SURFACE_CARD_SOLID,
+                borderBottom: `1px solid ${WHITE_TINT_FAINT}`,
                 display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0,
               }}>
                 <button
@@ -619,8 +619,8 @@ export default function MasterDashboard() {
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 1300,
-            background: 'rgba(245, 158, 11, 0.12)',
-            border: '1px solid rgba(245, 158, 11, 0.4)',
+            background: COLOUR_WARN_GLASS_STRONG,
+            border: `1px solid ${COLOUR_WARN_BORDER_HEAVY}`,
             color: '#fcd34d',
             borderRadius: 999,
             padding: '6px 14px',
@@ -654,7 +654,7 @@ export default function MasterDashboard() {
           aria-modal="true"
           aria-label="Add a new course by uploading a syllabus"
         >
-          <div className="relative w-full max-w-5xl m-8 overflow-hidden flex flex-col" style={{ background: SURFACE_BASE, border: '1px solid rgba(16,185,129,0.25)', borderRadius: BORDER_RADIUS, boxShadow: '0 0 48px rgba(16,185,129,0.12)' }}>
+          <div className="relative w-full max-w-5xl m-8 overflow-hidden flex flex-col" style={{ background: SURFACE_BASE, border: `1px solid ${ACCENT_BORDER_STRONG}`, borderRadius: BORDER_RADIUS, boxShadow: `0 0 48px ${ACCENT_GLASS_STRONG}` }}>
             <button
               type="button"
               onClick={() => setShowAddCourseModal(false)}

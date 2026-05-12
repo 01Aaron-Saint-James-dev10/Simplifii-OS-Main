@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Terminal, X, CheckCircle, Database, GitBranch, Github, ShieldAlert, Cpu, Activity, Play, Code } from 'lucide-react';
 import { speakSystemMessage } from '../services/MessagingHub';
+import { COLOUR_INDIGO_BORDER, WHITE_TINT } from '../theme/tokens';
 
 export default function DevInsightsPanel({ onClose }) {
   const [deployedFixes, setDeployedFixes] = useState({});
@@ -42,7 +43,7 @@ export default function DevInsightsPanel({ onClose }) {
   };
 
   return (
-    <div className="fixed inset-y-0 right-0 w-96 z-[1200] bg-black/95 backdrop-blur-3xl border-l border-indigo-500/30 flex flex-col shadow-[-20px_0_100px_rgba(79,70,229,0.15)] animate-slide-in-right font-mono">
+    <div className="fixed inset-y-0 right-0 w-96 z-[1200] bg-black/95 backdrop-blur-3xl border-l border-indigo-500/30 flex flex-col animate-slide-in-right font-mono" style={{ boxShadow: `-20px 0 100px ${COLOUR_INDIGO_BORDER}` }}>
       {/* Header */}
       <div className="p-6 border-b border-indigo-500/20 flex justify-between items-center bg-indigo-500/5 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent animate-scan-line opacity-50"></div>
@@ -113,10 +114,11 @@ export default function DevInsightsPanel({ onClose }) {
                 disabled={deployedFixes[insight.id]}
                 onClick={() => handleDeploy(insight)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
-                  deployedFixes[insight.id] 
-                    ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30' 
-                    : 'bg-white text-black hover:bg-zinc-200 shadow-[0_0_15px_rgba(255,255,255,0.1)]'
+                  deployedFixes[insight.id]
+                    ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30'
+                    : 'bg-white text-black hover:bg-zinc-200'
                 }`}
+                style={!deployedFixes[insight.id] ? { boxShadow: `0 0 15px ${WHITE_TINT}` } : undefined}
               >
                 {deployedFixes[insight.id] ? (
                   <><CheckCircle size={14} /> Deployed</>

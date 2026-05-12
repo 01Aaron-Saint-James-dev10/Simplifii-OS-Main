@@ -4,6 +4,7 @@ import { ArrowRight, User, Calendar, BookOpen, Brain, UploadCloud, Loader2, Aler
 import { processDocumentWithGCP } from '../services/DocumentAIService';
 import { extractDeepCourseData, mergeExtractionData } from '../services/BriefService';
 import { speakSystemMessage } from '../services/MessagingHub';
+import { uploadPdf } from '../lib/storage';
 
 export function StartIgnition({ onStart }) {
   return (
@@ -202,6 +203,7 @@ export function Grounding({ onComplete, profile }) {
   const [extractionError, setExtractionError] = useState(null);
   const [aggregated, setAggregated] = useState(null);
   const [fileNames, setFileNames] = useState([]);
+  const [sourceUploads, setSourceUploads] = useState([]);
   const [isOver, setIsOver] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -274,6 +276,7 @@ export function Grounding({ onComplete, profile }) {
       // Process each group independently so each code becomes a distinct pillar
       let combinedAggregated = aggregated;
       const allNames = [];
+      const sessionUploads = [];
       for (const code of codes) {
         const groupFiles = groups[code].sort((a, b) => classifyFile(a) - classifyFile(b));
         setIngestStatus(`Sorting by Unit Code: ${code}`);
@@ -282,12 +285,23 @@ export function Grounding({ onComplete, profile }) {
         next = { ...next, unitCode: code };
         for (const file of groupFiles) {
           setIngestStatus(`Processing: ${file.name}`);
-          const text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
+          const [text, uploadRes] = await Promise.all([
+            processDocumentWithGCP(file, 'mock_jwt_token_xyz123'),
+            uploadPdf(file)
+          ]);
+          sessionUploads.push({
+            name: file.name,
+            path: uploadRes.path || null,
+            error: uploadRes.error?.message || null
+          });
           const deepData = extractDeepCourseData(text);
           next = mergeExtractionData(next, { ...deepData, rawText: text });
         }
         combinedAggregated = next;
         allNames.push(...groupFiles.map(f => f.name));
+      }
+      if (sessionUploads.length > 0) {
+        setSourceUploads((prev) => [...prev, ...sessionUploads]);
       }
       setAggregated(combinedAggregated);
       setFileNames(prev => [...prev, ...allNames]);
@@ -303,7 +317,7 @@ export function Grounding({ onComplete, profile }) {
   };
 
   const handleContinue = () => {
-    if (aggregated) onComplete({ ...aggregated, sourceFiles: fileNames });
+    if (aggregated) onComplete({ ...aggregated, sourceFiles: fileNames, sourceUploads });
   };
 
   return (

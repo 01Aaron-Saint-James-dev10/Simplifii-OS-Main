@@ -1,5 +1,6 @@
 import React from 'react';
 import { Mic, Link as LinkIcon, FileImage, Sparkles } from 'lucide-react';
+import { ACCENT_BORDER_FAINT, ACCENT_GLASS_STRONG } from '../theme/tokens';
 
 export default function FloatingResourceCard({ resource, onSystemise }) {
   const handleDragStart = (e) => {
@@ -14,7 +15,8 @@ export default function FloatingResourceCard({ resource, onSystemise }) {
 
   return (
     <div 
-      className="bg-zinc-900/80 backdrop-blur-md border border-emerald-500/30 p-4 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.15)] mb-3 relative overflow-hidden group cursor-grab active:cursor-grabbing"
+      className="bg-zinc-900/80 backdrop-blur-md border border-emerald-500/30 p-4 rounded-xl mb-3 relative overflow-hidden group cursor-grab active:cursor-grabbing"
+      style={{ boxShadow: `0 0 20px ${ACCENT_BORDER_FAINT}` }}
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
@@ -40,7 +42,8 @@ export default function FloatingResourceCard({ resource, onSystemise }) {
             <div className="mt-3 flex justify-end">
               <button 
                 onClick={() => onSystemise(resource)}
-                className="text-xs bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-lg transition-all shadow-[0_0_10px_rgba(16,185,129,0.1)] flex items-center gap-1"
+                className="text-xs bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1"
+                style={{ boxShadow: `0 0 10px ${ACCENT_GLASS_STRONG}` }}
               >
                 <Sparkles size={12} /> Systemise to {resource.targetBlock || 'Block'}
               </button>

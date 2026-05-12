@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Sparkles, CheckCircle2, RefreshCw } from 'lucide-react';
+import { COLOUR_WARN_GLOW } from '../theme/tokens';
 
 export default function Humaniser() {
   const [text, setText] = useState('');
@@ -39,7 +40,8 @@ export default function Humaniser() {
         <button
           onClick={handleHumanise}
           disabled={isProcessing || !text}
-          className={`w-full py-4 rounded-xl font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${text ? 'bg-amber-500 text-black shadow-[0_0_15px_rgba(245,158,11,0.5)] hover:bg-amber-400' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}
+          className={`w-full py-4 rounded-xl font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${text ? 'bg-amber-500 text-black hover:bg-amber-400' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}
+          style={text ? { boxShadow: `0 0 15px ${COLOUR_WARN_GLOW}` } : undefined}
         >
           {isProcessing ? <RefreshCw className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
           {isProcessing ? 'Humanising...' : 'Humanise Text'}

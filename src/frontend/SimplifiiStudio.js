@@ -6,6 +6,7 @@ import { generateMicroSteps } from '../services/MicroStepService';
 import { speakSystemMessage, stopSpeaking } from '../services/MessagingHub';
 import PreviewPane from './PreviewPane';
 import { reconcile as reconcileBriefs } from '../services/SovereignReconciler';
+import { ACCENT_GLASS_SUBTLE } from '../theme/tokens';
 
 /**
  * SimplifiiStudio
@@ -856,7 +857,7 @@ function Cockpit({ pillar, pillars, drafts, setDraft, activeBlockId, setActiveBl
                             marginTop: 8,
                             padding: '8px 10px',
                             borderLeft: '2px solid var(--emerald)',
-                            background: 'rgba(16, 185, 129, 0.06)',
+                            background: ACCENT_GLASS_SUBTLE,
                             borderRadius: 4,
                             fontSize: 12,
                             color: 'var(--ink-soft)',

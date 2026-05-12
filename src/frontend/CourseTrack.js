@@ -1,6 +1,7 @@
 import React from 'react';
 import { Star, Trophy, Palmtree, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { ACCENT_GLOW_80, COLOUR_YELLOW_GLOW, GLOW_DROP_80 } from '../theme/tokens';
 
 export default function CourseTrack({ currentWords = 0, blocks = [], verifications = [] }) {
   const targetWords = blocks.reduce((acc, b) => acc + (b.targetWords || 0), 0) || 2000;
@@ -45,19 +46,19 @@ export default function CourseTrack({ currentWords = 0, blocks = [], verificatio
               initial={{ scale: 1 }}
               animate={{ 
                 scale: isCompleted ? 1.5 : (island.isApproaching ? 1.5 : 1),
-                boxShadow: isCompleted ? '0 0 15px rgba(16,185,129,0.8)' : (island.isApproaching ? '0 0 15px rgba(251,191,36,0.8)' : '0 0 0px rgba(0,0,0,0)')
+                boxShadow: isCompleted ? `0 0 15px ${ACCENT_GLOW_80}` : (island.isApproaching ? `0 0 15px ${COLOUR_YELLOW_GLOW}` : '0 0 0px rgba(0,0,0,0)')
               }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
               className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full border-2 border-zinc-900 z-20 flex items-center justify-center ${
                 island.isVerified 
-                  ? 'bg-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.8)]'
+                  ? 'bg-emerald-400'
                   : isCompleted 
                     ? 'bg-emerald-600' 
                     : island.isApproaching 
                       ? 'bg-amber-400 animate-pulse' 
                       : 'bg-zinc-500'
               }`}
-              style={{ left: `${island.percentage}%` }}
+              style={{ left: `${island.percentage}%`, ...(island.isVerified ? { boxShadow: `0 0 15px ${GLOW_DROP_80}` } : {}) }}
               title={island.name}
             >
               {island.isVerified && <CheckCircle2 size={16} className="text-white absolute -top-4 shadow-xl rounded-full bg-emerald-500" />}
@@ -72,7 +73,7 @@ export default function CourseTrack({ currentWords = 0, blocks = [], verificatio
       {progress < 100 ? (
         <Star className="text-amber-500 animate-pulse z-10 shrink-0" size={18} />
       ) : (
-        <Trophy className="text-amber-400 z-10 drop-shadow-[0_0_10px_rgba(251,191,36,0.8)] shrink-0" size={18} />
+        <Trophy className="text-amber-400 z-10 shrink-0" size={18} style={{ filter: `drop-shadow(0 0 10px ${COLOUR_YELLOW_GLOW})` }} />
       )}
       
       <div className="absolute right-4 bottom-1 text-[8px] font-black text-zinc-500 tracking-widest z-10">

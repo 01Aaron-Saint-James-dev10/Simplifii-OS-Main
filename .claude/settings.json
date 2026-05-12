@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git stash:*)",
+      "Bash(git checkout:*)",
+      "Bash(git reset:*)",
+      "Bash(npm run:*)",
+      "Bash(npm install:*)",
+      "Bash(node:*)",
+      "Bash(gh pr:*)",
+      "Bash(vercel:*)",
+      "Bash(npx vercel:*)"
+    ],
+    "deny": [
+      "Bash(git push --force origin main:*)",
+      "Bash(git push -f origin main:*)",
+      "Bash(rm -rf:*)"
+    ]
+  },
+  "instructions": [
+    "ALWAYS enter Plan Mode and present a plan for user approval before making any code changes.",
+    "Australian English only: initialise, organise, synthesise, colour. Zero em-dashes anywhere.",
+    "If CLAUDE.md or any markdown file exceeds 50 lines, suggest extracting sections to /docs with one-line pointers.",
+    "Default model is Sonnet. Suggest Opus only for complex architectural bottlenecks.",
+    "When a mistake occurs, remind the user to use /rewind rather than sending a corrective message.",
+    "Remind the user to run /clear when switching to a task unrelated to the current thread.",
+    "Never scan the whole repository. Ask for specific file paths before reading.",
+    "Never commit secrets, credentials, .env files, or hardcoded URLs.",
+    "Run node scripts/check-style.js on every file before committing.",
+    "Canonical branch: sovereign-refactor-handshake. New work: sovereign-<topic> branches."
+  ]
+}

@@ -4,6 +4,7 @@ import { useProject } from './ProjectContext';
 import { useSettings } from './SettingsContext';
 import { startIdleDetection, stopIdleDetection } from '../core/ExecutiveSpine';
 import { getAvatarByStream } from './AvatarVault';
+import { SHADOW_MEDIUM } from '../theme/tokens';
 
 /**
  * IdleNudge
@@ -81,7 +82,7 @@ export default function IdleNudge() {
         color: isMango ? '#5a3d00' : '#e2e8f0',
         borderRadius: 14,
         padding: '14px 16px',
-        boxShadow: '0 18px 40px rgba(0,0,0,0.25)',
+        boxShadow: `0 18px 40px ${SHADOW_MEDIUM}`,
         display: 'flex',
         alignItems: 'center',
         gap: 12,

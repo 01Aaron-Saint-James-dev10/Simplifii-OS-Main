@@ -20,6 +20,12 @@ import { useProject } from './ProjectContext';
 import { selectPersona, getNudge, getPersonaById } from '../core/Personas';
 import { convertToSovereignFormat } from '../services/DocumentAIService';
 import { auditCurriculum } from '../services/UDLAuditService';
+import {
+  ACCENT_GLASS_STRONG, ACCENT_GLASS_SUBTLE, ACCENT_GLOW_40, ACCENT_BORDER,
+  SHADOW_FAINT, SHADOW_LIGHT, WHITE_FILL,
+  COLOUR_ORANGE_TINT, COLOUR_ORANGE_BORDER,
+  COLOUR_DANGER_GLASS, ACCENT_GLASS_FAINT,
+} from '../theme/tokens';
 
 // ============================================================
 // Constants
@@ -41,8 +47,8 @@ const PULSE_CSS = `
 @keyframes aura-pulse-medium { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.7;transform:scale(1.2)} }
 @keyframes aura-pulse-slow   { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.8;transform:scale(1.12)} }
 @keyframes aura-btn-glow {
-  0%,100% { box-shadow: 0 0 0 1px rgba(16,185,129,0.12), 0 0 6px rgba(16,185,129,0.06); }
-  50%     { box-shadow: 0 0 0 1px rgba(16,185,129,0.42), 0 0 18px rgba(16,185,129,0.22); }
+  0%,100% { box-shadow: 0 0 0 1px ${ACCENT_GLASS_STRONG}, 0 0 6px ${ACCENT_GLASS_SUBTLE}; }
+  50%     { box-shadow: 0 0 0 1px ${ACCENT_GLOW_40}, 0 0 18px ${ACCENT_BORDER}; }
 }
 .aura-import-btn {
   transition: background 0.2s ease;
@@ -51,7 +57,7 @@ const PULSE_CSS = `
   animation: aura-btn-glow var(--aura-btn-pulse, 1.6s) ease-in-out infinite;
 }
 .aura-import-btn:hover:not(:disabled) {
-  box-shadow: 0 0 0 1px rgba(16,185,129,0.4), 0 0 16px rgba(16,185,129,0.22) !important;
+  box-shadow: 0 0 0 1px ${ACCENT_GLOW_40}, 0 0 16px ${ACCENT_BORDER} !important;
   background: #0f9d80 !important;
 }
 `;
@@ -281,12 +287,12 @@ export default function AuraHUD() {
         top:            pos.y,
         zIndex:         9999,
         width:          288,
-        background:     'rgba(255,255,255,0.88)',
+        background:     WHITE_FILL,
         backdropFilter: 'blur(14px)',
         WebkitBackdropFilter: 'blur(14px)',
-        border:         '1px solid rgba(0,0,0,0.08)',
+        border:         `1px solid ${SHADOW_FAINT}`,
         borderRadius:   10,
-        boxShadow:      '0 8px 32px rgba(0,0,0,0.10)',
+        boxShadow:      `0 8px 32px ${SHADOW_LIGHT}`,
         overflow:       'hidden',
         touchAction:    'none',
         userSelect:     'none',
@@ -301,7 +307,7 @@ export default function AuraHUD() {
           gap:          8,
           padding:      '8px 10px',
           background:   vp.hudTint,
-          borderBottom: '1px solid rgba(0,0,0,0.06)',
+          borderBottom: `1px solid ${SHADOW_FAINT}`,
           cursor:       'grab',
         }}
         onPointerDown={onDragStart}
@@ -339,7 +345,7 @@ export default function AuraHUD() {
 
       {/* --- Nudge message --- */}
       <div
-        style={{ padding: '10px 12px', borderBottom: '1px solid rgba(0,0,0,0.05)', cursor: 'pointer' }}
+        style={{ padding: '10px 12px', borderBottom: `1px solid ${SHADOW_FAINT}`, cursor: 'pointer' }}
         onClick={() => setNudgeIndex(i => i + 1)}
         title="Click for next nudge"
       >
@@ -353,7 +359,7 @@ export default function AuraHUD() {
 
       {/* --- Crisis persona proposal --- */}
       {proposedPersona && (
-        <div style={{ padding: '8px 12px', background: 'rgba(249,115,22,0.06)', borderBottom: '1px solid rgba(249,115,22,0.12)' }}>
+        <div style={{ padding: '8px 12px', background: COLOUR_ORANGE_TINT, borderBottom: `1px solid ${COLOUR_ORANGE_BORDER}` }}>
           <p style={{ margin: '0 0 6px', fontSize: 11, color: '#92400e', lineHeight: 1.4 }}>
             High friction detected. Switch to {proposedPersona.avatar} {proposedPersona.name}?
           </p>
@@ -366,7 +372,7 @@ export default function AuraHUD() {
 
       {/* --- Expanded details --- */}
       {isExpanded && (
-        <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+        <div style={{ padding: '8px 12px', borderBottom: `1px solid ${SHADOW_FAINT}` }}>
           <p style={{ margin: 0, fontSize: 10, color: '#6b7280', lineHeight: 1.5 }}>
             <strong>Goal:</strong> {persona.goal}
           </p>
@@ -378,7 +384,7 @@ export default function AuraHUD() {
 
       {/* --- Homeschool Import button --- */}
       {showImport && (
-        <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+        <div style={{ padding: '8px 12px', borderBottom: `1px solid ${SHADOW_FAINT}` }}>
           <button
             onClick={handleImportPlatform}
             disabled={isUpgrading}
@@ -405,7 +411,7 @@ export default function AuraHUD() {
 
       {/* --- UDL 3.0 Audit result --- */}
       {auditResult && (
-        <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(0,0,0,0.05)', background: auditResult.criticalCount > 0 ? 'rgba(239,68,68,0.04)' : 'rgba(16,185,129,0.04)' }}>
+        <div style={{ padding: '8px 12px', borderBottom: `1px solid ${SHADOW_FAINT}`, background: auditResult.criticalCount > 0 ? COLOUR_DANGER_GLASS : ACCENT_GLASS_FAINT }}>
           <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, color: auditResult.criticalCount > 0 ? '#b91c1c' : '#065f46', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             UDL 3.0 Lens Applied
           </p>
