@@ -25,6 +25,8 @@ const EXCLUDED_DIRS = new Set(['node_modules', 'build', 'dist', '.git', '.husky'
 const ALLOWED_EXTS = new Set(['.js', '.jsx', '.ts', '.tsx', '.html', '.css', '.json', '.md']);
 
 const DASH_RE = /[—–]/g;
+const RGBA_RE = /rgba\s*\(/g;
+const TOKEN_FILE = 'src/theme/tokens.js';
 
 const US_FORMS = [
   { stem: 'behavior', expected: 'behaviour' },
@@ -74,6 +76,7 @@ function isCssOrTailwindContext(line) {
 }
 
 const violations = [];
+const warnings = [];
 
 function scanFile(filePath, content) {
   const rel = path.relative(ROOT, filePath);
@@ -94,6 +97,20 @@ function scanFile(filePath, content) {
     DASH_RE.lastIndex = 0;
     while ((m = DASH_RE.exec(line)) !== null) {
       violations.push(`${rel}:${i + 1}: em-dash or en-dash (U+${m[0].charCodeAt(0).toString(16).toUpperCase()}) - use comma, full stop, or pair of hyphens`);
+    }
+
+    // Raw rgba() values: warned in component files. tokens.js is the
+    // single source of truth for colour values including alpha variants.
+    // Warning only until Sprint 3.6 lands. After 3.6 commits, rgba() in component files is a hard fail.
+    if (!rel.endsWith(TOKEN_FILE) && !rel.endsWith('.css')) {
+      RGBA_RE.lastIndex = 0;
+      let rm;
+      while ((rm = RGBA_RE.exec(line)) !== null) {
+        // Skip comments
+        const before = line.slice(0, rm.index);
+        if (/\/\//.test(before)) break;
+        warnings.push(`${rel}:${i + 1}: raw rgba() value - promote to a token in ${TOKEN_FILE}`);
+      }
     }
 
     // US spellings inside user-facing contexts only.
@@ -135,6 +152,12 @@ function walk(dir) {
 for (const t of TARGETS) {
   const dir = path.join(ROOT, t);
   if (fs.existsSync(dir)) walk(dir);
+}
+
+if (warnings.length > 0) {
+  console.warn(`\n[Neural Proof] ${warnings.length} raw rgba() warning${warnings.length === 1 ? '' : 's'} (non-blocking, legacy migration pending):\n`);
+  for (const w of warnings) console.warn('  ' + w);
+  console.warn('');
 }
 
 if (violations.length > 0) {

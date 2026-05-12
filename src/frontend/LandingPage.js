@@ -3,9 +3,10 @@ import { motion } from 'framer-motion';
 import { GoogleLogin } from '@react-oauth/google';
 import { useSettings } from './SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { unlockWithUserId, enableCloudSync } from '../core/HistoryOfThought';
 import NeuroProfiler from './NeuroProfiler';
+import { COLOUR_WARN, COLOUR_WARN_GLASS, COLOUR_WARN_BORDER, COLOUR_WARN_BORDER_STRONG, FONT_SYSTEM, BORDER_RADIUS } from '../theme/tokens';
 
 // ============================================================
 // Injected styles: cursor blink + JetBrains Mono import
@@ -110,7 +111,7 @@ const GoogleAuthGate = memo(function GoogleAuthGate({ onSuccess, onError }) {
 
 export default function LandingPage({ onGetStarted }) {
   const [error, setError] = useState(null);
-  const { signInWithIdToken, isAuthenticated, user, loading: authLoading } = useAuth();
+  const { signInWithIdToken, isAuthenticated, user, loading: authLoading, authError } = useAuth();
   const { lodLevel, setLodLevel, isZenMode, setIsZenMode, highContrast, setHighContrast } = useSettings();
 
   const isFocusModeActive = isZenMode && lodLevel === 'compass';
@@ -246,10 +247,49 @@ export default function LandingPage({ onGetStarted }) {
               </div>
             )}
 
+            {/* Connection error: Supabase unreachable after one silent retry */}
+            {!authLoading && authError === 'CONNECTION_FAILED' && (
+              <motion.div
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+                  background: COLOUR_WARN_GLASS,
+                  border: `1px solid ${COLOUR_WARN_BORDER}`,
+                  borderRadius: BORDER_RADIUS, padding: '14px 16px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <AlertCircle size={13} style={{ color: COLOUR_WARN, flexShrink: 0 }} />
+                  <span className="smf-mono" style={{
+                    fontSize: 10, color: COLOUR_WARN, letterSpacing: '0.04em',
+                  }}>
+                    Connection issue. Reload to retry.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    fontFamily: FONT_SYSTEM,
+                    fontSize: 9, fontWeight: 700,
+                    letterSpacing: '0.12em', textTransform: 'uppercase',
+                    background: 'none', color: COLOUR_WARN,
+                    border: `1px solid ${COLOUR_WARN_BORDER_STRONG}`,
+                    borderRadius: BORDER_RADIUS, padding: '5px 12px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <RefreshCw size={11} /> Reload
+                </button>
+              </motion.div>
+            )}
+
             {/* Google OAuth gate: rendered via memoised component to prevent
                 GoogleLogin remounting on parent state changes (error text etc).
                 Stable identity stops the library calling initialize() more than once. */}
-            {!authLoading && !isAuthenticated && (
+            {!authLoading && !isAuthenticated && authError !== 'CONNECTION_FAILED' && (
               <GoogleAuthGate
                 onSuccess={handleGoogleSuccess}
                 onError={() => setError('Google sign-in failed.')}
@@ -288,9 +328,11 @@ export default function LandingPage({ onGetStarted }) {
             {!isAuthenticated && !authLoading && (
               <div style={{ marginTop: 24, textAlign: 'center' }}>
                 <p className="smf-mono" style={{
-                  fontSize: 9, color: '#3f3f46', letterSpacing: '0.18em', textTransform: 'uppercase', margin: 0,
+                  fontSize: 9,
+                  color: authError === 'CONNECTION_FAILED' ? COLOUR_WARN : '#3f3f46',
+                  letterSpacing: '0.18em', textTransform: 'uppercase', margin: 0,
                 }}>
-                  Status: Awaiting Authorisation
+                  {authError === 'CONNECTION_FAILED' ? 'Status: Connection Failed' : 'Status: Awaiting Authorisation'}
                 </p>
               </div>
             )}

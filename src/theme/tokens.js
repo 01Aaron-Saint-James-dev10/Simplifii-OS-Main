@@ -38,7 +38,10 @@ export const ACCENT_GLASS  = 'rgba(16,185,129,0.08)'; // Active card fill
 // Semantic colour tokens
 // ============================================================
 
-export const COLOUR_WARN    = '#f59e0b'; // Amber 400
+export const COLOUR_WARN              = '#f59e0b'; // Amber 400
+export const COLOUR_WARN_GLASS        = 'rgba(245,158,11,0.08)'; // Amber active fill
+export const COLOUR_WARN_BORDER       = 'rgba(245,158,11,0.2)';  // Amber subtle border
+export const COLOUR_WARN_BORDER_STRONG = 'rgba(245,158,11,0.25)'; // Amber button border
 export const COLOUR_DANGER  = '#f43f5e'; // Rose 500
 export const COLOUR_INFO    = '#60a5fa'; // Blue 400
 
