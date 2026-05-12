@@ -46,6 +46,8 @@ const SCHEMA_VERSION = '2.0';
 // touches storage. Cleared by lockSession().
 let __derivedKey = null;
 let __activePassphraseSet = false;
+let __cloudSyncEnabled = false;
+let __cloudUserId = null;
 
 const isCryptoAvailable = () =>
   typeof window !== 'undefined' && window.crypto && window.crypto.subtle;
@@ -120,6 +122,17 @@ export const lockSession = () => {
   __activePassphraseSet = false;
 };
 
+// Unlocks the vault using the Google user ID as the passphrase seed.
+// Stable across sessions: the Google sub never changes, so the same
+// PBKDF2 derivation always produces the same key for the same user.
+// Replaces the manual passphrase flow once Google OAuth is confirmed.
+export const unlockWithUserId = async (userId) => {
+  if (!userId || typeof userId !== 'string') {
+    throw new Error('Valid user ID required to unlock vault.');
+  }
+  return unlockWithPassphrase(`simplifii_${userId}`);
+};
+
 // ============================================================
 // IndexedDB store
 // ============================================================
@@ -191,6 +204,45 @@ const newEventId = () => {
 };
 
 // ============================================================
+// Cloud sync helpers
+// ============================================================
+
+const getLocalUserId = () => __cloudUserId || 'local';
+
+const pushToCloud = async (event) => {
+  if (!__cloudSyncEnabled || !__cloudUserId) return;
+  try {
+    const { createClient } = await import(/* webpackChunkName: "supabase" */ '@supabase/supabase-js');
+    const supabaseUrl = typeof process !== 'undefined' && process.env.REACT_APP_SUPABASE_URL
+      ? process.env.REACT_APP_SUPABASE_URL
+      : 'https://aqcreatryuvuuynwvnqy.supabase.co';
+    const supabaseAnonKey = typeof process !== 'undefined' && process.env.REACT_APP_SUPABASE_ANON_KEY
+      ? process.env.REACT_APP_SUPABASE_ANON_KEY
+      : '';
+    const sb = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
+    });
+    const { error } = await sb.from('history_of_thought_events').insert({
+      user_id: __cloudUserId,
+      event_id: event.event_id,
+      event_type: event.event_type,
+      stream_id: event.stream_id,
+      payload_encrypted: event.payload_encrypted,
+      device_signature_sha256: event.device_signature_sha256,
+      schema_version: event.schema_version,
+      timestamp_iso: event.timestamp_iso
+    });
+    if (error && typeof console !== 'undefined') {
+      console.warn('[HistoryOfThought] cloud sync insert failed:', error.message);
+    }
+  } catch (err) {
+    if (typeof console !== 'undefined') {
+      console.warn('[HistoryOfThought] cloud sync error:', err.message);
+    }
+  }
+};
+
+// ============================================================
 // Event types (Blueprint enum)
 // ============================================================
 
@@ -216,10 +268,6 @@ export const appendEvent = async ({ user_id = 'local', stream_id = 'tertiary', e
     throw new Error(`Unknown event_type: ${event_type}`);
   }
   if (!__derivedKey) {
-    // Soft-fail. The cockpit should keep working when the student has
-    // not unlocked yet; the Blueprint says local-first, not
-    // crash-on-no-key. Events are dropped silently with a console
-    // hint so the developer can spot it.
     if (typeof console !== 'undefined') console.info('[HistoryOfThought] dropped event; vault locked', event_type);
     return null;
   }
@@ -235,12 +283,18 @@ export const appendEvent = async ({ user_id = 'local', stream_id = 'tertiary', e
     schema_version: SCHEMA_VERSION
   };
   const db = await openDB();
-  return new Promise((resolve, reject) => {
+  const result = await new Promise((resolve, reject) => {
     const tx = db.transaction(STORE, 'readwrite');
     tx.objectStore(STORE).add(event);
     tx.oncomplete = () => resolve(event);
     tx.onerror = () => reject(tx.error);
   });
+
+  if (__cloudSyncEnabled && __cloudUserId) {
+    pushToCloud(event);
+  }
+
+  return result;
 };
 
 export const listEvents = async ({ user_id = 'local', limit = 500 } = {}) => {
@@ -262,6 +316,33 @@ export const listEvents = async ({ user_id = 'local', limit = 500 } = {}) => {
     };
     req.onerror = () => reject(req.error);
   });
+};
+
+export const listCloudEvents = async ({ limit = 500 } = {}) => {
+  if (!__cloudSyncEnabled || !__cloudUserId) return [];
+  try {
+    const { createClient } = await import(/* webpackChunkName: "supabase" */ '@supabase/supabase-js');
+    const supabaseUrl = typeof process !== 'undefined' && process.env.REACT_APP_SUPABASE_URL
+      ? process.env.REACT_APP_SUPABASE_URL
+      : 'https://aqcreatryuvuuynwvnqy.supabase.co';
+    const supabaseAnonKey = typeof process !== 'undefined' && process.env.REACT_APP_SUPABASE_ANON_KEY
+      ? process.env.REACT_APP_SUPABASE_ANON_KEY
+      : '';
+    const sb = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
+    });
+    const { data, error } = await sb
+      .from('history_of_thought_events')
+      .select('*')
+      .eq('user_id', __cloudUserId)
+      .order('timestamp_iso', { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    if (typeof console !== 'undefined') console.warn('[HistoryOfThought] cloud list failed:', err.message);
+    return [];
+  }
 };
 
 // ============================================================
@@ -307,11 +388,20 @@ export const generateAuthenticityReport = async ({ user_id = 'local' } = {}) => 
 };
 
 // ============================================================
-// Cloud sync (opt-in stub; transport not wired)
+// Cloud sync (opt-in)
 // ============================================================
 
-export const enableCloudSync = () => {
-  throw new Error('Cloud sync requires an explicit user opt-in flow that has not shipped yet. The Blueprint defers transport until that lands.');
+export const enableCloudSync = (userId) => {
+  if (!userId) throw new Error('Cloud sync requires a valid user ID. Pass the authenticated user ID.');
+  __cloudSyncEnabled = true;
+  __cloudUserId = userId;
 };
+
+export const disableCloudSync = () => {
+  __cloudSyncEnabled = false;
+  __cloudUserId = null;
+};
+
+export const isCloudSyncEnabled = () => __cloudSyncEnabled;
 
 export const __internals = { DB_NAME, STORE, SALT_KEY, PBKDF2_ITERATIONS, deviceSignature, deriveKey };

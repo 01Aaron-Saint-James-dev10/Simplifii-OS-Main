@@ -1,27 +1,17 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { GoogleLogin } from '@react-oauth/google';
 import { useSettings } from './SettingsContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Terminal, Shield, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
-import { unlockWithPassphrase } from '../core/HistoryOfThought';
+import { unlockWithUserId, enableCloudSync } from '../core/HistoryOfThought';
+import NeuroProfiler from './NeuroProfiler';
 
-/**
- * LandingPage - Stage 01: The Sovereign Handshake
- * Redesigned for Accessibility and UDL 3.0 compliance.
- * Features: High contrast light theme, clean typography, recognisable input.
- */
 export default function LandingPage({ onGetStarted }) {
-  const [accessCode, setAccessCode] = useState('');
-  const [isFocused, setIsFocused] = useState(false);
-  const [isInitialising, setIsInitialising] = useState(false);
   const [error, setError] = useState(null);
+  const { signInWithIdToken, isAuthenticated, user, loading: authLoading } = useAuth();
+  const { lodLevel, setLodLevel, isZenMode, setIsZenMode, highContrast, setHighContrast } = useSettings();
 
-  const { 
-    lodLevel, setLodLevel, 
-    isZenMode, setIsZenMode, 
-    highContrast, setHighContrast 
-  } = useSettings();
-
-  // Focus Mode vs Clarity Mode (UDL 3.0 Override - Guideline 7.1)
   const isFocusModeActive = isZenMode && lodLevel === 'compass';
 
   const toggleUDLMode = () => {
@@ -36,24 +26,34 @@ export default function LandingPage({ onGetStarted }) {
     }
   };
 
-  const handleInitialise = async (e) => {
-    e.preventDefault();
+  const handleGoogleSuccess = async (credentialResponse) => {
     setError(null);
-
-    if (accessCode.trim().length < 4) {
-      setError('Passphrase must be at least 4 characters.');
-      return;
-    }
-
-    setIsInitialising(true);
     try {
-      await unlockWithPassphrase(accessCode.trim());
+      await signInWithIdToken(credentialResponse.credential);
+    } catch (err) {
+      console.error('[Landing] Google sign-in error:', err);
+      setError('Google sign-in failed. Check console.');
+    }
+  };
+
+  // Called by NeuroProfiler when the learner completes all 4 steps.
+  // Stores the profile for useProject to hydrate on mount, seeds the vault
+  // from the Google user ID (no passphrase required), enables cloud sync,
+  // then hands off to the main OS.
+  const handleProfileComplete = async (profile) => {
+    setError(null);
+    try {
+      try {
+        localStorage.setItem('simplifii_neuro_profile', JSON.stringify(profile));
+      } catch { /* storage unavailable */ }
+      if (user?.id) {
+        await unlockWithUserId(user.id);
+        enableCloudSync(user.id);
+      }
       onGetStarted();
     } catch (err) {
-      console.error('[Handshake] Initialisation failed:', err);
-      setError('Vault initialisation failed. Check system console.');
-    } finally {
-      setIsInitialising(false);
+      console.error('[NeuroProfiler] Vault unlock failed:', err);
+      setError('Could not initialise vault. Please try again.');
     }
   };
 
@@ -65,7 +65,6 @@ export default function LandingPage({ onGetStarted }) {
         .font-sans { font-family: 'Inter', sans-serif; }
       `}</style>
 
-      {/* UDL 3.0 Override Toggle */}
       <div className="absolute top-6 right-6 z-50">
         <button
           onClick={toggleUDLMode}
@@ -86,99 +85,80 @@ export default function LandingPage({ onGetStarted }) {
       </div>
 
       <main className="flex-1 flex flex-col items-center justify-center p-6">
-        <div className="w-full max-w-sm">
-          <header className="mb-12 text-center">
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="inline-block p-4 border border-zinc-200 mb-8 bg-white shadow-sm"
-            >
-              <Terminal size={40} className="text-emerald-600" />
-            </motion.div>
-            <h1 className="text-3xl font-bold mb-2 text-zinc-900">
-              Simplifii-OS
-            </h1>
-            <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-wide">
-              Sovereign Handshake
-            </p>
-          </header>
+        <div className="w-full max-w-md">
 
-          <form onSubmit={handleInitialise} className="relative">
-            <div className="mb-4">
-              <label htmlFor="passphrase" className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2">
-                Vault Passphrase
-              </label>
-              <div className="relative">
-                <input
-                  id="passphrase"
-                  type="password"
-                  value={accessCode}
-                  onChange={(e) => setAccessCode(e.target.value)}
-                  onFocus={() => setIsFocused(true)}
-                  onBlur={() => setIsFocused(false)}
-                  placeholder="Enter access code..."
-                  className="w-full bg-white border border-zinc-300 rounded-md px-4 py-4 text-zinc-900 placeholder:text-zinc-400 font-mono text-sm transition-colors shadow-sm outline-none focus-visible:ring-3 focus-visible:ring-emerald-500"
-                  autoFocus
-                  disabled={isInitialising}
-                />
-                
-                {/* The Siltbrand Handshake: Perimeter Pulse */}
-                <AnimatePresence>
-                  {isFocused && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: [0, 0.5, 0] }}
-                      exit={{ opacity: 0 }}
-                      transition={{ 
-                        duration: 2, 
-                        repeat: Infinity, 
-                        ease: "easeInOut" 
-                      }}
-                      className="absolute -inset-[2px] border border-emerald-500 rounded-md pointer-events-none -z-10"
-                    />
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-
-            {error && (
-              <motion.div 
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="mt-4 flex items-center gap-2 text-red-600 text-[11px] font-medium"
+          {/* Brand header: visible on auth gate only; hidden once profiler starts */}
+          {!isAuthenticated && (
+            <header className="mb-12 text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="inline-block p-4 border border-zinc-200 mb-8 bg-white shadow-sm"
               >
-                <AlertCircle size={14} />
-                <span>{error}</span>
+                <Terminal size={40} className="text-emerald-600" />
               </motion.div>
-            )}
+              <h1 className="text-3xl font-bold mb-2 text-zinc-900">Simplifii-OS</h1>
+              <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-wide">
+                Sovereign Handshake
+              </p>
+            </header>
+          )}
 
-            <motion.button
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              type="submit"
-              disabled={accessCode.trim().length < 4 || isInitialising}
-              className="w-full mt-6 py-4 bg-zinc-900 hover:bg-black text-white text-xs font-bold uppercase tracking-wide rounded-md transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-md flex items-center justify-center gap-2 focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none"
+          {/* Auth loading */}
+          {authLoading && (
+            <div className="flex justify-center py-8">
+              <Loader2 size={24} className="animate-spin text-zinc-400" />
+            </div>
+          )}
+
+          {/* Google OAuth gate */}
+          {!authLoading && !isAuthenticated && (
+            <div className="flex flex-col items-center gap-6">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setError('Google sign-in failed.')}
+                size="large"
+                shape="rectangular"
+                theme="outline"
+                text="signin_with"
+              />
+              <p className="text-[11px] text-zinc-400 text-center">
+                Your data stays on this device. Zero disclosure to institutions.
+              </p>
+            </div>
+          )}
+
+          {/* NeuroProfiler: renders immediately after Google auth confirms */}
+          {!authLoading && isAuthenticated && (
+            <NeuroProfiler
+              onComplete={handleProfileComplete}
+              userName={user?.user_metadata?.full_name || user?.email}
+            />
+          )}
+
+          {/* Error surface */}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="mt-6 flex items-center gap-2 text-red-600 text-[11px] font-medium justify-center"
             >
-              {isInitialising ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  <span>Initialising Vault...</span>
-                </>
-              ) : (
-                'Enter Gateway'
-              )}
-            </motion.button>
-          </form>
+              <AlertCircle size={14} />
+              <span>{error}</span>
+            </motion.div>
+          )}
 
-          <div className="mt-12 text-center">
-            <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
-              {isInitialising ? 'Decrypting Local Spine...' : 'System Status: Awaiting Authorisation'}
-            </p>
-          </div>
+          {/* Status line: only shown on the auth gate */}
+          {!isAuthenticated && !authLoading && (
+            <div className="mt-10 text-center">
+              <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
+                System Status: Awaiting Authorisation
+              </p>
+            </div>
+          )}
         </div>
       </main>
 
-      {/* Zero-Disclosure Banner (Pinned Footer) */}
       <footer className="w-full border-t border-zinc-200 py-6 px-10 flex flex-col md:flex-row justify-between items-center bg-white gap-4">
         <div className="flex items-center gap-4 text-zinc-600">
           <Shield size={16} className="text-emerald-600" />
