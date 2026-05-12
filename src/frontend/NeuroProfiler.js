@@ -182,6 +182,8 @@ export default function NeuroProfiler({ onComplete, userName }) {
     level: null,
     institution: '',
     referencingStyle: 'Harvard',
+    integrations: { zotero: false, mendeley: false },
+    consents: { dataSharing: false },
   });
 
   // Tile selections auto-advance on click.
@@ -198,6 +200,20 @@ export default function NeuroProfiler({ onComplete, userName }) {
       ...p,
       institution: name,
       referencingStyle: deriveReferencingStyle(name),
+    }));
+  };
+
+  const toggleIntegration = (key) => {
+    setProfile(p => ({
+      ...p,
+      integrations: { ...p.integrations, [key]: !p.integrations[key] },
+    }));
+  };
+
+  const toggleConsent = () => {
+    setProfile(p => ({
+      ...p,
+      consents: { ...p.consents, dataSharing: !p.consents.dataSharing },
     }));
   };
 
@@ -282,7 +298,7 @@ export default function NeuroProfiler({ onComplete, userName }) {
           </motion.div>
         )}
 
-        {/* Step 4: Institutional Lock */}
+        {/* Step 4: Institutional Lock + Integrations + Consent */}
         {step === 4 && (
           <motion.div key="step-4" variants={stepVariants} initial="initial" animate="animate" exit="exit">
             <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-1">Step 4 of 4</p>
@@ -331,21 +347,88 @@ export default function NeuroProfiler({ onComplete, userName }) {
             />
 
             {profile.institution && profile.institution !== 'None' && (
-              <p className="text-[11px] text-zinc-400 mb-6">
+              <p className="text-[11px] text-zinc-400 mb-5">
                 Default referencing style: <span className="font-bold text-zinc-600">{profile.referencingStyle}</span>
               </p>
             )}
 
+            {/* Research Tool Integrations */}
+            <div className="border-t border-zinc-100 pt-5 mb-5">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">Research Tools (optional)</p>
+              <div className="flex gap-3 mb-4">
+                {[
+                  { key: 'zotero',   label: 'Zotero',   sub: 'Citation manager' },
+                  { key: 'mendeley', label: 'Mendeley', sub: 'Reference manager' },
+                ].map(({ key, label, sub }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => toggleIntegration(key)}
+                    className={`flex-1 text-left p-3 border-2 rounded-lg transition-all focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none ${
+                      profile.integrations[key]
+                        ? 'border-emerald-500 bg-emerald-50'
+                        : 'border-zinc-200 hover:border-zinc-400'
+                    }`}
+                  >
+                    <p className="text-xs font-bold text-zinc-900">{label}</p>
+                    <p className="text-[11px] text-zinc-500">{sub}</p>
+                  </button>
+                ))}
+              </div>
+
+              {/* Gamma.ai recommendation slot.
+                  TODO: replace href="#" with your Gamma.ai affiliate link
+                  once you have registered at gamma.app and obtained your
+                  referral code (e.g. https://gamma.app?ref=YOUR_CODE). */}
+              <a
+                href="#"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between p-3 border border-dashed border-zinc-300 rounded-lg hover:border-emerald-400 hover:bg-emerald-50/50 transition-all group"
+                aria-label="Recommended: Gamma.ai presentation tool (affiliate)"
+              >
+                <div>
+                  <p className="text-xs font-bold text-zinc-700 group-hover:text-emerald-700">Gamma.ai</p>
+                  <p className="text-[11px] text-zinc-400">AI-powered presentations for your assessments</p>
+                </div>
+                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-300 group-hover:text-emerald-400 border border-current rounded px-1.5 py-0.5">
+                  Recommended
+                </span>
+              </a>
+            </div>
+
+            {/* Consent checkbox. Required to proceed.
+                Note: consent paired with app access has weaker standing under
+                the Australian Privacy Act than freely-given opt-in. Add
+                "You can change this in Settings at any time" to strengthen
+                your consent position before launch. */}
+            <div className="border-t border-zinc-100 pt-5 mb-5">
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={profile.consents.dataSharing}
+                  onChange={toggleConsent}
+                  className="mt-0.5 w-4 h-4 accent-emerald-600 shrink-0 cursor-pointer"
+                  aria-describedby="consent-desc"
+                />
+                <span id="consent-desc" className="text-[11px] text-zinc-600 leading-relaxed">
+                  I consent to my anonymised, de-identified study patterns being used for educational research.{' '}
+                  <span className="text-zinc-400">You can change this in Settings at any time.</span>
+                </span>
+              </label>
+            </div>
+
             <button
               type="button"
               onClick={handleComplete}
-              className="w-full mt-4 py-4 bg-zinc-900 hover:bg-black text-white text-xs font-bold uppercase tracking-wide rounded-lg transition-all focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none shadow-md"
+              disabled={!profile.consents.dataSharing}
+              className="w-full py-4 bg-zinc-900 hover:bg-black text-white text-xs font-bold uppercase tracking-wide rounded-lg transition-all focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none shadow-md disabled:opacity-30 disabled:cursor-not-allowed"
             >
               Enter Simplifii-OS
             </button>
 
             <p className="mt-3 text-[11px] text-zinc-400 text-center">
-              You can skip this. All settings are adjustable from the cockpit.
+              Institution and tool settings are adjustable from the cockpit.
             </p>
           </motion.div>
         )}

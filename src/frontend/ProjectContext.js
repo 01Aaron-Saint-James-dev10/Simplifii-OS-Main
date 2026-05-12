@@ -4,6 +4,8 @@ import { appendThinkingLog } from '../services/SheetsService';
 import { hydrate as hydrateStream, applyTheme as applyStreamTheme, streamFromLevel } from '../core/SovereignRouter';
 import { startEventBus, stopEventBus } from '../core/EventBus';
 import { configureSpine } from '../core/ExecutiveSpine';
+import { useAuth } from '../contexts/AuthContext';
+import { enableCloudSync, isCloudSyncEnabled } from '../core/HistoryOfThought';
 
 const ProjectContext = createContext();
 
@@ -20,11 +22,23 @@ const initialProjectState = {
 // Profile collected during onboarding. Empty name falls back to a neutral
 // 'Sovereign User' label at display time so the OS never assumes who you are.
 const DEFAULT_PROFILE = {
+  // Core identity (set by UniversalOnboarding stages 1-3)
   name: '',
   deadline: 'Friday',
   courseName: '',
   level: 'university',
-  processingStyles: []
+  processingStyles: [],
+  // NeuroProfiler fields (set on first launch)
+  preferredMode: null,         // 'literal' | 'visual' | 'deep_focus'
+  emotionalBaseline: null,     // 'overwhelmed' | 'on_top' | 'starting' | 'burned_out'
+  institution: '',
+  referencingStyle: 'Harvard',
+  integrations: { zotero: false, mendeley: false },
+  consents: { dataSharing: false },
+  // Metadata tags: populated by AURA at runtime (Step 2.5 schema)
+  institutionId: null,         // normalised institution key for Bloomberg-filter queries
+  cognitiveFrictionScore: null, // 0-100; computed from idle patterns + task-initiation latency
+  toolIntentTags: [],          // e.g. ['citation_needed', 'burnout_risk', 'lit_review_active']
 };
 
 const DEFAULT_COURSE_ID = 'course_default';
@@ -122,7 +136,20 @@ const tryMigrateLegacy = () => {
 };
 
 export const ProjectProvider = ({ children }) => {
-  const [profile, setProfile] = useState(() => loadJSON('simplifii_profile', DEFAULT_PROFILE));
+  const { user } = useAuth();
+  const [profile, setProfile] = useState(() => {
+    const stored = loadJSON('simplifii_profile', DEFAULT_PROFILE);
+    // Merge NeuroProfiler output (written by LandingPage) if the
+    // emotional baseline has not been hydrated yet. This gives AURA
+    // the learner's cognitive state on the very first render, before
+    // any effect runs. The neuro profile key is left in place as an
+    // audit trail; it is not removed here.
+    const neuro = loadJSON('simplifii_neuro_profile', null);
+    if (neuro && !stored.emotionalBaseline) {
+      return { ...DEFAULT_PROFILE, ...stored, ...neuro };
+    }
+    return stored;
+  });
   const [courses, setCourses] = useState(() => {
     const stored = loadJSON('simplifii_courses_v1', null);
     if (stored && Object.keys(stored).length > 0) return stored;
@@ -515,8 +542,15 @@ export const ProjectProvider = ({ children }) => {
   // moment the student unlocks. Stream / user context is read via
   // closure each event so a stream switch picks up immediately
   // without rewiring listeners.
-  const __busCtxRef = useRef({ streamId: stream.streamId, userId: 'local' });
-  useEffect(() => { __busCtxRef.current = { streamId: stream.streamId, userId: 'local' }; }, [stream.streamId]);
+  const __authUserId = user?.id || 'local';
+  const __busCtxRef = useRef({ streamId: stream.streamId, userId: __authUserId });
+  useEffect(() => {
+    const uid = user?.id || 'local';
+    __busCtxRef.current = { streamId: stream.streamId, userId: uid };
+    if (uid !== 'local' && !isCloudSyncEnabled()) {
+      enableCloudSync(uid);
+    }
+  }, [stream.streamId, user?.id]);
   useEffect(() => {
     startEventBus(() => __busCtxRef.current);
     return () => stopEventBus();
