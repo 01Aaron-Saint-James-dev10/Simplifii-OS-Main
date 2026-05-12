@@ -93,7 +93,11 @@ const makeEmptyCourse = (name = 'New Course') => ({
   // out of multiple tasks without losing their place. Empty by default;
   // populated lazily as the student switches sprints.
   activeAssessmentTitle: null,
-  sprintDrafts: {}
+  sprintDrafts: {},
+  // Referencing style is course-scoped, not global. Set per-faculty
+  // in CourseSettings once the student knows their submission requirements.
+  // 'Not Set' keeps the export pipeline honest until explicitly configured.
+  referencingStyle: 'Not Set',
 });
 
 // Zero-state by default. The cockpit boots with NO placeholder course so

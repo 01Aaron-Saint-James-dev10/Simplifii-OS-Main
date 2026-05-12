@@ -40,11 +40,18 @@ const PULSE_CSS = `
 @keyframes aura-pulse-fast   { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.35)} }
 @keyframes aura-pulse-medium { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.7;transform:scale(1.2)} }
 @keyframes aura-pulse-slow   { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.8;transform:scale(1.12)} }
+@keyframes aura-btn-glow {
+  0%,100% { box-shadow: 0 0 0 1px rgba(16,185,129,0.12), 0 0 6px rgba(16,185,129,0.06); }
+  50%     { box-shadow: 0 0 0 1px rgba(16,185,129,0.42), 0 0 18px rgba(16,185,129,0.22); }
+}
 .aura-import-btn {
-  transition: box-shadow 0.2s ease, background 0.2s ease;
+  transition: background 0.2s ease;
+}
+.aura-import-btn-pulsing:not(:disabled) {
+  animation: aura-btn-glow var(--aura-btn-pulse, 1.6s) ease-in-out infinite;
 }
 .aura-import-btn:hover:not(:disabled) {
-  box-shadow: 0 0 0 1px rgba(16,185,129,0.4), 0 0 16px rgba(16,185,129,0.22);
+  box-shadow: 0 0 0 1px rgba(16,185,129,0.4), 0 0 16px rgba(16,185,129,0.22) !important;
   background: #0f9d80 !important;
 }
 `;
@@ -64,6 +71,9 @@ const PULSE_ANIMATION = {
   slow:   'aura-pulse-slow   2.8s ease-in-out infinite',
   still:  'none',
 };
+
+// Maps dot pulse speed to the matching duration for the import button glow.
+const PULSE_DURATIONS = { fast: '0.8s', medium: '1.6s', slow: '2.8s', still: null };
 
 // ============================================================
 // Component
@@ -372,8 +382,11 @@ export default function AuraHUD() {
           <button
             onClick={handleImportPlatform}
             disabled={isUpgrading}
-            className="aura-import-btn"
-            style={btnStyle(isUpgrading ? '#6b7280' : '#0d9488', '#fff', undefined, true)}
+            className={`aura-import-btn${!isUpgrading && PULSE_DURATIONS[vp.pulseSpeed] ? ' aura-import-btn-pulsing' : ''}`}
+            style={{
+              ...btnStyle(isUpgrading ? '#6b7280' : '#0d9488', '#fff', undefined, true),
+              ...(PULSE_DURATIONS[vp.pulseSpeed] && { '--aura-btn-pulse': PULSE_DURATIONS[vp.pulseSpeed] }),
+            }}
           >
             {isUpgrading ? 'Upgrading to Sovereign Format...' : `Import from ${platformLabel}`}
           </button>

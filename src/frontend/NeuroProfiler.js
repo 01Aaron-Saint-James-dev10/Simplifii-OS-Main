@@ -32,17 +32,9 @@ export const BASELINE_STRATEGY = {
   burned_out:  { mode: 'literal',    microTasksOnly: true,  lodLevel: 'compass' },
 };
 
-const INSTITUTION_REFERENCING = {
-  UNSW: 'Harvard', USyd: 'APA 7', UQ: 'APA 7',
-  Monash: 'APA 7', UMelb: 'APA 7', RMIT: 'Harvard',
-  UTS: 'Harvard', ACU: 'APA 7',
-};
-
-export function deriveReferencingStyle(institution) {
-  return INSTITUTION_REFERENCING[institution] || 'Harvard';
-}
-
-const AU_INSTITUTIONS = ['UNSW', 'USyd', 'UQ', 'Monash', 'UMelb', 'RMIT', 'UTS', 'ACU'];
+// Referencing style is now per-course metadata, not set during onboarding.
+// It defaults to 'Not Set' in ProjectContext.makeEmptyCourse and is
+// configurable per faculty once the student knows their submission requirements.
 
 const COGNITIVE_OPTIONS = [
   { id: 'literal',     label: 'Plain words',         sub: 'Direct language, no jargon' },
@@ -150,26 +142,28 @@ export default function NeuroProfiler({ onComplete, userName }) {
     emotionalBaseline: null,
     level: null,
     homeschoolPlatform: null,
-    institution: '',
-    referencingStyle: 'Harvard',
-    integrations: { zotero: false, mendeley: false },
     consents: { dataSharing: true, commercialResearch: false, affiliateOptimisation: false },
   });
 
-  const totalSteps = profile.level === 'Homeschool' ? 5 : 4;
+  const totalSteps = profile.level === 'Homeschool' ? 4 : 3;
 
   const handleTileSelect = (field, value) => {
     setProfile(p => ({ ...p, [field]: value }));
     setTimeout(() => setStep(s => s + 1), 200);
   };
 
+  // Homeschool platform selection advances to step 4 (the final step).
   const handlePlatformSelect = (id) => {
     setProfile(p => ({ ...p, homeschoolPlatform: id }));
-    setTimeout(() => setStep(5), 200);
   };
 
-  const handleInstitutionSelect = (name) => {
-    setProfile(p => ({ ...p, institution: name, referencingStyle: deriveReferencingStyle(name) }));
+  // Level selection: Homeschool advances to step 4 (platform); all others
+  // stay on step 3 where the Enter OS button becomes available.
+  const handleLevelSelect = (value) => {
+    setProfile(p => ({ ...p, level: value }));
+    if (value === 'Homeschool') {
+      setTimeout(() => setStep(4), 200);
+    }
   };
 
   const handleComplete = () => {
@@ -178,7 +172,7 @@ export default function NeuroProfiler({ onComplete, userName }) {
     onComplete({ ...profile, consents: { ...profile.consents, dataSharing: true } });
   };
 
-  const isLastStep = (step === 4 && profile.level !== 'Homeschool') || step === 5;
+  const isLastStep = step === 3 || step === 4;
   const canGoBack = step > 1;
   const greeting = userName ? `Hi ${userName.split(' ')[0]}.` : 'Welcome.';
 
@@ -220,76 +214,60 @@ export default function NeuroProfiler({ onComplete, userName }) {
             </motion.div>
           )}
 
-          {/* Step 3: Academic Level */}
+          {/* Step 3: Academic Level (last step for non-Homeschool) */}
           {step === 3 && (
             <motion.div key="s3" variants={stepVariants} initial="initial" animate="animate" exit="exit">
               <span style={S.stepLabel}>Step 3 of {totalSteps}</span>
               <h2 style={S.heading}>What level are you studying?</h2>
-              <p style={S.subtext}>Sets scaffolding depth, citation style, and task defaults.</p>
+              <p style={S.subtext}>Sets scaffolding depth and task defaults.</p>
               <TileGrid options={LEVEL_OPTIONS} selected={profile.level}
-                onSelect={(v) => handleTileSelect('level', v)} columns={2} />
+                onSelect={handleLevelSelect} columns={2} />
+
+              {/* Sovereign Guarantee and consent: visible once a non-Homeschool level is chosen */}
+              {profile.level && profile.level !== 'Homeschool' && (
+                <>
+                  <div style={{
+                    border: '1px solid #27272a', borderRadius: 3,
+                    padding: '10px 12px', margin: '16px 0 10px',
+                    background: 'rgba(255,255,255,0.02)',
+                  }}>
+                    <p style={{ fontSize: 9, fontFamily: "'JetBrains Mono', monospace", color: '#3f3f46', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>
+                      Sovereign Guarantee
+                    </p>
+                    <p style={{ fontSize: 11, color: '#52525b', lineHeight: 1.6, margin: 0 }}>
+                      Your data is de-identified in your browser before anything leaves your device.
+                      Simplifii-OS cannot read your writing or link telemetry back to your identity.
+                    </p>
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={profile.consents.dataSharing}
+                      onChange={() => setProfile(p => ({ ...p, consents: { ...p.consents, dataSharing: !p.consents.dataSharing } }))}
+                      style={{ marginTop: 2, accentColor: '#10b981', flexShrink: 0, cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: 11, color: '#71717a', lineHeight: 1.6 }}>
+                      Personalise my interface in real time using anonymised session patterns.
+                      No personally identifiable information is stored.
+                    </span>
+                  </label>
+                </>
+              )}
             </motion.div>
           )}
 
-          {/* Step 3.5: Homeschool platform */}
+          {/* Step 4: Homeschool platform (last step for Homeschool tier) */}
           {step === 4 && profile.level === 'Homeschool' && (
-            <motion.div key="s3h" variants={stepVariants} initial="initial" animate="animate" exit="exit">
-              <span style={S.stepLabel}>Step 4 of 5</span>
+            <motion.div key="s4h" variants={stepVariants} initial="initial" animate="animate" exit="exit">
+              <span style={S.stepLabel}>Step 4 of 4</span>
               <h2 style={S.heading}>Which platform are we upgrading?</h2>
               <p style={S.subtext}>Simplifii-OS maps your curriculum into a UDL 3.0 layout. No data is sent to your current provider.</p>
               <TileGrid options={HOMESCHOOL_PLATFORMS} selected={profile.homeschoolPlatform}
                 onSelect={handlePlatformSelect} columns={2} />
-            </motion.div>
-          )}
 
-          {/* Step 4 (standard) or Step 5 (Homeschool): Institution */}
-          {isLastStep && (
-            <motion.div key="s-inst" variants={stepVariants} initial="initial" animate="animate" exit="exit">
-              <span style={S.stepLabel}>Step {totalSteps} of {totalSteps}</span>
-              <h2 style={S.heading}>Which institution?</h2>
-              <p style={S.subtext}>Sets the default referencing style for your exports.</p>
-
-              {/* Quick-select chips */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-                {[...AU_INSTITUTIONS, 'None / Other'].map((name) => (
-                  <button key={name} type="button"
-                    onClick={() => handleInstitutionSelect(name === 'None / Other' ? 'None' : name)}
-                    style={S.chip(profile.institution === (name === 'None / Other' ? 'None' : name))}>
-                    {name}
-                  </button>
-                ))}
-              </div>
-
-              {/* Free-text */}
-              <input
-                type="text"
-                value={profile.institution === 'None' ? '' : profile.institution}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setProfile(p => ({ ...p, institution: val, referencingStyle: deriveReferencingStyle(val.trim()) }));
-                }}
-                placeholder="Or type your institution..."
-                style={{
-                  width: '100%', boxSizing: 'border-box',
-                  background: '#18181b', border: '1px solid #27272a',
-                  borderRadius: 3, padding: '10px 12px',
-                  fontSize: 12, color: '#e4e4e7', outline: 'none',
-                  fontFamily: "'JetBrains Mono', monospace",
-                  marginBottom: profile.institution && profile.institution !== 'None' ? 6 : 16,
-                }}
-                aria-label="Institution name"
-              />
-
-              {profile.institution && profile.institution !== 'None' && (
-                <p style={{ fontSize: 10, color: '#52525b', fontFamily: "'JetBrains Mono', monospace", marginBottom: 16 }}>
-                  Default style: {profile.referencingStyle}
-                </p>
-              )}
-
-              {/* Sovereign Guarantee: slim, dim */}
               <div style={{
                 border: '1px solid #27272a', borderRadius: 3,
-                padding: '10px 12px', marginBottom: 14,
+                padding: '10px 12px', margin: '16px 0 10px',
                 background: 'rgba(255,255,255,0.02)',
               }}>
                 <p style={{ fontSize: 9, fontFamily: "'JetBrains Mono', monospace", color: '#3f3f46', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>
@@ -300,8 +278,6 @@ export default function NeuroProfiler({ onComplete, userName }) {
                   Simplifii-OS cannot read your writing or link telemetry back to your identity.
                 </p>
               </div>
-
-              {/* Single required consent */}
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
                 <input
                   type="checkbox"

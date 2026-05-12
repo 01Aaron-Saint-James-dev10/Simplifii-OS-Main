@@ -137,9 +137,17 @@ export const unlockWithUserId = async (userId) => {
 // IndexedDB store
 // ============================================================
 
+const DB_VERSION = 3;
+
 const openDB = () => new Promise((resolve, reject) => {
   if (typeof indexedDB === 'undefined') return reject(new Error('IndexedDB unavailable.'));
-  const req = indexedDB.open(DB_NAME, 2);
+  const req = indexedDB.open(DB_NAME, DB_VERSION);
+
+  req.onblocked = () => {
+    if (typeof console !== 'undefined') console.warn('[HistoryOfThought] upgrade blocked by another tab. Reloading.');
+    if (typeof window !== 'undefined') window.location.reload();
+  };
+
   req.onupgradeneeded = (e) => {
     const db = e.target.result;
     if (!db.objectStoreNames.contains('blockHistory')) {
@@ -156,8 +164,20 @@ const openDB = () => new Promise((resolve, reject) => {
       s.createIndex('by_type', 'event_type');
     }
   };
+
   req.onsuccess = () => resolve(req.result);
-  req.onerror = () => reject(req.error);
+
+  req.onerror = () => {
+    const err = req.error;
+    if (err && err.name === 'VersionError' && typeof window !== 'undefined') {
+      if (typeof console !== 'undefined') console.warn('[HistoryOfThought] version conflict: resetting vault.');
+      const del = indexedDB.deleteDatabase(DB_NAME);
+      del.onsuccess = () => window.location.reload();
+      del.onerror = () => window.location.reload();
+      return;
+    }
+    reject(err);
+  };
 });
 
 // ============================================================

@@ -544,7 +544,7 @@ export default function MasterDashboard() {
   const isBooting = currentStage === 0;
 
   return (
-    <div className={`h-screen w-full bg-black text-zinc-200 flex flex-col font-sans overflow-hidden transition-colors duration-1000 ${getOverlayColor()} ${isZenMode ? 'zen-mode-active' : ''}`}>
+    <div className={`h-screen w-full text-zinc-200 flex flex-col font-sans overflow-hidden transition-colors duration-1000 ${getOverlayColor()} ${isZenMode ? 'zen-mode-active' : ''}`} style={{ background: '#09090b' }}>
       <DashboardNav
         isZenMode={isZenMode}
         setViewMode={setViewMode}
@@ -642,7 +642,7 @@ export default function MasterDashboard() {
           aria-modal="true"
           aria-label="Add a new course by uploading a syllabus"
         >
-          <div className="relative w-full max-w-5xl m-8 bg-zinc-950 border border-emerald-500/30 rounded-3xl shadow-[0_0_60px_rgba(16,185,129,0.25)] overflow-hidden flex flex-col">
+          <div className="relative w-full max-w-5xl m-8 overflow-hidden flex flex-col" style={{ background: '#09090b', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 4, boxShadow: '0 0 48px rgba(16,185,129,0.12)' }}>
             <button
               type="button"
               onClick={() => setShowAddCourseModal(false)}

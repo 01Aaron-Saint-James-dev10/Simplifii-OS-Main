@@ -297,12 +297,16 @@ export default function SmViewer({ smContent, onEdit, readOnly = false }) {
   const currentStage = stages[activePromptIndex] || 'do';
 
   return (
-    <div style={{
-      display: 'flex', flexDirection: 'column',
-      height: '100vh', background: '#FAFAF9',
-      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-      overflow: 'hidden',
-    }}>
+    <motion.div
+      initial={{ opacity: 0, scale: 0.98, y: 10 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      style={{
+        display: 'flex', flexDirection: 'column',
+        height: '100vh', background: '#FAFAF9',
+        fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+        overflow: 'hidden',
+      }}>
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10, padding: '12px 20px',
@@ -362,7 +366,7 @@ export default function SmViewer({ smContent, onEdit, readOnly = false }) {
           }}>
           <div style={{
             fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
-            color: '#D1D5DB', letterSpacing: 1.2, fontWeight: 700,
+            color: '#D1D5DB', letterSpacing: '0.15em', fontWeight: 700,
             marginBottom: 14, textTransform: 'uppercase',
           }}>Tier 1 / AI Scaffold</div>
           <div style={{
@@ -384,7 +388,7 @@ export default function SmViewer({ smContent, onEdit, readOnly = false }) {
           }}>
           <div style={{
             fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
-            color: '#D1D5DB', letterSpacing: 1.2, fontWeight: 700,
+            color: '#D1D5DB', letterSpacing: '0.15em', fontWeight: 700,
             textTransform: 'uppercase',
           }}>Tier 2 / Socratic PDMR</div>
 
@@ -442,7 +446,7 @@ export default function SmViewer({ smContent, onEdit, readOnly = false }) {
           }}>
           <div style={{
             fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
-            color: '#D1D5DB', letterSpacing: 1.2, fontWeight: 700, textTransform: 'uppercase',
+            color: '#D1D5DB', letterSpacing: '0.15em', fontWeight: 700, textTransform: 'uppercase',
           }}>Tier 3 / Your Writing</div>
 
           {readOnly ? (
@@ -478,6 +482,6 @@ export default function SmViewer({ smContent, onEdit, readOnly = false }) {
           </div>
         </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }

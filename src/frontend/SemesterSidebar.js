@@ -1,40 +1,84 @@
 import React from 'react';
-import { Brain, ChevronLeft, ChevronRight, Layout, Target, Shield, Trash2 } from 'lucide-react';
+import { Brain, ChevronLeft, ChevronRight, Layout, Target, Shield, Trash2, Plus } from 'lucide-react';
 import TaskCard from './TaskCard';
 
 /**
- * SemesterSidebar - Left Sidebar Panel
- * Collapsed rail or full-width course switcher + semester roadmap.
- * data-focus-locked: the ExecutiveSpine FocusSession CSS rule dims and
- * click-protects this panel when a sprint is active.
+ * SemesterSidebar
  *
- * Props:
- *   isZenMode          {boolean}  hide everything in Zen Mode
- *   leftSidebarClass   {string}   computed width/padding classes from MasterDashboard
- *   isLeftCollapsed    {boolean}  collapsed state
- *   setIsLeftCollapsed {Function} toggle collapse
- *   activeCourse       {Object}   active course from ProjectContext
- *   activeCourseId     {string}   active course ID
- *   setActiveCourseId  {Function} switch active course
- *   courses            {Object}   keyed course map
- *   courseEditMode     {string|null} 'rename' | null
- *   setCourseEditMode  {Function}
- *   courseEditValue    {string}
- *   setCourseEditValue {Function}
- *   courseEditInputRef {Ref}      ref for rename input autofocus
- *   commitCourseEdit   {Function} save rename
- *   cancelCourseEdit   {Function} cancel rename
- *   isBooting          {boolean}  true while onboarding stages 0-4 are active
- *   tasks              {Array}    task list for the active course
- *   activeTask         {Object}   currently selected task
- *   setShowAddCourseModal {Function} open the Add Course modal
- *   setPendingDeleteCourseId {Function} open the Delete confirm dialog
- *   simulateVoiceNote  {Function} test the audio path
- *   generatePremiumPDF {Function} export the course as PDF
+ * Obsidian Icon Rail. 64px collapsed (icons only), 240px expanded.
+ * Surface: #18181b. Border: 1px solid #27272a. No backdrop-blur.
+ * All system labels: JetBrains Mono, 9px, uppercase, 0.18em tracking.
+ * Timeline spine: 1px solid #27272a left border + dot markers.
+ * Cards: #09090b bg, 1px solid #27272a, radius 3px.
+ *
+ * Props: same interface as the previous SemesterSidebar; leftSidebarClass
+ * is accepted but not used (width is derived from isLeftCollapsed / isZenMode).
  */
+
+// ============================================================
+// CSS injected once: rail icon buttons, inputs, selects, btns
+// ============================================================
+
+let railCSSInjected = false;
+function injectRailCSS() {
+  if (railCSSInjected || typeof document === 'undefined') return;
+  const el = document.createElement('style');
+  el.textContent = `
+.smf-rail-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 3px;
+  background: none; border: none; cursor: pointer;
+  transition: background 0.15s;
+}
+.smf-rail-icon:hover { background: rgba(255,255,255,0.05); }
+.smf-sb-input {
+  width: 100%; box-sizing: border-box;
+  background: #09090b; border: 1px solid #27272a; border-radius: 3px;
+  padding: 7px 10px;
+  font-size: 11px; font-family: 'JetBrains Mono', monospace;
+  color: #e4e4e7; outline: none; transition: border 0.15s;
+}
+.smf-sb-input:focus { border-color: #10b981; }
+.smf-sb-select {
+  width: 100%; box-sizing: border-box;
+  background: #09090b; border: 1px solid #27272a; border-radius: 3px;
+  padding: 7px 10px;
+  font-size: 11px; font-family: 'JetBrains Mono', monospace;
+  color: #e4e4e7; outline: none; cursor: pointer;
+  transition: border 0.15s; appearance: none;
+}
+.smf-sb-select:focus { border-color: #10b981; }
+.smf-sb-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  border-radius: 3px; cursor: pointer;
+  transition: border 0.15s, background 0.15s;
+}
+  `.trim();
+  document.head.appendChild(el);
+  railCSSInjected = true;
+}
+
+// Section label token
+const SL = {
+  display: 'block',
+  fontSize: 9,
+  fontFamily: "'JetBrains Mono', monospace",
+  fontWeight: 700,
+  color: '#3f3f46',
+  letterSpacing: '0.18em',
+  textTransform: 'uppercase',
+  marginBottom: 8,
+};
+
+// ============================================================
+// Component
+// ============================================================
+
 export default function SemesterSidebar({
   isZenMode,
-  leftSidebarClass,
+  // leftSidebarClass accepted for API compatibility but not used
   isLeftCollapsed, setIsLeftCollapsed,
   activeCourse,
   activeCourseId, setActiveCourseId,
@@ -47,53 +91,133 @@ export default function SemesterSidebar({
   tasks, activeTask,
   setShowAddCourseModal,
   setPendingDeleteCourseId,
-  simulateVoiceNote, generatePremiumPDF
+  simulateVoiceNote, generatePremiumPDF,
 }) {
+  injectRailCSS();
+
+  const sidebarStyle = {
+    width: isZenMode ? 0 : isLeftCollapsed ? 64 : 240,
+    opacity: isZenMode ? 0 : 1,
+    flexShrink: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    background: '#18181b',
+    borderRight: '1px solid #27272a',
+    transition: 'width 0.3s cubic-bezier(0.16,1,0.3,1), opacity 0.3s ease',
+    overflow: 'hidden',
+    position: 'relative',
+    zIndex: 10,
+    paddingTop: 44,
+  };
+
   return (
-    <aside data-focus-locked="true" className={`${leftSidebarClass} border-r border-zinc-800/50 bg-black/40 backdrop-blur-xl flex flex-col shrink-0 transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] z-10 relative overflow-hidden pt-44`}>
+    <aside data-focus-locked="true" style={sidebarStyle}>
+
+      {/* Collapse toggle pill */}
       {!isZenMode && (
         <button
           onClick={() => setIsLeftCollapsed(!isLeftCollapsed)}
-          className="absolute -right-3 top-24 z-50 bg-zinc-800 border border-zinc-700 rounded-full p-1 text-zinc-400 hover:text-white hover:border-emerald-500 transition-all"
+          style={{
+            position: 'absolute', right: -11, top: 60, zIndex: 50,
+            width: 22, height: 22, borderRadius: '50%',
+            background: '#27272a', border: '1px solid #3f3f46',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', color: '#71717a', padding: 0,
+          }}
+          aria-label={isLeftCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {isLeftCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+          {isLeftCollapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
         </button>
       )}
 
-      <div className={`flex items-center gap-2 mb-10 mt-5 transition-opacity ${isLeftCollapsed ? 'opacity-0 h-0 overflow-hidden mb-0 mt-0' : 'opacity-100'}`}>
-        <div className="bg-emerald-500 p-1.5 rounded-lg shadow-glow-emerald"><Brain size={20} className="text-black" /></div>
-        <span className="font-black text-lg tracking-tighter whitespace-nowrap">SIMPLIFII-OS</span>
-      </div>
-
+      {/* ---- Collapsed: Icon Rail ---- */}
       {isLeftCollapsed && !isZenMode && (
-        <div className="flex flex-col items-center mt-5 space-y-8">
-          <div className="bg-emerald-500 p-1.5 rounded-lg shadow-glow-emerald"><Brain size={20} className="text-black" /></div>
-          <Layout size={20} className="text-zinc-600" />
-          <Target size={20} className="text-zinc-600" />
+        <div style={{
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', paddingTop: 16, gap: 6,
+        }}>
+          {/* OS logo mark */}
+          <div style={{
+            width: 24, height: 24, borderRadius: 3,
+            background: '#10b981',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            marginBottom: 8, flexShrink: 0,
+          }}>
+            <Brain size={14} color="#000" />
+          </div>
+
+          <div style={{ width: 24, height: 1, background: '#27272a', margin: '2px 0 6px' }} />
+
+          <button className="smf-rail-icon" title="Courses">
+            <Layout size={16} color="#52525b" />
+          </button>
+          <button className="smf-rail-icon" title="Active Sprint">
+            <Target size={16} color="#52525b" />
+          </button>
+          <button
+            className="smf-rail-icon"
+            title="Add Course"
+            onClick={() => setShowAddCourseModal(true)}
+          >
+            <Plus size={16} color="#52525b" />
+          </button>
         </div>
       )}
 
+      {/* ---- Expanded: Full Rail ---- */}
       {!isLeftCollapsed && (
-        <>
+        <div style={{
+          flex: 1, display: 'flex', flexDirection: 'column',
+          padding: '16px 14px',
+          overflowY: 'auto',
+          gap: 18,
+        }}>
+
+          {/* OS logo row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              width: 20, height: 20, borderRadius: 3, background: '#10b981',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <Brain size={12} color="#000" />
+            </div>
+            <span style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 9, fontWeight: 700,
+              color: '#52525b', letterSpacing: '0.18em', textTransform: 'uppercase',
+            }}>
+              Simplifii-OS
+            </span>
+          </div>
+
+          {/* Pareto weight badge */}
           {activeCourse?.roadmap?.paretoSteps && (
-            <div className="mb-4 px-2 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
-              <p className="text-[12px] font-black uppercase tracking-widest text-emerald-400 text-center">Total Assessment Weight: {activeCourse.roadmap.totalWeight || '25%'}</p>
+            <div style={{
+              background: 'rgba(16,185,129,0.06)',
+              border: '1px solid rgba(16,185,129,0.2)',
+              borderRadius: 3, padding: '6px 10px', textAlign: 'center',
+            }}>
+              <span style={{ ...SL, color: '#10b981', marginBottom: 0 }}>
+                Weight: {activeCourse.roadmap.totalWeight || '25%'}
+              </span>
             </div>
           )}
-          {/* Course Switcher: data scopes follow the active course. */}
-          <div className="mb-6">
-            <p className="text-[12px] font-black text-zinc-500 uppercase tracking-widest mb-2 px-2">Active Course</p>
+
+          {/* Course switcher */}
+          <div>
+            <span style={SL}>Active Course</span>
             <select
               value={activeCourseId}
               onChange={(e) => setActiveCourseId(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs font-bold text-white focus:border-emerald-500 outline-none cursor-pointer"
+              className="smf-sb-select"
             >
               {Object.entries(courses).map(([id, c]) => (
                 <option key={id} value={id}>{c.name || '(unnamed)'}</option>
               ))}
             </select>
+
             {courseEditMode ? (
-              <div className="mt-2 flex gap-2">
+              <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
                 <input
                   ref={courseEditInputRef}
                   value={courseEditValue}
@@ -103,33 +227,35 @@ export default function SemesterSidebar({
                     if (e.key === 'Escape') { e.preventDefault(); cancelCourseEdit(); }
                   }}
                   placeholder={courseEditMode === 'add' ? 'New course name' : 'Course name'}
-                  className="flex-1 bg-black/60 border border-emerald-500/40 rounded-lg px-3 py-2 text-xs font-bold text-white placeholder-zinc-600 focus:border-emerald-500 outline-none"
+                  className="smf-sb-input"
+                  style={{ flex: 1 }}
                 />
-                <button
-                  onClick={commitCourseEdit}
-                  className="text-[12px] font-black text-black bg-emerald-500 hover:bg-emerald-400 uppercase tracking-widest py-2 px-3 rounded-lg transition-all"
-                >
+                <button onClick={commitCourseEdit} className="smf-sb-btn"
+                  style={{ background: '#10b981', border: 'none', padding: '6px 10px' }}>
                   Save
                 </button>
-                <button
-                  onClick={cancelCourseEdit}
-                  className="text-[12px] font-black text-zinc-500 hover:text-white uppercase tracking-widest border border-zinc-800 hover:border-zinc-600 py-2 px-3 rounded-lg transition-all"
-                >
+                <button onClick={cancelCourseEdit} className="smf-sb-btn"
+                  style={{ background: 'none', color: '#71717a', border: '1px solid #27272a', padding: '6px 10px' }}>
                   Cancel
                 </button>
               </div>
             ) : (
-              <div className="flex gap-2 mt-2">
+              <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
                 <button
                   onClick={() => setShowAddCourseModal(true)}
-                  className="flex-1 text-[12px] font-black text-emerald-400 hover:text-black hover:bg-emerald-500 uppercase tracking-widest border border-emerald-500/30 hover:border-emerald-500 py-2 rounded-lg transition-all"
+                  className="smf-sb-btn"
+                  style={{
+                    flex: 1, background: 'none', padding: '6px 0',
+                    border: '1px solid rgba(16,185,129,0.3)', color: '#10b981',
+                  }}
                   title="Drop a syllabus PDF; the OS names the course itself"
                 >
-                  + Add Course
+                  + Add
                 </button>
                 <button
                   onClick={() => { setCourseEditValue(courses[activeCourseId]?.name || ''); setCourseEditMode('rename'); }}
-                  className="text-[12px] font-black text-zinc-500 hover:text-white uppercase tracking-widest border border-zinc-800 hover:border-zinc-600 py-2 px-3 rounded-lg transition-all"
+                  className="smf-sb-btn"
+                  style={{ background: 'none', color: '#52525b', border: '1px solid #27272a', padding: '6px 10px' }}
                   title="Rename active course"
                 >
                   Edit
@@ -137,81 +263,153 @@ export default function SemesterSidebar({
                 <button
                   onClick={() => setPendingDeleteCourseId(activeCourseId)}
                   disabled={Object.keys(courses).length <= 1}
-                  className="text-[12px] font-black text-zinc-500 hover:text-rose-400 uppercase tracking-widest border border-zinc-800 hover:border-rose-500 py-2 px-3 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-zinc-500 disabled:hover:border-zinc-800"
+                  className="smf-sb-btn"
+                  style={{
+                    background: 'none', color: '#52525b', border: '1px solid #27272a',
+                    padding: '6px 10px',
+                    opacity: Object.keys(courses).length <= 1 ? 0.35 : 1,
+                    cursor: Object.keys(courses).length <= 1 ? 'not-allowed' : 'pointer',
+                  }}
                   title={Object.keys(courses).length <= 1 ? 'Cannot delete the only course' : 'Delete active course'}
                   aria-label="Delete active course"
                 >
-                  <Trash2 size={12} />
+                  <Trash2 size={11} />
                 </button>
               </div>
             )}
           </div>
 
-          {!isBooting && (activeCourse.roadmap.currentTask || activeCourse.roadmap.nextAssessment || activeCourse.roadmap.finalMilestone) && (
-            <>
-              <p className="text-[12px] font-black text-zinc-500 uppercase tracking-widest mb-4 px-2 whitespace-nowrap">Semester Roadmap</p>
+          {/* Semester Roadmap */}
+          {!isBooting && (
+            activeCourse?.roadmap?.currentTask ||
+            activeCourse?.roadmap?.nextAssessment ||
+            activeCourse?.roadmap?.finalMilestone
+          ) && (
+            <div>
+              <span style={SL}>Semester Roadmap</span>
 
               {activeCourse.roadmap.paretoSteps ? (
-                <div className="mb-8 bg-zinc-900/60 border border-emerald-500/20 rounded-xl p-4 shadow-[0_0_30px_rgba(16,185,129,0.08)]">
-                  <p className="text-[12px] font-black uppercase tracking-widest text-emerald-400 mb-4">Pareto Micro-Steps</p>
-                  <div className="border-l border-emerald-500/30 ml-1 space-y-4">
-                    {activeCourse.roadmap.paretoSteps.map((step, i) => (
-                      <div key={i} className={`relative pl-5 group ${i > 0 ? 'opacity-60 hover:opacity-100' : ''} transition-opacity cursor-pointer`}>
-                        <div className={`absolute left-[-5px] top-1.5 w-2.5 h-2.5 rounded-full ${i === 0 ? 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.6)]' : 'bg-zinc-700 border border-zinc-600'}`}></div>
-                        <div className="flex items-baseline gap-2">
-                          <p className={`text-[12px] font-black uppercase ${i === 0 ? 'text-emerald-400' : 'text-zinc-500'}`}>Step {step.rank}</p>
-                          <span className="text-[12px] font-bold text-zinc-600">{step.weight}</span>
-                        </div>
-                        <p className={`text-xs font-bold ${i === 0 ? 'text-white' : 'text-zinc-300'}`}>{step.label}</p>
+                <div style={{
+                  background: '#09090b',
+                  border: '1px solid rgba(16,185,129,0.15)',
+                  borderRadius: 3, padding: '10px 12px',
+                }}>
+                  <span style={{ ...SL, color: '#10b981', marginBottom: 10 }}>Pareto Steps</span>
+                  <div style={{
+                    borderLeft: '1px solid rgba(16,185,129,0.2)',
+                    marginLeft: 3,
+                    display: 'flex', flexDirection: 'column', gap: 12,
+                    paddingLeft: 14,
+                  }}>
+                    {activeCourse.roadmap.paretoSteps.map((s, i) => (
+                      <div key={i} style={{ position: 'relative', opacity: i > 0 ? 0.5 : 1 }}>
+                        <div style={{
+                          position: 'absolute', left: -19, top: 4,
+                          width: i === 0 ? 8 : 6, height: i === 0 ? 8 : 6,
+                          borderRadius: '50%',
+                          background: i === 0 ? '#10b981' : '#27272a',
+                          border: i === 0 ? 'none' : '1px solid #3f3f46',
+                          boxShadow: i === 0 ? '0 0 8px rgba(16,185,129,0.5)' : 'none',
+                        }} />
+                        <span style={{ ...SL, color: i === 0 ? '#10b981' : '#3f3f46', marginBottom: 2 }}>
+                          Step {s.rank} / {s.weight}
+                        </span>
+                        <p style={{
+                          fontSize: 11, margin: 0,
+                          color: i === 0 ? '#e4e4e7' : '#71717a',
+                          lineHeight: 1.4,
+                        }}>{s.label}</p>
                       </div>
                     ))}
                   </div>
                 </div>
               ) : (
-                <div className="mb-8 px-2 border-l border-zinc-800 ml-2 space-y-4 relative">
+                <div style={{
+                  borderLeft: '1px solid #27272a',
+                  marginLeft: 4, paddingLeft: 14,
+                  display: 'flex', flexDirection: 'column', gap: 12,
+                }}>
                   {activeCourse.roadmap.currentTask && (
-                    <div className="relative pl-4 group">
-                      <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-                      <p className="text-[12px] font-black uppercase text-emerald-400">Current Task</p>
-                      <p className="text-xs text-white font-bold">{activeCourse.roadmap.currentTask}</p>
+                    <div style={{ position: 'relative' }}>
+                      <div style={{
+                        position: 'absolute', left: -19, top: 4,
+                        width: 8, height: 8, borderRadius: '50%',
+                        background: '#10b981',
+                        boxShadow: '0 0 8px rgba(16,185,129,0.5)',
+                      }} />
+                      <span style={{ ...SL, color: '#10b981', marginBottom: 2 }}>Current</span>
+                      <p style={{ fontSize: 11, color: '#e4e4e7', margin: 0, lineHeight: 1.4 }}>
+                        {activeCourse.roadmap.currentTask}
+                      </p>
                     </div>
                   )}
                   {activeCourse.roadmap.nextAssessment && (
-                    <div className="relative pl-4 group opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
-                      <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-zinc-700 border border-zinc-600"></div>
-                      <p className="text-[12px] font-black uppercase text-zinc-500">Next Assessment</p>
-                      <p className="text-xs text-zinc-300 font-bold">{activeCourse.roadmap.nextAssessment}</p>
+                    <div style={{ position: 'relative', opacity: 0.5 }}>
+                      <div style={{
+                        position: 'absolute', left: -19, top: 4,
+                        width: 6, height: 6, borderRadius: '50%',
+                        background: '#27272a', border: '1px solid #3f3f46',
+                      }} />
+                      <span style={{ ...SL, marginBottom: 2 }}>Next</span>
+                      <p style={{ fontSize: 11, color: '#a1a1aa', margin: 0, lineHeight: 1.4 }}>
+                        {activeCourse.roadmap.nextAssessment}
+                      </p>
                     </div>
                   )}
                   {activeCourse.roadmap.finalMilestone && (
-                    <div className="relative pl-4 group opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
-                      <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-zinc-700 border border-zinc-600"></div>
-                      <p className="text-[12px] font-black uppercase text-zinc-500">Final Milestone</p>
-                      <p className="text-xs text-zinc-300 font-bold">{activeCourse.roadmap.finalMilestone}</p>
+                    <div style={{ position: 'relative', opacity: 0.5 }}>
+                      <div style={{
+                        position: 'absolute', left: -19, top: 4,
+                        width: 6, height: 6, borderRadius: '50%',
+                        background: '#27272a', border: '1px solid #3f3f46',
+                      }} />
+                      <span style={{ ...SL, marginBottom: 2 }}>Final</span>
+                      <p style={{ fontSize: 11, color: '#a1a1aa', margin: 0, lineHeight: 1.4 }}>
+                        {activeCourse.roadmap.finalMilestone}
+                      </p>
                     </div>
                   )}
                 </div>
               )}
-            </>
+            </div>
           )}
 
+          {/* Active Context: tasks */}
           {!(activeCourse?.roadmap?.paretoSteps) && (
-            <>
-              <p className="text-[12px] font-black text-zinc-500 uppercase tracking-widest mb-4 px-2 whitespace-nowrap">Active Context</p>
-              <div className="flex-1 overflow-y-auto space-y-4 pr-1 custom-scrollbar">
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+              <span style={SL}>Active Sprint</span>
+              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {isBooting || tasks.length === 0 ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-center opacity-50 px-4 mt-10">
-                    <Brain size={32} className="mx-auto mb-4 text-zinc-600" />
-                    <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-2">No Active Context</p>
+                  <div style={{ textAlign: 'center', opacity: 0.35, padding: '20px 0' }}>
+                    <Brain size={22} color="#3f3f46" style={{ margin: '0 auto 6px' }} />
+                    <span style={SL}>No Active Sprint</span>
                   </div>
                 ) : tasks.length > 5 ? (
-                  <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4">
-                    <p className="text-[12px] font-black uppercase text-emerald-400 tracking-widest mb-2">Neural Summary</p>
-                    <p className="text-xs text-zinc-400 font-bold mb-3">{tasks.length} tasks detected. Showing top 5 milestones.</p>
+                  <div style={{
+                    background: '#09090b', border: '1px solid #27272a',
+                    borderRadius: 3, padding: '10px 12px',
+                  }}>
+                    <span style={{ ...SL, color: '#10b981', marginBottom: 8 }}>Neural Summary</span>
+                    <p style={{
+                      fontSize: 10, color: '#52525b', margin: '0 0 8px',
+                      fontFamily: "'JetBrains Mono', monospace",
+                    }}>
+                      {tasks.length} tasks. Top 5:
+                    </p>
                     {tasks.slice(0, 5).map((t, i) => (
-                      <div key={i} className="flex items-center gap-2 py-1.5 border-b border-zinc-800/50 last:border-0">
-                        <span className="text-[12px] font-black text-zinc-600 w-5">{i + 1}.</span>
-                        <p className="text-xs text-white font-bold truncate">{t.task}</p>
+                      <div key={i} style={{
+                        display: 'flex', alignItems: 'flex-start', gap: 6,
+                        padding: '4px 0',
+                        borderBottom: i < 4 ? '1px solid #18181b' : 'none',
+                      }}>
+                        <span style={{
+                          fontSize: 9, color: '#3f3f46',
+                          fontFamily: "'JetBrains Mono', monospace", minWidth: 14,
+                        }}>{i + 1}.</span>
+                        <p style={{
+                          fontSize: 11, color: '#e4e4e7', margin: 0,
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>{t.task}</p>
                       </div>
                     ))}
                   </div>
@@ -221,42 +419,54 @@ export default function SemesterSidebar({
                   ))
                 )}
               </div>
-            </>
+            </div>
           )}
 
-          {!isBooting && tasks.length > 0 && (
-            <div className="mt-auto shrink-0 flex flex-col gap-4 pt-4 border-t border-zinc-800/50">
-              <div className="bg-black border border-zinc-800 p-3 rounded-xl flex items-start gap-3">
-                <Shield size={16} className="text-emerald-500 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-[12px] font-black uppercase text-white tracking-widest mb-1">Zero-Disclosure Data</p>
-                  <p className="text-[12px] text-zinc-500 leading-relaxed whitespace-normal font-bold">Your cognitive telemetry is visible only to you and is never shared with your university.</p>
-                </div>
+          {/* Footer: Zero-Disclosure + actions */}
+          <div style={{
+            marginTop: 'auto', paddingTop: 12,
+            borderTop: '1px solid #27272a',
+            display: 'flex', flexDirection: 'column', gap: 8,
+          }}>
+            {/* Zero-Disclosure card */}
+            <div style={{
+              background: '#09090b', border: '1px solid #27272a',
+              borderRadius: 3, padding: '8px 10px',
+              display: 'flex', alignItems: 'flex-start', gap: 8,
+            }}>
+              <Shield size={12} color="#10b981" style={{ flexShrink: 0, marginTop: 1 }} />
+              <div>
+                <span style={{ ...SL, color: '#10b981', marginBottom: 2 }}>Zero-Disclosure</span>
+                <p style={{
+                  fontSize: 10, color: '#52525b', margin: 0, lineHeight: 1.6,
+                  fontFamily: "'JetBrains Mono', monospace",
+                }}>
+                  Telemetry never shared with your institution.
+                </p>
               </div>
+            </div>
 
-              <div className="flex flex-col gap-2">
-                <button onClick={simulateVoiceNote} className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase tracking-widest text-xs py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] truncate">
+            {!isBooting && tasks.length > 0 && (
+              <>
+                <button onClick={simulateVoiceNote} className="smf-sb-btn"
+                  style={{
+                    background: '#10b981', color: '#000',
+                    border: 'none', padding: '8px', width: '100%', textAlign: 'center',
+                  }}>
                   Simulate Voice
                 </button>
-                <button onClick={generatePremiumPDF} className="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-black uppercase tracking-widest text-[12px] py-3 rounded-xl transition-all truncate">
+                <button onClick={generatePremiumPDF} className="smf-sb-btn"
+                  style={{
+                    background: 'none', color: '#71717a',
+                    border: '1px solid #27272a', padding: '8px', width: '100%', textAlign: 'center',
+                  }}>
                   Export Proof
                 </button>
-              </div>
-            </div>
-          )}
+              </>
+            )}
+          </div>
 
-          {isBooting && (
-            <div className="mt-auto shrink-0 pt-4 border-t border-zinc-800/50">
-              <div className="bg-black border border-zinc-800 p-3 rounded-xl flex items-start gap-3">
-                <Shield size={16} className="text-indigo-500 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-[12px] font-black uppercase text-white tracking-widest mb-1">Zero-Disclosure OS</p>
-                  <p className="text-[12px] text-zinc-500 leading-relaxed whitespace-normal font-bold">Student-first architecture. Waiting for handshake to unlock context.</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </>
+        </div>
       )}
     </aside>
   );

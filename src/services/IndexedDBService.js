@@ -1,8 +1,40 @@
+const DB_NAME = 'SimplifiiOS_Vault';
+const DB_VERSION = 3;
+
+// Wipes the database and reloads the page. Call this if a version conflict
+// leaves the vault in an unrecoverable state.
+export const resetLocalSovereignVault = () => {
+  try {
+    const del = indexedDB.deleteDatabase(DB_NAME);
+    del.onsuccess = () => { window.location.reload(); };
+    del.onerror = () => { window.location.reload(); };
+  } catch {
+    window.location.reload();
+  }
+};
+
 export const initDB = () => {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('SimplifiiOS_Vault', 1);
-    request.onerror = () => reject(request.error);
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onblocked = () => {
+      console.warn('[IndexedDBService] upgrade blocked by another tab. Reloading.');
+      window.location.reload();
+    };
+
+    request.onerror = (e) => {
+      const err = request.error;
+      // Version downgrade attempt: clear and recover automatically.
+      if (err && err.name === 'VersionError') {
+        console.warn('[IndexedDBService] version conflict: resetting vault and reloading.');
+        resetLocalSovereignVault();
+        return;
+      }
+      reject(err);
+    };
+
     request.onsuccess = () => resolve(request.result);
+
     request.onupgradeneeded = (e) => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains('blockHistory')) {
