@@ -35,7 +35,7 @@ const DEFAULT_PROFILE = {
   institution: '',
   referencingStyle: 'Harvard',
   integrations: { zotero: false, mendeley: false },
-  consents: { dataSharing: false },
+  consents: { dataSharing: false, commercialResearch: false, affiliateOptimisation: false },
   // Metadata tags: populated by AURA at runtime (Step 2.5 schema)
   institutionId: null,         // normalised institution key for Bloomberg-filter queries
   cognitiveFrictionScore: null, // 0-100; computed from idle patterns + task-initiation latency
@@ -195,7 +195,6 @@ export const ProjectProvider = ({ children }) => {
     })();
     return () => { cancelled = true; };
   // Recompute when baseline or active course changes; not on every profile write.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile.emotionalBaseline, activeCourseId]);
 
   // Roadmap legacy purge. One-time: any course whose roadmap exactly matches

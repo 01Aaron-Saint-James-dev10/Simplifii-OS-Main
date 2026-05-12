@@ -121,7 +121,7 @@ export default function MasterDashboard() {
       cognitiveFrictionScore: telemetry.passiveFrictionEstimate,
       toolIntentTags: [...new Set([...(prev.toolIntentTags || []), ...telemetry.shadowTags])],
     }));
-  }, [telemetry.passiveFrictionEstimate, telemetry.isProfileReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [telemetry.passiveFrictionEstimate, telemetry.isProfileReady]);
   // Inline course editor state. Replaces the legacy window.prompt() flow so
   // the cockpit no longer breaks the AURA Pulse with a native popup.
   // Used now only for the Edit (rename) action; new courses come in via

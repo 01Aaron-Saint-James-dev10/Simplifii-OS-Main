@@ -147,7 +147,7 @@ function PdmrRail({ prompts, stages, activeIndex, onSelect }) {
             transition: 'background 0.15s, border 0.15s',
           }}>
             <span style={{
-              fontSize: 9, fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
               color: col.accent, fontWeight: 700, letterSpacing: 0.5, minWidth: 46,
             }}>{col.label}</span>
             <span style={{
@@ -172,7 +172,7 @@ function PromptCard({ prompt, stage, answer, onChange, isFirst, isLast, onNext, 
       display: 'flex', flexDirection: 'column', gap: 10,
     }}>
       <span style={{
-        fontSize: 9, fontFamily: "'JetBrains Mono', monospace",
+        fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
         color: col.accent, fontWeight: 700, letterSpacing: 1,
         background: col.accent + '15', padding: '2px 8px',
         borderRadius: 4, alignSelf: 'flex-start',
@@ -346,7 +346,7 @@ export default function SmViewer({ smContent, onEdit, readOnly = false }) {
           background: '#FFFFFF',
         }}>
           <div style={{
-            fontSize: 8, fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
             color: '#D1D5DB', letterSpacing: 1.2, fontWeight: 700,
             marginBottom: 14, textTransform: 'uppercase',
           }}>Tier 1 / AI Scaffold</div>
@@ -366,7 +366,7 @@ export default function SmViewer({ smContent, onEdit, readOnly = false }) {
           display: 'flex', flexDirection: 'column', gap: 14,
         }}>
           <div style={{
-            fontSize: 8, fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
             color: '#D1D5DB', letterSpacing: 1.2, fontWeight: 700,
             textTransform: 'uppercase',
           }}>Tier 2 / Socratic PDMR</div>
@@ -393,7 +393,7 @@ export default function SmViewer({ smContent, onEdit, readOnly = false }) {
               {checkItems.length > 0 && (
                 <div style={{ marginTop: 4 }}>
                   <div style={{
-                    fontSize: 8, fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
                     color: '#D1D5DB', letterSpacing: 1, fontWeight: 700, marginBottom: 8,
                   }}>OBJECTIVES</div>
                   {checkItems.map((item, i) => (
@@ -422,7 +422,7 @@ export default function SmViewer({ smContent, onEdit, readOnly = false }) {
           display: 'flex', flexDirection: 'column', gap: 10,
         }}>
           <div style={{
-            fontSize: 8, fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
             color: '#D1D5DB', letterSpacing: 1.2, fontWeight: 700, textTransform: 'uppercase',
           }}>Tier 3 / Your Writing</div>
 

@@ -83,6 +83,10 @@ export function useIngestion({
     const draftTaskName = draftFirst || data.unitCode || 'Course Brief';
     const draftTask = { course: data.unitCode || 'Extracted', task: draftTaskName, level: data.level, rawText: data.rawText };
     const generatedBlocks = mapToWorkspace(data.rawText || '', data.level || 'Tertiary');
+    // Write raw text to localStorage so AuraHUD's Sovereign Format Import button
+    // has content to transform. Written once per ingest; overwritten if the
+    // student imports a newer document in the same session.
+    try { if (data.rawText) localStorage.setItem('simplifii_last_raw_text', data.rawText); } catch { /* storage unavailable */ }
     const draftName = data.unitCode || 'New Course';
 
     setInstitutionalData({
