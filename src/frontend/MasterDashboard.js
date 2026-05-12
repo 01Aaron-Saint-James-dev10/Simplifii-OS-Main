@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Brain, RefreshCw, Eye } from 'lucide-react';
+import { SURFACE_BASE, BORDER_RADIUS } from '../theme/tokens';
 import { useSettings } from './SettingsContext';
 import { useProject } from './ProjectContext';
 import { useInstitution } from './InstitutionalContext';
@@ -555,7 +556,7 @@ export default function MasterDashboard() {
   const isBooting = currentStage === 0;
 
   return (
-    <div className={`h-screen w-full text-zinc-200 flex flex-col font-sans overflow-hidden transition-colors duration-1000 ${getOverlayColor()} ${isZenMode ? 'zen-mode-active' : ''}`} style={{ background: '#09090b' }}>
+    <div className={`h-screen w-full text-zinc-200 flex flex-col font-sans overflow-hidden transition-colors duration-1000 ${getOverlayColor()} ${isZenMode ? 'zen-mode-active' : ''}`} style={{ background: SURFACE_BASE }}>
       <DashboardNav
         isZenMode={isZenMode}
         setViewMode={setViewMode}
@@ -653,7 +654,7 @@ export default function MasterDashboard() {
           aria-modal="true"
           aria-label="Add a new course by uploading a syllabus"
         >
-          <div className="relative w-full max-w-5xl m-8 overflow-hidden flex flex-col" style={{ background: '#09090b', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 4, boxShadow: '0 0 48px rgba(16,185,129,0.12)' }}>
+          <div className="relative w-full max-w-5xl m-8 overflow-hidden flex flex-col" style={{ background: SURFACE_BASE, border: '1px solid rgba(16,185,129,0.25)', borderRadius: BORDER_RADIUS, boxShadow: '0 0 48px rgba(16,185,129,0.12)' }}>
             <button
               type="button"
               onClick={() => setShowAddCourseModal(false)}
