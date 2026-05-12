@@ -203,6 +203,25 @@ export const extractDeepCourseData = (text) => {
 
   const academicTier = detectAcademicTier(text);
 
+  // UDL 3.0 score. Computed after assessmentTitles and assessmentDates are
+  // built so the formula can factor in extraction completeness.
+  // udlPrinciples contributes up to 75 pts (25 per detected principle).
+  // Assessment count contributes up to 15 pts.
+  // Due-date coverage contributes 10 pts when every assessment has a date.
+  // This is a heuristic signal for SovereignCell, not a clinical audit.
+  // Range: 0-100. Green >= 70, amber >= 40, red < 40.
+  //
+  // NOTE: computed here as a placeholder so SovereignCell can render
+  // the UdlBar immediately. Replace with a real UDL 3.0 rubric once
+  // the Authenticity Report (Node 05) is built.
+  const _udlDateCoverage = assessmentDates.length > 0 && assessmentTitles.length > 0
+    && assessmentDates.length >= assessmentTitles.length;
+  const udlScore = Math.min(100,
+    udlPrinciples.length * 25
+    + (assessmentTitles.length >= 3 ? 15 : assessmentTitles.length > 0 ? 10 : 0)
+    + (_udlDateCoverage ? 10 : 0)
+  );
+
   // Extract Assessment Titles. The student cares about what is actually
   // graded, not the abstract Learning Outcomes. We look for several
   // syllabus patterns common across Australian universities:
@@ -319,6 +338,7 @@ export const extractDeepCourseData = (text) => {
     udlRequirements,
     udlPrinciples,
     udlSuggestions,
+    udlScore,
     doneWhenChecklist,
     theme: 'Molecules'
   };
