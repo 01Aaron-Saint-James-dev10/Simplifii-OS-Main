@@ -32,6 +32,8 @@ import AuthoringCockpit from './AuthoringCockpit';
 import DashboardNav from './DashboardNav';
 import SemesterSidebar from './SemesterSidebar';
 import CognitiveArchive from './CognitiveArchive';
+import { useCognitiveTelemetry } from '../services/CognitiveTelemetry';
+import SmViewer from './SmViewer';
 
 const STREAM_DASHBOARDS = {
   primary: PrimaryDashboard,
@@ -107,6 +109,19 @@ export default function MasterDashboard() {
   // session.
   const [vaultDismissed, setVaultDismissed] = useState(() => isVaultGhostMode() || isVaultUnlocked());
   const [ghostMode, setGhostMode] = useState(() => isVaultGhostMode());
+
+  // Shadow profiler: passive cognitive monitoring that builds the friction
+  // profile in the background without asking the student anything.
+  // Merges into ProjectContext only once isProfileReady flips true.
+  const telemetry = useCognitiveTelemetry();
+  useEffect(() => {
+    if (!telemetry.isProfileReady) return;
+    setProfile(prev => ({
+      ...prev,
+      cognitiveFrictionScore: telemetry.passiveFrictionEstimate,
+      toolIntentTags: [...new Set([...(prev.toolIntentTags || []), ...telemetry.shadowTags])],
+    }));
+  }, [telemetry.passiveFrictionEstimate, telemetry.isProfileReady]); // eslint-disable-line react-hooks/exhaustive-deps
   // Inline course editor state. Replaces the legacy window.prompt() flow so
   // the cockpit no longer breaks the AURA Pulse with a native popup.
   // Used now only for the Edit (rename) action; new courses come in via
@@ -114,7 +129,8 @@ export default function MasterDashboard() {
   const [courseEditMode, setCourseEditMode] = useState(null); // 'rename' | null
   const [courseEditValue, setCourseEditValue] = useState('');
   const courseEditInputRef = useRef(null);
-  const [viewMode, setViewMode] = useState('canvas'); // 'canvas' | 'gallery' | 'cockpit'
+  const [viewMode, setViewMode] = useState('canvas'); // 'canvas' | 'gallery' | 'cockpit' | 'sovereign'
+  const [smContent, setSmContent] = useState(null);
 
   // Auto-collapse the left sidebar when entering the Authoring Cockpit
   // so the centre column gets full focus. Restore when leaving.
@@ -145,6 +161,24 @@ export default function MasterDashboard() {
     const handleToggleAccessibility = () => setShowAccessibilityVault(prev => !prev);
     window.addEventListener('toggle-accessibility', handleToggleAccessibility);
     return () => window.removeEventListener('toggle-accessibility', handleToggleAccessibility);
+  }, []);
+
+  // Sovereign Format viewer. Fires when AuraHUD completes a .sm conversion
+  // and writes the result to localStorage. Switches the main canvas to the
+  // SmViewer three-tier layout so the student can interact with the
+  // converted document immediately.
+  useEffect(() => {
+    const handleSmReady = () => {
+      try {
+        const content = localStorage.getItem('simplifii_last_sm');
+        if (content) {
+          setSmContent(content);
+          setViewMode('sovereign');
+        }
+      } catch { /* storage unavailable */ }
+    };
+    window.addEventListener('sm-ready', handleSmReady);
+    return () => window.removeEventListener('sm-ready', handleSmReady);
   }, []);
 
   // Metacognitive reflection on Zen Mode exit
@@ -378,6 +412,40 @@ export default function MasterDashboard() {
                 >
                   Initialise Grounding
                 </button>
+              </div>
+            </div>
+          );
+        }
+
+        // Sovereign Format viewer. Renders the Three-Tier Canvas for a
+        // converted .sm document. Student can edit Tier 3 live; changes
+        // are written back to localStorage so the session survives reload.
+        if (viewMode === 'sovereign' && smContent) {
+          return (
+            <div className="flex-1 flex flex-col overflow-hidden animate-fade-in relative z-0">
+              <div style={{
+                padding: '5px 14px', background: 'rgba(24,24,27,0.95)',
+                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0,
+              }}>
+                <button
+                  onClick={() => setViewMode('canvas')}
+                  style={{
+                    fontSize: 11, color: '#6B7280', background: 'none', border: 'none',
+                    cursor: 'pointer', padding: '2px 6px', letterSpacing: 0.3,
+                  }}
+                >
+                  Back to Canvas
+                </button>
+              </div>
+              <div style={{ flex: 1, overflow: 'hidden' }}>
+                <SmViewer
+                  smContent={smContent}
+                  onEdit={(updated) => {
+                    setSmContent(updated);
+                    try { localStorage.setItem('simplifii_last_sm', updated); } catch { /* storage unavailable */ }
+                  }}
+                />
               </div>
             </div>
           );
