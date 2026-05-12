@@ -12,9 +12,24 @@
 // Surface (background) tokens
 // ============================================================
 
-export const SURFACE_BASE   = '#09090b'; // Zinc 950: root backgrounds
-export const SURFACE_CARD   = '#18181b'; // Zinc 900: cards, sidebars
-export const SURFACE_RAISED = '#27272a'; // Zinc 800: chips, elevated elements
+export const SURFACE_BASE       = '#09090b'; // Zinc 950: root backgrounds
+export const SURFACE_CARD       = '#18181b'; // Zinc 900: cards, sidebars
+export const SURFACE_RAISED     = '#27272a'; // Zinc 800: chips, elevated elements
+export const SURFACE_CARD_GLASS = 'rgba(24,24,27,0.7)';  // Translucent card
+export const SURFACE_CARD_SOLID = 'rgba(24,24,27,0.95)'; // Near-opaque card
+
+// Black overlay / shadow ramp
+export const SHADOW_FAINT    = 'rgba(0,0,0,0.06)';  // Subtle border/divider
+export const SHADOW_LIGHT    = 'rgba(0,0,0,0.1)';   // Light shadow
+export const SHADOW_MEDIUM   = 'rgba(0,0,0,0.25)';  // Medium shadow
+export const OVERLAY_MEDIUM  = 'rgba(0,0,0,0.5)';   // Modal backdrop, overlay
+export const OVERLAY_HEAVY   = 'rgba(0,0,0,0.8)';   // Dense overlay
+export const OVERLAY_BACKDROP = 'rgba(7,8,13,0.94)'; // Full-screen backdrop
+
+// White tint ramp
+export const WHITE_TINT_FAINT = 'rgba(255,255,255,0.04)'; // Subtle hover fill
+export const WHITE_TINT       = 'rgba(255,255,255,0.1)';  // Border, light fill
+export const WHITE_FILL       = 'rgba(255,255,255,0.9)';  // Near-opaque fill
 
 // ============================================================
 // Text tokens
@@ -32,18 +47,73 @@ export const TEXT_LABEL    = '#3f3f46'; // Zinc 700: system metadata labels
 export const ACCENT_PULSE  = '#10b981'; // Emerald 500: primary accent
 export const ACCENT_HOVER  = '#0f9d80'; // Emerald 600: hover state
 export const ACCENT_GLOW   = '#34d399'; // Emerald 300: gradient end, glow highlights
-export const ACCENT_GLASS  = 'rgba(16,185,129,0.08)'; // Active card fill
+
+// Emerald alpha ramp (opacity tiers)
+export const ACCENT_GLASS_FAINT   = 'rgba(16,185,129,0.03)'; // Faintest tint
+export const ACCENT_GLASS_SUBTLE  = 'rgba(16,185,129,0.06)'; // Subtle fill
+export const ACCENT_GLASS         = 'rgba(16,185,129,0.08)'; // Active card fill
+export const ACCENT_GLASS_STRONG  = 'rgba(16,185,129,0.12)'; // Stronger fill, border tint
+export const ACCENT_BORDER_FAINT  = 'rgba(16,185,129,0.15)'; // Shadow, subtle glow
+export const ACCENT_BORDER        = 'rgba(16,185,129,0.2)';  // Border, divider
+export const ACCENT_BORDER_STRONG = 'rgba(16,185,129,0.25)'; // Hover border
+export const ACCENT_FOCUS         = 'rgba(16,185,129,0.3)';  // Focus ring, outer glow
+export const ACCENT_FOCUS_STRONG  = 'rgba(16,185,129,0.35)'; // Strong focus ring
+export const ACCENT_GLOW_40       = 'rgba(16,185,129,0.4)';  // Mid glow
+export const ACCENT_GLOW_50       = 'rgba(16,185,129,0.5)';  // Shadow, glow
+export const ACCENT_GLOW_60       = 'rgba(16,185,129,0.6)';  // Strong shadow
+export const ACCENT_GLOW_80       = 'rgba(16,185,129,0.8)';  // Intense glow
+
+// Emerald 300 alpha (glow drop shadows)
+export const GLOW_DROP_50 = 'rgba(52,211,153,0.5)'; // Drop shadow
+export const GLOW_DROP_80 = 'rgba(52,211,153,0.8)'; // Strong drop shadow
 
 // ============================================================
 // Semantic colour tokens
 // ============================================================
 
-export const COLOUR_WARN              = '#f59e0b'; // Amber 400
-export const COLOUR_WARN_GLASS        = 'rgba(245,158,11,0.08)'; // Amber active fill
-export const COLOUR_WARN_BORDER       = 'rgba(245,158,11,0.2)';  // Amber subtle border
-export const COLOUR_WARN_BORDER_STRONG = 'rgba(245,158,11,0.25)'; // Amber button border
-export const COLOUR_DANGER  = '#f43f5e'; // Rose 500
-export const COLOUR_INFO    = '#60a5fa'; // Blue 400
+// Amber/warn family
+export const COLOUR_WARN               = '#f59e0b'; // Amber 400
+export const COLOUR_WARN_TINT          = 'rgba(245,158,11,0.06)';  // Faintest amber fill
+export const COLOUR_WARN_GLASS         = 'rgba(245,158,11,0.08)';  // Amber active fill
+export const COLOUR_WARN_GLASS_STRONG  = 'rgba(245,158,11,0.12)';  // Stronger amber fill
+export const COLOUR_WARN_BORDER        = 'rgba(245,158,11,0.2)';   // Amber subtle border
+export const COLOUR_WARN_BORDER_STRONG = 'rgba(245,158,11,0.25)';  // Amber button border
+export const COLOUR_WARN_BORDER_HEAVY  = 'rgba(245,158,11,0.4)';   // Heavy amber border
+export const COLOUR_WARN_GLOW          = 'rgba(245,158,11,0.5)';   // Amber shadow/glow
+export const COLOUR_WARN_GLOW_STRONG   = 'rgba(245,158,11,0.8)';   // Intense amber glow
+
+// Orange status
+export const COLOUR_ORANGE_TINT   = 'rgba(249,115,22,0.06)'; // Orange status fill
+export const COLOUR_ORANGE_BORDER = 'rgba(249,115,22,0.12)'; // Orange status border
+
+// Red/error family
+export const COLOUR_DANGER        = '#f43f5e'; // Rose 500
+export const COLOUR_DANGER_GLASS  = 'rgba(239,68,68,0.06)';  // Error fill
+export const COLOUR_DANGER_BORDER = 'rgba(239,68,68,0.2)';   // Error border
+export const COLOUR_DANGER_SOLID  = 'rgba(244,63,94,1)';     // Full opacity danger
+
+// Red/coral (vault-specific)
+export const VAULT_ERROR_GLASS  = 'rgba(255,124,124,0.08)'; // Vault error fill
+export const VAULT_ERROR_BORDER = 'rgba(255,124,124,0.25)'; // Vault error border
+
+// Blue/info family
+export const COLOUR_INFO       = '#60a5fa'; // Blue 400
+export const COLOUR_INFO_GLASS  = 'rgba(59,130,246,0.1)';  // Info fill
+export const COLOUR_INFO_BORDER = 'rgba(59,130,246,0.15)'; // Info border/shadow
+export const COLOUR_INFO_GLOW   = 'rgba(59,130,246,0.3)';  // Info glow
+
+// Indigo/purple
+export const COLOUR_INDIGO_BORDER      = 'rgba(79,70,229,0.15)';  // Indigo border
+export const COLOUR_PURPLE_GLOW        = 'rgba(168,85,247,0.3)';  // Purple glow
+export const COLOUR_PURPLE_GLOW_STRONG = 'rgba(168,85,247,0.5)';  // Strong purple glow
+
+// Yellow
+export const COLOUR_YELLOW_GLOW = 'rgba(251,191,36,0.8)'; // Yellow drop shadow
+
+// Vault green (HistoryVaultUnlock animation)
+export const VAULT_GREEN_BORDER        = 'rgba(80,200,120,0.25)'; // Vault border stages
+export const VAULT_GREEN_BORDER_STRONG = 'rgba(80,200,120,0.4)';  // Vault active border
+export const VAULT_GREEN_GLOW          = 'rgba(80,200,120,0.45)'; // Vault shadow
 
 // ============================================================
 // Border tokens
