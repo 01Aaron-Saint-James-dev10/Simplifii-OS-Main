@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import SovereignCell from './SovereignCell';
 import {
@@ -8,6 +8,7 @@ import {
   BORDER_RADIUS,
   FONT_SYSTEM,
 } from '../theme/tokens';
+import { SOVEREIGN_DATA_READY } from '../core/Events';
 
 /**
  * PillarGallery: Semester Command Map
@@ -97,6 +98,16 @@ function AddTile({ onClick }) {
 
 export default function PillarGallery({ courses, activeCourseId, onSelect, onAddCourse }) {
   injectGalleryCSS();
+
+  // Re-render when extraction upgrades a course in the background.
+  // Forward-compatible: when courses move to IndexedDB this handler will
+  // re-read from the store. For now it forces a prop re-evaluation.
+  const [, setRefreshTick] = useState(0);
+  useEffect(() => {
+    const handler = () => setRefreshTick(t => t + 1);
+    window.addEventListener(SOVEREIGN_DATA_READY, handler);
+    return () => window.removeEventListener(SOVEREIGN_DATA_READY, handler);
+  }, []);
 
   const entries = Object.entries(courses);
   const total = entries.length;

@@ -5,6 +5,7 @@ import { fetchGroundingPdfs, listGroundingPdfs } from '../../utils/GroundingLoad
 import { nameCourse, getProviderName, extractAssessmentBriefs, REASONING_START_EVENT, REASONING_END_EVENT } from '../../services/RewriteService';
 import { reconcile as reconcileBriefs } from '../../services/SovereignReconciler';
 import { speakSystemMessage } from '../../services/MessagingHub';
+import { SOVEREIGN_DATA_READY } from '../../core/Events';
 
 /**
  * useIngestion
@@ -149,6 +150,7 @@ export function useIngestion({
           },
           roadmap: confirmed.derivedRoadmap || undefined
         });
+        window.dispatchEvent(new CustomEvent(SOVEREIGN_DATA_READY, { detail: { courseId } }));
         const greetingName = derivedName && derivedName !== 'New Course' ? derivedName : (data.unitCode || 'this course');
         const count = confirmed.assessmentTitles.length;
         let greeting;
@@ -172,6 +174,7 @@ export function useIngestion({
       // final. The learner gets the same regex roadmap without a perpetual
       // DRAFT badge.
       upgradeCourseExtraction(courseId, { extractionData: { shadow: false } });
+      window.dispatchEvent(new CustomEvent(SOVEREIGN_DATA_READY, { detail: { courseId } }));
     }
     return courseId;
   };
