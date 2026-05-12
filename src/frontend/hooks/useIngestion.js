@@ -118,7 +118,8 @@ export function useIngestion({
     // remains as-is with no destructive overwrite.
     if (data?.rawText && data.rawText.trim().length > 200 && getProviderName() === 'ollama') {
       window.dispatchEvent(new CustomEvent(REASONING_START_EVENT));
-      const briefsPromise = extractAssessmentBriefs(data.rawText)
+      const extractionFocus = 'Focus: Extract only Assessment names, Weightings, and Due Dates. Ignore unit policies, contact details, and reading lists.\n\n';
+      const briefsPromise = extractAssessmentBriefs(extractionFocus + data.rawText)
         .catch(err => { if (typeof console !== 'undefined') console.warn('[handleSprintCreation] Ollama extraction error:', err.message); return []; });
       const namePromise = nameCourse(data.rawText)
         .catch(err => { if (typeof console !== 'undefined') console.warn('[handleSprintCreation] nameCourse failed:', err.message); return null; });

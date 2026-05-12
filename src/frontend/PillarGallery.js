@@ -1,102 +1,280 @@
-import React from 'react';
-import { Brain, Layout, FlaskConical, BookOpen, CheckCircle2, Plus } from 'lucide-react';
+import React, { useState } from 'react';
+import { Brain, FlaskConical, BookOpen, Layout, Plus, ArrowRight } from 'lucide-react';
 
 /**
- * CoursePillar - Stage 03: Calm Dashboard Card
- * High-contrast, single-tier course tile. No nested cards.
- * Every interactive element carries a visible focus ring.
+ * PillarGallery: Semester Command Map
+ *
+ * Obsidian Bento Grid. Every course in the active semester is visible as a
+ * high-density SovereignCell showing UDL health, next deadline, and tier.
+ * Clicking a cell drills into that course's Authoring Cockpit.
+ *
+ * No cap on course count. All courses are shown.
+ *
+ * Props:
+ *   courses        {Object}   keyed course map from ProjectContext
+ *   activeCourseId {string}   currently selected course id
+ *   onSelect       {Function} (id) called when a cell is clicked
+ *   onAddCourse    {Function} called when the add tile is clicked
  */
-function CoursePillar({ course, id, isActive, onClick }) {
+
+// ============================================================
+// Injected CSS: card hover, line-clamp, focus ring
+// ============================================================
+
+let galleryCSSInjected = false;
+function injectGalleryCSS() {
+  if (galleryCSSInjected || typeof document === 'undefined') return;
+  const el = document.createElement('style');
+  el.textContent = `
+.sov-cell {
+  display: flex; flex-direction: column; gap: 12px;
+  background: #18181b; border: 1px solid #27272a; border-radius: 3px;
+  padding: 14px 14px 12px;
+  cursor: pointer; text-align: left; width: 100%;
+  transition: border 0.15s, background 0.15s;
+  outline: none; min-height: 160px; position: relative;
+}
+.sov-cell:hover { border-color: #3f3f46; }
+.sov-cell:focus-visible { box-shadow: 0 0 0 2px rgba(16,185,129,0.35); }
+.sov-cell--active { border-color: #10b981; background: rgba(16,185,129,0.03); }
+.sov-cell__cta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  color: #10b981; display: flex; align-items: center; gap: 4px;
+  opacity: 0; transition: opacity 0.15s; margin-top: auto;
+}
+.sov-cell:hover .sov-cell__cta,
+.sov-cell--active .sov-cell__cta { opacity: 1; }
+.sov-cell__name {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px; font-weight: 600; color: #e4e4e7;
+  display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden;
+  line-height: 1.4;
+}
+.sov-add-tile {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 8px;
+  background: #09090b; border: 1px dashed #27272a; border-radius: 3px;
+  padding: 20px 14px; cursor: pointer; min-height: 160px;
+  transition: border 0.15s;
+  outline: none;
+}
+.sov-add-tile:hover { border-color: rgba(16,185,129,0.3); }
+.sov-add-tile:focus-visible { box-shadow: 0 0 0 2px rgba(16,185,129,0.35); }
+  `.trim();
+  document.head.appendChild(el);
+  galleryCSSInjected = true;
+}
+
+// ============================================================
+// Section label token
+// ============================================================
+
+const ML = {
+  fontFamily: "'JetBrains Mono', monospace",
+  fontSize: 9, fontWeight: 700,
+  letterSpacing: '0.15em', textTransform: 'uppercase',
+  color: '#3f3f46',
+};
+
+// ============================================================
+// Tier icon helper
+// ============================================================
+
+function TierChip({ tier }) {
+  const map = {
+    Lab:       { icon: <FlaskConical size={10} />, label: 'Lab' },
+    Research:  { icon: <BookOpen size={10} />,     label: 'Research' },
+    Practical: { icon: <Layout size={10} />,       label: 'Practical' },
+    General:   { icon: <Brain size={10} />,        label: 'General' },
+  };
+  const t = map[tier] || map.General;
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      background: '#27272a', borderRadius: 3, padding: '2px 7px',
+      ...ML, color: '#52525b',
+    }}>
+      {t.icon} {t.label}
+    </span>
+  );
+}
+
+// ============================================================
+// UDL progress bar
+// ============================================================
+
+function UdlBar({ score }) {
+  if (score == null) return null;
+  const pct = Math.min(100, Math.max(0, score));
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+        <span style={ML}>UDL Score</span>
+        <span style={{ ...ML, color: pct >= 70 ? '#10b981' : pct >= 40 ? '#f59e0b' : '#f43f5e' }}>
+          {pct}/100
+        </span>
+      </div>
+      <div style={{ height: 3, background: '#27272a', borderRadius: 1, overflow: 'hidden' }}>
+        <div style={{
+          height: '100%', width: `${pct}%`,
+          background: 'linear-gradient(to right, #10b981, #34d399)',
+          borderRadius: 1, transition: 'width 0.6s ease',
+        }} />
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// SovereignCell
+// ============================================================
+
+function SovereignCell({ id, course, isActive, onClick }) {
+  const [hovered, setHovered] = useState(false);
+
   const tier = course.extractionData?.academicTier || 'General';
-
-  const tierMeta = (() => {
-    switch (tier) {
-      case 'Lab':       return { icon: <FlaskConical size={22} className="text-emerald-600" />, label: 'Lab' };
-      case 'Research':  return { icon: <BookOpen size={22} className="text-emerald-600" />,     label: 'Research' };
-      case 'Practical': return { icon: <Layout size={22} className="text-emerald-600" />,       label: 'Practical' };
-      default:          return { icon: <Brain size={22} className="text-emerald-600" />,        label: 'General' };
-    }
-  })();
-
   const unitCode = course.extractionData?.unitCode || id.split('_')[1]?.toUpperCase() || 'UNKN101';
+  const udlScore = course.extractionData?.udl3Score ?? course.extractionData?.udlScore ?? null;
+  const nextTask = course.roadmap?.currentTask || course.roadmap?.nextAssessment || null;
 
   return (
     <button
       type="button"
       onClick={() => onClick(id)}
-      className={`relative text-left bg-white border-2 ${isActive ? 'border-emerald-500 ring-2 ring-emerald-200' : 'border-zinc-200 hover:border-zinc-400'} rounded-lg p-6 transition-all flex flex-col h-52 justify-between focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none cursor-pointer shadow-sm hover:shadow-md`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={`sov-cell${isActive ? ' sov-cell--active' : ''}`}
     >
-      <div>
-        <div className="mb-3 inline-flex items-center gap-2 bg-zinc-100 px-3 py-2 rounded-md">
-          {tierMeta.icon}
-          <span className="text-xs font-bold text-zinc-500 uppercase">{tierMeta.label}</span>
-        </div>
-        <p className="text-xs font-bold uppercase tracking-wide text-zinc-400 mb-1">{unitCode}</p>
-        <h2 className="text-lg font-bold text-zinc-900 leading-snug">{course.name}</h2>
+      {/* Tier chip + active dot */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <TierChip tier={tier} />
+        {isActive && (
+          <div style={{
+            width: 8, height: 8, borderRadius: '50%',
+            background: '#10b981',
+            boxShadow: '0 0 6px rgba(16,185,129,0.5)',
+          }} />
+        )}
       </div>
 
-      <div className="flex items-center justify-between pt-4 border-t border-zinc-100">
-        <span className="text-xs font-medium text-zinc-400">
-          {isActive ? 'Currently active' : 'Select to open'}
-        </span>
-        {isActive && (
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600">
-            <CheckCircle2 size={14} /> Active
-          </span>
-        )}
+      {/* Course identity */}
+      <div>
+        <p style={{ ...ML, color: '#52525b', marginBottom: 3, letterSpacing: '0.15em' }}>
+          {unitCode}
+        </p>
+        <p className="sov-cell__name">{course.name || '(unnamed)'}</p>
+      </div>
+
+      {/* UDL bar */}
+      <UdlBar score={udlScore} />
+
+      {/* Next assessment */}
+      {nextTask && (
+        <div>
+          <p style={{ ...ML, marginBottom: 2 }}>Next</p>
+          <p style={{
+            fontSize: 11, color: '#71717a', margin: 0,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            lineHeight: 1.4,
+          }}>{nextTask}</p>
+        </div>
+      )}
+
+      {/* CTA */}
+      <div className="sov-cell__cta">
+        Open Cockpit <ArrowRight size={10} />
       </div>
     </button>
   );
 }
 
-/**
- * AddCourseTile - Stage 03: Dashed placeholder for adding a new course.
- */
-function AddCourseTile({ onClick }) {
+// ============================================================
+// AddTile
+// ============================================================
+
+function AddTile({ onClick }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="text-left bg-white border-2 border-dashed border-zinc-300 hover:border-emerald-500 rounded-lg p-6 transition-all flex flex-col h-52 items-center justify-center gap-3 focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none cursor-pointer hover:bg-emerald-50/50"
+      className="sov-add-tile"
+      aria-label="Add a new course"
     >
-      <div className="w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center">
-        <Plus size={24} className="text-zinc-400" />
+      <div style={{
+        width: 28, height: 28, borderRadius: 3,
+        background: '#27272a',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Plus size={16} color="#52525b" />
       </div>
-      <span className="text-sm font-bold text-zinc-500">Add a course</span>
-      <span className="text-xs text-zinc-400">Upload a syllabus to get started</span>
+      <span style={{ ...ML, color: '#3f3f46' }}>Add Course</span>
+      <span style={{
+        fontSize: 10, color: '#27272a',
+        fontFamily: "'JetBrains Mono', monospace",
+        textAlign: 'center', lineHeight: 1.5,
+      }}>
+        Drop a syllabus to unlock
+      </span>
     </button>
   );
 }
 
-/**
- * PillarGallery - Stage 03: Calm Dashboard Course Selection
- * Clean grid, maximum six tiles (five courses plus one add tile).
- * High-contrast light theme, keyboard-first tab order.
- *
- * Props:
- *   courses        {Object}   keyed course map from ProjectContext
- *   activeCourseId {string}   currently selected course id
- *   onSelect       {Function} called with course id when a pillar is clicked
- *   onAddCourse    {Function} called when the add tile is clicked
- */
+// ============================================================
+// PillarGallery
+// ============================================================
+
 export default function PillarGallery({ courses, activeCourseId, onSelect, onAddCourse }) {
-  const entries = Object.entries(courses).slice(0, 5);
-  const totalCourses = Object.keys(courses).length;
+  injectGalleryCSS();
+
+  const entries = Object.entries(courses);
+  const total = entries.length;
 
   return (
-    <div className="flex-1 bg-zinc-50 p-8 md:p-12 overflow-y-auto font-sans">
-      <header className="max-w-5xl mx-auto mb-10 flex justify-between items-end">
+    <div style={{
+      flex: 1, background: '#09090b',
+      overflowY: 'auto', padding: '28px 24px',
+      display: 'flex', flexDirection: 'column', gap: 20,
+    }}>
+      {/* Header */}
+      <header style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 mb-1">Your Courses</h1>
-          <p className="text-sm text-zinc-500">
-            {totalCourses} {totalCourses === 1 ? 'course' : 'courses'} loaded
+          <p style={{ ...ML, marginBottom: 4 }}>Semester Command Map</p>
+          <p style={{
+            fontSize: 11, color: '#52525b',
+            fontFamily: "'JetBrains Mono', monospace",
+          }}>
+            {total} {total === 1 ? 'course' : 'courses'} loaded
           </p>
         </div>
+        <button
+          type="button"
+          onClick={onAddCourse}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 9, fontWeight: 700,
+            letterSpacing: '0.15em', textTransform: 'uppercase',
+            background: 'none', color: '#10b981',
+            border: '1px solid rgba(16,185,129,0.25)',
+            borderRadius: 3, padding: '5px 10px',
+            cursor: 'pointer', transition: 'border 0.15s',
+          }}
+        >
+          <Plus size={11} /> Add Course
+        </button>
       </header>
 
-      <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      {/* Bento grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+        gap: 12,
+      }}>
         {entries.map(([id, course]) => (
-          <CoursePillar
+          <SovereignCell
             key={id}
             id={id}
             course={course}
@@ -104,14 +282,8 @@ export default function PillarGallery({ courses, activeCourseId, onSelect, onAdd
             onClick={onSelect}
           />
         ))}
-        {entries.length < 5 && <AddCourseTile onClick={onAddCourse} />}
+        <AddTile onClick={onAddCourse} />
       </div>
-
-      {totalCourses > 5 && (
-        <p className="max-w-5xl mx-auto mt-6 text-sm text-zinc-400">
-          Showing 5 of {totalCourses} courses. Use the sidebar switcher to access the rest.
-        </p>
-      )}
     </div>
   );
 }

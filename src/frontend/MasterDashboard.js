@@ -132,6 +132,17 @@ export default function MasterDashboard() {
   const [viewMode, setViewMode] = useState('canvas'); // 'canvas' | 'gallery' | 'cockpit' | 'sovereign'
   const [smContent, setSmContent] = useState(null);
 
+  // On first mount: if courses already exist default to the gallery view so
+  // the Semester Command Map is the landing surface rather than the empty canvas.
+  const viewInitRef = useRef(false);
+  useEffect(() => {
+    if (viewInitRef.current) return;
+    viewInitRef.current = true;
+    if (Object.keys(courses).length > 0) {
+      setViewMode('gallery');
+    }
+  }, [courses]);
+
   // Auto-collapse the left sidebar when entering the Authoring Cockpit
   // so the centre column gets full focus. Restore when leaving.
   const prevViewModeRef = useRef(viewMode);
