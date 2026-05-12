@@ -17,18 +17,11 @@ import LinearCanvas from './LinearCanvas';
 import MathsStepEditor from './MathsStepEditor';
 import AIAvatar from './AIAvatar';
 import SupportBridge from './SupportBridge';
-import { fetchLMSData } from '../backend/LMSConnector';
-import { mapToWorkspace, deriveRoadmapFromAssessments, extractDeepCourseData, mergeExtractionData } from '../services/BriefService';
-import { processDocumentWithGCP } from '../services/DocumentAIService';
-import { fetchGroundingPdfs, listGroundingPdfs } from '../utils/GroundingLoader';
-import { nameCourse, pingOllama, getProviderName, extractAssessmentBriefs, REASONING_START_EVENT, REASONING_END_EVENT } from '../services/RewriteService';
-import { reconcile as reconcileBriefs } from '../services/SovereignReconciler';
 import { jsPDF } from 'jspdf';
-import FloatingResourceCard from './FloatingResourceCard';
-import ResourceIngestor from './ResourceIngestor';
 import { simulateIncomingWebhook, speakSystemMessage, markSpeechUnlocked } from '../services/MessagingHub';
-import { auditProjectContext } from '../services/VerificationService';
+import { pingOllama, getProviderName, REASONING_START_EVENT, REASONING_END_EVENT } from '../services/RewriteService';
 import { saveGhostAsset, getAllGhostAssets } from '../services/IndexedDBService';
+import { useIngestion } from './hooks/useIngestion';
 import IdleNudge from './IdleNudge';
 import SteeringDrawer from './SteeringDrawer';
 import HomeschoolDashboard from '../streams/homeschool/Dashboard';
@@ -98,14 +91,14 @@ export default function MasterDashboard() {
   // rule in CLAUDE.md.
   const [showSteering, setShowSteering] = useState(false);
   const [showAuraLayer, setShowAuraLayer] = useState(false);
-  // Grounding folder ingestion. Pulls every PDF committed to
-  // src/grounding/active/, runs each through DocumentAIService, then
-  // hands the aggregated extraction to handleSprintCreation. The
-  // resulting course lands as a Shadow State draft in milliseconds
-  // and the LLM extraction firms it up in the background.
-  const [ingesting, setIngesting] = useState(false);
-  const [ingestStatus, setIngestStatus] = useState('');
-  const groundingCount = listGroundingPdfs().length;
+  const { handleGroupedIngest, handleIngestGrounding, ingesting, ingestStatus, groundingCount } = useIngestion({
+    profile,
+    activeCourseId,
+    addCourseWithData,
+    upgradeCourseExtraction,
+    setInstitutionalData,
+    onCoursesReady: () => setViewMode('gallery')
+  });
   // Vault state: open the unlock modal once on first load if the vault
   // is locked AND the student has not chosen Ghost Mode. After the
   // student unlocks or skips, the modal stays dismissed for the
@@ -266,278 +259,6 @@ export default function MasterDashboard() {
     setCurrentStage(nextStage);
   };
 
-  // Smart Handshake. Atomic create-and-fill so course name, tasks,
-  // extraction data, blocks, and roadmap all land in a single new course
-  // in one transition. No data leaks into the previous active course.
-  //
-  // Flow:
-  //   1. Build all derived state synchronously: blocks, tasks, roadmap.
-  //   2. Dispatch reasoning-start so the AURA dot pulses faster while
-  //      we wait for Ollama to canonicalise the course name.
-  //   3. await nameCourse(rawText). 8 second timeout inside RewriteService;
-  //      regex fallback if Ollama is unreachable.
-  //   4. addCourseWithData(name, payload). Single setCourses transition.
-  //   5. Speak the success greeting through the same channel the
-  //      Academic Tools use, so the student hears 'Course X identified.
-  //      Your semester is now mapped.'
-  // Reconcile a list of candidate briefs onto canonical assessments
-  // and build the standard derived state (titles, doneWhenChecklist,
-  // roadmap). Used by both the shadow draft path (regex-only) and the
-  // confirmed path (regex unioned with Ollama).
-  const buildDerived = (candidateBriefs) => {
-    const reconciledBriefs = reconcileBriefs(candidateBriefs);
-    const assessmentTitles = reconciledBriefs.map(b => b.weight ? `${b.title} (${b.weight})` : b.title);
-    const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '').slice(0, 40) || 'item';
-    const doneWhenChecklist = assessmentTitles.slice(0, 12).map((entry, i) => ({
-      id: `assess_${i}_${slugify(entry)}`,
-      text: entry,
-      checked: false,
-      triggerWord: entry.split(/\s+/).slice(0, 3).join(' ').toLowerCase()
-    }));
-    const derivedRoadmap = deriveRoadmapFromAssessments(assessmentTitles);
-    return { reconciledBriefs, assessmentTitles, doneWhenChecklist, derivedRoadmap };
-  };
-
-  // Split aggregated ingest data by unit code prefix so each course
-  // code gets its own cockpit entry. Detects codes like BABS1201,
-  // MATH1131, etc. from sourceFiles. Files without a code go into the
-  // fallback group keyed by the profile unit code.
-  const handleGroupedIngest = async (data) => {
-    const files = data.sourceFiles || [];
-    if (files.length === 0) return handleSprintCreation(data);
-
-    // Sovereign Logic: Detect Unit Codes (e.g., BABS1201, LAWS1001)
-    const codeRegex = /\b([A-Z]{3,4}\d{4})\b/;
-    const groups = {};
-    for (const name of files) {
-      const match = name.match(codeRegex);
-      const code = match ? match[1] : (data.unitCode || 'General');
-      if (!groups[code]) groups[code] = [];
-      groups[code].push(name);
-    }
-
-    const codes = Object.keys(groups);
-    if (codes.length <= 1) return handleSprintCreation(data);
-
-    const uploadForSubset = (names) =>
-      (data.sourceUploads || []).filter((u) => names.includes(u.name));
-
-    // Multi-course ingestion: Initialise distinct Course Pillars
-    for (const code of codes) {
-      const groupList = groups[code];
-      const subset = {
-        ...data,
-        unitCode: code,
-        sourceFiles: groupList,
-        sourceUploads: uploadForSubset(groupList)
-      };
-      await handleSprintCreation(subset);
-    }
-    
-    setViewMode('gallery');
-  };
-
-  const handleSprintCreation = async (data) => {
-    // Shadow State pattern. Cold-load the cockpit instantly with a
-    // regex-only "Draft Roadmap" so the student never stares at a
-    // spinner; the heavy LLM passes (extractAssessmentBriefs, nameCourse)
-    // run in the background and upgrade the same course in place when
-    // they settle. Loading anxiety breaks executive function. The
-    // shadow flag on extractionData lets downstream UI mark the data
-    // as DRAFT until ground truth lands.
-    const regexTitles = Array.isArray(data.assessmentTitles) ? data.assessmentTitles.slice() : [];
-    const regexCandidateBriefs = regexTitles
-      .map(t => String(t || '').trim())
-      .filter(t => t.length >= 4)
-      .map(t => {
-        const stem = t.replace(/\s*\(\d+%\)\s*$/, '').trim();
-        const weightMatch = t.match(/\((\d+%)\)/);
-        return { title: stem, weight: weightMatch ? weightMatch[1] : '', wordCountGoal: 0, dueDate: '', source: 'brief' };
-      });
-
-    const draft = buildDerived(regexCandidateBriefs);
-    const draftFirst = draft.assessmentTitles[0];
-    const draftTaskName = draftFirst || data.unitCode || 'Course Brief';
-    const draftTask = { course: data.unitCode || 'Extracted', task: draftTaskName, level: data.level, rawText: data.rawText };
-    const generatedBlocks = mapToWorkspace(data.rawText || '', data.level || 'Tertiary');
-    const draftName = data.unitCode || 'New Course';
-
-    setInstitutionalData({
-      learningOutcomes: data.learningOutcomes || [],
-      referencingStyle: data.referencingStyle || 'Harvard',
-      rubricCriteria: data.rubricCriteria || []
-    });
-
-    const draftPayload = {
-      tasks: [draftTask],
-      activeTask: draftTask,
-      extractionData: { ...data, assessmentTitles: draft.assessmentTitles, assessmentBriefs: draft.reconciledBriefs, doneWhenChecklist: draft.doneWhenChecklist, shadow: true },
-      project: { blocks: generatedBlocks }
-    };
-    if (draft.derivedRoadmap) draftPayload.roadmap = draft.derivedRoadmap;
-
-    const courseId = addCourseWithData(draftName, draftPayload);
-
-    speakSystemMessage(
-      draft.assessmentTitles.length > 0
-        ? `Draft roadmap ready. ${draft.assessmentTitles.length} pillars detected. Refining in the background.`
-        : 'Draft cockpit ready. Refining the syllabus in the background.',
-      `${draftName} draft ready.`
-    );
-
-    // Background: run Ollama extraction and nameCourse in parallel,
-    // then upgrade the course in place. The student keeps interacting
-    // with the draft state during this window. If both LLM calls fail
-    // the draft remains as-is; no destructive overwrite.
-    if (data?.rawText && data.rawText.trim().length > 200 && getProviderName() === 'ollama') {
-      window.dispatchEvent(new CustomEvent(REASONING_START_EVENT));
-      const briefsPromise = extractAssessmentBriefs(data.rawText)
-        .catch(err => { if (typeof console !== 'undefined') console.warn('[handleSprintCreation] Ollama extraction error:', err.message); return []; });
-      const namePromise = nameCourse(data.rawText)
-        .catch(err => { if (typeof console !== 'undefined') console.warn('[handleSprintCreation] nameCourse failed:', err.message); return null; });
-
-      try {
-        const [llmBriefs, derivedName] = await Promise.all([briefsPromise, namePromise]);
-        const candidateBriefs = [
-          ...llmBriefs.map(b => ({ ...b, source: b.source || 'outline' })),
-          ...regexCandidateBriefs
-        ];
-        const confirmed = buildDerived(candidateBriefs);
-        const conflictCount = confirmed.reconciledBriefs.reduce((n, b) => n + ((b.reconciled?.conflicts?.length) || 0), 0);
-        if (typeof console !== 'undefined') {
-          console.info('[handleSprintCreation] confirmed extraction:', confirmed.reconciledBriefs.length, 'canonical assessments (', conflictCount, 'conflicts resolved)');
-        }
-        const confirmedFirst = confirmed.assessmentTitles[0];
-        const confirmedTask = { course: data.unitCode || 'Extracted', task: confirmedFirst || draftTaskName, level: data.level, rawText: data.rawText };
-        upgradeCourseExtraction(courseId, {
-          name: derivedName && derivedName !== 'New Course' ? derivedName : undefined,
-          tasks: [confirmedTask],
-          activeTask: confirmedTask,
-          extractionData: {
-            assessmentTitles: confirmed.assessmentTitles,
-            assessmentBriefs: confirmed.reconciledBriefs,
-            doneWhenChecklist: confirmed.doneWhenChecklist,
-            shadow: false
-          },
-          roadmap: confirmed.derivedRoadmap || undefined
-        });
-        const greetingName = derivedName && derivedName !== 'New Course' ? derivedName : (data.unitCode || 'this course');
-        const count = confirmed.assessmentTitles.length;
-        let greeting;
-        const hasParetoLitReview = confirmed.derivedRoadmap?.paretoSteps &&
-          confirmed.assessmentTitles.some(t => /literature review/i.test(t));
-        if (hasParetoLitReview) {
-          greeting = `I've grounded your ${greetingName} Literature Review. We have 25 marks on the line\u2014should we start with Step 1 (Locking your Topic)?`;
-        } else if (count === 0) {
-          greeting = `Course ${greetingName} confirmed. No assessments detected. Drop a fuller syllabus to unlock the roadmap.`;
-        } else if (count === 1) {
-          greeting = `Course ${greetingName} confirmed. One pillar mapped.`;
-        } else {
-          greeting = `Course ${greetingName} confirmed. ${count} pillars mapped.`;
-        }
-        speakSystemMessage(greeting, `${greetingName} confirmed.`);
-      } finally {
-        window.dispatchEvent(new CustomEvent(REASONING_END_EVENT));
-      }
-    } else {
-      // No LLM available: clear the shadow flag so the draft is
-      // treated as final. The student gets the same regex roadmap
-      // without a perpetual DRAFT badge.
-      upgradeCourseExtraction(courseId, { extractionData: { shadow: false } });
-    }
-    return courseId;
-  };
-
-  // Mirror UniversalOnboarding.classifyFile so the bundled PDFs feed
-  // the extractor in Outline → Brief → Rubric order. The merged rawText
-  // then opens with the canonical assessment table; Ollama's first
-  // window picks it up and the regex pre-extraction sees outline
-  // weightings before brief sub-component weightings.
-  const classifyGroundingFile = (file) => {
-    const n = (file.name || '').toLowerCase();
-    if (/outline|course[ _-]?info|co[_-]/i.test(n)) return 0;
-    if (/brief|assess|task|instruction/i.test(n)) return 1;
-    if (/rubric|criteria|marking/i.test(n)) return 2;
-    return 3;
-  };
-
-  // Ingest every PDF currently committed to /src/grounding/active/.
-  // Triggered by the cockpit top-nav button. Groups files by unit code
-  // (e.g. BABS1201, BABS1202) BEFORE extraction so each course code
-  // gets its own cockpit entry with only its own documents. Files
-  // without a recognisable code fall into a fallback group keyed by the
-  // profile course name.
-  const handleIngestGrounding = async () => {
-    if (ingesting) return;
-    setIngesting(true);
-    setIngestStatus('Locating grounding folder...');
-    window.dispatchEvent(new CustomEvent(REASONING_START_EVENT));
-    try {
-      const files = (await fetchGroundingPdfs()).sort((a, b) => classifyGroundingFile(a) - classifyGroundingFile(b));
-      if (files.length === 0) {
-        setIngestStatus('Nothing in /src/grounding/active/.');
-        if (typeof console !== 'undefined') console.warn('[handleIngestGrounding] no PDFs returned by GroundingLoader');
-        return;
-      }
-
-      // Group files by unit code before extraction
-      const codeRegex = /\b([A-Z]{3,4}\d{4})\b/;
-      const fileGroups = {};
-      for (const file of files) {
-        const match = (file.name || '').match(codeRegex);
-        const code = match ? match[1] : (profile.courseName || 'Unknown');
-        if (!fileGroups[code]) fileGroups[code] = [];
-        fileGroups[code].push(file);
-      }
-
-      // Sort codes so BABS1201 is processed last and becomes the
-      // active course (addCourseWithData sets activeCourseId on each
-      // call; last one wins).
-      const codes = Object.keys(fileGroups).sort((a, b) => {
-        if (a === 'BABS1201') return 1;
-        if (b === 'BABS1201') return -1;
-        return a.localeCompare(b);
-      });
-
-      if (typeof console !== 'undefined') console.info('[handleIngestGrounding] detected', codes.length, 'unit groups:', codes.join(', '));
-
-      for (const code of codes) {
-        const groupFiles = fileGroups[code];
-        let aggregated = {
-          unitCode: code,
-          level: profile.level,
-          theme: 'General',
-          sourceFiles: groupFiles.map(f => f.name)
-        };
-        for (let i = 0; i < groupFiles.length; i++) {
-          const file = groupFiles[i];
-          setIngestStatus(`Scanning ${code}: ${file.name}`);
-          if (typeof console !== 'undefined') console.info('[handleIngestGrounding] processing', file.name, 'group=', code, 'class=', classifyGroundingFile(file));
-          try {
-            const text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
-            const deepData = extractDeepCourseData(text);
-            aggregated = mergeExtractionData(aggregated, { ...deepData, rawText: text });
-          } catch (err) {
-            if (typeof console !== 'undefined') console.warn('[handleIngestGrounding] skipped', file.name, err && err.message);
-          }
-        }
-        setIngestStatus(`Creating ${code} cockpit...`);
-        await handleSprintCreation(aggregated);
-      }
-
-      setIngestStatus(`Ingested ${files.length} file${files.length === 1 ? '' : 's'} across ${codes.length} course${codes.length === 1 ? '' : 's'}.`);
-    } catch (err) {
-      if (typeof console !== 'undefined') console.error('[handleIngestGrounding] failed', err);
-      setIngestStatus(`Ingestion failed: ${err && err.message ? err.message : 'unknown error'}`);
-    } finally {
-      window.dispatchEvent(new CustomEvent(REASONING_END_EVENT));
-      setIngesting(false);
-      // Clear the status line after a few seconds so the nav does not
-      // stay cluttered. The Shadow State pill keeps the user informed
-      // while the LLM confirmation pass finishes.
-      setTimeout(() => setIngestStatus(''), 6000);
-    }
-  };
 
   const generatePremiumPDF = () => {
     const doc = new jsPDF();
