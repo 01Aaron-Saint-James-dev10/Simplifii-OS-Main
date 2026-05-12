@@ -31,6 +31,7 @@ export const TEXT_LABEL    = '#3f3f46'; // Zinc 700: system metadata labels
 
 export const ACCENT_PULSE  = '#10b981'; // Emerald 500: primary accent
 export const ACCENT_HOVER  = '#0f9d80'; // Emerald 600: hover state
+export const ACCENT_GLOW   = '#34d399'; // Emerald 300: gradient end, glow highlights
 export const ACCENT_GLASS  = 'rgba(16,185,129,0.08)'; // Active card fill
 
 // ============================================================
