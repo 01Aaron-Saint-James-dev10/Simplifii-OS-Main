@@ -1,9 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Brain, RefreshCw, Sparkles, Layout, FileText, Target, AlertTriangle, Shield, ChevronLeft, ChevronRight, Eye, HardDrive, Trash2 } from 'lucide-react';
+import { Brain, RefreshCw, Eye } from 'lucide-react';
 import { useSettings } from './SettingsContext';
 import { useProject } from './ProjectContext';
 import { useInstitution } from './InstitutionalContext';
-import TaskCard from './TaskCard';
 import AccessibilityVault from './AccessibilityVault';
 import ConfirmDialog from './ConfirmDialog';
 import AskAura from './AskAura';
@@ -30,6 +29,9 @@ import SecondaryDashboard from '../streams/secondary/Dashboard';
 import TafeDashboard from '../streams/tafe/Dashboard';
 import PillarGallery from './PillarGallery';
 import AuthoringCockpit from './AuthoringCockpit';
+import DashboardNav from './DashboardNav';
+import SemesterSidebar from './SemesterSidebar';
+import CognitiveArchive from './CognitiveArchive';
 
 const STREAM_DASHBOARDS = {
   primary: PrimaryDashboard,
@@ -475,154 +477,28 @@ export default function MasterDashboard() {
 
   return (
     <div className={`h-screen w-full bg-black text-zinc-200 flex flex-col font-sans overflow-hidden transition-colors duration-1000 ${getOverlayColor()} ${isZenMode ? 'zen-mode-active' : ''}`}>
-      {/* Top Navigation Bar */}
-      <div className={`h-[70px] shrink-0 flex items-center justify-between px-8 border-b border-zinc-800 bg-black/80 backdrop-blur-md relative z-[1200] transition-all duration-700 ${isZenMode ? '-translate-y-full' : 'translate-y-0'}`}>
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => setViewMode('gallery')}
-            className="flex items-center gap-2 hover:opacity-80 transition-opacity group"
-          >
-            <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center group-hover:bg-indigo-500/30 transition-colors">
-              <Brain size={18} className="text-indigo-400" />
-            </div>
-            <span className="font-black tracking-widest uppercase text-sm bg-gradient-to-r from-indigo-400 to-indigo-600 text-transparent bg-clip-text">
-              Simplifii
-            </span>
-          </button>
-          <div className="h-4 w-px bg-zinc-800"></div>
-          <span className="text-[12px] font-bold text-zinc-500 tracking-[0.2em] uppercase">
-            Sovereign OS
-          </span>
-          <div className="ml-2 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border border-indigo-500/30 text-indigo-400 bg-indigo-500/10">
-            Zero Disclosure
-          </div>
-          <div className="ml-2 flex items-center gap-2 px-3 py-1 rounded-full border text-[12px] font-black uppercase tracking-widest transition-all bg-emerald-500/10 border-emerald-500/50 text-emerald-400 cursor-help" title="Sovereign Engine Active">
-            <HardDrive size={10} /> Sovereign
-          </div>
-          {/* Shadow State pill. Surfaces while the cockpit is showing
-              regex-derived draft data and the LLM Confirmed Truth pass
-              is still in flight. Disappears the moment the upgrade
-              lands or the no-LLM fallback clears the shadow flag. */}
-          {activeCourse?.extractionData?.shadow && (
-            <div className="ml-2 flex items-center gap-2 px-3 py-1 rounded-full border text-[12px] font-black uppercase tracking-widest bg-amber-500/10 border-amber-500/40 text-amber-300 cursor-help" title="Draft roadmap from regex. Refining via Ollama; the cockpit will swap to confirmed truth automatically.">
-              <RefreshCw size={10} className="animate-spin" /> Draft  ·  refining
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center gap-5 relative z-[1300]">
-          {/* NOT VERIFIED badge: appears when the student opted into
-              Ghost Mode (skipped the vault). Visible signal that
-              History of Thought is NOT capturing this session. */}
-          {ghostMode && (
-            <button
-              type="button"
-              onClick={() => { setGhostMode(false); setVaultDismissed(false); }}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full border text-[12px] font-black uppercase tracking-widest transition-all cursor-pointer bg-rose-500/10 border-rose-500/40 text-rose-300 hover:bg-rose-500/20"
-              title="Ghost Mode: no events recorded. Click to unlock the vault."
-            >
-              <Shield size={11} /> NOT VERIFIED
-            </button>
-          )}
-          {/* Scaffolder overlay: tiered support engine (Primary / Secondary
-              / Tertiary). Re-renders the active assessment as a quest,
-              checklist, or skeleton timeline depending on the learner's
-              profile.level. */}
-          {/* Peripheral toolbar. data-focus-locked dims these buttons
-              during an active FocusSession so the only visible action
-              surface is the cockpit + AURA + SOS. Setting the attribute
-              on each button (rather than a wrapping div) keeps the
-              flexbox layout untouched. */}
-          <button
-            data-focus-locked="true"
-            onClick={() => setShowScaffolder(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all cursor-pointer bg-transparent border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
-            title="Open Sovereign Scaffolder (tiered support overlay)"
-          >
-            <Sparkles size={14} /> Scaffolder
-          </button>
-          {/* Steering Drawer trigger. Persona / Scaffolding / Grit / LOD
-              dials live inside the drawer; this button is the only way
-              in. Stays unlocked during focus sessions because the
-              student may need to dial the OS down without ending the
-              sprint. */}
-          <button
-            onClick={() => setShowSteering(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all cursor-pointer bg-transparent border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
-            title="Open Steering Drawer (Persona, Scaffolding, Grit, LOD)"
-          >
-            <Sparkles size={14} /> Steering
-          </button>
-          {/* Ingest Grounding Folder. Bridges the gap between the PDFs
-              committed to /src/grounding/active/ and the running
-              cockpit. Disabled when the folder is empty (require.context
-              returned zero files) and while an ingestion is in flight.
-              Stays unlocked during focus sessions; rare but useful if
-              new grounding files arrive mid-sprint. */}
-          {groundingCount > 0 && (
-            <button
-              onClick={handleIngestGrounding}
-              disabled={ingesting}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${ingesting ? 'bg-amber-500/10 border-amber-500/40 text-amber-300 cursor-wait' : 'bg-transparent border-amber-500/40 text-amber-400 hover:bg-amber-500/10'} disabled:cursor-wait`}
-              title={ingesting ? (ingestStatus || 'Scanning grounding folder...') : `Ingest ${groundingCount} PDF${groundingCount === 1 ? '' : 's'} from /src/grounding/active/ into the cockpit.`}
-            >
-              {ingesting
-                ? <RefreshCw size={14} className="animate-spin" />
-                : <FileText size={14} />}
-              {ingesting ? 'Scanning...' : 'Ingest Grounding'}
-            </button>
-          )}
-          {/* Studio toggle: switch between classic LinearCanvas and the
-              tri-column SimplifiiStudio (NotebookLM-style) layout */}
-          <button
-            data-focus-locked="true"
-            onClick={() => setShowStudio(v => !v)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${showStudio ? 'bg-emerald-500 border-emerald-500 text-black' : 'bg-transparent border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10'}`}
-            title={showStudio ? 'Switch to Classic Cockpit' : 'Switch to Studio (tri-column)'}
-          >
-            <Sparkles size={14} /> {showStudio ? 'Classic' : 'Studio'}
-          </button>
-          {/* View as Speech Button */}
-          <button
-            data-focus-locked="true"
-            onClick={() => window.dispatchEvent(new CustomEvent('toggle-view-mode'))}
-            className="flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all bg-transparent border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 cursor-pointer"
-          >
-            <Sparkles size={14} /> View as Speech
-          </button>
-          {/* UDL Overrides Button */}
-          <button
-            data-focus-locked="true"
-            onClick={() => window.dispatchEvent(new CustomEvent('toggle-accessibility'))}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${isBionicActive || overlayTint !== 'none' || isRulerActive ? 'bg-amber-500/10 border-amber-500/50 text-amber-500' : 'bg-transparent border-zinc-700 text-zinc-400'} hover:text-white hover:border-zinc-500`}
-          >
-            <Sparkles size={14} /> UDL Overrides
-          </button>
-
-          {/* Literal Mode Toggle */}
-          <button
-            data-focus-locked="true"
-            type="button"
-            role="switch"
-            aria-checked={isLiteralMode}
-            aria-label="Toggle Literal Mode"
-            onClick={() => setIsLiteralMode(prev => !prev)}
-            className="flex items-center gap-3 bg-zinc-900/50 px-4 py-2 rounded-full border border-zinc-800 cursor-pointer hover:border-zinc-600 transition-colors"
-          >
-            <span className="text-[12px] font-bold uppercase tracking-widest text-zinc-500">Literal Mode</span>
-            <span className={`w-10 h-5 rounded-full relative transition-colors ${isLiteralMode ? 'bg-indigo-500' : 'bg-zinc-700'}`}>
-              <span className={`w-3 h-3 bg-white rounded-full absolute top-1 transition-transform ${isLiteralMode ? 'translate-x-6' : 'translate-x-1'}`}></span>
-            </span>
-          </button>
-
-          <button
-            onClick={() => setShowSupportBridge(true)}
-            className="flex items-center gap-2 px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all bg-rose-500/10 border border-rose-500/30 text-rose-500 hover:bg-rose-500 hover:text-white shadow-glow-rose cursor-pointer"
-          >
-            <AlertTriangle size={14} /> SOS
-          </button>
-        </div>
-      </div>
+      <DashboardNav
+        isZenMode={isZenMode}
+        setViewMode={setViewMode}
+        activeCourse={activeCourse}
+        ingesting={ingesting}
+        ingestStatus={ingestStatus}
+        groundingCount={groundingCount}
+        handleIngestGrounding={handleIngestGrounding}
+        showStudio={showStudio}
+        setShowStudio={setShowStudio}
+        isBionicActive={isBionicActive}
+        overlayTint={overlayTint}
+        isRulerActive={isRulerActive}
+        isLiteralMode={isLiteralMode}
+        setIsLiteralMode={setIsLiteralMode}
+        ghostMode={ghostMode}
+        setGhostMode={setGhostMode}
+        setVaultDismissed={setVaultDismissed}
+        setShowSteering={setShowSteering}
+        setShowScaffolder={setShowScaffolder}
+        setShowSupportBridge={setShowSupportBridge}
+      />
 
       {/* Restored Avatar: Fixed Anchor at top:100px (clears the z-1200 nav) */}
       <div className="fixed top-[100px] left-4 z-[1100] w-56 animate-fade-in pointer-events-none">
@@ -738,293 +614,45 @@ export default function MasterDashboard() {
       {/* Body row: sidebar + main + right archive share the height below the nav */}
       <div className="flex-1 flex overflow-hidden min-h-0">
 
-      {/* Global Sprints Sidebar (Left). data-focus-locked dims and
-          click-protects the rail when an ExecutiveSpine FocusSession
-          is active (CSS rule: simplifii-studio.css). The active task
-          column stays unlocked. */}
-      <aside data-focus-locked="true" className={`${leftSidebarClass} border-r border-zinc-800/50 bg-black/40 backdrop-blur-xl flex flex-col shrink-0 transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] z-10 relative overflow-hidden pt-44`}>
-        {!isZenMode && (
-          <button 
-            onClick={() => setIsLeftCollapsed(!isLeftCollapsed)}
-            className="absolute -right-3 top-24 z-50 bg-zinc-800 border border-zinc-700 rounded-full p-1 text-zinc-400 hover:text-white hover:border-emerald-500 transition-all"
-          >
-            {isLeftCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-          </button>
-        )}
-
-        <div className={`flex items-center gap-2 mb-10 mt-5 transition-opacity ${isLeftCollapsed ? 'opacity-0 h-0 overflow-hidden mb-0 mt-0' : 'opacity-100'}`}>
-          <div className="bg-emerald-500 p-1.5 rounded-lg shadow-glow-emerald"><Brain size={20} className="text-black" /></div>
-          <span className="font-black text-lg tracking-tighter whitespace-nowrap">SIMPLIFII-OS</span>
-        </div>
-
-        {isLeftCollapsed && !isZenMode && (
-          <div className="flex flex-col items-center mt-5 space-y-8">
-            <div className="bg-emerald-500 p-1.5 rounded-lg shadow-glow-emerald"><Brain size={20} className="text-black" /></div>
-            <Layout size={20} className="text-zinc-600" />
-            <Target size={20} className="text-zinc-600" />
-          </div>
-        )}
-        
-        {!isLeftCollapsed && (
-          <>
-            {activeCourse?.roadmap?.paretoSteps && (
-              <div className="mb-4 px-2 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
-                <p className="text-[12px] font-black uppercase tracking-widest text-emerald-400 text-center">Total Assessment Weight: {activeCourse.roadmap.totalWeight || '25%'}</p>
-              </div>
-            )}
-            {/* Course Switcher: pick the active course; data scopes follow. */}
-            <div className="mb-6">
-              <p className="text-[12px] font-black text-zinc-500 uppercase tracking-widest mb-2 px-2">Active Course</p>
-              <select
-                value={activeCourseId}
-                onChange={(e) => setActiveCourseId(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs font-bold text-white focus:border-emerald-500 outline-none cursor-pointer"
-              >
-                {Object.entries(courses).map(([id, c]) => (
-                  <option key={id} value={id}>{c.name || '(unnamed)'}</option>
-                ))}
-              </select>
-              {courseEditMode ? (
-                <div className="mt-2 flex gap-2">
-                  <input
-                    ref={courseEditInputRef}
-                    value={courseEditValue}
-                    onChange={(e) => setCourseEditValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') { e.preventDefault(); commitCourseEdit(); }
-                      if (e.key === 'Escape') { e.preventDefault(); cancelCourseEdit(); }
-                    }}
-                    placeholder={courseEditMode === 'add' ? 'New course name' : 'Course name'}
-                    className="flex-1 bg-black/60 border border-emerald-500/40 rounded-lg px-3 py-2 text-xs font-bold text-white placeholder-zinc-600 focus:border-emerald-500 outline-none"
-                  />
-                  <button
-                    onClick={commitCourseEdit}
-                    className="text-[12px] font-black text-black bg-emerald-500 hover:bg-emerald-400 uppercase tracking-widest py-2 px-3 rounded-lg transition-all"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={cancelCourseEdit}
-                    className="text-[12px] font-black text-zinc-500 hover:text-white uppercase tracking-widest border border-zinc-800 hover:border-zinc-600 py-2 px-3 rounded-lg transition-all"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-              <div className="flex gap-2 mt-2">
-                <button
-                  onClick={() => setShowAddCourseModal(true)}
-                  className="flex-1 text-[12px] font-black text-emerald-400 hover:text-black hover:bg-emerald-500 uppercase tracking-widest border border-emerald-500/30 hover:border-emerald-500 py-2 rounded-lg transition-all"
-                  title="Drop a syllabus PDF; the OS names the course itself"
-                >
-                  + Add Course
-                </button>
-                <button
-                  onClick={() => { setCourseEditValue(courses[activeCourseId]?.name || ''); setCourseEditMode('rename'); }}
-                  className="text-[12px] font-black text-zinc-500 hover:text-white uppercase tracking-widest border border-zinc-800 hover:border-zinc-600 py-2 px-3 rounded-lg transition-all"
-                  title="Rename active course"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => setPendingDeleteCourseId(activeCourseId)}
-                  disabled={Object.keys(courses).length <= 1}
-                  className="text-[12px] font-black text-zinc-500 hover:text-rose-400 uppercase tracking-widest border border-zinc-800 hover:border-rose-500 py-2 px-3 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-zinc-500 disabled:hover:border-zinc-800"
-                  title={Object.keys(courses).length <= 1 ? 'Cannot delete the only course' : 'Delete active course'}
-                  aria-label="Delete active course"
-                >
-                  <Trash2 size={12} />
-                </button>
-              </div>
-              )}
-            </div>
-
-            {!isBooting && (activeCourse.roadmap.currentTask || activeCourse.roadmap.nextAssessment || activeCourse.roadmap.finalMilestone) && (
-              <>
-                <p className="text-[12px] font-black text-zinc-500 uppercase tracking-widest mb-4 px-2 whitespace-nowrap">Semester Roadmap</p>
-
-                {activeCourse.roadmap.paretoSteps ? (
-                  <div className="mb-8 bg-zinc-900/60 border border-emerald-500/20 rounded-xl p-4 shadow-[0_0_30px_rgba(16,185,129,0.08)]">
-                    <p className="text-[12px] font-black uppercase tracking-widest text-emerald-400 mb-4">Pareto Micro-Steps</p>
-                    <div className="border-l border-emerald-500/30 ml-1 space-y-4">
-                      {activeCourse.roadmap.paretoSteps.map((step, i) => (
-                        <div key={i} className={`relative pl-5 group ${i > 0 ? 'opacity-60 hover:opacity-100' : ''} transition-opacity cursor-pointer`}>
-                          <div className={`absolute left-[-5px] top-1.5 w-2.5 h-2.5 rounded-full ${i === 0 ? 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.6)]' : 'bg-zinc-700 border border-zinc-600'}`}></div>
-                          <div className="flex items-baseline gap-2">
-                            <p className={`text-[12px] font-black uppercase ${i === 0 ? 'text-emerald-400' : 'text-zinc-500'}`}>Step {step.rank}</p>
-                            <span className="text-[12px] font-bold text-zinc-600">{step.weight}</span>
-                          </div>
-                          <p className={`text-xs font-bold ${i === 0 ? 'text-white' : 'text-zinc-300'}`}>{step.label}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mb-8 px-2 border-l border-zinc-800 ml-2 space-y-4 relative">
-                    {activeCourse.roadmap.currentTask && (
-                      <div className="relative pl-4 group">
-                        <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-                        <p className="text-[12px] font-black uppercase text-emerald-400">Current Task</p>
-                        <p className="text-xs text-white font-bold">{activeCourse.roadmap.currentTask}</p>
-                      </div>
-                    )}
-                    {activeCourse.roadmap.nextAssessment && (
-                      <div className="relative pl-4 group opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
-                        <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-zinc-700 border border-zinc-600"></div>
-                        <p className="text-[12px] font-black uppercase text-zinc-500">Next Assessment</p>
-                        <p className="text-xs text-zinc-300 font-bold">{activeCourse.roadmap.nextAssessment}</p>
-                      </div>
-                    )}
-                    {activeCourse.roadmap.finalMilestone && (
-                      <div className="relative pl-4 group opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
-                        <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-zinc-700 border border-zinc-600"></div>
-                        <p className="text-[12px] font-black uppercase text-zinc-500">Final Milestone</p>
-                        <p className="text-xs text-zinc-300 font-bold">{activeCourse.roadmap.finalMilestone}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-
-            {!(activeCourse?.roadmap?.paretoSteps) && (
-              <>
-                <p className="text-[12px] font-black text-zinc-500 uppercase tracking-widest mb-4 px-2 whitespace-nowrap">Active Context</p>
-                <div className="flex-1 overflow-y-auto space-y-4 pr-1 custom-scrollbar">
-                  {isBooting || tasks.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center opacity-50 px-4 mt-10">
-                      <Brain size={32} className="mx-auto mb-4 text-zinc-600" />
-                      <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-2">No Active Context</p>
-                    </div>
-                  ) : tasks.length > 5 ? (
-                    <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4">
-                      <p className="text-[12px] font-black uppercase text-emerald-400 tracking-widest mb-2">Neural Summary</p>
-                      <p className="text-xs text-zinc-400 font-bold mb-3">{tasks.length} tasks detected. Showing top 5 milestones.</p>
-                      {tasks.slice(0, 5).map((t, i) => (
-                        <div key={i} className="flex items-center gap-2 py-1.5 border-b border-zinc-800/50 last:border-0">
-                          <span className="text-[12px] font-black text-zinc-600 w-5">{i + 1}.</span>
-                          <p className="text-xs text-white font-bold truncate">{t.task}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    tasks.map((t, i) => (
-                      <TaskCard key={i} task={t} onStart={() => {}} isActive={activeTask?.task === t.task} />
-                    ))
-                  )}
-                </div>
-              </>
-            )}
-
-            {!isBooting && tasks.length > 0 && (
-              <div className="mt-auto shrink-0 flex flex-col gap-4 pt-4 border-t border-zinc-800/50">
-                <div className="bg-black border border-zinc-800 p-3 rounded-xl flex items-start gap-3">
-                  <Shield size={16} className="text-emerald-500 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-[12px] font-black uppercase text-white tracking-widest mb-1">Zero-Disclosure Data</p>
-                    <p className="text-[12px] text-zinc-500 leading-relaxed whitespace-normal font-bold">Your cognitive telemetry is visible only to you and is never shared with your university.</p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <button onClick={simulateVoiceNote} className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase tracking-widest text-xs py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] truncate">
-                    Simulate Voice 🎙️
-                  </button>
-                  <button onClick={generatePremiumPDF} className="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-black uppercase tracking-widest text-[12px] py-3 rounded-xl transition-all truncate">
-                    Export Proof
-                  </button>
-                </div>
-              </div>
-            )}
-            
-            {isBooting && (
-              <div className="mt-auto shrink-0 pt-4 border-t border-zinc-800/50">
-                <div className="bg-black border border-zinc-800 p-3 rounded-xl flex items-start gap-3">
-                  <Shield size={16} className="text-indigo-500 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-[12px] font-black uppercase text-white tracking-widest mb-1">Zero-Disclosure OS</p>
-                    <p className="text-[12px] text-zinc-500 leading-relaxed whitespace-normal font-bold">Student-first architecture. Waiting for handshake to unlock context.</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </aside>
+      <SemesterSidebar
+        isZenMode={isZenMode}
+        leftSidebarClass={leftSidebarClass}
+        isLeftCollapsed={isLeftCollapsed}
+        setIsLeftCollapsed={setIsLeftCollapsed}
+        activeCourse={activeCourse}
+        activeCourseId={activeCourseId}
+        setActiveCourseId={setActiveCourseId}
+        courses={courses}
+        courseEditMode={courseEditMode}
+        setCourseEditMode={setCourseEditMode}
+        courseEditValue={courseEditValue}
+        setCourseEditValue={setCourseEditValue}
+        courseEditInputRef={courseEditInputRef}
+        commitCourseEdit={commitCourseEdit}
+        cancelCourseEdit={cancelCourseEdit}
+        isBooting={isBooting}
+        tasks={tasks}
+        activeTask={activeTask}
+        setShowAddCourseModal={setShowAddCourseModal}
+        setPendingDeleteCourseId={setPendingDeleteCourseId}
+        simulateVoiceNote={simulateVoiceNote}
+        generatePremiumPDF={generatePremiumPDF}
+      />
 
       <main className="flex-1 flex overflow-hidden">
         {renderContent()}
       </main>
 
-      {/* Global Archive Sidebar (Right) */}
       {currentStage === 5 && (
-        <aside className={`${rightSidebarClass} bg-black/80 backdrop-blur-xl border-l border-zinc-900 flex flex-col shrink-0 transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] z-50 relative overflow-hidden`}>
-          {!isZenMode && (
-            <button 
-              onClick={() => setIsRightCollapsed(!isRightCollapsed)}
-              className="absolute -left-3 top-24 z-50 bg-zinc-800 border border-zinc-700 rounded-full p-1 text-zinc-400 hover:text-white hover:border-blue-500 transition-all"
-            >
-              {isRightCollapsed ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
-            </button>
-          )}
-
-          {isRightCollapsed && !isZenMode ? (
-            <div className="flex flex-col items-center mt-5 space-y-8 pt-6">
-              <Shield size={20} className="text-blue-500" />
-            </div>
-          ) : !isZenMode && (
-            <>
-              <div className="p-5 flex items-center gap-3 text-blue-500 whitespace-nowrap pt-8">
-                <Shield size={24} className="shrink-0" />
-                <h3 className="font-black tracking-widest uppercase text-sm">Cognitive Archive</h3>
-              </div>
-              <div
-                className="flex-1 overflow-y-auto px-6 pb-6 whitespace-nowrap custom-scrollbar"
-                onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('ring-1', 'ring-blue-500/40'); }}
-                onDragLeave={(e) => { e.currentTarget.classList.remove('ring-1', 'ring-blue-500/40'); }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.classList.remove('ring-1', 'ring-blue-500/40');
-                  const textData = e.dataTransfer.getData('text/plain') || e.dataTransfer.getData('text/uri-list');
-                  if (!textData) return;
-                  const isUrl = /^https?:\/\//.test(textData);
-                  const newAsset = {
-                    id: Date.now().toString(),
-                    blockId: 'archive',
-                    source: isUrl ? new URL(textData).hostname : textData.slice(0, 50),
-                    text: isUrl ? `Extracted Insight from ${new URL(textData).hostname}: pending semantic mapping.` : textData,
-                    author: 'Manual capture',
-                    year: new Date().getFullYear().toString(),
-                    isPrimary: false
-                  };
-                  handleAddGhostAsset(newAsset);
-                }}
-              >
-                {(() => {
-                  const courseAssets = globalGhostAssets.filter(a => a.courseId === activeCourseId);
-                  if (courseAssets.length === 0) {
-                    return (
-                      <div className="text-zinc-500 text-xs font-bold mt-10 px-2">
-                        <p>No embedded assets for this course yet.</p>
-                        <p className="mt-2 font-medium normal-case text-[11px] leading-relaxed text-zinc-600">Drag a research URL or text snippet directly here, or drop it on a section in the Canvas. Assets stay scoped to the active course.</p>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div className="space-y-4">
-                      {courseAssets.map(asset => (
-                        <div key={asset.id} className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl max-w-full">
-                          <p className="text-[12px] font-black uppercase text-emerald-400 mb-2 truncate">{asset.blockId === 'archive' ? `Source: ${asset.source}` : `Block: ${asset.blockId}`}</p>
-                          <p className="text-xs text-zinc-300 whitespace-normal line-clamp-3">{asset.text}</p>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
-              </div>
-            </>
-          )}
-        </aside>
+        <CognitiveArchive
+          isZenMode={isZenMode}
+          rightSidebarClass={rightSidebarClass}
+          isRightCollapsed={isRightCollapsed}
+          setIsRightCollapsed={setIsRightCollapsed}
+          globalGhostAssets={globalGhostAssets}
+          activeCourseId={activeCourseId}
+          handleAddGhostAsset={handleAddGhostAsset}
+        />
       )}
       </div>
 
