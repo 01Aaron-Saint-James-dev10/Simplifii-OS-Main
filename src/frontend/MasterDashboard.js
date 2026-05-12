@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Brain, RefreshCw, Sparkles, CheckCircle2, Layout, FileText, Download, Target, AlertTriangle, Shield, ChevronLeft, ChevronRight, Eye, HardDrive, Trash2, FlaskConical, BookOpen, MousePointer2, Plus, Circle } from 'lucide-react';
+import { Brain, RefreshCw, Sparkles, Layout, FileText, Target, AlertTriangle, Shield, ChevronLeft, ChevronRight, Eye, HardDrive, Trash2 } from 'lucide-react';
 import { useSettings } from './SettingsContext';
 import { useProject } from './ProjectContext';
 import { useInstitution } from './InstitutionalContext';
@@ -31,11 +31,12 @@ import { auditProjectContext } from '../services/VerificationService';
 import { saveGhostAsset, getAllGhostAssets } from '../services/IndexedDBService';
 import IdleNudge from './IdleNudge';
 import SteeringDrawer from './SteeringDrawer';
-import PdfDropZone from './PdfDropZone';
 import HomeschoolDashboard from '../streams/homeschool/Dashboard';
 import PrimaryDashboard from '../streams/primary/Dashboard';
 import SecondaryDashboard from '../streams/secondary/Dashboard';
 import TafeDashboard from '../streams/tafe/Dashboard';
+import PillarGallery from './PillarGallery';
+import AuthoringCockpit from './AuthoringCockpit';
 
 const STREAM_DASHBOARDS = {
   primary: PrimaryDashboard,
@@ -44,229 +45,6 @@ const STREAM_DASHBOARDS = {
   homeschool: HomeschoolDashboard
 };
 
-/**
- * CoursePillar - Stage 03: Calm Dashboard Card
- * High-contrast, single-tier course tile. No nested cards.
- * Every interactive element carries a visible focus ring.
- */
-function CoursePillar({ course, id, isActive, onClick }) {
-  const tier = course.extractionData?.academicTier || 'General';
-
-  const tierMeta = (() => {
-    switch (tier) {
-      case 'Lab':       return { icon: <FlaskConical size={22} className="text-emerald-600" />, label: 'Lab' };
-      case 'Research':  return { icon: <BookOpen size={22} className="text-emerald-600" />,     label: 'Research' };
-      case 'Practical': return { icon: <Layout size={22} className="text-emerald-600" />,       label: 'Practical' };
-      default:          return { icon: <Brain size={22} className="text-emerald-600" />,        label: 'General' };
-    }
-  })();
-
-  const unitCode = course.extractionData?.unitCode || id.split('_')[1]?.toUpperCase() || 'UNKN101';
-
-  return (
-    <button
-      type="button"
-      onClick={() => onClick(id)}
-      className={`relative text-left bg-white border-2 ${isActive ? 'border-emerald-500 ring-2 ring-emerald-200' : 'border-zinc-200 hover:border-zinc-400'} rounded-lg p-6 transition-all flex flex-col h-52 justify-between focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none cursor-pointer shadow-sm hover:shadow-md`}
-    >
-      <div>
-        <div className="mb-3 inline-flex items-center gap-2 bg-zinc-100 px-3 py-2 rounded-md">
-          {tierMeta.icon}
-          <span className="text-xs font-bold text-zinc-500 uppercase">{tierMeta.label}</span>
-        </div>
-        <p className="text-xs font-bold uppercase tracking-wide text-zinc-400 mb-1">{unitCode}</p>
-        <h2 className="text-lg font-bold text-zinc-900 leading-snug">{course.name}</h2>
-      </div>
-
-      <div className="flex items-center justify-between pt-4 border-t border-zinc-100">
-        <span className="text-xs font-medium text-zinc-400">
-          {isActive ? 'Currently active' : 'Select to open'}
-        </span>
-        {isActive && (
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600">
-            <CheckCircle2 size={14} /> Active
-          </span>
-        )}
-      </div>
-    </button>
-  );
-}
-
-/**
- * AddCourseTile - Stage 03: Dashed placeholder for adding a new course.
- */
-function AddCourseTile({ onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="text-left bg-white border-2 border-dashed border-zinc-300 hover:border-emerald-500 rounded-lg p-6 transition-all flex flex-col h-52 items-center justify-center gap-3 focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none cursor-pointer hover:bg-emerald-50/50"
-    >
-      <div className="w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center">
-        <Plus size={24} className="text-zinc-400" />
-      </div>
-      <span className="text-sm font-bold text-zinc-500">Add a course</span>
-      <span className="text-xs text-zinc-400">Upload a syllabus to get started</span>
-    </button>
-  );
-}
-
-/**
- * PillarGallery - Stage 03: Calm Dashboard Course Selection
- * Clean grid, maximum six tiles (five courses + one add tile).
- * High-contrast light theme, keyboard-first tab order.
- */
-function PillarGallery({ courses, activeCourseId, onSelect, onAddCourse }) {
-  const entries = Object.entries(courses).slice(0, 5);
-  const totalCourses = Object.keys(courses).length;
-
-  return (
-    <div className="flex-1 bg-zinc-50 p-8 md:p-12 overflow-y-auto font-sans">
-      <header className="max-w-5xl mx-auto mb-10 flex justify-between items-end">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900 mb-1">Your Courses</h1>
-          <p className="text-sm text-zinc-500">
-            {totalCourses} {totalCourses === 1 ? 'course' : 'courses'} loaded
-          </p>
-        </div>
-      </header>
-
-      <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {entries.map(([id, course]) => (
-          <CoursePillar
-            key={id}
-            id={id}
-            course={course}
-            isActive={id === activeCourseId}
-            onClick={onSelect}
-          />
-        ))}
-        {entries.length < 5 && <AddCourseTile onClick={onAddCourse} />}
-      </div>
-
-      {totalCourses > 5 && (
-        <p className="max-w-5xl mx-auto mt-6 text-sm text-zinc-400">
-          Showing 5 of {totalCourses} courses. Use the sidebar switcher to access the rest.
-        </p>
-      )}
-    </div>
-  );
-}
-
-/**
- * AuthoringCockpit - Stage 04: Active Task View
- * Calm Dashboard centre column. Left sidebar collapsed by default.
- * Shows a 5-step Pareto workflow for the active assessment with a
- * pinned weight badge. Light theme, focus rings on every control.
- */
-function AuthoringCockpit({ activeCourse, activeTask, onEnterCanvas, onBackToGallery }) {
-  const courseName = activeCourse?.name || 'Untitled Course';
-  const totalWeight = activeCourse?.roadmap?.totalWeight || '25%';
-  const paretoSteps = activeCourse?.roadmap?.paretoSteps;
-  const taskTitle = activeTask?.task || courseName;
-
-  const steps = paretoSteps && paretoSteps.length > 0
-    ? paretoSteps.slice(0, 5)
-    : [
-        { rank: 1, label: 'Analyse the brief and identify key requirements', weight: '5%' },
-        { rank: 2, label: 'Research and gather primary sources', weight: '5%' },
-        { rank: 3, label: 'Organise your structure and build an outline', weight: '5%' },
-        { rank: 4, label: 'Synthesise evidence into draft sections', weight: '5%' },
-        { rank: 5, label: 'Review, refine, and finalise for submission', weight: '5%' },
-      ];
-
-  return (
-    <div className="flex-1 bg-zinc-50 overflow-y-auto font-sans">
-      <div className="max-w-2xl mx-auto px-6 py-10">
-        {/* Back navigation */}
-        <button
-          type="button"
-          onClick={onBackToGallery}
-          className="inline-flex items-center gap-2 text-sm font-medium text-zinc-500 hover:text-zinc-900 mb-8 transition-colors focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none rounded-md px-2 py-1"
-        >
-          <ChevronLeft size={16} />
-          <span>All courses</span>
-        </button>
-
-        {/* Task header with weight badge */}
-        <header className="relative mb-8">
-          <div className="absolute top-0 right-0">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-bold rounded-md">
-              <Target size={14} />
-              <span>{totalWeight} Weight</span>
-            </span>
-          </div>
-          <p className="text-xs font-bold uppercase tracking-wide text-zinc-400 mb-1">{courseName}</p>
-          <h1 className="text-2xl font-bold text-zinc-900 pr-36 leading-snug">{taskTitle}</h1>
-        </header>
-
-        <hr className="border-zinc-200 mb-8" />
-
-        {/* Pareto steps */}
-        <section aria-label="Pareto steps for this assessment">
-          <h2 className="text-sm font-bold text-zinc-900 mb-1">Pareto Steps</h2>
-          <p className="text-sm text-zinc-500 mb-6">
-            Prioritise the steps that carry the most marks. Complete them in order.
-          </p>
-
-          <ol className="space-y-3">
-            {steps.map((step, i) => {
-              const isCurrent = i === 0;
-              return (
-                <li key={step.rank || i}>
-                  <div
-                    className={`w-full text-left bg-white border ${isCurrent ? 'border-emerald-300' : 'border-zinc-200'} rounded-lg px-5 py-4 flex items-start gap-4`}
-                  >
-                    <span
-                      className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${isCurrent ? 'bg-emerald-600 text-white' : 'bg-zinc-100 text-zinc-500 border border-zinc-200'}`}
-                      aria-hidden="true"
-                    >
-                      {step.rank || i + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-semibold ${isCurrent ? 'text-zinc-900' : 'text-zinc-700'}`}>
-                        {step.label}
-                      </p>
-                      {step.weight && (
-                        <p className="text-xs text-zinc-400 mt-1">
-                          <span className="sr-only">Step weight: </span>{step.weight}
-                        </p>
-                      )}
-                    </div>
-                    {isCurrent && (
-                      <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md flex-shrink-0">
-                        <Circle size={8} className="fill-emerald-500 text-emerald-500" />
-                        Current step
-                      </span>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        </section>
-
-        {/* Enter canvas action */}
-        <div className="mt-10">
-          <button
-            type="button"
-            onClick={onEnterCanvas}
-            className="w-full py-4 bg-zinc-900 hover:bg-black text-white text-sm font-bold rounded-lg transition-all focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none shadow-md flex items-center justify-center gap-2"
-          >
-            <FileText size={16} />
-            <span>Open Authoring Canvas</span>
-          </button>
-        </div>
-
-        {/* Zero-disclosure footer */}
-        <div className="mt-8 flex items-center gap-2 text-zinc-400 justify-center">
-          <Shield size={14} />
-          <span className="text-xs font-medium">Local processing only. No data leaves this device.</span>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function MasterDashboard() {
   const {
@@ -541,9 +319,18 @@ export default function MasterDashboard() {
     const codes = Object.keys(groups);
     if (codes.length <= 1) return handleSprintCreation(data);
 
+    const uploadForSubset = (names) =>
+      (data.sourceUploads || []).filter((u) => names.includes(u.name));
+
     // Multi-course ingestion: Initialise distinct Course Pillars
     for (const code of codes) {
-      const subset = { ...data, unitCode: code, sourceFiles: groups[code] };
+      const groupList = groups[code];
+      const subset = {
+        ...data,
+        unitCode: code,
+        sourceFiles: groupList,
+        sourceUploads: uploadForSubset(groupList)
+      };
       await handleSprintCreation(subset);
     }
     
@@ -1115,9 +902,6 @@ export default function MasterDashboard() {
           </button>
         </div>
       </div>
-
-      {/* Block 3 scaffold: anonymous PDF upload to Supabase Storage. Move in split refactor. */}
-      <PdfDropZone />
 
       {/* Restored Avatar: Fixed Anchor at top:100px (clears the z-1200 nav) */}
       <div className="fixed top-[100px] left-4 z-[1100] w-56 animate-fade-in pointer-events-none">
