@@ -13,8 +13,6 @@ import { COLOUR_WARN, COLOUR_WARN_GLASS, COLOUR_WARN_BORDER, COLOUR_WARN_BORDER_
 // ============================================================
 
 const INJECTED_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap');
-
 @keyframes cursor-blink {
   0%, 49% { opacity: 1; }
   50%, 100% { opacity: 0; }
