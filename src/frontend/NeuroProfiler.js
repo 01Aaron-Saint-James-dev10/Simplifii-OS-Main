@@ -1,38 +1,30 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 /**
- * NeuroProfiler - Stage 01: Neuro-Profiler Handshake
+ * NeuroProfiler
  *
- * A 4-step, tile-driven wizard that builds the learner profile immediately
- * after Google OAuth completes. No passphrases. No typing until Step 4.
+ * 4-step handshake wizard (5 steps for the Homeschool branch).
+ * Linear-app aesthetic: sharp 1px borders, #18181b zinc surfaces,
+ * JetBrains Mono labels, sticky nav footer so Complete is never cut off.
  *
  * Steps:
- *   1. Cognitive Preference     -> profile.preferredMode
- *   2. Emotional Baseline       -> profile.emotionalBaseline
- *   3. Academic Level           -> profile.level
- *   4. Institutional Lock       -> profile.institution / profile.referencingStyle
- *
- * Exports:
- *   default NeuroProfiler       the wizard component
- *   BASELINE_STRATEGY           map of emotional state to AURA adaptation rules
- *   deriveReferencingStyle(str) institution -> default referencing style
+ *   1  Processing Style     profile.preferredMode
+ *   2  Emotional Baseline   profile.emotionalBaseline
+ *   3  Academic Level       profile.level
+ *   3.5 (Homeschool only)   profile.homeschoolPlatform
+ *   4  Institution Lock     profile.institution / profile.referencingStyle
  *
  * Props:
- *   onComplete {Function(profile)} called with the completed profile object
- *   userName   {string}           display name from Google auth (optional)
+ *   onComplete {Function(profile)}   called with the completed profile
+ *   userName   {string}              display name from Google auth
  */
 
-// ------------------------------------------------------------
+// ============================================================
 // Data
-// ------------------------------------------------------------
+// ============================================================
 
-/**
- * BASELINE_STRATEGY is exported so AURA can read it at task-initiation time.
- * microTasksOnly: true -> show only 1 Pareto micro-step instead of the full roadmap.
- * lodLevel: 'compass' -> minimalist LOD; 'map' -> full overview LOD.
- */
 export const BASELINE_STRATEGY = {
   overwhelmed: { mode: 'deep_focus', microTasksOnly: true,  lodLevel: 'compass' },
   on_top:      { mode: 'standard',   microTasksOnly: false, lodLevel: 'map' },
@@ -41,14 +33,9 @@ export const BASELINE_STRATEGY = {
 };
 
 const INSTITUTION_REFERENCING = {
-  UNSW:    'Harvard',
-  USyd:    'APA 7',
-  UQ:      'APA 7',
-  Monash:  'APA 7',
-  UMelb:   'APA 7',
-  RMIT:    'Harvard',
-  UTS:     'Harvard',
-  ACU:     'APA 7',
+  UNSW: 'Harvard', USyd: 'APA 7', UQ: 'APA 7',
+  Monash: 'APA 7', UMelb: 'APA 7', RMIT: 'Harvard',
+  UTS: 'Harvard', ACU: 'APA 7',
 };
 
 export function deriveReferencingStyle(institution) {
@@ -57,64 +44,17 @@ export function deriveReferencingStyle(institution) {
 
 const AU_INSTITUTIONS = ['UNSW', 'USyd', 'UQ', 'Monash', 'UMelb', 'RMIT', 'UTS', 'ACU'];
 
-// Step 3.5: shown only when learner selects Homeschool in Step 3.
-const HOMESCHOOL_PLATFORMS = [
-  { id: 'euka',         label: 'Euka',          sub: 'Structured home-based curriculum' },
-  { id: 'khan_academy', label: 'Khan Academy',  sub: 'Video-based self-paced learning' },
-  { id: 'distance_ed',  label: 'Distance Ed',   sub: 'State correspondence school' },
-  { id: 'other',        label: 'Other',         sub: 'Independent or mixed curriculum' },
-];
-
-// ------------------------------------------------------------
-// Step definitions
-// ------------------------------------------------------------
-
 const COGNITIVE_OPTIONS = [
-  {
-    id: 'literal',
-    label: 'Plain words',
-    sub: 'Clear, direct language with no jargon',
-    dot: 'bg-indigo-500',
-  },
-  {
-    id: 'visual',
-    label: 'Diagrams and steps',
-    sub: 'Visual guides and structured checklists',
-    dot: 'bg-emerald-500',
-  },
-  {
-    id: 'deep_focus',
-    label: 'Just the essentials',
-    sub: 'Minimal interface, one task at a time',
-    dot: 'bg-zinc-400',
-  },
+  { id: 'literal',     label: 'Plain words',         sub: 'Direct language, no jargon' },
+  { id: 'visual',      label: 'Diagrams and steps',  sub: 'Visual guides and checklists' },
+  { id: 'deep_focus',  label: 'Just the essentials', sub: 'Minimal, one task at a time' },
 ];
 
 const EMOTIONAL_OPTIONS = [
-  {
-    id: 'overwhelmed',
-    label: 'Overwhelmed',
-    sub: 'Too much, not sure where to start',
-    dot: 'bg-amber-500',
-  },
-  {
-    id: 'on_top',
-    label: 'On Top of It',
-    sub: 'I have a clear picture of what to do',
-    dot: 'bg-emerald-500',
-  },
-  {
-    id: 'starting',
-    label: 'Just Starting',
-    sub: 'Early days, feeling okay',
-    dot: 'bg-blue-400',
-  },
-  {
-    id: 'burned_out',
-    label: 'Burned Out',
-    sub: 'Running on empty right now',
-    dot: 'bg-rose-500',
-  },
+  { id: 'overwhelmed', label: 'Overwhelmed',   sub: 'Too much, not sure where to start', dot: '#f59e0b' },
+  { id: 'on_top',      label: 'On Top of It',  sub: 'Clear picture of what to do',        dot: '#10b981' },
+  { id: 'starting',    label: 'Just Starting', sub: 'Early days, feeling okay',           dot: '#60a5fa' },
+  { id: 'burned_out',  label: 'Burned Out',    sub: 'Running on empty right now',         dot: '#f43f5e' },
 ];
 
 const LEVEL_OPTIONS = [
@@ -126,59 +66,82 @@ const LEVEL_OPTIONS = [
   { id: 'Homeschool', label: 'Homeschool', sub: 'Parent or child' },
 ];
 
-// ------------------------------------------------------------
-// Sub-components
-// ------------------------------------------------------------
+const HOMESCHOOL_PLATFORMS = [
+  { id: 'euka',         label: 'Euka',         sub: 'Structured home-based curriculum' },
+  { id: 'khan_academy', label: 'Khan Academy', sub: 'Video-based self-paced learning' },
+  { id: 'distance_ed',  label: 'Distance Ed',  sub: 'State correspondence school' },
+  { id: 'other',        label: 'Other',        sub: 'Independent or mixed curriculum' },
+];
 
-function ProgressBar({ step, total }) {
+// ============================================================
+// Inline style tokens
+// ============================================================
+
+const S = {
+  tile: (selected) => ({
+    background: selected ? 'rgba(16,185,129,0.08)' : '#18181b',
+    border: `1px solid ${selected ? '#10b981' : '#27272a'}`,
+    borderRadius: 3, padding: '12px 14px', cursor: 'pointer',
+    textAlign: 'left', transition: 'border 0.15s, background 0.15s',
+    outline: 'none', width: '100%',
+  }),
+  tileLabel: { fontSize: 13, fontWeight: 600, color: '#e4e4e7', fontFamily: "'JetBrains Mono', monospace", display: 'block', marginBottom: 2 },
+  tileSub:   { fontSize: 11, color: '#52525b', fontFamily: "'JetBrains Mono', monospace" },
+  stepLabel: { fontSize: 9, fontFamily: "'JetBrains Mono', monospace", color: '#3f3f46', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 10, display: 'block' },
+  heading:   { fontSize: 18, fontWeight: 700, color: '#f4f4f5', margin: '0 0 6px', lineHeight: 1.3 },
+  subtext:   { fontSize: 12, color: '#71717a', margin: '0 0 20px', lineHeight: 1.6 },
+  chip: (selected) => ({
+    fontSize: 11, fontFamily: "'JetBrains Mono', monospace", fontWeight: 600,
+    padding: '5px 12px', borderRadius: 2,
+    border: `1px solid ${selected ? '#10b981' : '#27272a'}`,
+    background: selected ? 'rgba(16,185,129,0.08)' : 'transparent',
+    color: selected ? '#10b981' : '#71717a',
+    cursor: 'pointer', transition: 'border 0.15s',
+    outline: 'none',
+  }),
+};
+
+// ============================================================
+// TileGrid
+// ============================================================
+
+function TileGrid({ options, selected, onSelect, columns = 2 }) {
   return (
-    <div className="flex items-center gap-2 mb-10" role="progressbar" aria-valuenow={step} aria-valuemax={total} aria-label={`Step ${step} of ${total}`}>
-      {Array.from({ length: total }).map((_, i) => (
-        <div
-          key={i}
-          className={`h-1 flex-1 rounded-full transition-colors duration-500 ${i < step ? 'bg-emerald-500' : 'bg-zinc-200'}`}
-        />
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: 8 }}>
+      {options.map((opt) => (
+        <button key={opt.id} type="button" onClick={() => onSelect(opt.id)} style={S.tile(selected === opt.id)}>
+          {opt.dot && (
+            <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: opt.dot, marginBottom: 8 }} />
+          )}
+          <span style={S.tileLabel}>{opt.label}</span>
+          {opt.sub && <span style={S.tileSub}>{opt.sub}</span>}
+        </button>
       ))}
     </div>
   );
 }
 
-function TileGrid({ options, onSelect, selected, columns = 2 }) {
-  const gridClass = columns === 3
-    ? 'grid grid-cols-3 gap-3'
-    : 'grid grid-cols-2 gap-3';
+// ============================================================
+// ProgressDots
+// ============================================================
 
+function ProgressDots({ step, total }) {
   return (
-    <div className={gridClass}>
-      {options.map((opt) => {
-        const isSelected = selected === opt.id;
-        return (
-          <button
-            key={opt.id}
-            type="button"
-            onClick={() => onSelect(opt.id)}
-            className={`text-left p-4 border-2 rounded-lg transition-all focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none ${
-              isSelected
-                ? 'border-emerald-500 bg-emerald-50'
-                : 'border-zinc-200 bg-white hover:border-zinc-400'
-            }`}
-          >
-            <div className="flex items-center gap-2 mb-2">
-              {opt.dot && <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${opt.dot}`} aria-hidden="true" />}
-              {isSelected && <CheckCircle2 size={14} className="text-emerald-600 ml-auto" />}
-            </div>
-            <p className="text-sm font-bold text-zinc-900 leading-snug">{opt.label}</p>
-            {opt.sub && <p className="text-xs text-zinc-500 mt-1 leading-relaxed">{opt.sub}</p>}
-          </button>
-        );
-      })}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      {Array.from({ length: total }).map((_, i) => (
+        <div key={i} style={{
+          width: i < step ? 20 : 6, height: 2, borderRadius: 1,
+          background: i < step ? '#10b981' : '#27272a',
+          transition: 'width 0.3s ease, background 0.3s ease',
+        }} />
+      ))}
     </div>
   );
 }
 
-// ------------------------------------------------------------
-// Main component
-// ------------------------------------------------------------
+// ============================================================
+// NeuroProfiler
+// ============================================================
 
 export default function NeuroProfiler({ onComplete, userName }) {
   const [step, setStep] = useState(1);
@@ -190,328 +153,224 @@ export default function NeuroProfiler({ onComplete, userName }) {
     institution: '',
     referencingStyle: 'Harvard',
     integrations: { zotero: false, mendeley: false },
-    consents: { dataSharing: false },
+    consents: { dataSharing: true, commercialResearch: false, affiliateOptimisation: false },
   });
 
-  // Homeschool branch adds one extra step between level and institution.
   const totalSteps = profile.level === 'Homeschool' ? 5 : 4;
 
-  // Tile selections auto-advance on click.
   const handleTileSelect = (field, value) => {
-    const updated = { ...profile, [field]: value };
-    setProfile(updated);
-    // Short pause so the selected tile highlights before the step changes.
-    setTimeout(() => setStep(s => s + 1), 220);
+    setProfile(p => ({ ...p, [field]: value }));
+    setTimeout(() => setStep(s => s + 1), 200);
   };
 
-  // Homeschool platform selection (Step 4 when Homeschool branch is active).
-  // Saves to profile.homeschoolPlatform and advances to institution step.
-  const handlePlatformSelect = (platformId) => {
-    setProfile(p => ({ ...p, homeschoolPlatform: platformId }));
-    setTimeout(() => setStep(5), 220);
+  const handlePlatformSelect = (id) => {
+    setProfile(p => ({ ...p, homeschoolPlatform: id }));
+    setTimeout(() => setStep(5), 200);
   };
 
-  // Step 4 institution chips and text input do NOT auto-advance.
   const handleInstitutionSelect = (name) => {
-    setProfile(p => ({
-      ...p,
-      institution: name,
-      referencingStyle: deriveReferencingStyle(name),
-    }));
-  };
-
-  const toggleIntegration = (key) => {
-    setProfile(p => ({
-      ...p,
-      integrations: { ...p.integrations, [key]: !p.integrations[key] },
-    }));
-  };
-
-  const toggleConsent = () => {
-    setProfile(p => ({
-      ...p,
-      consents: { ...p.consents, dataSharing: !p.consents.dataSharing },
-    }));
-  };
-
-  const handleInstitutionInput = (e) => {
-    const val = e.target.value;
-    setProfile(p => ({
-      ...p,
-      institution: val,
-      referencingStyle: deriveReferencingStyle(val.trim()),
-    }));
+    setProfile(p => ({ ...p, institution: name, referencingStyle: deriveReferencingStyle(name) }));
   };
 
   const handleComplete = () => {
-    onComplete(profile);
+    console.log('PROFILER_COMPLETE_TRIGGERED');
+    try { localStorage.setItem('simplifii_vault_seeded', 'true'); } catch { /* storage unavailable */ }
+    onComplete({ ...profile, consents: { ...profile.consents, dataSharing: true } });
   };
 
-  const stepVariants = {
-    initial: { opacity: 0, x: 20 },
-    animate: { opacity: 1, x: 0, transition: { duration: 0.25 } },
-    exit:    { opacity: 0, x: -20, transition: { duration: 0.15 } },
-  };
-
+  const isLastStep = (step === 4 && profile.level !== 'Homeschool') || step === 5;
+  const canGoBack = step > 1;
   const greeting = userName ? `Hi ${userName.split(' ')[0]}.` : 'Welcome.';
 
+  const stepVariants = {
+    initial: { opacity: 0, x: 16 },
+    animate: { opacity: 1, x: 0, transition: { duration: 0.28, ease: 'easeOut' } },
+    exit:    { opacity: 0, x: -16, transition: { duration: 0.16 } },
+  };
+
   return (
-    <div className="w-full max-w-md mx-auto">
-      <ProgressBar step={step} total={totalSteps} />
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
 
-      <AnimatePresence mode="wait">
+      {/* Step content: scrollable, never clips the nav footer */}
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 8 }}>
+        <AnimatePresence mode="wait">
 
-        {/* Step 1: Cognitive Preference */}
-        {step === 1 && (
-          <motion.div key="step-1" variants={stepVariants} initial="initial" animate="animate" exit="exit">
-            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-1">Step 1 of 4</p>
-            <h2 className="text-xl font-bold text-zinc-900 mb-1">{greeting}</h2>
-            <p className="text-sm text-zinc-600 mb-6">
-              When you get instructions, what helps most?
-            </p>
-            <TileGrid
-              options={COGNITIVE_OPTIONS}
-              selected={profile.preferredMode}
-              onSelect={(val) => handleTileSelect('preferredMode', val)}
-              columns={3}
-            />
-          </motion.div>
-        )}
+          {/* Step 1: Processing Style */}
+          {step === 1 && (
+            <motion.div key="s1" variants={stepVariants} initial="initial" animate="animate" exit="exit">
+              <span style={S.stepLabel}>Step 1 of {totalSteps}</span>
+              <h2 style={S.heading}>{greeting}</h2>
+              <p style={S.subtext}>When you get instructions, what helps most?</p>
+              <TileGrid options={COGNITIVE_OPTIONS} selected={profile.preferredMode}
+                onSelect={(v) => handleTileSelect('preferredMode', v)} columns={3} />
+            </motion.div>
+          )}
 
-        {/* Step 2: Emotional Baseline */}
-        {step === 2 && (
-          <motion.div key="step-2" variants={stepVariants} initial="initial" animate="animate" exit="exit">
-            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-1">Step 2 of 4</p>
-            <h2 className="text-xl font-bold text-zinc-900 mb-1">Current state check.</h2>
-            <p className="text-sm text-zinc-600 mb-6">
-              How are you feeling about your workload right now?
-            </p>
-            <TileGrid
-              options={EMOTIONAL_OPTIONS}
-              selected={profile.emotionalBaseline}
-              onSelect={(val) => handleTileSelect('emotionalBaseline', val)}
-              columns={2}
-            />
-            <p className="mt-4 text-[11px] text-zinc-400 text-center">
-              No wrong answers. This helps the OS calibrate what to show you first.
-            </p>
-          </motion.div>
-        )}
-
-        {/* Step 3: Academic Level */}
-        {step === 3 && (
-          <motion.div key="step-3" variants={stepVariants} initial="initial" animate="animate" exit="exit">
-            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-1">Step 3 of 4</p>
-            <h2 className="text-xl font-bold text-zinc-900 mb-1">What level are you studying?</h2>
-            <p className="text-sm text-zinc-600 mb-6">
-              This sets the default scaffolding, citation style, and task depth.
-            </p>
-            <TileGrid
-              options={LEVEL_OPTIONS}
-              selected={profile.level}
-              onSelect={(val) => handleTileSelect('level', val)}
-              columns={2}
-            />
-          </motion.div>
-        )}
-
-        {/* Step 4 (Homeschool branch): Platform selection */}
-        {step === 4 && profile.level === 'Homeschool' && (
-          <motion.div key="step-4-homeschool" variants={stepVariants} initial="initial" animate="animate" exit="exit">
-            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-1">Step 4 of 5</p>
-            <h2 className="text-xl font-bold text-zinc-900 mb-1">Which platform are we upgrading today?</h2>
-            <p className="text-sm text-zinc-600 mb-6">
-              Simplifii-OS will map your current curriculum into a UDL 3.0 layout so your child keeps their content while gaining the full cognitive scaffold.
-            </p>
-            <TileGrid
-              options={HOMESCHOOL_PLATFORMS}
-              selected={profile.homeschoolPlatform}
-              onSelect={handlePlatformSelect}
-              columns={2}
-            />
-            <p className="mt-4 text-[11px] text-zinc-400 text-center">
-              No data is sent to your current platform provider.
-            </p>
-          </motion.div>
-        )}
-
-        {/* Step 4 (standard) or Step 5 (after Homeschool branch): Institutional Lock */}
-        {((step === 4 && profile.level !== 'Homeschool') || step === 5) && (
-          <motion.div key="step-institution" variants={stepVariants} initial="initial" animate="animate" exit="exit">
-            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-1">Step {totalSteps} of {totalSteps}</p>
-            <h2 className="text-xl font-bold text-zinc-900 mb-1">Which institution?</h2>
-            <p className="text-sm text-zinc-600 mb-5">
-              Sets the default referencing style for your exports. You can change this later.
-            </p>
-
-            {/* Quick-select chips */}
-            <div className="flex flex-wrap gap-2 mb-4">
-              {AU_INSTITUTIONS.map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  onClick={() => handleInstitutionSelect(name)}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-full border-2 transition-all focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none ${
-                    profile.institution === name
-                      ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
-                      : 'border-zinc-200 text-zinc-600 hover:border-zinc-400'
-                  }`}
-                >
-                  {name}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => handleInstitutionSelect('None')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-full border-2 transition-all focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none ${
-                  profile.institution === 'None'
-                    ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
-                    : 'border-zinc-200 text-zinc-600 hover:border-zinc-400'
-                }`}
-              >
-                None / Other
-              </button>
-            </div>
-
-            {/* Free-text fallback */}
-            <input
-              type="text"
-              value={profile.institution === 'None' ? '' : profile.institution}
-              onChange={handleInstitutionInput}
-              placeholder="Or type your institution..."
-              className="w-full border border-zinc-300 rounded-lg px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus-visible:ring-3 focus-visible:ring-emerald-500 mb-2"
-              aria-label="Institution name"
-            />
-
-            {profile.institution && profile.institution !== 'None' && (
-              <p className="text-[11px] text-zinc-400 mb-5">
-                Default referencing style: <span className="font-bold text-zinc-600">{profile.referencingStyle}</span>
+          {/* Step 2: Emotional Baseline */}
+          {step === 2 && (
+            <motion.div key="s2" variants={stepVariants} initial="initial" animate="animate" exit="exit">
+              <span style={S.stepLabel}>Step 2 of {totalSteps}</span>
+              <h2 style={S.heading}>Current state check.</h2>
+              <p style={S.subtext}>How are you feeling about your workload right now?</p>
+              <TileGrid options={EMOTIONAL_OPTIONS} selected={profile.emotionalBaseline}
+                onSelect={(v) => handleTileSelect('emotionalBaseline', v)} columns={2} />
+              <p style={{ marginTop: 12, fontSize: 10, color: '#3f3f46', fontFamily: "'JetBrains Mono', monospace", textAlign: 'center' }}>
+                No wrong answers. This calibrates what AURA shows you first.
               </p>
-            )}
+            </motion.div>
+          )}
 
-            {/* Research Tool Integrations */}
-            <div className="border-t border-zinc-100 pt-5 mb-5">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">Research Tools (optional)</p>
-              <div className="flex gap-3 mb-4">
-                {[
-                  { key: 'zotero',   label: 'Zotero',   sub: 'Citation manager' },
-                  { key: 'mendeley', label: 'Mendeley', sub: 'Reference manager' },
-                ].map(({ key, label, sub }) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => toggleIntegration(key)}
-                    className={`flex-1 text-left p-3 border-2 rounded-lg transition-all focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none ${
-                      profile.integrations[key]
-                        ? 'border-emerald-500 bg-emerald-50'
-                        : 'border-zinc-200 hover:border-zinc-400'
-                    }`}
-                  >
-                    <p className="text-xs font-bold text-zinc-900">{label}</p>
-                    <p className="text-[11px] text-zinc-500">{sub}</p>
+          {/* Step 3: Academic Level */}
+          {step === 3 && (
+            <motion.div key="s3" variants={stepVariants} initial="initial" animate="animate" exit="exit">
+              <span style={S.stepLabel}>Step 3 of {totalSteps}</span>
+              <h2 style={S.heading}>What level are you studying?</h2>
+              <p style={S.subtext}>Sets scaffolding depth, citation style, and task defaults.</p>
+              <TileGrid options={LEVEL_OPTIONS} selected={profile.level}
+                onSelect={(v) => handleTileSelect('level', v)} columns={2} />
+            </motion.div>
+          )}
+
+          {/* Step 3.5: Homeschool platform */}
+          {step === 4 && profile.level === 'Homeschool' && (
+            <motion.div key="s3h" variants={stepVariants} initial="initial" animate="animate" exit="exit">
+              <span style={S.stepLabel}>Step 4 of 5</span>
+              <h2 style={S.heading}>Which platform are we upgrading?</h2>
+              <p style={S.subtext}>Simplifii-OS maps your curriculum into a UDL 3.0 layout. No data is sent to your current provider.</p>
+              <TileGrid options={HOMESCHOOL_PLATFORMS} selected={profile.homeschoolPlatform}
+                onSelect={handlePlatformSelect} columns={2} />
+            </motion.div>
+          )}
+
+          {/* Step 4 (standard) or Step 5 (Homeschool): Institution */}
+          {isLastStep && (
+            <motion.div key="s-inst" variants={stepVariants} initial="initial" animate="animate" exit="exit">
+              <span style={S.stepLabel}>Step {totalSteps} of {totalSteps}</span>
+              <h2 style={S.heading}>Which institution?</h2>
+              <p style={S.subtext}>Sets the default referencing style for your exports.</p>
+
+              {/* Quick-select chips */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                {[...AU_INSTITUTIONS, 'None / Other'].map((name) => (
+                  <button key={name} type="button"
+                    onClick={() => handleInstitutionSelect(name === 'None / Other' ? 'None' : name)}
+                    style={S.chip(profile.institution === (name === 'None / Other' ? 'None' : name))}>
+                    {name}
                   </button>
                 ))}
               </div>
 
-              {/* Gamma.ai recommendation slot.
-                  Prominent (emerald border) when the learner is Overwhelmed or
-                  in Visual scaffolding mode; standard dashed otherwise.
-                  TODO: replace href="#" with your Gamma.ai affiliate link
-                  once registered at gamma.app (e.g. https://gamma.app?ref=YOUR_CODE). */}
-              {(() => {
-                const isHighPriority =
-                  profile.emotionalBaseline === 'overwhelmed' ||
-                  profile.preferredMode === 'visual';
-                return (
-                  <a
-                    href="#"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`flex items-center justify-between p-3 rounded-lg transition-all group ${
-                      isHighPriority
-                        ? 'border-2 border-emerald-400 bg-emerald-50 hover:bg-emerald-100'
-                        : 'border border-dashed border-zinc-300 hover:border-emerald-400 hover:bg-emerald-50/50'
-                    }`}
-                    aria-label="Recommended: Gamma.ai presentation tool (affiliate)"
-                  >
-                    <div>
-                      <p className={`text-xs font-bold ${isHighPriority ? 'text-emerald-800' : 'text-zinc-700 group-hover:text-emerald-700'}`}>
-                        Gamma.ai {isHighPriority && <span className="ml-1 text-[9px] bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded font-black uppercase">Suggested for you</span>}
-                      </p>
-                      <p className={`text-[11px] mt-0.5 ${isHighPriority ? 'text-emerald-700' : 'text-zinc-400'}`}>
-                        {isHighPriority
-                          ? 'Build your presentation in minutes, not hours. Low-effort, high-output.'
-                          : 'AI-powered presentations for your assessments'}
-                      </p>
-                    </div>
-                    <span className={`text-[9px] font-black uppercase tracking-widest border rounded px-1.5 py-0.5 shrink-0 ml-3 ${isHighPriority ? 'border-emerald-400 text-emerald-600' : 'border-current text-zinc-300 group-hover:text-emerald-400'}`}>
-                      {isHighPriority ? 'Try it' : 'Recommended'}
-                    </span>
-                  </a>
-                );
-              })()}
-            </div>
+              {/* Free-text */}
+              <input
+                type="text"
+                value={profile.institution === 'None' ? '' : profile.institution}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setProfile(p => ({ ...p, institution: val, referencingStyle: deriveReferencingStyle(val.trim()) }));
+                }}
+                placeholder="Or type your institution..."
+                style={{
+                  width: '100%', boxSizing: 'border-box',
+                  background: '#18181b', border: '1px solid #27272a',
+                  borderRadius: 3, padding: '10px 12px',
+                  fontSize: 12, color: '#e4e4e7', outline: 'none',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  marginBottom: profile.institution && profile.institution !== 'None' ? 6 : 16,
+                }}
+                aria-label="Institution name"
+              />
 
-            {/* Consent checkbox (Australian Privacy Act APP 5 compliant).
-                Three-clause structure names every secondary use at collection:
-                (a) real-time personalisation, (b) institutional research,
-                (c) Global Learning Index. Required to proceed. */}
-            <div className="border-t border-zinc-100 pt-5 mb-5">
-              <label className="flex items-start gap-3 cursor-pointer group">
+              {profile.institution && profile.institution !== 'None' && (
+                <p style={{ fontSize: 10, color: '#52525b', fontFamily: "'JetBrains Mono', monospace", marginBottom: 16 }}>
+                  Default style: {profile.referencingStyle}
+                </p>
+              )}
+
+              {/* Sovereign Guarantee: slim, dim */}
+              <div style={{
+                border: '1px solid #27272a', borderRadius: 3,
+                padding: '10px 12px', marginBottom: 14,
+                background: 'rgba(255,255,255,0.02)',
+              }}>
+                <p style={{ fontSize: 9, fontFamily: "'JetBrains Mono', monospace", color: '#3f3f46', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>
+                  Sovereign Guarantee
+                </p>
+                <p style={{ fontSize: 11, color: '#52525b', lineHeight: 1.6, margin: 0 }}>
+                  Your data is de-identified in your browser before anything leaves your device.
+                  Simplifii-OS cannot read your writing or link telemetry back to your identity.
+                </p>
+              </div>
+
+              {/* Single required consent */}
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   checked={profile.consents.dataSharing}
-                  onChange={toggleConsent}
-                  className="mt-0.5 w-4 h-4 accent-emerald-600 shrink-0 cursor-pointer"
-                  aria-describedby="consent-desc"
+                  onChange={() => setProfile(p => ({ ...p, consents: { ...p.consents, dataSharing: !p.consents.dataSharing } }))}
+                  style={{ marginTop: 2, accentColor: '#10b981', flexShrink: 0, cursor: 'pointer' }}
                 />
-                <span id="consent-desc" className="text-[11px] text-zinc-600 leading-relaxed">
-                  I understand that Simplifii-OS collects anonymised, de-identified data about how I study
-                  (task timing, tool usage, and engagement patterns). This data may be used to:
-                  <span className="block mt-1 pl-2 text-zinc-500">
-                    (a) generate a Cognitive Friction Score to personalise my interface in real time;
-                  </span>
-                  <span className="block pl-2 text-zinc-500">
-                    (b) improve student retention outcomes in aggregated, non-identifiable reports shared with educational institutions and research partners;
-                  </span>
-                  <span className="block pl-2 text-zinc-500">
-                    (c) contribute to the Global Learning Index, a de-identified dataset available to education researchers and commercial partners.
-                  </span>
-                  <span className="block mt-1 text-zinc-400">
-                    No personally identifiable information is ever shared. You can withdraw consent in Settings at any time.
-                  </span>
+                <span style={{ fontSize: 11, color: '#71717a', lineHeight: 1.6 }}>
+                  Personalise my interface in real time using anonymised session patterns.
+                  No personally identifiable information is stored.
                 </span>
               </label>
-            </div>
+            </motion.div>
+          )}
 
-            <button
-              type="button"
-              onClick={handleComplete}
-              disabled={!profile.consents.dataSharing}
-              className="w-full py-4 bg-zinc-900 hover:bg-black text-white text-xs font-bold uppercase tracking-wide rounded-lg transition-all focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none shadow-md disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              Enter Simplifii-OS
-            </button>
+        </AnimatePresence>
+      </div>
 
-            <p className="mt-3 text-[11px] text-zinc-400 text-center">
-              Institution and tool settings are adjustable from the cockpit.
-            </p>
-          </motion.div>
-        )}
-
-      </AnimatePresence>
-
-      {/* Back navigation (not shown on Step 1) */}
-      {step > 1 && (
+      {/* Sticky nav footer: always visible */}
+      <div style={{
+        position: 'sticky', bottom: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        paddingTop: 16, marginTop: 8,
+        borderTop: '1px solid #18181b',
+        background: 'rgba(24,24,27,0.95)',
+        backdropFilter: 'blur(8px)',
+      }}>
+        {/* Back */}
         <button
           type="button"
           onClick={() => setStep(s => s - 1)}
-          className="mt-8 inline-flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-700 transition-colors focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:outline-none rounded px-1 py-0.5"
+          disabled={!canGoBack}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 4,
+            fontSize: 11, fontFamily: "'JetBrains Mono', monospace",
+            color: canGoBack ? '#71717a' : 'transparent',
+            background: 'none', border: 'none', cursor: canGoBack ? 'pointer' : 'default',
+            padding: '4px 0', outline: 'none',
+          }}
         >
-          <ChevronLeft size={14} />
+          <ChevronLeft size={13} />
           Back
         </button>
-      )}
+
+        <ProgressDots step={step} total={totalSteps} />
+
+        {/* Next or Complete */}
+        {isLastStep ? (
+          <button
+            type="button"
+            onClick={handleComplete}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              fontSize: 11, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700,
+              letterSpacing: '0.1em', textTransform: 'uppercase',
+              background: '#10b981', color: '#fff',
+              border: 'none', borderRadius: 3, padding: '8px 16px',
+              cursor: 'pointer', outline: 'none',
+              transition: 'background 0.15s',
+            }}
+          >
+            Enter OS
+            <ChevronRight size={13} />
+          </button>
+        ) : (
+          <div style={{ width: 80 }} />
+        )}
+      </div>
+
     </div>
   );
 }

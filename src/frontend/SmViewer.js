@@ -10,6 +10,7 @@
  */
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useProject } from './ProjectContext';
 import { selectPersona } from '../core/Personas';
 
@@ -84,6 +85,17 @@ const STAGE_STYLE = {
   joy:       { bg: '#FDF4FF', accent: '#A855F7', label: 'EXPLORE' },
   monitor:   { bg: '#F0F9FF', accent: '#0EA5E9', label: 'MONITOR' },
   reflect:   { bg: '#FFF1F2', accent: '#F43F5E', label: 'REFLECT' },
+};
+
+// Stagger variant for the three-column canvas entry animation.
+// Each column receives a custom `i` prop (0, 1, 2) as the delay multiplier.
+const COLUMN_VARIANTS = {
+  hidden: { opacity: 0, y: 12 },
+  visible: (i) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.1, duration: 0.45, ease: 'easeOut' },
+  }),
 };
 
 // ============================================================
@@ -339,12 +351,15 @@ export default function SmViewer({ smContent, onEdit, readOnly = false }) {
         overflow: 'hidden',
       }}>
 
+
         {/* Tier 1: AI Scaffold */}
-        <div style={{
-          borderRight: '1px solid rgba(0,0,0,0.06)',
-          overflowY: 'auto', padding: '20px 18px',
-          background: '#FFFFFF',
-        }}>
+        <motion.div
+          variants={COLUMN_VARIANTS} initial="hidden" animate="visible" custom={0}
+          style={{
+            borderRight: '1px solid rgba(0,0,0,0.06)',
+            overflowY: 'auto', padding: '20px 18px',
+            background: '#FFFFFF',
+          }}>
           <div style={{
             fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
             color: '#D1D5DB', letterSpacing: 1.2, fontWeight: 700,
@@ -356,15 +371,17 @@ export default function SmViewer({ smContent, onEdit, readOnly = false }) {
           }}>
             {tier1Raw || 'No scaffold content detected in this .sm file.'}
           </div>
-        </div>
+        </motion.div>
 
         {/* Tier 2: PDMR Sidebar */}
-        <div style={{
-          borderRight: '1px solid rgba(0,0,0,0.06)',
-          overflowY: 'auto', padding: '20px 14px',
-          background: '#FCFCFB',
-          display: 'flex', flexDirection: 'column', gap: 14,
-        }}>
+        <motion.div
+          variants={COLUMN_VARIANTS} initial="hidden" animate="visible" custom={1}
+          style={{
+            borderRight: '1px solid rgba(0,0,0,0.06)',
+            overflowY: 'auto', padding: '20px 14px',
+            background: '#FCFCFB',
+            display: 'flex', flexDirection: 'column', gap: 14,
+          }}>
           <div style={{
             fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
             color: '#D1D5DB', letterSpacing: 1.2, fontWeight: 700,
@@ -413,14 +430,16 @@ export default function SmViewer({ smContent, onEdit, readOnly = false }) {
               No reflection prompts found. Import a document to generate the PDMR scaffold.
             </p>
           )}
-        </div>
+        </motion.div>
 
         {/* Tier 3: Learner Work */}
-        <div style={{
-          overflowY: 'auto', padding: '20px 24px',
-          background: '#FAFAF9',
-          display: 'flex', flexDirection: 'column', gap: 10,
-        }}>
+        <motion.div
+          variants={COLUMN_VARIANTS} initial="hidden" animate="visible" custom={2}
+          style={{
+            overflowY: 'auto', padding: '20px 24px',
+            background: '#FAFAF9',
+            display: 'flex', flexDirection: 'column', gap: 10,
+          }}>
           <div style={{
             fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
             color: '#D1D5DB', letterSpacing: 1.2, fontWeight: 700, textTransform: 'uppercase',
@@ -457,7 +476,7 @@ export default function SmViewer({ smContent, onEdit, readOnly = false }) {
               fontFamily: "'JetBrains Mono', monospace",
             }}>{wordCount} {wordCount === 1 ? 'word' : 'words'}</span>
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );
