@@ -57,6 +57,14 @@ export function deriveReferencingStyle(institution) {
 
 const AU_INSTITUTIONS = ['UNSW', 'USyd', 'UQ', 'Monash', 'UMelb', 'RMIT', 'UTS', 'ACU'];
 
+// Step 3.5: shown only when learner selects Homeschool in Step 3.
+const HOMESCHOOL_PLATFORMS = [
+  { id: 'euka',         label: 'Euka',          sub: 'Structured home-based curriculum' },
+  { id: 'khan_academy', label: 'Khan Academy',  sub: 'Video-based self-paced learning' },
+  { id: 'distance_ed',  label: 'Distance Ed',   sub: 'State correspondence school' },
+  { id: 'other',        label: 'Other',         sub: 'Independent or mixed curriculum' },
+];
+
 // ------------------------------------------------------------
 // Step definitions
 // ------------------------------------------------------------
@@ -172,19 +180,21 @@ function TileGrid({ options, onSelect, selected, columns = 2 }) {
 // Main component
 // ------------------------------------------------------------
 
-const TOTAL_STEPS = 4;
-
 export default function NeuroProfiler({ onComplete, userName }) {
   const [step, setStep] = useState(1);
   const [profile, setProfile] = useState({
     preferredMode: null,
     emotionalBaseline: null,
     level: null,
+    homeschoolPlatform: null,
     institution: '',
     referencingStyle: 'Harvard',
     integrations: { zotero: false, mendeley: false },
     consents: { dataSharing: false },
   });
+
+  // Homeschool branch adds one extra step between level and institution.
+  const totalSteps = profile.level === 'Homeschool' ? 5 : 4;
 
   // Tile selections auto-advance on click.
   const handleTileSelect = (field, value) => {
@@ -192,6 +202,13 @@ export default function NeuroProfiler({ onComplete, userName }) {
     setProfile(updated);
     // Short pause so the selected tile highlights before the step changes.
     setTimeout(() => setStep(s => s + 1), 220);
+  };
+
+  // Homeschool platform selection (Step 4 when Homeschool branch is active).
+  // Saves to profile.homeschoolPlatform and advances to institution step.
+  const handlePlatformSelect = (platformId) => {
+    setProfile(p => ({ ...p, homeschoolPlatform: platformId }));
+    setTimeout(() => setStep(5), 220);
   };
 
   // Step 4 institution chips and text input do NOT auto-advance.
@@ -240,7 +257,7 @@ export default function NeuroProfiler({ onComplete, userName }) {
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <ProgressBar step={step} total={TOTAL_STEPS} />
+      <ProgressBar step={step} total={totalSteps} />
 
       <AnimatePresence mode="wait">
 
@@ -298,10 +315,30 @@ export default function NeuroProfiler({ onComplete, userName }) {
           </motion.div>
         )}
 
-        {/* Step 4: Institutional Lock + Integrations + Consent */}
-        {step === 4 && (
-          <motion.div key="step-4" variants={stepVariants} initial="initial" animate="animate" exit="exit">
-            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-1">Step 4 of 4</p>
+        {/* Step 4 (Homeschool branch): Platform selection */}
+        {step === 4 && profile.level === 'Homeschool' && (
+          <motion.div key="step-4-homeschool" variants={stepVariants} initial="initial" animate="animate" exit="exit">
+            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-1">Step 4 of 5</p>
+            <h2 className="text-xl font-bold text-zinc-900 mb-1">Which platform are we upgrading today?</h2>
+            <p className="text-sm text-zinc-600 mb-6">
+              Simplifii-OS will map your current curriculum into a UDL 3.0 layout so your child keeps their content while gaining the full cognitive scaffold.
+            </p>
+            <TileGrid
+              options={HOMESCHOOL_PLATFORMS}
+              selected={profile.homeschoolPlatform}
+              onSelect={handlePlatformSelect}
+              columns={2}
+            />
+            <p className="mt-4 text-[11px] text-zinc-400 text-center">
+              No data is sent to your current platform provider.
+            </p>
+          </motion.div>
+        )}
+
+        {/* Step 4 (standard) or Step 5 (after Homeschool branch): Institutional Lock */}
+        {((step === 4 && profile.level !== 'Homeschool') || step === 5) && (
+          <motion.div key="step-institution" variants={stepVariants} initial="initial" animate="animate" exit="exit">
+            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-1">Step {totalSteps} of {totalSteps}</p>
             <h2 className="text-xl font-bold text-zinc-900 mb-1">Which institution?</h2>
             <p className="text-sm text-zinc-600 mb-5">
               Sets the default referencing style for your exports. You can change this later.
@@ -377,31 +414,48 @@ export default function NeuroProfiler({ onComplete, userName }) {
               </div>
 
               {/* Gamma.ai recommendation slot.
+                  Prominent (emerald border) when the learner is Overwhelmed or
+                  in Visual scaffolding mode; standard dashed otherwise.
                   TODO: replace href="#" with your Gamma.ai affiliate link
-                  once you have registered at gamma.app and obtained your
-                  referral code (e.g. https://gamma.app?ref=YOUR_CODE). */}
-              <a
-                href="#"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between p-3 border border-dashed border-zinc-300 rounded-lg hover:border-emerald-400 hover:bg-emerald-50/50 transition-all group"
-                aria-label="Recommended: Gamma.ai presentation tool (affiliate)"
-              >
-                <div>
-                  <p className="text-xs font-bold text-zinc-700 group-hover:text-emerald-700">Gamma.ai</p>
-                  <p className="text-[11px] text-zinc-400">AI-powered presentations for your assessments</p>
-                </div>
-                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-300 group-hover:text-emerald-400 border border-current rounded px-1.5 py-0.5">
-                  Recommended
-                </span>
-              </a>
+                  once registered at gamma.app (e.g. https://gamma.app?ref=YOUR_CODE). */}
+              {(() => {
+                const isHighPriority =
+                  profile.emotionalBaseline === 'overwhelmed' ||
+                  profile.preferredMode === 'visual';
+                return (
+                  <a
+                    href="#"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`flex items-center justify-between p-3 rounded-lg transition-all group ${
+                      isHighPriority
+                        ? 'border-2 border-emerald-400 bg-emerald-50 hover:bg-emerald-100'
+                        : 'border border-dashed border-zinc-300 hover:border-emerald-400 hover:bg-emerald-50/50'
+                    }`}
+                    aria-label="Recommended: Gamma.ai presentation tool (affiliate)"
+                  >
+                    <div>
+                      <p className={`text-xs font-bold ${isHighPriority ? 'text-emerald-800' : 'text-zinc-700 group-hover:text-emerald-700'}`}>
+                        Gamma.ai {isHighPriority && <span className="ml-1 text-[9px] bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded font-black uppercase">Suggested for you</span>}
+                      </p>
+                      <p className={`text-[11px] mt-0.5 ${isHighPriority ? 'text-emerald-700' : 'text-zinc-400'}`}>
+                        {isHighPriority
+                          ? 'Build your presentation in minutes, not hours. Low-effort, high-output.'
+                          : 'AI-powered presentations for your assessments'}
+                      </p>
+                    </div>
+                    <span className={`text-[9px] font-black uppercase tracking-widest border rounded px-1.5 py-0.5 shrink-0 ml-3 ${isHighPriority ? 'border-emerald-400 text-emerald-600' : 'border-current text-zinc-300 group-hover:text-emerald-400'}`}>
+                      {isHighPriority ? 'Try it' : 'Recommended'}
+                    </span>
+                  </a>
+                );
+              })()}
             </div>
 
-            {/* Consent checkbox. Required to proceed.
-                Note: consent paired with app access has weaker standing under
-                the Australian Privacy Act than freely-given opt-in. Add
-                "You can change this in Settings at any time" to strengthen
-                your consent position before launch. */}
+            {/* Consent checkbox (Australian Privacy Act APP 5 compliant).
+                Three-clause structure names every secondary use at collection:
+                (a) real-time personalisation, (b) institutional research,
+                (c) Global Learning Index. Required to proceed. */}
             <div className="border-t border-zinc-100 pt-5 mb-5">
               <label className="flex items-start gap-3 cursor-pointer group">
                 <input
@@ -412,8 +466,20 @@ export default function NeuroProfiler({ onComplete, userName }) {
                   aria-describedby="consent-desc"
                 />
                 <span id="consent-desc" className="text-[11px] text-zinc-600 leading-relaxed">
-                  I consent to my anonymised, de-identified study patterns being used for educational research.{' '}
-                  <span className="text-zinc-400">You can change this in Settings at any time.</span>
+                  I understand that Simplifii-OS collects anonymised, de-identified data about how I study
+                  (task timing, tool usage, and engagement patterns). This data may be used to:
+                  <span className="block mt-1 pl-2 text-zinc-500">
+                    (a) generate a Cognitive Friction Score to personalise my interface in real time;
+                  </span>
+                  <span className="block pl-2 text-zinc-500">
+                    (b) improve student retention outcomes in aggregated, non-identifiable reports shared with educational institutions and research partners;
+                  </span>
+                  <span className="block pl-2 text-zinc-500">
+                    (c) contribute to the Global Learning Index, a de-identified dataset available to education researchers and commercial partners.
+                  </span>
+                  <span className="block mt-1 text-zinc-400">
+                    No personally identifiable information is ever shared. You can withdraw consent in Settings at any time.
+                  </span>
                 </span>
               </label>
             </div>
