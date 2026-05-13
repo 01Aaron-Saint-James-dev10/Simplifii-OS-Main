@@ -187,11 +187,11 @@ export function useIngestion({
     const files = data.sourceFiles || [];
     if (files.length === 0) return handleSprintCreation(data);
 
-    const codeRegex = /\b([A-Z]{3,4}\d{4})\b/;
+    const codeRegex = /\b([A-Za-z]{3,4}\d{4})\b/;
     const groups = {};
     for (const name of files) {
       const match = name.match(codeRegex);
-      const code = match ? match[1] : (data.unitCode || 'General');
+      const code = (match ? match[1] : (data.unitCode || 'General')).toUpperCase().trim();
       if (!groups[code]) groups[code] = [];
       groups[code].push(name);
     }
@@ -248,11 +248,11 @@ export function useIngestion({
         return;
       }
 
-      const codeRegex = /\b([A-Z]{3,4}\d{4})\b/;
+      const codeRegex = /\b([A-Za-z]{3,4}\d{4})\b/;
       const fileGroups = {};
       for (const file of files) {
         const match = (file.name || '').match(codeRegex);
-        const code = match ? match[1] : (profile.courseName || 'Unknown');
+        const code = (match ? match[1] : (profile.courseName || 'Unknown')).toUpperCase().trim();
         if (!fileGroups[code]) fileGroups[code] = [];
         fileGroups[code].push(file);
       }
@@ -270,7 +270,7 @@ export function useIngestion({
       for (const code of codes) {
         const groupFiles = fileGroups[code];
         let aggregated = {
-          unitCode: code,
+          unitCode: code.toUpperCase().trim(),
           level: profile.level,
           theme: 'General',
           sourceFiles: groupFiles.map(f => f.name)
