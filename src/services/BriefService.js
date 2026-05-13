@@ -149,12 +149,36 @@ export const extractDeepCourseData = (text) => {
     .map(m => m[1].trim().replace(/\s+/g, ' '))
     .filter(lo => lo.length >= 10);
 
-  let referencingStyle = 'Harvard';
-  if (lowerText.includes('apa')) referencingStyle = 'APA';
-  else if (lowerText.includes('ieee')) referencingStyle = 'IEEE';
+  // Normalise pdfjs multi-space output for all downstream matching.
+  const normText = text.replace(/\s+/g, ' ');
 
-  const rubricRegex = /(?:High Distinction|Marking Criteria)[:\-]?\s*([A-Za-z0-9\s,.]+)/gi;
-  const rubricCriteria = [...text.matchAll(rubricRegex)].map(m => m[1].trim());
+  // Referencing style detection. Word-boundary matches to avoid false
+  // positives (e.g. "capable" matching "apa"). Returns null when no
+  // style is detected, not a fake default.
+  const REF_STYLES = [
+    { re: /\bAPA\s*(?:7th|7|6th|6)?\b/i, name: 'APA' },
+    { re: /\bHarvard\b/i, name: 'Harvard' },
+    { re: /\bAGLC\b/i, name: 'AGLC' },
+    { re: /\bChicago\b/i, name: 'Chicago' },
+    { re: /\bVancouver\b/i, name: 'Vancouver' },
+    { re: /\bMLA\s*(?:9th|9|8th|8)?\b/i, name: 'MLA' },
+    { re: /\bIEEE\b/i, name: 'IEEE' },
+    { re: /\bOxford\b/i, name: 'Oxford' },
+  ];
+  let referencingStyle = null;
+  for (const { re, name } of REF_STYLES) {
+    if (re.test(normText)) { referencingStyle = name; break; }
+  }
+
+  // Rubric detection: AU uni grade bands + descriptive bands + numeric bands.
+  // Case-insensitive. Detects presence even if individual criteria cannot be parsed.
+  const RUBRIC_BAND_RE = /\b(?:high\s+distinction|distinction|credit|pass|fail|satisfactory|unsatisfactory|excellent|very\s+good|not\s+completed|band\s+[1-7]|level\s+[1-7])\b/gi;
+  const RUBRIC_HEADER_RE = /\b(?:marking\s+criteria|rubric|assessment\s+criteria|grading\s+criteria|performance\s+standard)\b/i;
+  const rubricBands = [...new Set((normText.match(RUBRIC_BAND_RE) || []).map(b => b.trim().replace(/\s+/g, ' ')))];
+  const rubricDetected = rubricBands.length >= 2 || RUBRIC_HEADER_RE.test(normText);
+  // Extract criteria text following rubric header patterns
+  const rubricCriteriaRe = /(?:High Distinction|Distinction|Excellent|Marking Criteria|Assessment Criteria|Rubric|Criteria)[:\-]?\s*([A-Za-z0-9 ,'&/\-]{5,200}?)(?=[.;\n]|$)/gi;
+  const rubricCriteria = [...new Set([...normText.matchAll(rubricCriteriaRe)].map(m => m[1].trim()))].filter(c => c.length >= 5);
 
   const tierData = {};
   if (tier && tier.heuristics) {
@@ -175,9 +199,56 @@ export const extractDeepCourseData = (text) => {
   const weightingMatch = lowerText.match(/(\d{1,3})\s*%(?:\s*weighting)?/i) || lowerText.match(/weighting[:\s]*(\d{1,3})\s*%/i);
   const weighting = weightingMatch ? parseInt(weightingMatch[1]) : 0;
 
-  // Assessment dates: "due Friday Week 5", "Submission: 12 May 2026", "deadline 12/05/2026"
-  const dateRegex = /(?:due|deadline|submission|assessment)\s*(?:on|by|date)?[:\-]?\s*((?:[A-Z][a-z]+day\s*(?:Week\s*\d+)?)|(?:\d{1,2}\s+[A-Z][a-z]+\s+\d{2,4})|(?:\d{1,2}\/\d{1,2}\/\d{2,4}))/gi;
-  const assessmentDates = [...new Set([...text.matchAll(dateRegex)].map(m => m[1].trim()))];
+  // Assessment dates. Returns richer objects: { raw, parsed (Date|null), type }
+  const DATE_PATTERNS = [
+    // "Due 17th October 2025", "deadline 1st March 2026", "submission by 3rd Feb 2025"
+    // Month name required (Jan-Dec) to avoid matching "25 WEEK" style noise.
+    { re: /(?:due|deadline|submission|submit)\s*(?:on|by|date)?[:\-]?\s*(\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)(?:\s+\d{2,4})?)/gi, type: 'absolute' },
+    // "Due Date: 17/10/2025", "deadline 12-05-2026", "due 1.3.2025"
+    { re: /(?:due|deadline|submission|submit)\s*(?:on|by|date)?[:\-]?\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/gi, type: 'absolute' },
+    // "Friday Week 5", "due Week 7", "submission Week 10"
+    { re: /(?:due|deadline|submission|submit)\s*(?:on|by|date)?[:\-]?\s*((?:[A-Z][a-z]+day\s+)?Week\s+\d{1,2})/gi, type: 'week' },
+    // Standalone "Week 7: 27 October" near assessment context
+    { re: /Week\s+\d{1,2}\s*[:\-]\s*(\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)(?:\s+\d{2,4})?)/gi, type: 'absolute' },
+  ];
+  const MONTH_MAP = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+  const parseExtractedDate = (raw) => {
+    const s = raw.replace(/\s+/g, ' ').trim();
+    // Try dd/mm/yyyy or dd-mm-yyyy or dd.mm.yyyy
+    const slashMatch = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
+    if (slashMatch) {
+      const y = slashMatch[3].length === 2 ? 2000 + parseInt(slashMatch[3], 10) : parseInt(slashMatch[3], 10);
+      return new Date(y, parseInt(slashMatch[2], 10) - 1, parseInt(slashMatch[1], 10));
+    }
+    // Try "17th October 2025", "1 March", "3rd Feb 2026"
+    const nameMatch = s.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+)(?:\s+(\d{2,4}))?$/);
+    if (nameMatch) {
+      const mon = MONTH_MAP[nameMatch[2].toLowerCase().slice(0, 3)];
+      if (mon !== undefined) {
+        const y = nameMatch[3] ? (nameMatch[3].length === 2 ? 2000 + parseInt(nameMatch[3], 10) : parseInt(nameMatch[3], 10)) : new Date().getFullYear();
+        return new Date(y, mon, parseInt(nameMatch[1], 10));
+      }
+    }
+    return null;
+  };
+  const dateSet = new Set();
+  const assessmentDates = [];
+  for (const { re, type } of DATE_PATTERNS) {
+    re.lastIndex = 0;
+    for (const m of normText.matchAll(re)) {
+      const raw = m[1].trim();
+      if (dateSet.has(raw.toLowerCase())) continue;
+      dateSet.add(raw.toLowerCase());
+      assessmentDates.push({ raw, parsed: parseExtractedDate(raw), type });
+    }
+  }
+  // Sort absolute dates chronologically; week refs stay in extraction order
+  assessmentDates.sort((a, b) => {
+    if (a.parsed && b.parsed) return a.parsed - b.parsed;
+    if (a.parsed) return -1;
+    if (b.parsed) return 1;
+    return 0;
+  });
 
   // UDL requirements: capture phrases tied to UDL principles or guidelines
   const udlRegex = /UDL\s*(?:\d+(?:\.\d+)?)?\s*[:\-]?\s*([A-Za-z][^.;\n]{5,160})/gi;
@@ -323,6 +394,8 @@ export const extractDeepCourseData = (text) => {
     assessmentTitles,
     referencingStyle,
     rubricCriteria,
+    rubricDetected,
+    rubricBands,
     evidenceFormula,
     tierData,
     detectedLevel,
@@ -353,6 +426,18 @@ const dedupeById = (arr) => {
   });
 };
 
+const dedupeDates = (arr) => {
+  const seen = new Set();
+  return (arr || []).filter(item => {
+    if (!item) return false;
+    // Dates are objects { raw, parsed, type }; handle legacy string entries too
+    const key = typeof item === 'string' ? item.trim().toLowerCase() : (item.raw || '').trim().toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
 export const mergeExtractionData = (prev, next) => {
   if (!prev) return next;
   if (!next) return prev;
@@ -362,7 +447,7 @@ export const mergeExtractionData = (prev, next) => {
     learningOutcomes: dedupeStrings([...(prev.learningOutcomes || []), ...(next.learningOutcomes || [])]),
     assessmentTitles: dedupeStrings([...(prev.assessmentTitles || []), ...(next.assessmentTitles || [])]),
     rubricCriteria: dedupeStrings([...(prev.rubricCriteria || []), ...(next.rubricCriteria || [])]),
-    assessmentDates: dedupeStrings([...(prev.assessmentDates || []), ...(next.assessmentDates || [])]),
+    assessmentDates: dedupeDates([...(prev.assessmentDates || []), ...(next.assessmentDates || [])]),
     udlRequirements: dedupeStrings([...(prev.udlRequirements || []), ...(next.udlRequirements || [])]),
     udlPrinciples: Array.from(new Set([...(prev.udlPrinciples || []), ...(next.udlPrinciples || [])])),
     udlSuggestions: Array.from(new Set([...(prev.udlSuggestions || []), ...(next.udlSuggestions || [])])),
@@ -370,6 +455,8 @@ export const mergeExtractionData = (prev, next) => {
     doneWhenChecklist: dedupeById([...(prev.doneWhenChecklist || []), ...(next.doneWhenChecklist || [])]),
     words: Math.max(prev.words || 0, next.words || 0) || (prev.words || next.words),
     weighting: Math.max(prev.weighting || 0, next.weighting || 0) || (prev.weighting || next.weighting),
+    rubricDetected: prev.rubricDetected || next.rubricDetected || false,
+    rubricBands: Array.from(new Set([...(prev.rubricBands || []), ...(next.rubricBands || [])])),
     referencingStyle: prev.referencingStyle || next.referencingStyle,
     detectedLevel: next.detectedLevel || prev.detectedLevel,
     rawText: [prev.rawText, next.rawText].filter(Boolean).join('\n\n')

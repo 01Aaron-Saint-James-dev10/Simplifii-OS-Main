@@ -83,18 +83,73 @@ export function useIngestion({
   // upgrade the same course in place when they settle. Loading anxiety breaks
   // executive function. The shadow flag on extractionData lets downstream UI
   // mark data as DRAFT until ground truth lands.
+  // Marry extracted dates to assessment briefs by proximity in the raw text.
+  // If a brief title and a date appear within 300 chars of each other, pair them.
+  // Falls back to positional matching when proximity fails.
+  const marryDatesToBriefs = (briefs, dates, rawText) => {
+    if (!dates || dates.length === 0 || !rawText) return briefs;
+    const norm = rawText.replace(/\s+/g, ' ');
+    // Only use absolute dates with a parsed value for the dueDate field
+    const usable = dates.filter(d => d && d.parsed && d.type === 'absolute');
+    if (usable.length === 0) return briefs;
+
+    const assigned = new Set();
+    const result = briefs.map(b => {
+      const titleIdx = norm.toLowerCase().indexOf(b.title.toLowerCase());
+      if (titleIdx === -1) return b;
+      // Find the closest unassigned date within 300 chars
+      let bestDist = Infinity;
+      let bestDate = null;
+      let bestIdx = -1;
+      for (let i = 0; i < usable.length; i++) {
+        if (assigned.has(i)) continue;
+        const dateIdx = norm.toLowerCase().indexOf(usable[i].raw.toLowerCase());
+        if (dateIdx === -1) continue;
+        const dist = Math.abs(dateIdx - titleIdx);
+        if (dist < bestDist && dist < 300) {
+          bestDist = dist;
+          bestDate = usable[i];
+          bestIdx = i;
+        }
+      }
+      if (bestDate && bestIdx >= 0) {
+        assigned.add(bestIdx);
+        return { ...b, dueDate: bestDate.parsed.toISOString() };
+      }
+      return b;
+    });
+
+    // Fallback: if N briefs and N usable dates and some unassigned, marry in order
+    const unmatched = result.filter(b => !b.dueDate);
+    const unusedDates = usable.filter((_, i) => !assigned.has(i));
+    if (unmatched.length > 0 && unusedDates.length > 0) {
+      let di = 0;
+      return result.map(b => {
+        if (!b.dueDate && di < unusedDates.length) {
+          return { ...b, dueDate: unusedDates[di++].parsed.toISOString() };
+        }
+        return b;
+      });
+    }
+    return result;
+  };
+
   const handleSprintCreation = async (data) => {
     const regexTitles = Array.isArray(data.assessmentTitles) ? data.assessmentTitles.slice() : [];
+    const extractedDates = Array.isArray(data.assessmentDates) ? data.assessmentDates : [];
+    const rawText = data.rawText || '';
     const regexCandidateBriefs = regexTitles
       .map(t => String(t || '').trim())
       .filter(t => t.length >= 4)
       .map(t => {
         const stem = t.replace(/\s*\(\d+%\)\s*$/, '').trim();
         const weightMatch = t.match(/\((\d+%)\)/);
-        return { title: stem, weight: weightMatch ? weightMatch[1] : '', wordCountGoal: 0, dueDate: '', source: 'brief' };
+        return { title: stem, weight: weightMatch ? weightMatch[1] : '', wordCountGoal: 0, dueDate: null, source: 'brief' };
       });
+    // Marry dates to briefs before reconciliation
+    const datedBriefs = marryDatesToBriefs(regexCandidateBriefs, extractedDates, rawText);
 
-    const draft = buildDerived(regexCandidateBriefs);
+    const draft = buildDerived(datedBriefs);
     const draftFirst = draft.assessmentTitles[0];
     const draftTaskName = draftFirst || data.unitCode || 'Course Brief';
     const draftTask = { course: data.unitCode || 'Extracted', task: draftTaskName, level: data.level, rawText: data.rawText };
@@ -107,7 +162,7 @@ export function useIngestion({
 
     setInstitutionalData({
       learningOutcomes: data.learningOutcomes || [],
-      referencingStyle: data.referencingStyle || 'Harvard',
+      referencingStyle: data.referencingStyle || null,
       rubricCriteria: data.rubricCriteria || []
     });
 
@@ -146,9 +201,10 @@ export function useIngestion({
         const [llmBriefs, derivedName] = await Promise.all([briefsPromise, namePromise]);
         const candidateBriefs = [
           ...llmBriefs.map(b => ({ ...b, source: b.source || 'outline' })),
-          ...regexCandidateBriefs
+          ...datedBriefs
         ];
-        const confirmed = buildDerived(candidateBriefs);
+        const datedCandidates = marryDatesToBriefs(candidateBriefs, extractedDates, rawText);
+        const confirmed = buildDerived(datedCandidates);
         const conflictCount = confirmed.reconciledBriefs.reduce((n, b) => n + ((b.reconciled?.conflicts?.length) || 0), 0);
         if (typeof console !== 'undefined') {
           console.info('[handleSprintCreation] confirmed extraction:', confirmed.reconciledBriefs.length, 'canonical assessments (', conflictCount, 'conflicts resolved)');

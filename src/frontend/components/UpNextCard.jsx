@@ -54,7 +54,7 @@ function findMostUrgentTask(courses, now) {
           dueDate: brief.dueDate,
           format: brief.format || null,
           language: brief.language || null,
-          rubricExtracted: !!(course.extractionData?.rubricCriteria?.length > 0),
+          rubricExtracted: !!(course.extractionData?.rubricDetected || course.extractionData?.rubricCriteria?.length > 0),
         };
       }
     }
