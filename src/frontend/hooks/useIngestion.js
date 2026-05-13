@@ -168,7 +168,15 @@ export function useIngestion({
           name: resolvedName || undefined,
           tasks: [confirmedTask],
           activeTask: confirmedTask,
+          // Sprint 8.5b: carry forward udlScore, udlPrinciples, udlRequirements,
+          // and temporalMap from the regex-derived draft. The LLM confirmation
+          // only produces assessmentTitles/Briefs/checklist; the shallow merge
+          // in upgradeCourseExtraction would wipe these fields without this.
           extractionData: {
+            udlScore: data.udlScore,
+            udlPrinciples: data.udlPrinciples,
+            udlRequirements: data.udlRequirements,
+            temporalMap: data.temporalMap,
             assessmentTitles: confirmed.assessmentTitles,
             assessmentBriefs: confirmed.reconciledBriefs,
             doneWhenChecklist: confirmed.doneWhenChecklist,
