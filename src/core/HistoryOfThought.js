@@ -253,6 +253,12 @@ const pushToCloud = async (event) => {
     const supabaseAnonKey = typeof process !== 'undefined' && process.env.REACT_APP_SUPABASE_ANON_KEY
       ? process.env.REACT_APP_SUPABASE_ANON_KEY
       : '';
+    // Sprint 8.3: guard against empty anon key. Without a valid key, every
+    // Supabase request returns 401 and floods the console with errors.
+    if (!supabaseAnonKey) {
+      if (typeof console !== 'undefined') console.debug('[pushToCloud] REACT_APP_SUPABASE_ANON_KEY not set, skipping cloud sync');
+      return;
+    }
     const sb = createClient(supabaseUrl, supabaseAnonKey, {
       auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
     });
@@ -373,6 +379,7 @@ export const listCloudEvents = async ({ limit = 500 } = {}) => {
     const supabaseAnonKey = typeof process !== 'undefined' && process.env.REACT_APP_SUPABASE_ANON_KEY
       ? process.env.REACT_APP_SUPABASE_ANON_KEY
       : '';
+    if (!supabaseAnonKey) return [];
     const sb = createClient(supabaseUrl, supabaseAnonKey, {
       auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
     });
