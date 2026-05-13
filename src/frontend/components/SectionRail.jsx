@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { generateSubtasks } from '../../services/ScaffolderToolService';
+import { generateSubtasks, getSectionsForFormat } from '../../services/ScaffolderToolService';
 import { appendEvent } from '../../core/HistoryOfThought';
 import {
   SURFACE_CARD,
@@ -32,40 +32,34 @@ import {
  *   brief           - assessment brief object
  */
 
-const DEFAULT_SECTIONS = [
-  { type: 'introduction', label: 'Introduction' },
-  { type: 'body', label: 'Main Body' },
-  { type: 'conclusion', label: 'Conclusion' },
-  { type: 'references', label: 'References' },
-];
-
-const SCIENCE_SECTIONS = [
-  { type: 'introduction', label: 'Introduction' },
-  { type: 'methods', label: 'Methods' },
-  { type: 'results', label: 'Results' },
-  { type: 'discussion', label: 'Discussion' },
-  { type: 'references', label: 'References' },
-];
-
-function detectSections(brief) {
-  if (!brief) return DEFAULT_SECTIONS;
-  const title = (brief.title || '').toLowerCase();
-  if (/lab\s*report|experiment|practical|methods/i.test(title)) return SCIENCE_SECTIONS;
-  return DEFAULT_SECTIONS;
+function resolveSections(brief) {
+  const formatKey = brief?.format?.format || null;
+  const templateSections = getSectionsForFormat(formatKey);
+  if (templateSections.length > 0) {
+    return templateSections.map(s => ({ type: s.id, label: s.title }));
+  }
+  // Ultimate fallback
+  return [
+    { type: 'introduction', label: 'Introduction' },
+    { type: 'body', label: 'Main Body' },
+    { type: 'conclusion', label: 'Conclusion' },
+    { type: 'references', label: 'References' },
+  ];
 }
 
 export default function SectionRail({ sections: sectionsProp, activeSection, onSelectSection, courseId, assessmentTitle, brief }) {
-  const sections = sectionsProp && sectionsProp.length > 0 ? sectionsProp : detectSections(brief);
+  const formatKey = brief?.format?.format || null;
+  const sections = sectionsProp && sectionsProp.length > 0 ? sectionsProp : resolveSections(brief);
   const [expanded, setExpanded] = useState(null);
   const [subtaskState, setSubtaskState] = useState({});
 
   const subtasksMap = useMemo(() => {
     const map = {};
-    for (const s of sections) {
-      map[s.type] = generateSubtasks(s.type, brief);
+    for (const sec of sections) {
+      map[sec.type] = generateSubtasks(sec.type, brief, formatKey);
     }
     return map;
-  }, [sections, brief]);
+  }, [sections, brief, formatKey]);
 
   const toggleExpand = (type) => {
     setExpanded(prev => prev === type ? null : type);

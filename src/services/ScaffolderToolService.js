@@ -1,46 +1,18 @@
 /**
  * ScaffolderToolService.js
  *
- * Tier 1 stub. Generates micro-tasks (15-30 min) per assessment section
- * via backwards planning. Heuristic generation per section type.
+ * Generates micro-tasks (15-30 min) per assessment section based on
+ * the detected assessment format. Reads from sectionTemplates.js.
+ * Falls back to essay_critical when no format is detected.
  *
  * Contract: docs/TOOLS_SPEC.md Tool #3
  */
 
-const SECTION_SUBTASKS = {
-  introduction: [
-    { label: 'Read the brief and note what topic you chose', estimatedMinutes: 15 },
-    { label: 'Write one sentence stating what this paper is about', estimatedMinutes: 15 },
-    { label: 'Outline why the topic matters (2-3 sentences)', estimatedMinutes: 15 },
-    { label: 'Draft a plan sentence: what will each section cover?', estimatedMinutes: 15 },
-  ],
-  methods: [
-    { label: 'Outline what you measured or observed', estimatedMinutes: 15 },
-    { label: 'Describe sample size and selection', estimatedMinutes: 15 },
-    { label: 'Write the procedure step by step', estimatedMinutes: 30 },
-    { label: 'Add the statistical tests used', estimatedMinutes: 15 },
-  ],
-  results: [
-    { label: 'List your key findings as bullet points', estimatedMinutes: 15 },
-    { label: 'Write one paragraph per finding with data', estimatedMinutes: 30 },
-    { label: 'Add a reference to each table or figure', estimatedMinutes: 15 },
-  ],
-  discussion: [
-    { label: 'Restate the main finding in one sentence', estimatedMinutes: 15 },
-    { label: 'Compare your finding to two published studies', estimatedMinutes: 30 },
-    { label: 'Explain any unexpected results', estimatedMinutes: 15 },
-    { label: 'State one limitation and one future direction', estimatedMinutes: 15 },
-  ],
-  conclusion: [
-    { label: 'Summarise the main argument in 2-3 sentences', estimatedMinutes: 15 },
-    { label: 'Restate how the evidence supports the argument', estimatedMinutes: 15 },
-    { label: 'End with a forward-looking sentence', estimatedMinutes: 15 },
-  ],
-  references: [
-    { label: 'Collect all in-text citations into a list', estimatedMinutes: 15 },
-    { label: 'Format each reference in the required style', estimatedMinutes: 30 },
-    { label: 'Cross-check: every in-text citation has a reference entry', estimatedMinutes: 15 },
-  ],
+import { getTemplate } from './sectionTemplates';
+
+// Legacy fallback sub-tasks (used when a section ID from the template
+// has no defaultSubtasks defined).
+const LEGACY_SUBTASKS = {
   body: [
     { label: 'Write a topic sentence for paragraph 1', estimatedMinutes: 15 },
     { label: 'Add evidence from one source', estimatedMinutes: 15 },
@@ -50,14 +22,53 @@ const SECTION_SUBTASKS = {
   ],
 };
 
+/**
+ * Get the section list for a given format.
+ * @param {string} format - assessment format key (e.g. 'lab_report')
+ * @returns {Array} section objects from the template
+ */
+export function getSectionsForFormat(format) {
+  const template = getTemplate(format);
+  return template.sections || [];
+}
+
+/**
+ * Generate sub-tasks for a specific section within an assessment format.
+ * @param {string} sectionId - section ID (e.g. 'aim_hypothesis')
+ * @param {Object} brief - assessment brief object
+ * @param {string} format - assessment format key
+ * @returns {Array<{ id, label, estimatedMinutes, status }>}
+ */
 // TODO: wire to /api/tools/scaffolder (Anthropic API) for brief-aware generation
-export function generateSubtasks(sectionType, brief) {
-  const key = (sectionType || 'body').toLowerCase().replace(/\s+/g, '_');
-  const template = SECTION_SUBTASKS[key] || SECTION_SUBTASKS.body;
-  return template.map((t, i) => ({
-    id: `${key}_${i}`,
+export function generateSubtasks(sectionId, brief, format) {
+  const template = getTemplate(format || brief?.format?.format);
+  const section = (template.sections || []).find(s => s.id === sectionId);
+
+  let tasks;
+  if (section && section.defaultSubtasks && section.defaultSubtasks.length > 0) {
+    tasks = section.defaultSubtasks;
+  } else {
+    // Fall back to legacy key-based lookup
+    const key = (sectionId || 'body').toLowerCase().replace(/\s+/g, '_');
+    tasks = LEGACY_SUBTASKS[key] || LEGACY_SUBTASKS.body;
+  }
+
+  return tasks.map((t, i) => ({
+    id: `${sectionId}_${i}`,
     label: t.label,
     estimatedMinutes: t.estimatedMinutes,
     status: 'todo',
   }));
+}
+
+/**
+ * Get Definition of Done items for a section.
+ * @param {string} sectionId
+ * @param {string} format
+ * @returns {Array<{ criterion, source, autoCheck }>}
+ */
+export function getDefinitionOfDone(sectionId, format) {
+  const template = getTemplate(format);
+  const section = (template.sections || []).find(s => s.id === sectionId);
+  return section?.definitionOfDone || [];
 }
