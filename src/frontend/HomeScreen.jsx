@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useProject } from './ProjectContext';
 import { useSettings } from './SettingsContext';
+import { useRouter } from '../contexts/RouterContext';
 import { getTaskStatus } from '../services/StatusService';
 import TimelineStrip from './components/TimelineStrip';
 import UpNextCard from './components/UpNextCard';
@@ -67,6 +68,7 @@ function matchesTerm(course, term) {
 export default function HomeScreen() {
   const { courses, terms, activeTerm, setActiveTerm } = useProject();
   const { display, reducedMotion } = useSettings();
+  const { navigateToCanvas } = useRouter();
   const now = useMemo(() => new Date(), []);
 
   const allEntries = Object.entries(courses || {});
@@ -183,10 +185,7 @@ export default function HomeScreen() {
                 <UpNextCard
                   courses={courses}
                   now={now}
-                  onOpenCanvas={(courseId, title) => {
-                    // TODO: navigate to Screen 4 (Writing canvas) with courseId + title
-                    console.info('[HomeScreen] Open canvas:', courseId, title);
-                  }}
+                  onOpenCanvas={(cId, title) => navigateToCanvas(cId, title)}
                 />
               </section>
             )}
@@ -222,10 +221,7 @@ export default function HomeScreen() {
                     course={course}
                     density={display.cardDensity}
                     now={now}
-                    onOpen={(courseId) => {
-                      // TODO: navigate to course view or Screen 4
-                      console.info('[HomeScreen] Open course:', courseId);
-                    }}
+                    onOpen={(cId) => navigateToCanvas(cId, null)}
                   />
                 ))}
               </div>

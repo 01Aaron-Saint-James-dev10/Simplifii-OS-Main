@@ -1,0 +1,63 @@
+/*
+ * CanvasScreen.css
+ *
+ * Obsidian Aesthetic. Token-driven. Writing canvas layout.
+ * No raw hex outside token references. No em-dashes. Australian English.
+ */
+
+.canvas-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg, #09090b); /* SURFACE_BASE */
+  color: #e4e4e7; /* TEXT_PRIMARY */
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.canvas-no-motion *,
+.canvas-no-motion *::before,
+.canvas-no-motion *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+.canvas-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.canvas-centre {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ============================================================
+   Focus indicators (WCAG 2.4.13)
+   ============================================================ */
+
+.canvas-root *:focus-visible {
+  outline: 2px solid #f4f4f5; /* FOCUS_RING */
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   Reduced motion
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .canvas-root *,
+  .canvas-root *::before,
+  .canvas-root *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
