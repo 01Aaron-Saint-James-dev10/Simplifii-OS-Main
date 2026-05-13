@@ -233,12 +233,10 @@ export function useIngestion({
     if (onCoursesReady) onCoursesReady();
   };
 
-  // Sprint 8.3: Data Quality. Match exactly 4 letters followed by 4 digits
-  // anywhere in the filename. Leading \b was removed because underscore is a
-  // word character in regex, so \b fails between CO_ and BABS in filenames
-  // like CO_BABS1202_outline.pdf. Trailing \b kept to prevent partial matches
-  // against longer digit strings.
-  const COURSE_CODE_RE = /([A-Z]{4}\d{4})\b/i;
+  // Sprint 8.4: fix 8.3 regression. \b fails after digits when followed by
+  // underscore (word char), so CO_BABS1201_1_2025*.pdf matched nothing.
+  // Negative lookahead (?!\d) rejects a 5th digit but allows _, ., -, or EOF.
+  const COURSE_CODE_RE = /([A-Z]{4}\d{4})(?!\d)/i;
 
   // Classify a grounding file by document type so the extractor sees documents
   // in CourseCode > Outline > Brief > Rubric order. Files whose name contains
