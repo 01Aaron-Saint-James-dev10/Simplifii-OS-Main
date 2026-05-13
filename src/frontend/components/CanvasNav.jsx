@@ -1,5 +1,6 @@
 import React from 'react';
 import { useRouter } from '../../contexts/RouterContext';
+import ExportMenu from './ExportMenu';
 import {
   SURFACE_BASE,
   SURFACE_RAISED,
@@ -29,7 +30,7 @@ import {
  *   lastSavedAgo      - string (e.g. "2s ago")
  */
 
-export default function CanvasNav({ courseName, assessmentTitle, saveStatus, lastSavedAgo }) {
+export default function CanvasNav({ courseName, assessmentTitle, saveStatus, lastSavedAgo, tiptapDoc, htmlContent, courseId }) {
   const { navigateHome } = useRouter();
 
   return (
@@ -104,6 +105,13 @@ export default function CanvasNav({ courseName, assessmentTitle, saveStatus, las
             {saveStatus === 'saved' && lastSavedAgo ? `Saved ${lastSavedAgo}` : saveStatus === 'saving' ? 'Saving...' : 'Unsaved'}
           </span>
         </div>
+        <ExportMenu
+          tiptapDoc={tiptapDoc}
+          htmlContent={htmlContent}
+          courseCode={courseName}
+          assessmentTitle={assessmentTitle}
+          courseId={courseId}
+        />
       </div>
     </nav>
   );

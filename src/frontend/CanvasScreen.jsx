@@ -58,9 +58,10 @@ export default function CanvasScreen() {
     setLastSavedAgo(ago || '');
   }, []);
 
-  // Word count + draft text ref (for panels that need current text)
+  // Word count + draft text + TipTap JSON (for panels and export)
   const [wordCount, setWordCount] = useState(0);
   const [draftText, setDraftText] = useState('');
+  const [tiptapDoc, setTiptapDoc] = useState(null);
   const handleWordCount = useCallback((count) => setWordCount(count), []);
 
   // Section rail
@@ -123,6 +124,9 @@ export default function CanvasScreen() {
         assessmentTitle={currentTitle}
         saveStatus={saveStatus}
         lastSavedAgo={lastSavedAgo}
+        tiptapDoc={tiptapDoc}
+        htmlContent={draftText}
+        courseId={courseId}
       />
 
       <div className="canvas-body">
@@ -142,6 +146,7 @@ export default function CanvasScreen() {
             onWordCountChange={handleWordCount}
             onSaveStatusChange={handleSaveStatus}
             onTextChange={setDraftText}
+            onJsonDocChange={setTiptapDoc}
           />
         </div>
 
