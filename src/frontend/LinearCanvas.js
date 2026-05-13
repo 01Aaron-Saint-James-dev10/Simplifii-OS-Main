@@ -719,7 +719,7 @@ export default function LinearCanvas({
       avatarSpeak(`Excellent. Advancing to ${roadmapStages[nextStage].label}.`, `Progress saved. Stage ${nextStage + 1} initiated.`);
       keystrokeCount.current = 0;
     }
-  }, [checklist, totalWords, sprintGoal, isZenMode, isLiteralMode]);
+  }, [checklist, totalWords, sprintGoal, isZenMode, isLiteralMode, currentStageIndex]);
 
   const updateLineCoords = () => {
     if (!containerRef.current || isZenMode || isLeftCollapsed || isRightCollapsed) {

@@ -63,3 +63,11 @@ What you never do
 - Move on to the next file if you encounter an error — surface it and stop
 
 If check-style.js does not exist or fails to run, report that as a critical issue and stop.
+
+Token Discipline (applies to all subagents)
+
+- Max 5 tool calls per investigation
+- Read only files explicitly named in the prompt
+- Stop and report after 5 calls even if incomplete
+- Never read package.json, node_modules, or .git/ unless explicitly required
+- Never run grep across the entire src/ tree without a specific term

@@ -80,3 +80,11 @@ What you never do
 - Pull future-moat features (History of Thought, Grounding Shield, etc.) into the trace
 - Recommend new tools, libraries, or patterns
 - Run git or bash beyond what Read, Grep, and Glob require
+
+Token Discipline (applies to all subagents)
+
+- Max 5 tool calls per investigation
+- Read only files explicitly named in the prompt
+- Stop and report after 5 calls even if incomplete
+- Never read package.json, node_modules, or .git/ unless explicitly required
+- Never run grep across the entire src/ tree without a specific term

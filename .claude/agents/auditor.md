@@ -49,3 +49,11 @@ Sovereign OS context you must respect
 - Current focus: Node 04, Neural Grounding, Sprint 3
 
 If the audit reveals a violation of the Obsidian Aesthetic (raw hex, raw font, linear easing, em-dashes, American spelling), log it. Do not fix it. Fixing is a separate sprint.
+
+Token Discipline (applies to all subagents)
+
+- Max 5 tool calls per investigation
+- Read only files explicitly named in the prompt
+- Stop and report after 5 calls even if incomplete
+- Never read package.json, node_modules, or .git/ unless explicitly required
+- Never run grep across the entire src/ tree without a specific term
