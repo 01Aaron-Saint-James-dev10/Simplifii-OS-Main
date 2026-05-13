@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useProject } from './ProjectContext';
 import { useSettings } from './SettingsContext';
 import { useRouter } from '../contexts/RouterContext';
@@ -68,41 +68,43 @@ export default function CanvasScreen() {
   // Panel rail
   const [activePanel, setActivePanel] = useState(null);
 
-  // Render active panel content
-  const panelContent = useMemo(() => {
-    switch (activePanel) {
-      case 'brief':
-        return (
-          <BriefPanel
-            brief={brief}
-            rubricCriteria={rubricCriteria}
-            rubricBands={rubricBands}
-            rubricDetected={rubricDetected}
-            courseId={courseId}
-            assessmentTitle={currentTitle}
-          />
-        );
-      case 'tutor':
-        return <TutorPanel assessmentTitle={currentTitle} />;
-      case 'preview':
-        return <PreviewPanel draftText={draftText} wordCount={wordCount} />;
-      case 'sources':
-        return <SourcesPanel sourceFiles={sourceFiles} />;
-      case 'check':
-        return (
-          <CheckPanel
-            draftText={draftText}
-            wordCount={wordCount}
-            targetWords={targetWords}
-            rubricCriteria={rubricCriteria}
-            courseId={courseId}
-            assessmentTitle={currentTitle}
-          />
-        );
-      default:
-        return null;
-    }
-  }, [activePanel, brief, rubricCriteria, rubricBands, rubricDetected, courseId, currentTitle, draftText, wordCount, targetWords, sourceFiles]);
+  // Each panel is always mounted (preserves local state like chat messages
+  // and check results) but hidden via display:none when not active. Only
+  // PreviewPanel and CheckPanel receive draftText; the others never
+  // re-render on keystrokes.
+  const panelContent = activePanel ? (
+    <>
+      <div style={{ display: activePanel === 'brief' ? 'contents' : 'none' }}>
+        <BriefPanel
+          brief={brief}
+          rubricCriteria={rubricCriteria}
+          rubricBands={rubricBands}
+          rubricDetected={rubricDetected}
+          courseId={courseId}
+          assessmentTitle={currentTitle}
+        />
+      </div>
+      <div style={{ display: activePanel === 'tutor' ? 'contents' : 'none' }}>
+        <TutorPanel assessmentTitle={currentTitle} />
+      </div>
+      <div style={{ display: activePanel === 'preview' ? 'contents' : 'none' }}>
+        <PreviewPanel draftText={draftText} wordCount={wordCount} />
+      </div>
+      <div style={{ display: activePanel === 'sources' ? 'contents' : 'none' }}>
+        <SourcesPanel sourceFiles={sourceFiles} />
+      </div>
+      <div style={{ display: activePanel === 'check' ? 'contents' : 'none' }}>
+        <CheckPanel
+          draftText={draftText}
+          wordCount={wordCount}
+          targetWords={targetWords}
+          rubricCriteria={rubricCriteria}
+          courseId={courseId}
+          assessmentTitle={currentTitle}
+        />
+      </div>
+    </>
+  ) : null;
 
   return (
     <div className={`canvas-root ${reducedMotion ? 'canvas-no-motion' : ''}`}>
