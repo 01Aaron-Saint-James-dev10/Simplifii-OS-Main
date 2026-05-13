@@ -207,7 +207,22 @@ export default function AIAvatar({ eventType, isLiteralMode, onClick }) {
       <div onClick={onClick} className="flex flex-col items-center justify-center w-full cursor-pointer hover:scale-105 transition-transform">
         <div className={`relative w-full h-32 border rounded-xl overflow-hidden bg-black shadow-2xl transition-colors ${isReasoning ? 'border-emerald-400 animate-pulse' : 'border-zinc-800/50 group-hover:border-emerald-500/50'}`}
           style={isReasoning ? { animationDuration: '1s', boxShadow: `0 0 30px ${ACCENT_GLOW_60}` } : undefined}>
-          <Canvas camera={{ position: [0, 0, 4] }}>
+          <Canvas
+            camera={{ position: [0, 0, 4] }}
+            gl={{ antialias: false, powerPreference: 'low-power' }}
+            onCreated={({ gl }) => {
+              // Sprint 8.3: handle WebGL context loss gracefully instead of
+              // crashing. Restore automatically when the GPU recovers.
+              const canvas = gl.domElement;
+              canvas.addEventListener('webglcontextlost', (e) => {
+                e.preventDefault();
+                if (typeof console !== 'undefined') console.warn('[AIAvatar] WebGL context lost, waiting for restore');
+              });
+              canvas.addEventListener('webglcontextrestored', () => {
+                if (typeof console !== 'undefined') console.info('[AIAvatar] WebGL context restored');
+              });
+            }}
+          >
             <ambientLight intensity={0.5} />
             <pointLight position={[10, 10, 10]} intensity={1} />
             <RobotHead isSpeaking={isSpeaking} personaKey={persona} boundarySignal={boundarySignal} isLiteralMode={isLiteralMode} />
