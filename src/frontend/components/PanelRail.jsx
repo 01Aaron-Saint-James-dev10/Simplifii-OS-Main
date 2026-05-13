@@ -26,11 +26,12 @@ import {
  */
 
 const PANELS = [
-  { id: 'brief',   icon: 'B', label: 'Brief' },
-  { id: 'tutor',   icon: 'T', label: 'Tutor' },
-  { id: 'preview', icon: 'P', label: 'Preview' },
-  { id: 'sources', icon: 'S', label: 'Sources' },
-  { id: 'check',   icon: 'C', label: 'Check' },
+  { id: 'brief',      icon: 'B', label: 'Brief' },
+  { id: 'tutor',      icon: 'T', label: 'Tutor' },
+  { id: 'preview',    icon: 'P', label: 'Preview' },
+  { id: 'sources',    icon: 'S', label: 'Sources' },
+  { id: 'provenance', icon: 'A', label: 'Authenticity' },
+  { id: 'check',      icon: 'C', label: 'Check' },
 ];
 
 export default function PanelRail({ activePanel, onSelectPanel, panelContent }) {
