@@ -94,7 +94,8 @@ const swapByLevel = (text, level) => {
 const LOGIC_FRAMES = {
   inst1: 'Comparing methodologies across the primary sources reviewed,',
   inst2: 'A critical gap remains in the literature, namely',
-  inst3: 'Synthesising the evidence reviewed above,'
+  inst3: 'Synthesising the evidence reviewed above,',
+  easy_read: 'Here is the key idea in plain English:'
 };
 
 // Logic Block lens instructions sent to Ollama. These describe HOW to look at
@@ -102,7 +103,8 @@ const LOGIC_FRAMES = {
 const LOGIC_LENSES = {
   inst1: 'Examine the passage for how methodological choices are described. Surface comparisons between methods, identify which method the passage privileges, and call out where methodology is implied but not stated. Do not invent methods the student did not mention.',
   inst2: 'Examine the passage for unanswered questions and unstated assumptions. Surface a clear statement of what remains unknown in the field according to the evidence the student has cited. Do not introduce new gaps the passage does not support.',
-  inst3: 'Examine the passage for how separate findings can be combined into a single position. Draw the through-line. Do not add findings the student did not present.'
+  inst3: 'Examine the passage for how separate findings can be combined into a single position. Draw the through-line. Do not add findings the student did not present.',
+  easy_read: 'EASY READ MODE. Rewrite for a user with a processing or intellectual disability. Rules: short sentences only (max 15 words each), active verbs, no jargon, no nested clauses, no academic hedging. Keep only the core action items from the passage. Use Australian English.'
 };
 
 const localMock = {
@@ -118,6 +120,11 @@ const localMock = {
     return `Synthesising the evidence reviewed above: ${swapped}`;
   },
   async applyLogicMode(text, mode, ctx = {}) {
+    if (mode === 'easy_read') {
+      // Strip academic vocabulary swaps: Easy Read uses plain, everyday words.
+      const sentences = text.split(/(?<=[.!?])\s+/).slice(0, 5);
+      return `Here is the key idea in plain English:\n${sentences.join(' ')}`;
+    }
     const frame = LOGIC_FRAMES[mode] || 'Working from the active logic frame:';
     const swapped = swapByLevel(text, ctx?.level);
     return `${frame} ${swapped}`;
@@ -191,6 +198,21 @@ const buildSynthesisePrompt = (text, ctx) => [
 ].join('\n');
 
 const buildLogicModePrompt = (text, mode, ctx) => {
+  // Easy Read is a completely different register. Academic level guidance and
+  // persona tone are irrelevant and counterproductive here; strip them out so
+  // the model does not get mixed signals between "be academic" and "be plain".
+  if (mode === 'easy_read') {
+    return [
+      'TASK: Rewrite the passage below into Easy English.',
+      '',
+      LOGIC_LENSES.easy_read,
+      '',
+      'PASSAGE:',
+      text,
+      '',
+      'Return only the rewritten passage. No preamble.'
+    ].join('\n');
+  }
   const lens = LOGIC_LENSES[mode] || 'Examine the passage carefully and reframe it through the active analytical lens. Do not invent new content.';
   return [
     'TASK: Reframe the passage below through this analytical lens.',

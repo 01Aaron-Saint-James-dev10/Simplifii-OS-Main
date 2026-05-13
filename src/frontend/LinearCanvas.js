@@ -17,6 +17,10 @@ const ASSESSMENT_INSTRUCTIONS = [
   { id: 'inst1', label: 'Analyse Methodologies', detail: 'Critically compare the primary sources.', template: 'Start by comparing the methodologies to the primary literature...', dwTarget: 'dw2' },
   { id: 'inst2', label: 'Identify Gap', detail: 'Highlight what remains unknown in the field.', template: 'This highlights a significant gap in our understanding of...', dwTarget: 'dw3' },
   { id: 'inst3', label: 'Synthesise Findings', detail: 'Combine evidence to support thesis.', template: 'By synthesising these findings, it becomes evident that...', dwTarget: 'dw1' },
+  // Sprint 5.2: Inclusive Sovereignty. Easy Read rewrites selected text into
+  // Level 1 English: short sentences, active verbs, zero academic jargon.
+  // Supports users with intellectual or processing disabilities.
+  { id: 'easy_read', label: 'Clarify Logic', detail: 'Plain English. Short sentences. No jargon.', template: 'The key point is...', dwTarget: 'dw1' },
 ];
 
 const MOCK_TYPOS = ['teh', 'recieve', 'thier', 'definitly', 'cool', 'stuff', 'things'];
@@ -920,9 +924,14 @@ export default function LinearCanvas({
                   <div
                     id={`block-${inst.id}`}
                     key={inst.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Logic Block: ${inst.label}. ${inst.detail}`}
+                    aria-pressed={isActiveMode}
                     draggable
                     onDragStart={(e) => e.dataTransfer.setData('application/json', JSON.stringify(inst))}
                     onClick={() => handleLogicBlockClick(inst)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleLogicBlockClick(inst); } }}
                     onMouseEnter={() => setHoveredBlockId(inst.id)}
                     onMouseLeave={() => setHoveredBlockId(null)}
                     className={`p-5 rounded-2xl cursor-pointer hover:border-emerald-500 transition-all group relative z-10 max-w-full border ${isActiveMode ? 'bg-emerald-500/10 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.25)]' : 'bg-[#0A0A0A] border-zinc-800'}`}
@@ -1151,12 +1160,17 @@ export default function LinearCanvas({
                       
                       {/* Adaptive Quick Actions */}
                       <div className="flex flex-wrap items-center gap-3 w-full">
+                        {/* Screen reader live region: announces AI rewrite progress. */}
+                        <span aria-live="polite" aria-atomic="true" className="sr-only">
+                          {rewritingSectionId === section.id ? 'Neural processing initiated. Academic rigour increasing.' : ''}
+                        </span>
                         <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mr-2 flex items-center gap-1 shrink-0">
                           <Zap size={12} /> {isUni ? 'Academic Tools' : 'Clear Tools'}
                         </span>
                         <button
                           onClick={() => handleSynthesise(section)}
                           disabled={rewritingSectionId === section.id}
+                          aria-label="Synthesise: combine evidence into a unified academic paragraph"
                           className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:border-emerald-500 hover:text-emerald-400 text-zinc-400 text-xs font-black uppercase tracking-widest transition-all disabled:opacity-60 disabled:cursor-wait flex items-center gap-2"
                         >
                           {rewritingSectionId === section.id && <Loader2 size={12} className="animate-spin" />}
@@ -1165,6 +1179,7 @@ export default function LinearCanvas({
                         <button
                           onClick={() => handleElevateRigour(section)}
                           disabled={rewritingSectionId === section.id}
+                          aria-label="Elevate Rigour: rewrite passage to academic register"
                           className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:border-emerald-500 hover:text-emerald-400 text-zinc-400 text-xs font-black uppercase tracking-widest transition-all disabled:opacity-60 disabled:cursor-wait flex items-center gap-2"
                         >
                           {rewritingSectionId === section.id && <Loader2 size={12} className="animate-spin" />}
