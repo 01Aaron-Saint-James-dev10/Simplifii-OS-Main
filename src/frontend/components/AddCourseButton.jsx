@@ -31,7 +31,7 @@ export default function AddCourseButton() {
     setInstitutionalData,
   } = useProject();
 
-  const { handleGroupedIngest, ingesting } = useIngestion({
+  const { handleUploadedFiles, ingesting } = useIngestion({
     profile,
     activeCourseId,
     addCourseWithData,
@@ -51,7 +51,7 @@ export default function AddCourseButton() {
   const handleFiles = (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-    handleGroupedIngest(files);
+    handleUploadedFiles(files);
     e.target.value = '';
   };
 

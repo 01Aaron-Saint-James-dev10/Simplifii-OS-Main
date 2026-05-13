@@ -357,5 +357,67 @@ export function useIngestion({
     }
   };
 
-  return { handleGroupedIngest, handleIngestGrounding, ingesting, ingestStatus, groundingCount, refreshGroundingCount };
+  // Ingest user-uploaded PDF Files from a file picker. Mirrors the
+  // handleIngestGrounding flow but accepts raw File objects instead of
+  // fetching from the grounding folder. Each file is extracted via
+  // processDocumentWithGCP (sovereign pdfjs path), grouped by unit code,
+  // and fed through handleSprintCreation to create courses.
+  const handleUploadedFiles = async (fileList) => {
+    if (ingesting || !fileList || fileList.length === 0) return;
+    setIngesting(true);
+    purgeTransientContext();
+    setIngestStatus('Reading uploaded files...');
+    window.dispatchEvent(new CustomEvent(REASONING_START_EVENT));
+    try {
+      const sorted = [...fileList].sort((a, b) => classifyGroundingFile(a) - classifyGroundingFile(b));
+
+      const codeRegex = COURSE_CODE_RE;
+      const fileGroups = {};
+      for (const file of sorted) {
+        const match = (file.name || '').match(codeRegex);
+        const code = (match ? match[1] : 'UPLOAD').toUpperCase().trim();
+        if (!fileGroups[code]) fileGroups[code] = [];
+        fileGroups[code].push(file);
+      }
+
+      const codes = Object.keys(fileGroups).sort((a, b) => a.localeCompare(b));
+
+      for (const code of codes) {
+        const groupFiles = fileGroups[code];
+        let aggregated = {
+          unitCode: code,
+          level: profile.level,
+          theme: 'General',
+          sourceFiles: groupFiles.map(f => f.name)
+        };
+        let primaryRawText = null;
+        for (const file of groupFiles) {
+          setIngestStatus(`Extracting ${file.name}...`);
+          try {
+            const text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
+            const deepData = extractDeepCourseData(text);
+            aggregated = mergeExtractionData(aggregated, { ...deepData, rawText: text });
+            if (primaryRawText === null) primaryRawText = text;
+          } catch (err) {
+            if (typeof console !== 'undefined') console.warn('[handleUploadedFiles] skipped', file.name, err && err.message);
+          }
+        }
+        if (primaryRawText) aggregated.primaryRawText = primaryRawText;
+        setIngestStatus(`Creating ${code} cockpit...`);
+        await handleSprintCreation(aggregated);
+      }
+
+      setIngestStatus(`Ingested ${sorted.length} file${sorted.length === 1 ? '' : 's'} across ${codes.length} course${codes.length === 1 ? '' : 's'}.`);
+      if (onCoursesReady) onCoursesReady();
+    } catch (err) {
+      if (typeof console !== 'undefined') console.error('[handleUploadedFiles] failed', err);
+      setIngestStatus(`Upload failed: ${err && err.message ? err.message : 'unknown error'}`);
+    } finally {
+      window.dispatchEvent(new CustomEvent(REASONING_END_EVENT));
+      setIngesting(false);
+      setTimeout(() => setIngestStatus(''), 6000);
+    }
+  };
+
+  return { handleGroupedIngest, handleUploadedFiles, handleIngestGrounding, ingesting, ingestStatus, groundingCount, refreshGroundingCount };
 }
