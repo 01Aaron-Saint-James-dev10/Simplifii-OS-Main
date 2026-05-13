@@ -1,13 +1,39 @@
 /**
  * BriefSimplifierService.js
  *
- * Tier 1 stub. Decodes assessment brief into weekly plan, jargon glossary,
+ * Decodes assessment brief into weekly plan, jargon glossary,
  * rubric alignment, and hidden curriculum expectations.
+ *
+ * Backend: Anthropic API (claude-sonnet-4-6) when key is configured.
+ * Fallback: mock output (identical shape) when key is missing or call fails.
+ * The mock path MUST continue to work identically to before this sprint.
  *
  * Contract: docs/TOOLS_SPEC.md Tool #1
  */
 
 import { appendEvent } from '../core/HistoryOfThought';
+import { callAnthropic, isApiKeyConfigured } from '../api/anthropicClient';
+
+const SYSTEM_PROMPT = `You are an assessment briefing tool for university students. Decode assignment briefs into actionable weekly tasks, plain-language criteria, and unstated expectations. Australian English. No em-dashes. Return JSON only, no preamble.
+
+Return this exact JSON shape:
+{
+  "weeklyTasks": [{ "week": 1, "tasks": ["task description"] }],
+  "rubricAlignment": [{ "criterion": "name", "weekCovered": 1 }],
+  "jargonDecoded": [{ "term": "academic term", "plainLanguage": "plain explanation" }],
+  "hiddenCurriculum": [{ "unstatedExpectation": "what markers really want", "evidence": "where you can see it" }]
+}`;
+
+function buildUserPrompt(brief, context) {
+  const parts = [];
+  if (brief?.title) parts.push(`Assessment title: ${brief.title}`);
+  if (brief?.weight) parts.push(`Weight: ${brief.weight}`);
+  if (brief?.wordCountGoal) parts.push(`Word count target: ${brief.wordCountGoal}`);
+  if (brief?.dueDate) parts.push(`Due date: ${brief.dueDate}`);
+  if (context?.rubricCriteria?.length > 0) parts.push(`Rubric criteria: ${context.rubricCriteria.join('; ')}`);
+  if (context?.rawText) parts.push(`\nBrief text:\n${context.rawText.slice(0, 4000)}`);
+  return parts.join('\n') || 'Decode this assessment brief.';
+}
 
 function mockBriefSimplifierOutput(brief) {
   const title = brief?.title || 'Assessment';
@@ -38,9 +64,51 @@ function mockBriefSimplifierOutput(brief) {
   };
 }
 
-// TODO: wire to /api/tools/brief-simplifier (Anthropic API)
+function validateResponse(parsed) {
+  return parsed
+    && Array.isArray(parsed.weeklyTasks)
+    && Array.isArray(parsed.rubricAlignment)
+    && Array.isArray(parsed.jargonDecoded)
+    && Array.isArray(parsed.hiddenCurriculum);
+}
+
 export async function runBriefSimplifier({ assessmentBrief, courseContext }) {
-  const result = mockBriefSimplifierOutput(assessmentBrief);
+  let result;
+  let source = 'mock';
+  let latencyMs = 0;
+  let error = null;
+  const start = Date.now();
+
+  if (isApiKeyConfigured()) {
+    try {
+      const userPrompt = buildUserPrompt(assessmentBrief, courseContext);
+      const raw = await callAnthropic(SYSTEM_PROMPT, userPrompt, {
+        model: 'claude-sonnet-4-6',
+        maxTokens: 4000,
+        temperature: 0.3,
+        timeoutMs: 30000,
+      });
+      latencyMs = Date.now() - start;
+
+      // Parse JSON from response (strip markdown fences if present)
+      const cleaned = raw.replace(/^```json?\s*/i, '').replace(/```\s*$/, '').trim();
+      const parsed = JSON.parse(cleaned);
+
+      if (validateResponse(parsed)) {
+        result = parsed;
+        source = 'api';
+      } else {
+        throw new Error('Invalid response shape from API');
+      }
+    } catch (err) {
+      if (typeof console !== 'undefined') console.warn('[BriefSimplifier] API call failed, falling back to mock:', err?.message);
+      error = err?.message || 'unknown';
+      result = mockBriefSimplifierOutput(assessmentBrief);
+      source = 'mock';
+    }
+  } else {
+    result = mockBriefSimplifierOutput(assessmentBrief);
+  }
 
   try {
     await appendEvent({
@@ -49,6 +117,9 @@ export async function runBriefSimplifier({ assessmentBrief, courseContext }) {
         courseId: courseContext?.courseId || 'unknown',
         assessmentTitle: assessmentBrief?.title || 'unknown',
         timestamp: Date.now(),
+        source,
+        latencyMs: source === 'api' ? latencyMs : undefined,
+        error: error || undefined,
         weekCount: result.weeklyTasks.length,
         jargonCount: result.jargonDecoded.length,
       },

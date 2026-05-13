@@ -12,7 +12,7 @@
 
 | # | Tool | Description | Input | Output | Service file | Order |
 |---|------|-------------|-------|--------|-------------|-------|
-| 1 | Brief Simplifier | Decodes assessment brief into weekly plan, jargon glossary, and hidden curriculum | `{ assessmentBrief, courseContext }` | `{ weeklyTasks, rubricAlignment, jargonDecoded, hiddenCurriculum }` | `BriefSimplifierService.js` | 1 |
+| 1 | Brief Simplifier | **SHIPPED, backend wired.** Decodes assessment brief into weekly plan, jargon glossary, and hidden curriculum. Anthropic API (claude-sonnet-4-6) with mock fallback. | `{ assessmentBrief, courseContext }` | `{ weeklyTasks, rubricAlignment, jargonDecoded, hiddenCurriculum }` | `BriefSimplifierService.js` | 1 |
 | 2 | Rubric Translator | Translates rubric criteria into plain language with "what the marker wants" | `{ rubricCriteria, rubricBands }` | `{ plainCriteria: [{ original, simplified, whatMarkerWants }] }` | `RubricTranslatorService.js` | 2 |
 | 3 | Scaffolder | Generates micro-tasks (15-30 min) per assessment section via backwards planning | `{ sectionType, brief }` | `Array<{ id, label, estimatedMinutes, status }>` | `ScaffolderToolService.js` | 3 |
 | 4 | Check against rubric | Compares draft text against rubric criteria, identifies gaps and suggestions | `{ draftText, rubricCriteria, targetWords }` | `{ overallScore, criteriaResults: [{ criterion, found, missing, suggestion }], wordAnalysis }` | `CheckAgainstRubricService.js` | 4 |
