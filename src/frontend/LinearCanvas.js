@@ -710,9 +710,13 @@ export default function LinearCanvas({
     else if (stageRatio >= 0.66) newStage = 2;
     else if (stageRatio >= 0.33) newStage = 1;
 
+    // Sprint 8.3: cap advancement to one stage per tick. Previously a large
+    // word-count jump (e.g. paste or batch checklist check) could skip from
+    // Stage A directly to Stage C, missing the Stage B announcement entirely.
     if (newStage > currentStageIndex) {
-      setCurrentStageIndex(newStage);
-      avatarSpeak(`Excellent. Advancing to ${roadmapStages[newStage].label}.`, `Progress saved. Stage ${newStage + 1} initiated.`);
+      const nextStage = Math.min(newStage, currentStageIndex + 1);
+      setCurrentStageIndex(nextStage);
+      avatarSpeak(`Excellent. Advancing to ${roadmapStages[nextStage].label}.`, `Progress saved. Stage ${nextStage + 1} initiated.`);
       keystrokeCount.current = 0;
     }
   }, [checklist, totalWords, sprintGoal, isZenMode, isLiteralMode]);
