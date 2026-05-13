@@ -47,6 +47,15 @@ export const SettingsProvider = ({ children }) => {
   });
   const updateDisplay = (patch) => setDisplay(prev => ({ ...prev, ...patch }));
 
+  // Canvas theme: 'dark' | 'light' | 'highContrast'. Migrates from boolean highContrast.
+  const [theme, setTheme] = useState(() => {
+    const stored = localStorage.getItem('simplifii_theme');
+    if (stored) return stored;
+    // Migrate from boolean highContrast
+    return highContrast ? 'highContrast' : 'dark';
+  });
+  useEffect(() => { localStorage.setItem('simplifii_theme', theme); }, [theme]);
+
   // Sprint 6.0: Bio-Sovereignty. Transient stress signal; not persisted.
   // Set to true via the "Simulate Stress" DevTools toggle or by NeuralService
   // when HRV drops below threshold. Causes the Vibe Meter to pulse red and
@@ -133,6 +142,7 @@ export const SettingsProvider = ({ children }) => {
       lodLevel, setLodLevel,
       isStressed, setIsStressed,
       display, updateDisplay,
+      theme, setTheme,
       activeRules: rules[mode]
     }}>
       <div 

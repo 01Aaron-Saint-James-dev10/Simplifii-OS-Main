@@ -30,7 +30,7 @@ import './CanvasScreen.css';
 export default function CanvasScreen() {
   const { courseId, assessmentTitle } = useRouter();
   const { courses, activeCourse } = useProject();
-  const { reducedMotion, isZenMode, highContrast } = useSettings();
+  const { reducedMotion, isZenMode, theme } = useSettings();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Resolve course and assessment
@@ -120,7 +120,7 @@ export default function CanvasScreen() {
   ) : null;
 
   return (
-    <div className={`canvas-root ${reducedMotion ? 'canvas-no-motion' : ''} ${highContrast ? 'canvas-high-contrast' : ''} ${isZenMode ? 'canvas-zen' : ''}`}>
+    <div className={`canvas-root theme-${theme || 'dark'} ${reducedMotion ? 'canvas-no-motion' : ''} ${isZenMode ? 'canvas-zen' : ''}`}>
       <CanvasNav
         courseName={courseName}
         assessmentTitle={currentTitle}

@@ -97,10 +97,9 @@ export default function CanvasSettingsOverlay({ onClose }) {
     isBionicActive, setIsBionicActive,
     fontScale, setFontScale,
     lineSpacing, setLineSpacing,
-    highContrast, setHighContrast,
     reducedMotion, setReducedMotion,
     isZenMode, setIsZenMode,
-    darkMode, setDarkMode,
+    theme, setTheme,
   } = useSettings();
 
   // Font family stored in localStorage directly (not in SettingsContext to avoid
@@ -196,7 +195,16 @@ export default function CanvasSettingsOverlay({ onClose }) {
 
         <div style={{ borderTop: `1px solid ${SURFACE_RAISED}`, margin: '12px 0' }} />
         <SectionLabel>Display</SectionLabel>
-        <Toggle label="High contrast" description="Stronger text contrast for readability" value={highContrast} onChange={setHighContrast} />
+        <RadioGroup
+          label="Theme"
+          options={[
+            { value: 'dark', label: 'Dark' },
+            { value: 'light', label: 'Light' },
+            { value: 'highContrast', label: 'High Contrast' },
+          ]}
+          value={theme}
+          onChange={setTheme}
+        />
         <Toggle label="Reduced motion" description="Disable all animations and transitions" value={reducedMotion} onChange={setReducedMotion} />
 
         <div style={{ borderTop: `1px solid ${SURFACE_RAISED}`, margin: '12px 0' }} />
