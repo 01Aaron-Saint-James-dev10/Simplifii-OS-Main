@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import './scaffolder.css';
 import { useProject } from './ProjectContext';
 import { literalise, shouldLiteralise } from '../core/LiteralMode';
+import { TIERS, tierFromLevel, buildBriefSummary, buildTertiaryMilestones } from '../services/ScaffoldingService';
 
 /**
  * Scaffolder: Tiered Support Engine
@@ -19,20 +20,10 @@ import { literalise, shouldLiteralise } from '../core/LiteralMode';
  * Default tier resolves from profile.level so a student lands in the
  * right scaffold without picking; manual tabs let them flip to see
  * the alternatives.
+ *
+ * Pure logic (TIERS, tierFromLevel, buildBriefSummary, buildTertiaryMilestones)
+ * lives in src/services/ScaffoldingService.js.
  */
-
-const TIERS = [
-  { id: 'primary',   num: '01', short: 'K-6',                glyph: 'P', name: 'Primary',   focus: 'Foundation & Focus',         sub: 'Gamified Micro-Quests' },
-  { id: 'secondary', num: '02', short: 'Y7-10',              glyph: 'S', name: 'Secondary', focus: 'Executive Function',         sub: 'Body-Doubled Checklist' },
-  { id: 'tertiary',  num: '03', short: 'Senior / Tertiary',  glyph: 'T', name: 'Tertiary',  focus: 'Cognitive Load & Synthesis', sub: 'Backwards-Mapped Skeleton' }
-];
-
-const tierFromLevel = (level) => {
-  const l = String(level || '').toLowerCase();
-  if (l === 'primary') return 'primary';
-  if (l === 'secondary' || l === 'highschool' || l === 'tafe') return 'secondary';
-  return 'tertiary';
-};
 
 // ============================================================
 // Primary: gamified quests
@@ -126,18 +117,7 @@ function SecondaryCheckList({ brief, lit = (s) => s }) {
 // ============================================================
 
 function TertiarySkeleton({ brief, allBriefs, lit = (s) => s }) {
-  // Build milestones from the active brief's rubric bands when possible;
-  // fall back to a five-stage default keyed off the wordCountGoal.
-  const target = brief.wordCountGoal || 2000;
-  const briefName = brief.title || 'Assessment';
-  const milestones = [
-    { state: 'done',   when: 'Wk 1 · Mon', name: 'Brief decoded into rubric bands',                                  from: `Two rubric bands extracted from ${briefName}`,            marks: 0 },
-    { state: 'done',   when: 'Wk 2 · Wed', name: 'Search strategy locked',                                          from: 'Keywords + Boolean string saved into the Grounding Drive', marks: 0 },
-    { state: 'active', when: 'Wk 3 · Fri', name: `Foundation paragraph (${Math.round(target * 0.25)} w)`,            from: 'Frame the disagreement, name the pillars',                 marks: 4 },
-    { state: 'next',   when: 'Wk 4 · Tue', name: 'Core synthesis · weigh competing claims',                          from: 'The synthesis band wants positions weighed, not catalogued', marks: Math.max(8, Math.round((brief.weight || 25) / 2)) },
-    { state: 'next',   when: 'Wk 5 · Thu', name: 'Polish · resolve open questions, refs',                            from: 'Marker reads the close before deciding the band',           marks: 6 },
-    { state: 'next',   when: brief.dueDate ? `Due · ${brief.dueDate}` : 'Wk 6 · Fri', name: 'Submission + integrity report export', from: 'Verified human authorship · thinking history attached', marks: 3 }
-  ];
+  const milestones = buildTertiaryMilestones(brief);
   return (
     <div data-fade>
       <div className="skeleton-track">
@@ -255,10 +235,7 @@ export default function Scaffolder({ onClose }) {
   const Render = tier === 'primary' ? PrimaryQuest : tier === 'secondary' ? SecondaryCheckList : TertiarySkeleton;
   const meta = TIERS.find((t) => t.id === tier);
 
-  const briefBlock = `${(defaultBrief.title || '').toUpperCase()}${activeCourse?.name ? ' · ' + activeCourse.name : ''}
-${defaultBrief.wordCountGoal ? `Target ${defaultBrief.wordCountGoal.toLocaleString()} words.` : 'Submission requirements per the syllabus.'}
-${defaultBrief.weight ? `Weighting ${defaultBrief.weight}.` : ''}${defaultBrief.dueDate ? ` Due ${defaultBrief.dueDate}.` : ''}
-Marked across rubric bands extracted from your uploaded brief.`;
+  const briefBlock = buildBriefSummary(defaultBrief, activeCourse?.name);
 
   return (
     <div className="scaffolder-root">
