@@ -155,8 +155,17 @@ export function useIngestion({
         }
         const confirmedFirst = confirmed.assessmentTitles[0];
         const confirmedTask = { course: data.unitCode || 'Extracted', task: confirmedFirst || draftTaskName, level: data.level, rawText: data.rawText };
+        // Sprint 8.5a: prevent title bleed. When the unit code is a valid 4+4
+        // course code, prefix it so each course card is visually distinct even
+        // when nameCourse returns the same string for sibling units.
+        let resolvedName;
+        if (derivedName && derivedName !== 'New Course') {
+          const code = (data.unitCode || '').toUpperCase();
+          const alreadyPrefixed = derivedName.toUpperCase().startsWith(code);
+          resolvedName = code && !alreadyPrefixed ? `${code} ${derivedName}` : derivedName;
+        }
         upgradeCourseExtraction(courseId, {
-          name: derivedName && derivedName !== 'New Course' ? derivedName : undefined,
+          name: resolvedName || undefined,
           tasks: [confirmedTask],
           activeTask: confirmedTask,
           extractionData: {
