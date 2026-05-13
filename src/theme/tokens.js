@@ -40,6 +40,10 @@ export const TEXT_MUTED    = '#71717a'; // Zinc 500
 export const TEXT_FAINT    = '#52525b'; // Zinc 600
 export const TEXT_LABEL    = '#3f3f46'; // Zinc 700: system metadata labels
 
+// WCAG 2.1 Level AA keyboard/eye-tracker focus indicator. Solid near-white
+// ring with >16:1 contrast on any dark surface. Appears on :focus-visible only.
+export const FOCUS_RING    = '#f4f4f5'; // Zinc 100
+
 // ============================================================
 // Accent tokens
 // ============================================================

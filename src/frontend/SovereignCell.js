@@ -8,6 +8,7 @@ import {
   BORDER_SHARP, BORDER_RADIUS,
   FONT_SYSTEM,
   ACCENT_FOCUS_STRONG, ACCENT_GLASS_FAINT, ACCENT_GLOW_50,
+  FOCUS_RING,
 } from '../theme/tokens';
 
 /**
@@ -46,7 +47,7 @@ function injectCellCSS() {
   outline: none; min-height: 160px; position: relative;
 }
 .sov-cell:hover { border-color: ${TEXT_LABEL}; }
-.sov-cell:focus-visible { box-shadow: 0 0 0 2px ${ACCENT_FOCUS_STRONG}; }
+.sov-cell:focus-visible { outline: 3px solid ${FOCUS_RING}; outline-offset: 2px; box-shadow: 0 0 0 5px ${ACCENT_FOCUS_STRONG}; }
 .sov-cell--active { border-color: ${ACCENT_PULSE}; background: ${ACCENT_GLASS_FAINT}; }
 .sov-cell__cta {
   font-family: ${FONT_SYSTEM};

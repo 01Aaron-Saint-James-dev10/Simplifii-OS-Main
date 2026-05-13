@@ -127,7 +127,10 @@ export function useIngestion({
     // remains as-is with no destructive overwrite.
     if (data?.rawText && data.rawText.trim().length > 200 && getProviderName() === 'ollama') {
       window.dispatchEvent(new CustomEvent(REASONING_START_EVENT));
-      const extractionFocus = 'Focus: Extract only Assessment names, Weightings, and Due Dates. Ignore unit policies, contact details, and reading lists.\n\n';
+      // Sprint 8.1: extended sweep. In addition to names, weights, and due
+      // dates, the model now looks for the topic/prompt menu (availableTopics)
+      // and High Distinction marking criteria (hdCriteria) in rubric tables.
+      const extractionFocus = 'Focus: Extract Assessment names, Weightings, Due Dates, available Topic choices or Prompts students can select from (if listed), and High Distinction marking criteria from any rubric tables (if present). Ignore unit policies, contact details, and reading lists.\n\n';
       // Sprint 5.0: send only the primary file text (course outline/syllabus)
       // to the extractor. Sending the full merged blob causes attention dilution
       // when 8-16 secondary files are concatenated. The outline is always first
@@ -230,17 +233,32 @@ export function useIngestion({
     if (onCoursesReady) onCoursesReady();
   };
 
+  // Sprint 8.2: Pillar Re-Architecture. Exactly 4 uppercase letters followed
+  // by exactly 4 digits (e.g. BABS1201, COMP3900). Case-insensitive for
+  // file-system edge cases (e.g. babs1201_outline.pdf still matches).
+  const COURSE_CODE_RE = /\b([A-Z]{4}\d{4})\b/i;
+
   // Classify a grounding file by document type so the extractor sees documents
-  // in Outline, Brief, Rubric order. The merged rawText then opens with the
-  // canonical assessment table: Ollama's first window picks it up and the
-  // regex pre-extraction sees outline weightings before brief sub-component
-  // weightings.
+  // in CourseCode > Outline > Brief > Rubric order. Files whose name contains
+  // a valid course code are anchored at priority -1 (highest) so the unit code
+  // grouper sees the canonical name before the outline's classification kicks in.
   const classifyGroundingFile = (file) => {
-    const n = (file.name || '').toLowerCase();
-    if (/outline|course[ _-]?info|co[_-]/i.test(n)) return 0;
-    if (/brief|assess|task|instruction/i.test(n)) return 1;
-    if (/rubric|criteria|marking/i.test(n)) return 2;
+    const n = (file.name || '');
+    if (COURSE_CODE_RE.test(n)) return -1;
+    const nl = n.toLowerCase();
+    if (/outline|course[ _-]?info|co[_-]/i.test(nl)) return 0;
+    if (/brief|assess|task|instruction/i.test(nl)) return 1;
+    if (/rubric|criteria|marking/i.test(nl)) return 2;
     return 3;
+  };
+
+  // Sprint 8.1 Sovereign Translator: Context Isolation Guard. Clears all
+  // transient extraction state before a new ingest run so context from a
+  // previous course does not bleed into the current one. Also dispatches
+  // simplifii:purge-context so LinearCanvas can reset selectedTopic.
+  const purgeTransientContext = () => {
+    try { window.localStorage.removeItem('simplifii_last_raw_text'); } catch { /* storage unavailable */ }
+    window.dispatchEvent(new CustomEvent('simplifii:purge-context'));
   };
 
   // Ingest every PDF in /src/grounding/active/. Groups files by unit code
@@ -252,6 +270,7 @@ export function useIngestion({
   const handleIngestGrounding = async () => {
     if (ingesting) return;
     setIngesting(true);
+    purgeTransientContext();
     setIngestStatus('Locating grounding folder...');
     window.dispatchEvent(new CustomEvent(REASONING_START_EVENT));
     try {
@@ -262,7 +281,7 @@ export function useIngestion({
         return;
       }
 
-      const codeRegex = /\b([A-Za-z]{3,4}\d{4})\b/;
+      const codeRegex = COURSE_CODE_RE;
       const fileGroups = {};
       for (const file of files) {
         const match = (file.name || '').match(codeRegex);

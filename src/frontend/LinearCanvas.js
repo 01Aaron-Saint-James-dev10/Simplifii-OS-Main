@@ -4,6 +4,7 @@ import { ACCENT_GLOW } from '../theme/tokens';
 import { speakSystemMessage } from '../services/MessagingHub';
 import { getPersonaResponse } from '../services/PersonaEngine';
 import { elevateRigour as rewriteElevateRigour, synthesise as rewriteSynthesise, applyLogicMode as rewriteApplyLogicMode } from '../services/RewriteService';
+import { generateAuthenticityPDF, getEventCount } from '../services/ExportService';
 import { saveBlockSnapshot, getBlockHistory } from '../services/IndexedDBService';
 import ZenTools from './ZenTools';
 import { useProject } from './ProjectContext';
@@ -13,6 +14,34 @@ import DevInsightsPanel from './DevInsightsPanel';
 import BionicText from './BionicText';
 import { useSettings } from './SettingsContext';
 
+// Sprint 5.3: Haptic Status. Fires a double-pulse on mobile/haptic-capable
+// hardware when a section reaches 100% health. Deaf-Blind users feel essay
+// growth without relying on screen or sound.
+const SECTION_HEALTH_TARGET = 200; // words; mirrors SectionHealth component default
+
+// Sprint 5.3: inject once, global within the Authoring Cockpit (role=main).
+// Applies the WCAG 2.1 AA focus ring to every interactive element during
+// keyboard or eye-tracker navigation. Never fires on mouse clicks (:focus-visible).
+let cockpitCSSInjected = false;
+function injectCockpitCSS() {
+  if (cockpitCSSInjected || typeof document === 'undefined') return;
+  const el = document.createElement('style');
+  el.textContent = `
+[role="main"] button:focus-visible,
+[role="main"] [role="button"]:focus-visible {
+  outline: 3px solid #f4f4f5;
+  outline-offset: 2px;
+}`.trim();
+  document.head.appendChild(el);
+  cockpitCSSInjected = true;
+}
+
+function triggerHapticPulse() {
+  if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+    navigator.vibrate([100, 50, 100]);
+  }
+}
+
 const ASSESSMENT_INSTRUCTIONS = [
   { id: 'inst1', label: 'Analyse Methodologies', detail: 'Critically compare the primary sources.', template: 'Start by comparing the methodologies to the primary literature...', dwTarget: 'dw2' },
   { id: 'inst2', label: 'Identify Gap', detail: 'Highlight what remains unknown in the field.', template: 'This highlights a significant gap in our understanding of...', dwTarget: 'dw3' },
@@ -21,11 +50,67 @@ const ASSESSMENT_INSTRUCTIONS = [
   // Level 1 English: short sentences, active verbs, zero academic jargon.
   // Supports users with intellectual or processing disabilities.
   { id: 'easy_read', label: 'Clarify Logic', detail: 'Plain English. Short sentences. No jargon.', template: 'The key point is...', dwTarget: 'dw1' },
+  // Sprint 5.3: Faded Scaffold. Returns the first two-thirds of the passage
+  // as polished prose, then replaces the final two sentences with [STEM] prompts
+  // the student must complete. Reduces blank-page paralysis for neurodivergent users.
+  { id: 'faded_scaffold', label: 'Faded Scaffold', detail: 'Gives you a start. You finish the last two sentences.', template: 'Building on the evidence above...', dwTarget: 'dw2' },
+  // Sprint 8.1: Rubric Alignment. Checks the section against the HD criteria
+  // extracted from the marking rubric. Returns a numbered review, not a rewrite.
+  { id: 'align_to_rubric', label: 'Align to Rubric', detail: 'Check this section against the High Distinction criteria.', template: 'Against the HD criteria...', dwTarget: 'dw3' },
+  // Sprint 8.2: Universal View. Returns the passage simultaneously rendered in
+  // three cognitive registers: academic, plain-language, and action-step.
+  { id: 'universal_view', label: 'Universal View', detail: 'See this as academic text, plain English, and action steps.', template: 'Viewing through three lenses...', dwTarget: 'dw1' },
+  // Sprint 8.1 Sovereign Translator. EASL Bridge strips institutional jargon
+  // from uploaded task instructions and rebuilds them in plain, actionable language.
+  { id: 'easl_bridge', label: 'Translate Instructions', detail: 'Convert task instructions into plain language.', template: 'Plain-language version...', dwTarget: 'dw2' },
+  // Friction-to-Action. Converts dense bureaucratic text into numbered steps
+  // with bolded action verbs and a Definition of Done line at the end.
+  { id: 'friction_to_action', label: 'Action Steps', detail: 'Break this into numbered steps with clear verbs.', template: '1. Read the brief...', dwTarget: 'dw3' },
 ];
 
 const MOCK_TYPOS = ['teh', 'recieve', 'thier', 'definitly', 'cool', 'stuff', 'things'];
 
-function ToneHUD({ content, onRigorDrop, isTyping }) {
+// Sprint 7.2: Grounding Audit. Renders [G] superscript pins next to
+// AI-assisted sentences. Each pin shows a tooltip with the source PDF
+// filename and verbatim snippet used for grounding. JetBrains Mono 9px
+// per the Visual Law requirement.
+function renderGroundingPin(citations) {
+  if (!citations || citations.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-2 mt-2 mb-1" aria-label="Grounding citations for AI-assisted passage">
+      {citations.map((c, i) => (
+        <div key={i} className="relative group/gpin inline-flex items-center">
+          <span
+            style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', fontWeight: 700 }}
+            className="text-zinc-400 border border-zinc-700 px-1.5 py-0.5 rounded cursor-help select-none hover:border-emerald-500/50 hover:text-emerald-400 transition-colors"
+            aria-label={`Grounding citation ${i + 1}: ${c.source}. Snippet: ${c.snippet}`}
+            tabIndex={0}
+          >
+            [G{i + 1}]
+          </span>
+          {/* Tooltip: appears on hover and on keyboard focus */}
+          <div
+            className="absolute bottom-full left-0 mb-2 z-50 min-w-[240px] max-w-[320px] bg-zinc-900 border border-zinc-700 rounded-lg p-3 shadow-2xl
+                       pointer-events-none opacity-0 group-hover/gpin:opacity-100 group-hover/gpin:pointer-events-auto transition-opacity duration-150"
+            role="tooltip"
+          >
+            <p
+              style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '9px' }}
+              className="text-zinc-400 uppercase tracking-widest font-bold mb-1"
+            >
+              Source: {c.source}
+            </p>
+            <p className="text-zinc-300 text-[10px] leading-relaxed italic">
+              &ldquo;{c.snippet}&rdquo;
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ToneHUD({ content, onRigorDrop, isTyping, isStressed }) {
   const wordCount = (content.match(/\S+/g) || []).length;
   const longWords = (content.match(/\b\w{8,}\b/g) || []).length;
   const rigor = Math.min(Math.max((longWords / (wordCount || 1)) * 300, 20), 98);
@@ -74,11 +159,13 @@ function ToneHUD({ content, onRigorDrop, isTyping }) {
         </div>
         <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden relative">
           <div
-            className="h-full transition-all duration-500"
+            className={`h-full transition-all duration-500${isStressed ? ' animate-pulse' : ''}`}
             style={{
               width: `${rigor}%`,
-              background: isLocked ? ACCENT_GLOW : '#10b981',
-              boxShadow: isLocked ? `0 0 10px ${ACCENT_GLOW}cc` : 'none'
+              background: isStressed ? '#ef4444' : isLocked ? ACCENT_GLOW : '#10b981',
+              boxShadow: isStressed
+                ? '0 0 10px rgba(239,68,68,0.8)'
+                : isLocked ? `0 0 10px ${ACCENT_GLOW}cc` : 'none'
             }}
           ></div>
         </div>
@@ -249,6 +336,7 @@ export default function LinearCanvas({
   extractionData, profile, courseId, onAddGhostAsset,
   isZenMode, setIsZenMode, isLeftCollapsed, setIsLeftCollapsed, isRightCollapsed, setIsRightCollapsed
 }) {
+  injectCockpitCSS();
   const { activeCourse, switchSprint } = useProject();
   const activeSprintTitle = activeCourse?.activeAssessmentTitle || null;
   const [sections, setSections] = useState(() => {
@@ -301,11 +389,35 @@ export default function LinearCanvas({
   const [showSupportBridge, setShowSupportBridge] = useState(false);
   const [showAccessibilityVault, setShowAccessibilityVault] = useState(false);
   const [showSosPulse, setShowSosPulse] = useState(false);
-  const { fontScale, lineSpacing, isBionicActive, bionicIntensity, isDriveAttached, persona, gritLevel, scaffoldingLevel, isLiteralMode: steeringLiteralMode } = useSettings();
+  const { fontScale, lineSpacing, isBionicActive, bionicIntensity, isDriveAttached, persona, gritLevel, scaffoldingLevel, isLiteralMode: steeringLiteralMode, isStressed } = useSettings();
   const [showDevInsights, setShowDevInsights] = useState(false);
+  // Sprint 7.1: event count drives the Export Proof button pulse state.
+  const [hotEventCount, setHotEventCount] = useState(0);
+  // Sprint 7.2: Grounding Audit. Maps section IDs to their citation arrays.
+  // Populated whenever Synthesise or Elevate Rigour returns provenance metadata.
+  const [sectionCitations, setSectionCitations] = useState({});
+  // Sprint 8.1: Topic Picker. Stores the student's selected topic/prompt.
+  // Injected into every AI prompt as FOCUS TOPIC so the model stays on-brief.
+  const [selectedTopic, setSelectedTopic] = useState(null);
+  useEffect(() => {
+    getEventCount().then(setHotEventCount).catch(() => {});
+  }, []);
+
+  // Sprint 8.1 Sovereign Translator: Context Isolation Guard. When a new
+  // ingest run fires purgeTransientContext() in useIngestion, it dispatches
+  // simplifii:purge-context. Reset selectedTopic here so the Topic Picker
+  // starts clean for the incoming course.
+  useEffect(() => {
+    const handler = () => setSelectedTopic(null);
+    window.addEventListener('simplifii:purge-context', handler);
+    return () => window.removeEventListener('simplifii:purge-context', handler);
+  }, []);
 
   const [showSuccessPulse, setShowSuccessPulse] = useState(false);
   const lastPulseCount = useRef(0);
+  // Tracks which section IDs have already fired a haptic completion pulse so
+  // the pulse fires exactly once per section reaching SECTION_HEALTH_TARGET.
+  const hapticFiredRef = useRef(new Set());
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef(null);
 
@@ -471,10 +583,14 @@ export default function LinearCanvas({
     }
     setRewritingSectionId(section.id);
     try {
-      const elevated = await rewriteElevateRigour(trimmed, { level: profile?.level, persona, logicMode: activeLogicMode, steering: { gritLevel, scaffoldingLevel, isLiteralMode: steeringLiteralMode } });
-      handleContentChange(section.id, elevated);
+      const sourceName = extractionData?.courseName || activeCourse?.name || 'Course Material';
+      const hdCriteria = activeCourse?.activeAssessmentBrief?.hdCriteria || extractionData?.hdCriteria || [];
+      const result = await rewriteElevateRigour(trimmed, { level: profile?.level, persona, logicMode: activeLogicMode, sourceName, selectedTopic, hdCriteria, steering: { gritLevel, scaffoldingLevel, isLiteralMode: steeringLiteralMode } });
+      handleContentChange(section.id, result.text);
+      if (result.groundingCitations?.length > 0) {
+        setSectionCitations(prev => ({ ...prev, [section.id]: result.groundingCitations }));
+      }
       // Deep work signal: elevating rigour is concentrated cognitive effort.
-      // playtime_granted lets the EventBus log this as earned focus time.
       window.dispatchEvent(new CustomEvent('simplifii:playtime-granted', { detail: { minutes: 5, reason: 'deep_work_elevate_rigour' } }));
       speakSystemMessage(getPersonaResponse(persona, 'elevate_rigour'), "Rigour preview applied.");
     } catch (err) {
@@ -492,8 +608,13 @@ export default function LinearCanvas({
     }
     setRewritingSectionId(section.id);
     try {
-      const synthesised = await rewriteSynthesise(trimmed, { level: profile?.level, persona, steering: { gritLevel, scaffoldingLevel, isLiteralMode: steeringLiteralMode } });
-      handleContentChange(section.id, synthesised);
+      const sourceName = extractionData?.courseName || activeCourse?.name || 'Course Material';
+      const hdCriteria = activeCourse?.activeAssessmentBrief?.hdCriteria || extractionData?.hdCriteria || [];
+      const result = await rewriteSynthesise(trimmed, { level: profile?.level, persona, sourceName, selectedTopic, hdCriteria, steering: { gritLevel, scaffoldingLevel, isLiteralMode: steeringLiteralMode } });
+      handleContentChange(section.id, result.text);
+      if (result.groundingCitations?.length > 0) {
+        setSectionCitations(prev => ({ ...prev, [section.id]: result.groundingCitations }));
+      }
       speakSystemMessage(getPersonaResponse(persona, 'synthesise'), "Synthesis preview applied.");
     } catch (err) {
       speakSystemMessage(`Rewrite failed: ${err.message}`, "Rewrite error.");
@@ -514,7 +635,8 @@ export default function LinearCanvas({
     }
     setRewritingSectionId(section.id);
     try {
-      const reframed = await rewriteApplyLogicMode(trimmed, activeLogicMode, { level: profile?.level, persona, steering: { gritLevel, scaffoldingLevel, isLiteralMode: steeringLiteralMode } });
+      const hdCriteria = activeCourse?.activeAssessmentBrief?.hdCriteria || extractionData?.hdCriteria || [];
+      const reframed = await rewriteApplyLogicMode(trimmed, activeLogicMode, { level: profile?.level, persona, selectedTopic, hdCriteria, steering: { gritLevel, scaffoldingLevel, isLiteralMode: steeringLiteralMode } });
       handleContentChange(section.id, reframed);
       speakSystemMessage(getPersonaResponse(persona, 'logic_mode'), "Logic frame applied.");
     } catch (err) {
@@ -743,6 +865,19 @@ export default function LinearCanvas({
       setShowSuccessPulse(true);
       setTimeout(() => setShowSuccessPulse(false), 2000);
     }
+
+    // Haptic Status (Sprint 5.3): fire a tactile pulse once per section that
+    // reaches 100% Section Health. Supports Deaf-Blind users on haptic hardware.
+    const changedSection = updatedSections.find(s => s.id === id);
+    const sectionWordCount = (changedSection?.content.match(/\S+/g) || []).length;
+    if (sectionWordCount >= SECTION_HEALTH_TARGET && !hapticFiredRef.current.has(id)) {
+      hapticFiredRef.current.add(id);
+      triggerHapticPulse();
+      // Simultaneous ACCENT_GLOW visual pulse (co-signals progress to sighted users
+      // and provides redundancy for Deaf-Blind users on non-haptic hardware).
+      setShowSuccessPulse(true);
+      setTimeout(() => setShowSuccessPulse(false), 2000);
+    }
     
     setChecklist(prev => prev.map(item => {
       const newlyChecked = !item.checked && fullText.includes(item.triggerWord.toLowerCase());
@@ -835,11 +970,17 @@ export default function LinearCanvas({
   const leftSidebarClass = isZenMode ? 'w-0 opacity-0 px-0' : isLeftCollapsed ? 'w-16 px-2' : 'w-72 p-6';
   const rightSidebarClass = isZenMode ? 'w-0 opacity-0 px-0' : isRightCollapsed ? 'w-16 px-2' : 'w-80 p-6';
 
-  // Progressive Disclosure logic for Zen Mode
-  const visibleChecklist = isZenMode ? checklist.slice(0, 2) : checklist;
+  // Sprint 8.2: Pareto Milestone Filter. In normal mode, strip checklist items
+  // that match low-value patterns (lecture attendance, lab sessions, tutorial
+  // readings) so only submission-bearing milestones surface. Zen Mode keeps
+  // only the top 2 items regardless. The filter is cosmetic only: checked state
+  // and sprint tracking still run against the full checklist array.
+  const PARETO_NOISE_RE = /\blecture|lab session|tutorial|weekly reading|workshop attendance\b/i;
+  const paretoChecklist = checklist.filter(item => !PARETO_NOISE_RE.test(item.text));
+  const visibleChecklist = isZenMode ? paretoChecklist.slice(0, 2) : paretoChecklist;
 
   return (
-    <div className={`flex-1 flex bg-[#030303] text-white overflow-hidden relative ${isDyslexic ? 'font-[Comic_Sans_MS,sans-serif] tracking-wider leading-[2.5]' : 'font-sans'} transition-all`} ref={containerRef}>
+    <div role="main" className={`flex-1 flex bg-[#030303] text-white overflow-hidden relative ${isDyslexic ? 'font-[Comic_Sans_MS,sans-serif] tracking-wider leading-[2.5]' : 'font-sans'} transition-all`} ref={containerRef}>
       {renderConfetti()}
       {/* Dopamine Success Loop Overlay */}
       <div className={`absolute inset-0 pointer-events-none z-0 transition-opacity duration-1000 ease-out shadow-[inset_0_0_150px_rgba(16,185,129,0.3)] ${showSuccessPulse ? 'opacity-100' : 'opacity-0'}`}></div>
@@ -1043,6 +1184,54 @@ export default function LinearCanvas({
             )}
           </div>
 
+          {/* Sprint 8.1: Topic Picker. Shown in Foundation stage when the
+              Primary Syllabus contains a topic/prompt menu. Once selected,
+              the topic injects into all future AI prompts as FOCUS TOPIC. */}
+          {currentStageIndex === 0 && (() => {
+            const topics = activeCourse?.activeAssessmentBrief?.availableTopics
+              || extractionData?.availableTopics
+              || [];
+            if (topics.length === 0) return null;
+            return (
+              <div className="w-full max-w-4xl mb-10 p-5 rounded-2xl border border-zinc-800 bg-zinc-950/60">
+                <p
+                  style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '9px' }}
+                  className="text-zinc-500 uppercase tracking-widest font-bold mb-3"
+                >
+                  Foundation: Select Your Topic
+                </p>
+                {selectedTopic ? (
+                  <div className="flex items-center gap-3">
+                    <span className="text-emerald-400 text-sm font-bold">{selectedTopic}</span>
+                    <button
+                      onClick={() => setSelectedTopic(null)}
+                      className="text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-zinc-200 transition-colors"
+                      aria-label="Clear selected topic"
+                    >
+                      Change
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {topics.map((topic, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          setSelectedTopic(topic);
+                          speakSystemMessage(`Topic locked: ${topic}. All AI assistance will now focus on this prompt.`, 'Topic selected.');
+                        }}
+                        className="px-3 py-2 rounded-xl border border-zinc-700 text-zinc-300 text-xs font-medium hover:border-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/5 transition-all text-left"
+                        aria-label={`Select topic: ${topic}`}
+                      >
+                        {topic}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {sections.map((section) => {
             const isActive = activeSectionId === section.id;
             const isBloomed = bloomedSectionId === section.id;
@@ -1199,6 +1388,29 @@ export default function LinearCanvas({
                         <button onClick={() => avatarSpeak("AI Declaration Exported. You may attach it to your submission.", "AI Usage Declaration saved.")} className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:border-indigo-500 hover:text-indigo-400 text-zinc-400 text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2">
                           <Shield size={12} /> AI Declaration
                         </button>
+                        {/* Sprint 7.1: Export Proof button. Pulses emerald when the
+                            History of Thought log exceeds 50 events, signalling that
+                            there is enough evidence to generate a meaningful report. */}
+                        <button
+                          title="Generate cryptographic proof of intellectual ownership."
+                          aria-label="Export Proof: generate cryptographic proof of intellectual ownership"
+                          onClick={async () => {
+                            try {
+                              const filename = await generateAuthenticityPDF();
+                              avatarSpeak(`Authenticity Report exported as ${filename}. Attach it to your submission.`, 'Proof generated.');
+                              setHotEventCount(c => c + 1);
+                            } catch (err) {
+                              avatarSpeak('The vault is locked. Unlock it first to generate the Authenticity Report.', 'Vault locked.');
+                            }
+                          }}
+                          className={`px-4 py-2 rounded-xl border text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2
+                            ${hotEventCount > 50
+                              ? 'bg-emerald-500/10 border-zinc-50 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)] animate-pulse hover:bg-emerald-500 hover:text-black'
+                              : 'bg-zinc-900 border-zinc-50/30 text-zinc-400 hover:border-zinc-50 hover:text-zinc-200'
+                            }`}
+                        >
+                          <Shield size={12} /> Export Proof
+                        </button>
                         <button 
                           onClick={() => setIsProofing(!isProofing)}
                           className={`px-4 py-2 rounded-xl border text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${isProofing ? 'bg-purple-500/10 border-purple-500 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.3)]' : 'bg-zinc-900 border-zinc-700 hover:border-purple-500 hover:text-purple-400 text-zinc-400'}`}
@@ -1225,7 +1437,8 @@ export default function LinearCanvas({
                         </button>
                       </div>
 
-                      <ToneHUD content={section.content} onRigorDrop={handleRigorDrop} isTyping={isTyping} />
+                      {renderGroundingPin(sectionCitations[section.id])}
+                      <ToneHUD content={section.content} onRigorDrop={handleRigorDrop} isTyping={isTyping} isStressed={isStressed} />
                       <SectionHistory 
                         blockId={section.id} 
                         currentContent={section.content} 

@@ -37,6 +37,24 @@ export const SettingsProvider = ({ children }) => {
   const [gritLevel, setGritLevel] = useState(localStorage.getItem('gritLevel') || 'balanced');
   const [lodLevel, setLodLevel] = useState(localStorage.getItem('lodLevel') || 'compass');
 
+  // Sprint 6.0: Bio-Sovereignty. Transient stress signal; not persisted.
+  // Set to true via the "Simulate Stress" DevTools toggle or by NeuralService
+  // when HRV drops below threshold. Causes the Vibe Meter to pulse red and
+  // auto-routes the cockpit into a reduced cognitive-load state.
+  const [isStressed, setIsStressed] = useState(false);
+
+  // Dispatch stress signal to NeuralService listeners and the executive spine.
+  // When stress is detected, the OS reduces cognitive load: LOD drops to compass,
+  // and the Vibe Meter signals the state shift in red.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (isStressed) {
+      window.dispatchEvent(new CustomEvent('simplifii:stress-detected', {
+        detail: { source: 'simulate', timestamp: new Date().toISOString() }
+      }));
+    }
+  }, [isStressed]);
+
   // Dispatch STEERING_UPDATE whenever the three AI-behaviour dials change.
   // EventBus picks this up and writes a steering_adjusted event to the
   // History of Thought log so the Authenticity Report can prove the student
@@ -102,6 +120,7 @@ export const SettingsProvider = ({ children }) => {
       scaffoldingLevel, setScaffoldingLevel,
       gritLevel, setGritLevel,
       lodLevel, setLodLevel,
+      isStressed, setIsStressed,
       activeRules: rules[mode]
     }}>
       <div 
