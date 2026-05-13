@@ -446,6 +446,12 @@ const buildRewriteSteeringBlock = ({ isLiteralMode, scaffoldingLevel, gritLevel 
   ].filter(Boolean).join('\n');
 };
 
+// Sprint 8.3: Data Quality. Default timeout for rewrite calls (elevateRigour,
+// synthesise, applyLogicMode). Longer than nameCourse (20s) because rewrites
+// produce more tokens (num_predict: 800). Shorter than extractAssessmentBriefs
+// (45s) because rewrites are single-paragraph operations.
+const OLLAMA_REWRITE_TIMEOUT_MS = 60000;
+
 async function callOllama(userPrompt, steering) {
   const { gritLevel } = steering || readSteering();
   const temperature = gritToTemperature[gritLevel] ?? 0.4;
@@ -454,11 +460,14 @@ async function callOllama(userPrompt, steering) {
 
   const endpoint = getOllamaEndpoint().replace(/\/$/, '');
   const model = getOllamaModel();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), OLLAMA_REWRITE_TIMEOUT_MS);
   let response;
   try {
     response = await fetch(`${endpoint}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
       body: JSON.stringify({
         model,
         stream: false,
@@ -470,8 +479,15 @@ async function callOllama(userPrompt, steering) {
       })
     });
   } catch (networkErr) {
-    throw new Error(`Local AI not reachable at ${endpoint}. Run 'ollama serve' on this machine, or switch provider to local-mock.`);
+    clearTimeout(timer);
+    const isTimeout = networkErr && networkErr.name === 'AbortError';
+    throw new Error(
+      isTimeout
+        ? `Local AI timed out after ${OLLAMA_REWRITE_TIMEOUT_MS / 1000}s. The model may be loading or overloaded. Try again shortly.`
+        : `Local AI not reachable at ${endpoint}. Run 'ollama serve' on this machine, or switch provider to local-mock.`
+    );
   }
+  clearTimeout(timer);
 
   if (!response.ok) {
     const body = await response.text().catch(() => '');
