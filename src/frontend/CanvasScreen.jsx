@@ -11,6 +11,7 @@ import TutorPanel from './components/TutorPanel';
 import PreviewPanel from './components/PreviewPanel';
 import SourcesPanel from './components/SourcesPanel';
 import CheckPanel from './components/CheckPanel';
+import ProvenancePanel from './components/ProvenancePanel';
 import BottomStrip from './components/BottomStrip';
 import ReentryOverlay from './components/ReentryOverlay';
 import './CanvasScreen.css';
@@ -92,6 +93,15 @@ export default function CanvasScreen() {
       </div>
       <div style={{ display: activePanel === 'sources' ? 'contents' : 'none' }}>
         <SourcesPanel sourceFiles={sourceFiles} />
+      </div>
+      <div style={{ display: activePanel === 'provenance' ? 'contents' : 'none' }}>
+        <ProvenancePanel
+          courseId={courseId}
+          assessmentTitle={currentTitle}
+          courseName={courseName}
+          courseCode={courseName}
+          term={course.term || course.extractionData?.term}
+        />
       </div>
       <div style={{ display: activePanel === 'check' ? 'contents' : 'none' }}>
         <CheckPanel
