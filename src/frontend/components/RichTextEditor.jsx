@@ -5,6 +5,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import CharacterCount from '@tiptap/extension-character-count';
 import Typography from '@tiptap/extension-typography';
 import Link from '@tiptap/extension-link';
+import { BionicReadingExtension } from './extensions/BionicReadingExtension';
 import EditorToolbar from './EditorToolbar';
 import { useSettings } from '../SettingsContext';
 import './RichTextEditor.css';
@@ -26,7 +27,7 @@ import './RichTextEditor.css';
  */
 
 export default function RichTextEditor({ initialContent, onTextChange, onWordCountChange, onJsonChange }) {
-  const { fontScale, lineSpacing } = useSettings();
+  const { fontScale, lineSpacing, isBionicActive } = useSettings();
   const [fontFamily, setFontFamily] = React.useState(() =>
     localStorage.getItem('simplifii_editor_font') || 'inter'
   );
@@ -53,6 +54,9 @@ export default function RichTextEditor({ initialContent, onTextChange, onWordCou
         openOnClick: false,
         HTMLAttributes: { rel: 'noopener noreferrer' },
       }),
+      BionicReadingExtension.configure({
+        enabled: isBionicActive,
+      }),
     ],
     content: initialContent || '',
     autofocus: 'end',
@@ -69,6 +73,17 @@ export default function RichTextEditor({ initialContent, onTextChange, onWordCou
   useEffect(() => {
     editorRef.current = editor;
   }, [editor]);
+
+  // Toggle Bionic Reading decorations when setting changes
+  useEffect(() => {
+    if (!editor) return;
+    const bionicExt = editor.extensionManager.extensions.find(e => e.name === 'bionicReading');
+    if (bionicExt) {
+      bionicExt.options.enabled = isBionicActive;
+      // Signal the plugin to rebuild decorations
+      editor.view.dispatch(editor.state.tr.setMeta('bionicReading', true));
+    }
+  }, [editor, isBionicActive]);
 
   // Report initial word count on mount
   useEffect(() => {
