@@ -14,11 +14,17 @@ import {
  * For v1: styled read-only text container (no markdown parsing).
  *
  * Props:
- *   draftText  - string (current editor content)
+ *   draftText  - string (HTML from TipTap, or legacy plain text)
  *   wordCount  - number
  */
 
+function isHtml(text) {
+  return text && /<[a-z][\s\S]*>/i.test(text);
+}
+
 export default function PreviewPanel({ draftText, wordCount }) {
+  const hasContent = draftText && draftText.replace(/<[^>]*>/g, '').trim().length > 0;
+
   return (
     <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ borderBottom: `1px solid ${SURFACE_RAISED}`, paddingBottom: 8, marginBottom: 12 }}>
@@ -30,21 +36,37 @@ export default function PreviewPanel({ draftText, wordCount }) {
         </span>
       </div>
 
-      <div
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          fontFamily: FONT_BODY,
-          fontSize: 13,
-          lineHeight: 1.7,
-          color: TEXT_PRIMARY,
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
-        }}
-        aria-label="Draft preview"
-      >
-        {draftText || 'Start writing to see a preview.'}
-      </div>
+      {hasContent && isHtml(draftText) ? (
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            fontFamily: FONT_BODY,
+            fontSize: 13,
+            lineHeight: 1.7,
+            color: TEXT_PRIMARY,
+            wordBreak: 'break-word',
+          }}
+          aria-label="Draft preview"
+          dangerouslySetInnerHTML={{ __html: draftText }}
+        />
+      ) : (
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            fontFamily: FONT_BODY,
+            fontSize: 13,
+            lineHeight: 1.7,
+            color: TEXT_PRIMARY,
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+          }}
+          aria-label="Draft preview"
+        >
+          {draftText || 'Start writing to see a preview.'}
+        </div>
+      )}
     </div>
   );
 }
