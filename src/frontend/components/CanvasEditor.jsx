@@ -24,7 +24,7 @@ import {
 
 const AUTOSAVE_MS = 2000;
 
-export default function CanvasEditor({ courseId, assessmentTitle, targetWords, onWordCountChange, onSaveStatusChange, onTextChange }) {
+export default function CanvasEditor({ courseId, assessmentTitle, targetWords, onWordCountChange, onSaveStatusChange, onTextChange, onJsonDocChange }) {
   const [initialContent, setInitialContent] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const saveTimerRef = useRef(null);
@@ -95,7 +95,8 @@ export default function CanvasEditor({ courseId, assessmentTitle, targetWords, o
 
   const handleJsonChange = useCallback((json) => {
     latestJsonRef.current = json;
-  }, []);
+    onJsonDocChange?.(json);
+  }, [onJsonDocChange]);
 
   // Final save on unmount
   useEffect(() => {
