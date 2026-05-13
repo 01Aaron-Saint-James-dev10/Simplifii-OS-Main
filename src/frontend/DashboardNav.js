@@ -1,5 +1,6 @@
-import React from 'react';
-import { Brain, RefreshCw, Sparkles, FileText, AlertTriangle, Shield, HardDrive } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Brain, RefreshCw, Sparkles, FileText, AlertTriangle, Shield, HardDrive, UploadCloud, Trash2, X } from 'lucide-react';
+import { saveUploadedPdf, listUploadedPdfs, deleteUploadedPdf, clearAllUploadedPdfs } from '../services/IndexedDBService';
 
 /**
  * DashboardNav - Top Navigation Bar
@@ -34,6 +35,7 @@ export default function DashboardNav({
   setViewMode,
   activeCourse,
   ingesting, ingestStatus, groundingCount, handleIngestGrounding,
+  onPdfsChanged,
   showStudio, setShowStudio,
   isBionicActive, overlayTint, isRulerActive,
   isLiteralMode, setIsLiteralMode,
@@ -42,6 +44,49 @@ export default function DashboardNav({
   setShowScaffolder,
   setShowSupportBridge
 }) {
+  // Sprint 9.1a: local PDF upload and management
+  const fileInputRef = useRef(null);
+  const [showManagePanel, setShowManagePanel] = useState(false);
+  const [uploadedPdfs, setUploadedPdfs] = useState([]);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    if (showManagePanel) {
+      listUploadedPdfs().then(setUploadedPdfs).catch(() => setUploadedPdfs([]));
+    }
+  }, [showManagePanel]);
+
+  const handleUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setUploading(true);
+    for (const file of files) {
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        await saveUploadedPdf(file).catch(err => {
+          if (typeof console !== 'undefined') console.warn('[DashboardNav] PDF save failed:', err && err.message);
+        });
+      }
+    }
+    if (e.target) e.target.value = null;
+    const updated = await listUploadedPdfs().catch(() => []);
+    setUploadedPdfs(updated);
+    setUploading(false);
+    if (onPdfsChanged) onPdfsChanged();
+  };
+
+  const handleDeletePdf = async (id) => {
+    await deleteUploadedPdf(id).catch(() => {});
+    const updated = await listUploadedPdfs().catch(() => []);
+    setUploadedPdfs(updated);
+    if (onPdfsChanged) onPdfsChanged();
+  };
+
+  const handleClearAll = async () => {
+    await clearAllUploadedPdfs().catch(() => {});
+    setUploadedPdfs([]);
+    if (onPdfsChanged) onPdfsChanged();
+  };
+
   return (
     <div className={`h-[70px] shrink-0 flex items-center justify-between px-8 border-b border-zinc-800 bg-black/80 backdrop-blur-md relative z-[1200] transition-all duration-700 ${isZenMode ? '-translate-y-full' : 'translate-y-0'}`}>
       <div className="flex items-center gap-4">
@@ -123,6 +168,64 @@ export default function DashboardNav({
               : <FileText size={14} />}
             {ingesting ? 'Scanning...' : 'Ingest Grounding'}
           </button>
+        )}
+        {/* Sprint 9.1a: Upload PDFs + Manage panel. Zero-Disclosure: local only. */}
+        <input ref={fileInputRef} type="file" accept=".pdf" multiple className="hidden" onChange={handleUpload} />
+        <button
+          data-focus-locked="true"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${uploading ? 'bg-amber-500/10 border-amber-500/40 text-amber-300 cursor-wait' : 'bg-transparent border-sky-500/40 text-sky-400 hover:bg-sky-500/10'}`}
+          title="Upload PDFs from your device. Stored locally only. Never sent to any server."
+        >
+          {uploading ? <RefreshCw size={14} className="animate-spin" /> : <UploadCloud size={14} />}
+          {uploading ? 'Saving...' : 'Upload PDFs'}
+        </button>
+        <button
+          data-focus-locked="true"
+          onClick={() => setShowManagePanel(v => !v)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${showManagePanel ? 'bg-sky-500 border-sky-500 text-black' : 'bg-transparent border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500'}`}
+          title="View and manage uploaded PDFs"
+        >
+          <FileText size={14} /> Manage PDFs
+        </button>
+        {showManagePanel && (
+          <div className="absolute top-[70px] right-8 w-96 max-h-80 bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl z-[1300] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-zinc-800">
+              <h4 className="text-xs font-black uppercase tracking-widest text-zinc-300">Uploaded PDFs (local only)</h4>
+              <button onClick={() => setShowManagePanel(false)} className="text-zinc-500 hover:text-white"><X size={14} /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              {uploadedPdfs.length === 0 && (
+                <p className="text-zinc-600 text-xs text-center py-4">No uploaded PDFs. Use "Upload PDFs" to add your syllabus, briefs, and rubrics.</p>
+              )}
+              {uploadedPdfs.map(pdf => (
+                <div key={pdf.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-zinc-300 font-bold truncate">{pdf.name}</p>
+                    <p className="text-[10px] text-zinc-600">{(pdf.size / 1024).toFixed(0)} KB</p>
+                  </div>
+                  <button
+                    onClick={() => handleDeletePdf(pdf.id)}
+                    className="text-zinc-600 hover:text-rose-400 transition-colors shrink-0"
+                    title={`Delete ${pdf.name}`}
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            {uploadedPdfs.length > 0 && (
+              <div className="p-3 border-t border-zinc-800">
+                <button
+                  onClick={handleClearAll}
+                  className="w-full px-3 py-2 rounded-lg border border-rose-500/30 text-rose-400 text-xs font-bold uppercase tracking-widest hover:bg-rose-500/10 transition-colors"
+                >
+                  Clear All Uploaded PDFs
+                </button>
+              </div>
+            )}
+          </div>
         )}
         {/* Studio toggle: classic LinearCanvas vs tri-column SimplifiiStudio. */}
         <button

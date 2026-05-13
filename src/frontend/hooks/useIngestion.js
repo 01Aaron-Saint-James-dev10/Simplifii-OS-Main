@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { mapToWorkspace, deriveRoadmapFromAssessments, extractDeepCourseData, mergeExtractionData } from '../../services/BriefService';
 import { processDocumentWithGCP } from '../../services/DocumentAIService';
 import { fetchGroundingPdfs, listGroundingPdfs } from '../../utils/GroundingLoader';
+import { listUploadedPdfs } from '../../services/IndexedDBService';
 import { nameCourse, getProviderName, extractAssessmentBriefs, REASONING_START_EVENT, REASONING_END_EVENT } from '../../services/RewriteService';
 import { reconcile as reconcileBriefs } from '../../services/SovereignReconciler';
 import { speakSystemMessage } from '../../services/MessagingHub';
@@ -38,7 +39,14 @@ export function useIngestion({
 }) {
   const [ingesting, setIngesting] = useState(false);
   const [ingestStatus, setIngestStatus] = useState('');
-  const groundingCount = listGroundingPdfs().length;
+  // Sprint 9.1a: groundingCount includes both baked-in and user-uploaded PDFs.
+  // Baked-in count is sync; uploaded count updates via refreshGroundingCount().
+  const [uploadedCount, setUploadedCount] = useState(0);
+  useState(() => { listUploadedPdfs().then(r => setUploadedCount(r.length)).catch(() => {}); });
+  const groundingCount = listGroundingPdfs().length + uploadedCount;
+  const refreshGroundingCount = () => {
+    listUploadedPdfs().then(r => setUploadedCount(r.length)).catch(() => {});
+  };
 
   // Ghost task filter. Discards any brief whose title is too short or starts
   // with a conjunction/preposition -- both are symptoms of the text-level
@@ -358,5 +366,5 @@ export function useIngestion({
     }
   };
 
-  return { handleGroupedIngest, handleIngestGrounding, ingesting, ingestStatus, groundingCount };
+  return { handleGroupedIngest, handleIngestGrounding, ingesting, ingestStatus, groundingCount, refreshGroundingCount };
 }

@@ -1,5 +1,5 @@
 const DB_NAME = 'SimplifiiOS_Vault';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 // Wipes the database and reloads the page. Call this if a version conflict
 // leaves the vault in an unrecoverable state.
@@ -46,6 +46,12 @@ export const initDB = () => {
       // history_of_thought_events is owned by HistoryOfThought.js but must
       // be declared here too so that whichever module wins the upgrade race,
       // all three stores are created in the same transaction.
+      // Sprint 9.1a: local-first PDF vault. Uploaded PDFs are stored as
+      // blobs in IndexedDB. Never sent to any server. Zero-Disclosure.
+      if (!db.objectStoreNames.contains('uploaded_pdfs')) {
+        const s = db.createObjectStore('uploaded_pdfs', { keyPath: 'id' });
+        s.createIndex('by_name', 'name');
+      }
       if (!db.objectStoreNames.contains('history_of_thought_events')) {
         const s = db.createObjectStore('history_of_thought_events', { keyPath: 'event_id' });
         s.createIndex('by_user', 'user_id');
@@ -105,5 +111,58 @@ export const getAllGhostAssets = async () => {
     const request = store.getAll();
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
+  });
+};
+
+// ============================================================
+// Sprint 9.1a: Uploaded PDF vault (Zero-Disclosure, local-first)
+// PDFs are stored as blobs in IndexedDB. Never sent to any server.
+// ============================================================
+
+export const saveUploadedPdf = async (file) => {
+  const db = await initDB();
+  const id = `pdf_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const record = {
+    id,
+    name: file.name,
+    size: file.size,
+    blob: file,
+    uploadedAt: new Date().toISOString()
+  };
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('uploaded_pdfs', 'readwrite');
+    tx.objectStore('uploaded_pdfs').put(record);
+    tx.oncomplete = () => resolve(record);
+    tx.onerror = () => reject(tx.error);
+  });
+};
+
+export const listUploadedPdfs = async () => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('uploaded_pdfs', 'readonly');
+    const request = tx.objectStore('uploaded_pdfs').getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+};
+
+export const deleteUploadedPdf = async (id) => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('uploaded_pdfs', 'readwrite');
+    tx.objectStore('uploaded_pdfs').delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+};
+
+export const clearAllUploadedPdfs = async () => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('uploaded_pdfs', 'readwrite');
+    tx.objectStore('uploaded_pdfs').clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
   });
 };

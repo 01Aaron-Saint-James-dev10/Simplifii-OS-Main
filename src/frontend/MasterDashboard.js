@@ -97,7 +97,7 @@ export default function MasterDashboard() {
   // rule in CLAUDE.md.
   const [showSteering, setShowSteering] = useState(false);
   const [showAuraLayer, setShowAuraLayer] = useState(false);
-  const { handleGroupedIngest, handleIngestGrounding, ingesting, ingestStatus, groundingCount } = useIngestion({
+  const { handleGroupedIngest, handleIngestGrounding, ingesting, ingestStatus, groundingCount, refreshGroundingCount } = useIngestion({
     profile,
     activeCourseId,
     addCourseWithData,
@@ -572,6 +572,7 @@ export default function MasterDashboard() {
         ingestStatus={ingestStatus}
         groundingCount={groundingCount}
         handleIngestGrounding={handleIngestGrounding}
+        onPdfsChanged={refreshGroundingCount}
         showStudio={showStudio}
         setShowStudio={setShowStudio}
         isBionicActive={isBionicActive}

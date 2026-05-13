@@ -1,25 +1,22 @@
 /**
  * GroundingLoader
  *
- * Build-time enumeration of PDFs in `src/grounding/active/` via webpack
- * `require.context`. Runtime fetch + Blob conversion so each PDF can be
- * fed into `DocumentAIService.processDocumentWithGCP` exactly like a
- * browser file input.
+ * Two-source PDF loader for the Simplifii-OS ingestion pipeline:
  *
- * Used by the "Ingest Grounding Folder" button in the cockpit top nav.
- * The PDFs are committed to the repo so they ship with the build; they
- * are NOT uploaded over the wire. require.context resolves each
- * file to a static URL bundled by CRA's default file pipeline, and
- * `fetch` pulls the bytes from the local dev / production static
- * server.
+ *   1. Build-time (baked-in): PDFs in src/grounding/active/ enumerated
+ *      via webpack require.context. Ship with the build; no upload needed.
  *
- * Why require.context (not a manual array): the grounding folder is
- * the canonical source of truth. Hard-coding filenames here would
- * silently rot the moment the student adds or removes a PDF.
+ *   2. Runtime (user-uploaded): PDFs stored in IndexedDB by the learner.
+ *      Never sent to any server. Zero-Disclosure: stays on the device.
+ *
+ * fetchGroundingPdfs() merges both sources into a single File[] array
+ * so handleIngestGrounding treats them identically.
  *
  * Returns File objects (Blob with .name set) so downstream code can
- * treat them identically to user-uploaded files.
+ * treat them identically regardless of source.
  */
+
+import { listUploadedPdfs } from '../services/IndexedDBService';
 
 let __pdfModules = null;
 
@@ -42,13 +39,11 @@ const loadModules = () => {
   return __pdfModules;
 };
 
-// Lightweight inspector. Returns [{ name, url }].
+// Lightweight inspector. Returns [{ name, url }] for baked-in only.
 export const listGroundingPdfs = () => loadModules().slice();
 
-// Fetch each PDF and return File-shaped Blobs. Failures on individual
-// PDFs are logged and skipped; the caller still gets the survivors.
-// One rejected fetch must never abort the whole ingestion.
-export const fetchGroundingPdfs = async () => {
+// Fetch baked-in PDFs from the static bundle.
+const fetchBakedPdfs = async () => {
   const modules = loadModules();
   if (modules.length === 0) return [];
   const out = [];
@@ -67,4 +62,32 @@ export const fetchGroundingPdfs = async () => {
     }
   }
   return out;
+};
+
+// Fetch user-uploaded PDFs from IndexedDB. Each record has { id, name, blob }.
+const fetchUploadedPdfs = async () => {
+  try {
+    const records = await listUploadedPdfs();
+    return records
+      .filter(r => r.blob)
+      .map(r => {
+        if (r.blob instanceof File) return r.blob;
+        return (typeof File === 'function')
+          ? new File([r.blob], r.name, { type: 'application/pdf' })
+          : Object.assign(r.blob, { name: r.name });
+      });
+  } catch (err) {
+    if (typeof console !== 'undefined') console.warn('[GroundingLoader] IndexedDB upload read failed:', err && err.message);
+    return [];
+  }
+};
+
+// Merge baked-in + user-uploaded PDFs. Deduplicates by filename (uploaded
+// wins if both sources have a file with the same name, so the learner
+// can override a baked-in PDF with a newer version).
+export const fetchGroundingPdfs = async () => {
+  const [baked, uploaded] = await Promise.all([fetchBakedPdfs(), fetchUploadedPdfs()]);
+  const uploadedNames = new Set(uploaded.map(f => f.name));
+  const deduped = baked.filter(f => !uploadedNames.has(f.name));
+  return [...deduped, ...uploaded];
 };
