@@ -173,6 +173,8 @@ export function useIngestion({
       project: { blocks: generatedBlocks }
     };
     if (draft.derivedRoadmap) draftPayload.roadmap = draft.derivedRoadmap;
+    // Term: use extracted term, fall back to active term, else null
+    draftPayload.term = data.term || null;
 
     const courseId = addCourseWithData(draftName, draftPayload);
 

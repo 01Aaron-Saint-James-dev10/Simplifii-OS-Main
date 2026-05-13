@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef, useMemo } from 'react';
 import { checkTemporalAlignment } from '../services/TemporalFilter';
 import { hydrate as hydrateStream, applyTheme as applyStreamTheme, streamFromLevel } from '../core/SovereignRouter';
 import { startEventBus, stopEventBus } from '../core/EventBus';
@@ -95,6 +95,8 @@ const makeEmptyCourse = (name = 'New Course') => ({
   // in CourseSettings once the student knows their submission requirements.
   // 'Not Set' keeps the export pipeline honest until explicitly configured.
   referencingStyle: 'Not Set',
+  term: null,
+  archived: false,
 });
 
 // Zero-state by default. The cockpit boots with NO placeholder course so
@@ -173,6 +175,47 @@ export const ProjectProvider = ({ children }) => {
     referencingStyle: 'Harvard',
     rubricCriteria: []
   });
+
+  // Active term filter for Home screen. Persisted to localStorage.
+  const [activeTerm, setActiveTerm] = useState(() => loadJSON('simplifii_active_term', null));
+
+  // Computed: unique terms across all courses, deduped by year+code.
+  const terms = useMemo(() => {
+    const seen = new Set();
+    const result = [];
+    for (const course of Object.values(courses || {})) {
+      const t = course.term || course.extractionData?.term;
+      if (!t || !t.year) continue;
+      const key = `${t.year}-${t.code || ''}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push({ year: t.year, code: t.code, label: t.label || `${t.code || ''} ${t.year}`.trim() });
+    }
+    return result.sort((a, b) => b.year - a.year || (a.code || '').localeCompare(b.code || ''));
+  }, [courses]);
+
+  // Auto-pick activeTerm when none is set and courses have terms.
+  useEffect(() => {
+    if (activeTerm || terms.length === 0) return;
+    // Pick the term with the most courses created in the last 90 days.
+    const now = Date.now();
+    const NINETY_DAYS = 90 * 24 * 60 * 60 * 1000;
+    const counts = {};
+    for (const [id, course] of Object.entries(courses || {})) {
+      const t = course.term || course.extractionData?.term;
+      if (!t || !t.year) continue;
+      const key = `${t.year}-${t.code || ''}`;
+      const created = parseInt(id.replace('course_', ''), 10) || 0;
+      if (now - created < NINETY_DAYS) counts[key] = (counts[key] || 0) + 1;
+    }
+    const best = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    if (best) {
+      const [y, c] = best[0].split('-');
+      setActiveTerm({ year: parseInt(y, 10), code: c || null });
+    }
+  }, [terms, activeTerm, courses]);
+
+  useEffect(() => { localStorage.setItem('simplifii_active_term', JSON.stringify(activeTerm)); }, [activeTerm]);
 
   useEffect(() => { localStorage.setItem('simplifii_profile', JSON.stringify(profile)); }, [profile]);
   useEffect(() => { localStorage.setItem('simplifii_courses_v1', JSON.stringify(courses)); }, [courses]);
@@ -569,6 +612,8 @@ export const ProjectProvider = ({ children }) => {
       courses, activeCourse, activeCourseId, setActiveCourseId, addCourse, addCourseWithData, upgradeCourseExtraction, removeCourse, renameCourse, switchSprint,
       // Sovereign stream resolver (Layer 1 of the Architecture Blueprint)
       stream,
+      // Term grouping
+      terms, activeTerm, setActiveTerm,
       // Institutional overrides (merged from InstitutionalContext)
       institutionalData, setInstitutionalData
     }}>{children}</ProjectContext.Provider>

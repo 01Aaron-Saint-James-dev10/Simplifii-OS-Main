@@ -57,13 +57,28 @@ function countByState(courses, now) {
   return { overdue, thisWeek };
 }
 
+function matchesTerm(course, term) {
+  if (!term) return true;
+  const ct = course.term || course.extractionData?.term;
+  if (!ct) return false;
+  return ct.year === term.year && (term.code === null || ct.code === term.code);
+}
+
 export default function HomeScreen() {
-  const { courses } = useProject();
+  const { courses, terms, activeTerm, setActiveTerm } = useProject();
   const { display, reducedMotion } = useSettings();
   const now = useMemo(() => new Date(), []);
 
-  const courseEntries = Object.entries(courses || {});
-  const isEmpty = courseEntries.length === 0;
+  const allEntries = Object.entries(courses || {});
+  const isEmpty = allEntries.length === 0;
+
+  // Filter by active term
+  const courseEntries = useMemo(() => {
+    if (!activeTerm) return allEntries;
+    return allEntries.filter(([, c]) => matchesTerm(c, activeTerm));
+  }, [allEntries, activeTerm]);
+
+  const filteredOut = allEntries.length - courseEntries.length;
 
   // Sort courses by earliest next-due date ascending (most urgent first)
   const sortedCourses = useMemo(() => {
@@ -76,6 +91,10 @@ export default function HomeScreen() {
 
   const courseCount = courseEntries.length;
   const { overdue: overdueCount, thisWeek: thisWeekCount } = useMemo(() => countByState(courses, now), [courses, now]);
+
+  const activeTermLabel = activeTerm
+    ? terms.find(t => t.year === activeTerm.year && t.code === activeTerm.code)?.label || `${activeTerm.code || ''} ${activeTerm.year}`.trim()
+    : null;
 
   return (
     <div className={`home-root ${reducedMotion ? 'home-no-motion' : ''}`}>
@@ -114,7 +133,36 @@ export default function HomeScreen() {
             {display.timeline && (
               <section className="home-section" aria-label="Timeline">
                 <div className="home-week-header">
-                  <h2 className="home-week-title">Your week</h2>
+                  <div className="home-week-title-row">
+                    <h2 className="home-week-title">Your week</h2>
+                    {activeTermLabel && (
+                      <span className="home-term-label">{activeTermLabel}</span>
+                    )}
+                    {terms.length > 1 && (
+                      <div className="home-term-switcher" role="group" aria-label="Term filter">
+                        <button
+                          type="button"
+                          className={`home-term-pill ${!activeTerm ? 'home-term-pill-active' : ''}`}
+                          onClick={() => setActiveTerm(null)}
+                        >
+                          All
+                        </button>
+                        {terms.map(t => {
+                          const isActive = activeTerm && activeTerm.year === t.year && activeTerm.code === t.code;
+                          return (
+                            <button
+                              type="button"
+                              key={`${t.year}-${t.code}`}
+                              className={`home-term-pill ${isActive ? 'home-term-pill-active' : ''}`}
+                              onClick={() => setActiveTerm({ year: t.year, code: t.code })}
+                            >
+                              {t.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                   <div className="home-week-counters">
                     {overdueCount > 0 && (
                       <span className="home-counter home-counter-red">{overdueCount} overdue</span>
@@ -181,6 +229,15 @@ export default function HomeScreen() {
                   />
                 ))}
               </div>
+              {filteredOut > 0 && (
+                <button
+                  type="button"
+                  className="home-view-all"
+                  onClick={() => setActiveTerm(null)}
+                >
+                  View all courses ({filteredOut} hidden by term filter)
+                </button>
+              )}
             </section>
           </>
         )}

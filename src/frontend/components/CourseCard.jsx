@@ -60,6 +60,8 @@ export default function CourseCard({ course, courseId, density = 'standard', onO
   const isCompact = density === 'compact';
 
   const name = course.name || 'Untitled Course';
+  const term = course.term || course.extractionData?.term;
+  const termLabel = term?.label || (term?.code ? `${term.code} ${term.year}` : null);
   const briefs = course.extractionData?.assessmentBriefs || [];
   const assessmentCount = briefs.length;
   const rubricExtracted = course.extractionData?.rubricDetected || (course.extractionData?.rubricCriteria?.length || 0) > 0;
@@ -98,6 +100,18 @@ export default function CourseCard({ course, courseId, density = 'standard', onO
           }}>
             {name}
           </h3>
+          <span style={{
+            fontFamily: FONT_SYSTEM,
+            fontSize: 9,
+            fontWeight: 600,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: termLabel ? TEXT_FAINT : TEXT_FAINT,
+            marginTop: 2,
+            display: 'block',
+          }}>
+            {termLabel || 'Term not detected'}
+          </span>
         </div>
         {status && <StatusPill status={status} />}
       </div>

@@ -408,6 +408,7 @@ export const extractDeepCourseData = (text) => {
     udlSuggestions,
     udlScore,
     doneWhenChecklist,
+    term: detectTerm(text),
     theme: 'Molecules'
   };
 };
@@ -438,6 +439,59 @@ const dedupeDates = (arr) => {
   });
 };
 
+/**
+ * Detect academic term/semester from document text.
+ * @param {string} text - raw PDF text
+ * @returns {{ year: number, code: string, label: string, detected: true } | null}
+ */
+export const detectTerm = (text) => {
+  const norm = text.replace(/\s+/g, ' ');
+  const TERM_PATTERNS = [
+    // "Term 1, 2026" / "Term 1 2026" / "T1 2026" / "T1/2026"
+    { re: /\bTerm\s+([1-3])\s*[,\/]?\s*(\d{4})\b/i, map: (m) => ({ code: `T${m[1]}`, year: parseInt(m[2], 10) }) },
+    { re: /\bT([1-3])\s*[,\/]?\s*(\d{4})\b/, map: (m) => ({ code: `T${m[1]}`, year: parseInt(m[2], 10) }) },
+    // "Trimester 2, 2025" / "Trimester 2 2025"
+    { re: /\bTrimester\s+([1-3])\s*[,\/]?\s*(\d{4})\b/i, map: (m) => ({ code: `T${m[1]}`, year: parseInt(m[2], 10) }) },
+    // "Semester 1, 2026" / "Semester 1 2026" / "S1 2026" / "S1/2026"
+    { re: /\bSemester\s+([1-2])\s*[,\/]?\s*(\d{4})\b/i, map: (m) => ({ code: `S${m[1]}`, year: parseInt(m[2], 10) }) },
+    { re: /\bS([1-2])\s*[,\/]?\s*(\d{4})\b/, map: (m) => ({ code: `S${m[1]}`, year: parseInt(m[2], 10) }) },
+    // "Session 1, 2026" (Macquarie style)
+    { re: /\bSession\s+([1-3])\s*[,\/]?\s*(\d{4})\b/i, map: (m) => ({ code: `S${m[1]}`, year: parseInt(m[2], 10) }) },
+    // "Summer Term 2025" / "Winter Term 2025"
+    { re: /\b(Summer|Winter)\s+(?:Term|Session)?\s*(\d{4})\b/i, map: (m) => ({ code: m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase(), year: parseInt(m[2], 10) }) },
+  ];
+  for (const { re, map } of TERM_PATTERNS) {
+    const m = norm.match(re);
+    if (m) {
+      const { code, year } = map(m);
+      const LABELS = { T1: 'Term 1', T2: 'Term 2', T3: 'Term 3', S1: 'Semester 1', S2: 'Semester 2', Summer: 'Summer', Winter: 'Winter' };
+      const label = `${LABELS[code] || code} ${year}`;
+      return { year, code, label, detected: true };
+    }
+  }
+  // Fallback: term and year appear as separate fields (e.g. "Term : Term 3" + "Year : 2025")
+  const separateTermMatch = norm.match(/\bTerm\s*[:\-]?\s*(?:Term\s+)?([1-3])\b/i) || norm.match(/\bTrimester\s*[:\-]?\s*(\d)\b/i);
+  const separateSemMatch = norm.match(/\bSemester\s*[:\-]?\s*([1-2])\b/i);
+  const separateYearMatch = norm.match(/\bYear\s*[:\-]?\s*(20[2-3]\d)\b/i) || norm.match(/\b(20[2-3]\d)\b/);
+  if ((separateTermMatch || separateSemMatch) && separateYearMatch) {
+    const year = parseInt(separateYearMatch[1], 10);
+    if (separateTermMatch) {
+      const code = `T${separateTermMatch[1]}`;
+      const LABELS = { T1: 'Term 1', T2: 'Term 2', T3: 'Term 3' };
+      return { year, code, label: `${LABELS[code]} ${year}`, detected: true };
+    }
+    if (separateSemMatch) {
+      const code = `S${separateSemMatch[1]}`;
+      return { year, code, label: `Semester ${separateSemMatch[1]} ${year}`, detected: true };
+    }
+  }
+  // Fallback: standalone year only
+  if (separateYearMatch) {
+    return { year: parseInt(separateYearMatch[1], 10), code: null, label: String(separateYearMatch[1]), detected: false };
+  }
+  return null;
+};
+
 export const mergeExtractionData = (prev, next) => {
   if (!prev) return next;
   if (!next) return prev;
@@ -458,6 +512,7 @@ export const mergeExtractionData = (prev, next) => {
     rubricDetected: prev.rubricDetected || next.rubricDetected || false,
     rubricBands: Array.from(new Set([...(prev.rubricBands || []), ...(next.rubricBands || [])])),
     referencingStyle: prev.referencingStyle || next.referencingStyle,
+    term: (next.term && next.term.detected ? next.term : null) || (prev.term && prev.term.detected ? prev.term : null) || next.term || prev.term,
     detectedLevel: next.detectedLevel || prev.detectedLevel,
     rawText: [prev.rawText, next.rawText].filter(Boolean).join('\n\n')
   };
