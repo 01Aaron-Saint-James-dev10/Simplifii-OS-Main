@@ -11,6 +11,8 @@ import TutorPanel from './components/TutorPanel';
 import PreviewPanel from './components/PreviewPanel';
 import SourcesPanel from './components/SourcesPanel';
 import CheckPanel from './components/CheckPanel';
+import BottomStrip from './components/BottomStrip';
+import ReentryOverlay from './components/ReentryOverlay';
 import './CanvasScreen.css';
 
 /**
@@ -138,7 +140,19 @@ export default function CanvasScreen() {
         />
       </div>
 
-      {/* BottomStrip placeholder (Step 4) */}
+      <BottomStrip wordCount={wordCount} targetWords={targetWords} />
+
+      <ReentryOverlay
+        courseId={courseId}
+        assessmentTitle={currentTitle}
+        onDismiss={() => {}}
+        onChoice={(choiceId) => {
+          // TODO: route to appropriate panel based on choice
+          if (choiceId === 'lost-flow') setActivePanel('tutor');
+          else if (choiceId === 'overwhelmed') setActivePanel('check');
+          else if (choiceId === 'forgot') setActivePanel('brief');
+        }}
+      />
     </div>
   );
 }
