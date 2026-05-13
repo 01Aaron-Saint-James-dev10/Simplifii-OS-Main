@@ -31,6 +31,7 @@ import { SOVEREIGN_DATA_READY } from '../../core/Events';
 export function useIngestion({
   profile,
   activeCourseId,
+  courses,
   addCourseWithData,
   upgradeCourseExtraction,
   setInstitutionalData,
@@ -47,13 +48,25 @@ export function useIngestion({
     listUploadedPdfs().then(r => setUploadedCount(r.length)).catch(() => {});
   };
 
-  // Ghost task filter. Discards any brief whose title is too short or starts
-  // with a conjunction/preposition -- both are symptoms of the text-level
-  // rescue regex grabbing mid-sentence fragments rather than real assessment
-  // names. Applied inside buildDerived so it gates EVERY source (regex +
-  // Ollama JSON + text-rescue) in a single pass.
+  // Ghost task filter. Discards any brief whose title is too short, starts
+  // with a conjunction/preposition, matches term metadata, or is clearly
+  // navigation/reading-list noise rather than a real assessment name.
   const CONJUNCTION_RE = /^(and|or|but|the|a|an|in|of|with|to|for|from|by|at|on)\b/i;
-  const isEliteTitle = (t) => typeof t === 'string' && t.trim().length >= 5 && !CONJUNCTION_RE.test(t.trim());
+  // Term metadata that should never be a task title
+  const TERM_NOISE_RE = /^(Term\s*[1-3]|Semester\s*[1-2]|Trimester\s*[1-3]|Session\s*[1-3]|T[1-3]|S[1-2]|Summer|Winter)$/i;
+  // Reading list / navigation noise
+  const NAV_NOISE_RE = /\b(Library holds|UNSW Library|Available at|Located at|accessed via|click here|see the|log in|visit the)\b/i;
+  // Minimum 8 chars to reject pure metadata fragments like "T3 2025"
+  const isEliteTitle = (t) => {
+    if (typeof t !== 'string') return false;
+    const s = t.trim();
+    if (s.length < 8) return false;
+    if (CONJUNCTION_RE.test(s)) return false;
+    if (TERM_NOISE_RE.test(s)) return false;
+    if (NAV_NOISE_RE.test(s)) return false;
+    if (s.length > 60) return false;
+    return true;
+  };
 
   // Reconcile a list of candidate briefs onto canonical assessments and build
   // the standard derived state (titles, doneWhenChecklist, roadmap). Used by
@@ -176,7 +189,20 @@ export function useIngestion({
     // Term: use extracted term, fall back to active term, else null
     draftPayload.term = data.term || null;
 
-    const courseId = addCourseWithData(draftName, draftPayload);
+    // Dedup: if a course with the same unitCode already exists, upgrade it
+    // instead of creating a duplicate.
+    const existingId = Object.entries(courses || {}).find(([, c]) => {
+      const existingCode = (c.name || '').toUpperCase().trim();
+      return existingCode === draftName.toUpperCase().trim();
+    })?.[0];
+
+    let courseId;
+    if (existingId) {
+      upgradeCourseExtraction(existingId, draftPayload);
+      courseId = existingId;
+    } else {
+      courseId = addCourseWithData(draftName, draftPayload);
+    }
 
     // Background: run Ollama extraction and nameCourse in parallel, then
     // upgrade the course in place. The learner keeps interacting with the

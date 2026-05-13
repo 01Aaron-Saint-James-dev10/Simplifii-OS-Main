@@ -25,6 +25,7 @@ export default function AddCourseButton() {
   const {
     profile,
     activeCourseId,
+    courses,
     addCourseWithData,
     upgradeCourseExtraction,
     institutionalData,
@@ -34,6 +35,7 @@ export default function AddCourseButton() {
   const { handleUploadedFiles, ingesting } = useIngestion({
     profile,
     activeCourseId,
+    courses,
     addCourseWithData,
     upgradeCourseExtraction,
     setInstitutionalData,

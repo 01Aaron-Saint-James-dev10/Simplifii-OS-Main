@@ -306,9 +306,18 @@ export const extractDeepCourseData = (text) => {
   // Both passes apply NAV_NOISE (LMS navigation copy) and GENERIC_NOISE
   // (single-token rubric / table headers) filters before adding.
 
-  const NAV_NOISE = /\b(moodle|canvas|blackboard|hub|portal|click(?: here)?|see (?:the|your|moodle|canvas)|more details|further information|via the link|the link below|see\s*\w*\s*for|url)\b/i;
+  const NAV_NOISE = /\b(moodle|canvas|blackboard|hub|portal|click(?: here)?|see (?:the|your|moodle|canvas)|more details|further information|via the link|the link below|see\s*\w*\s*for|url|Library holds|UNSW Library|Available at|Located at|accessed via|log in to)\b/i;
   const GENERIC_NOISE = /^(item|structure|details|overview|description|length|information|topics|tasks|lecture|content|brief|outline|rubric|page|section|figure|notes|comments|criteria|requirement|requirements|delivery mode|due date|weight|weighting|format|submission)$/i;
-  const isAssessmentNoise = (title) => NAV_NOISE.test(title) || GENERIC_NOISE.test(title.trim());
+  const TERM_NOISE = /^(Term\s*[1-3]|Semester\s*[1-2]|Trimester\s*[1-3]|Session\s*[1-3]|T[1-3]|S[1-2]|Summer|Winter)$/i;
+  const isAssessmentNoise = (title) => {
+    const t = title.trim();
+    if (NAV_NOISE.test(t)) return true;
+    if (GENERIC_NOISE.test(t)) return true;
+    if (TERM_NOISE.test(t)) return true;
+    if (t.length < 8) return true;
+    if (t.length > 60) return true;
+    return false;
+  };
 
   const seen = new Set();
   const assessmentTitles = [];
