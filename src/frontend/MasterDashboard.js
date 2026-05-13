@@ -51,7 +51,8 @@ export default function MasterDashboard() {
     isZenMode, setIsZenMode,
     isLeftCollapsed, setIsLeftCollapsed,
     isRightCollapsed, setIsRightCollapsed,
-    isLiteralMode, setIsLiteralMode
+    isLiteralMode, setIsLiteralMode,
+    persona
   } = useSettings();
   const {
     project, updateBlock, appendToBlock, receiveMessage, clearMessage, setBlocks, logEffort,
@@ -372,7 +373,13 @@ export default function MasterDashboard() {
         window.speechSynthesis.getVoices();
       }
     } catch { /* ignore */ }
-    speakSystemMessage('Audio test. AURA is online, sovereign, and listening.');
+    // Persona-aware greeting so the voice test reflects the active dial.
+    const VOICE_GREET = {
+      Hardcore:  'Audio test. AURA is online. Systems calibrated. Drop your files.',
+      Executive: 'Audio test. AURA is online, sovereign, and calibrated. Your schedule is protected.',
+      Socratic:  "Audio test. AURA is listening. Let's take this one step at a time together.",
+    };
+    speakSystemMessage(VOICE_GREET[persona] || 'Audio test. AURA is online, sovereign, and listening.');
     const payload = {
       type: 'voice',
       source: 'WhatsApp',

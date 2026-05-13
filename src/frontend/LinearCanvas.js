@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Save, AlertCircle, FileText, CheckCircle2, GripVertical, Network, Activity, CheckCircle, Circle, Type, Mic, Edit3, MessageSquare, Zap, Clock, BookOpen, ArrowRight, Wand2, Target, Flag, ChevronLeft, ChevronRight, BrainCircuit, Volume2, LifeBuoy, Shield, Maximize2, Minimize2, Eye, HardDrive, Code, Loader2 } from 'lucide-react';
+import { ACCENT_GLOW } from '../theme/tokens';
 import { speakSystemMessage } from '../services/MessagingHub';
 import { getPersonaResponse } from '../services/PersonaEngine';
 import { elevateRigour as rewriteElevateRigour, synthesise as rewriteSynthesise, applyLogicMode as rewriteApplyLogicMode } from '../services/RewriteService';
@@ -68,7 +69,14 @@ function ToneHUD({ content, onRigorDrop, isTyping }) {
           </div>
         </div>
         <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden relative">
-          <div className={`h-full transition-all duration-500 ${isLocked ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]' : 'bg-emerald-500'}`} style={{ width: `${rigor}%` }}></div>
+          <div
+            className="h-full transition-all duration-500"
+            style={{
+              width: `${rigor}%`,
+              background: isLocked ? ACCENT_GLOW : '#10b981',
+              boxShadow: isLocked ? `0 0 10px ${ACCENT_GLOW}cc` : 'none'
+            }}
+          ></div>
         </div>
       </div>
       <div className="flex-1 max-w-[200px]">
@@ -461,6 +469,9 @@ export default function LinearCanvas({
     try {
       const elevated = await rewriteElevateRigour(trimmed, { level: profile?.level, persona, logicMode: activeLogicMode, steering: { gritLevel, scaffoldingLevel, isLiteralMode: steeringLiteralMode } });
       handleContentChange(section.id, elevated);
+      // Deep work signal: elevating rigour is concentrated cognitive effort.
+      // playtime_granted lets the EventBus log this as earned focus time.
+      window.dispatchEvent(new CustomEvent('simplifii:playtime-granted', { detail: { minutes: 5, reason: 'deep_work_elevate_rigour' } }));
       speakSystemMessage(getPersonaResponse(persona, 'elevate_rigour'), "Rigour preview applied.");
     } catch (err) {
       speakSystemMessage(`Rewrite failed: ${err.message}`, "Rewrite error.");

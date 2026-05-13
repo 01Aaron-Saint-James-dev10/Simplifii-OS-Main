@@ -40,12 +40,20 @@ export function useIngestion({
   const [ingestStatus, setIngestStatus] = useState('');
   const groundingCount = listGroundingPdfs().length;
 
+  // Ghost task filter. Discards any brief whose title is too short or starts
+  // with a conjunction/preposition -- both are symptoms of the text-level
+  // rescue regex grabbing mid-sentence fragments rather than real assessment
+  // names. Applied inside buildDerived so it gates EVERY source (regex +
+  // Ollama JSON + text-rescue) in a single pass.
+  const CONJUNCTION_RE = /^(and|or|but|the|a|an|in|of|with|to|for|from|by|at|on)\b/i;
+  const isEliteTitle = (t) => typeof t === 'string' && t.trim().length >= 5 && !CONJUNCTION_RE.test(t.trim());
+
   // Reconcile a list of candidate briefs onto canonical assessments and build
   // the standard derived state (titles, doneWhenChecklist, roadmap). Used by
   // both the shadow draft path (regex-only) and the confirmed path (regex
   // unioned with Ollama).
   const buildDerived = (candidateBriefs) => {
-    const reconciledBriefs = reconcileBriefs(candidateBriefs);
+    const reconciledBriefs = reconcileBriefs(candidateBriefs).filter(b => isEliteTitle(b.title));
     const assessmentTitles = reconciledBriefs.map(b => b.weight ? `${b.title} (${b.weight})` : b.title);
     const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '').slice(0, 40) || 'item';
     const doneWhenChecklist = assessmentTitles.slice(0, 12).map((entry, i) => ({
@@ -120,7 +128,13 @@ export function useIngestion({
     if (data?.rawText && data.rawText.trim().length > 200 && getProviderName() === 'ollama') {
       window.dispatchEvent(new CustomEvent(REASONING_START_EVENT));
       const extractionFocus = 'Focus: Extract only Assessment names, Weightings, and Due Dates. Ignore unit policies, contact details, and reading lists.\n\n';
-      const briefsPromise = extractAssessmentBriefs(extractionFocus + data.rawText)
+      // Sprint 5.0: send only the primary file text (course outline/syllabus)
+      // to the extractor. Sending the full merged blob causes attention dilution
+      // when 8-16 secondary files are concatenated. The outline is always first
+      // in the merge order (classifyGroundingFile=0) and carries the canonical
+      // assessment table. Secondary text still reaches workspace block generation
+      // via data.rawText below.
+      const briefsPromise = extractAssessmentBriefs(extractionFocus + (data.primaryRawText || data.rawText))
         .catch(err => { if (typeof console !== 'undefined') console.warn('[handleSprintCreation] Ollama extraction error:', err.message); return []; });
       const namePromise = nameCourse(data.rawText)
         .catch(err => { if (typeof console !== 'undefined') console.warn('[handleSprintCreation] nameCourse failed:', err.message); return null; });
@@ -275,6 +289,12 @@ export function useIngestion({
           theme: 'General',
           sourceFiles: groupFiles.map(f => f.name)
         };
+        // Sprint 5.0: primary isolation. Files are sorted outline-first
+        // (classifyGroundingFile returns 0 for outlines/syllabi). The first
+        // successfully-read file becomes the primary extraction anchor sent
+        // to Ollama. All files contribute to rawText for block generation,
+        // but Ollama only sees the primary to avoid attention dilution.
+        let primaryRawText = null;
         for (let i = 0; i < groupFiles.length; i++) {
           const file = groupFiles[i];
           setIngestStatus(`Scanning ${code}: ${file.name}`);
@@ -285,10 +305,12 @@ export function useIngestion({
             const text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
             const deepData = extractDeepCourseData(text);
             aggregated = mergeExtractionData(aggregated, { ...deepData, rawText: text });
+            if (primaryRawText === null) primaryRawText = text;
           } catch (err) {
             if (typeof console !== 'undefined') console.warn('[handleIngestGrounding] skipped', file.name, err && err.message);
           }
         }
+        if (primaryRawText) aggregated.primaryRawText = primaryRawText;
         setIngestStatus(`Creating ${code} cockpit...`);
         await handleSprintCreation(aggregated);
       }
