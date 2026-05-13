@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 
-export function useEffortTracker(blockId, onLogEffort) {
+export function useStressSignals(blockId, onLogEffort) {
   const [pulseLevel, setPulseLevel] = useState(0); 
   const [isTyping, setIsTyping] = useState(false);
   const metricsRef = useRef({
