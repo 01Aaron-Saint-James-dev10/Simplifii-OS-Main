@@ -571,9 +571,15 @@ const __callAssessmentExtractor = async (rawText) => {
     // syllabus where the model uses yet another key, add it to the
     // appropriate fallback chain here.
     const NOISE_WORDS = /^(item|cation|p\s*\d+|figure|table|page|section|lecture|topic|content|outline|rubric|details|overview|description|length|information|notes|comments|criteria)$/i;
-    const pickTitle = (item) => String(
-      item.title ?? item.name ?? item.assessment ?? item.task ?? item.id ?? ''
-    ).trim().replace(/\s+/g, ' ');
+    const pickTitle = (item) => {
+      const raw = String(
+        item.title ?? item.name ?? item.assessment ?? item.task ?? item.id ?? ''
+      ).trim().replace(/\s+/g, ' ');
+      // Normalise first character to uppercase so models that return
+      // "literature review" still produce a valid title rather than being
+      // silently dropped by the capital-letter guard below.
+      return raw.length > 0 ? raw.charAt(0).toUpperCase() + raw.slice(1) : raw;
+    };
     const pickWeight = (item) => {
       const raw = String(item.weight ?? item.weighting ?? item.weightage ?? item.percentage ?? item.percent ?? '').trim();
       return raw && /\d/.test(raw) ? raw : '';
@@ -623,8 +629,38 @@ const __callAssessmentExtractor = async (rawText) => {
       briefs.push({ title, weight, wordCountGoal, dueDate });
     }
     if (typeof console !== 'undefined') {
-      console.info('[RewriteService] Ollama extracted', briefs.length, 'assessment briefs (dropped:', { short: droppedShort, noLetter: droppedNoLetter, noise: droppedNoise, dup: droppedDup }, ')');
+      console.info(
+        `[RewriteService] Ollama extracted ${briefs.length} assessment briefs` +
+        ` (dropped short=${droppedShort} noLetter=${droppedNoLetter} noise=${droppedNoise} dup=${droppedDup})`
+      );
     }
+
+    // Defensive text-level rescue. When the JSON parse succeeded but the
+    // quality filter dropped every item (common when the model ignores the
+    // capitalisation instruction), the raw response often still contains
+    // readable lines like "Literature Review (25%)". Scan those directly
+    // before giving up. Only runs when raw is non-trivially long to avoid
+    // false positives on genuinely empty syllabi.
+    if (briefs.length === 0 && raw.trim().length > 20) {
+      const seen2 = new Set();
+      // Matches: optional leading number/bullet, then a capitalised-or-any
+      // phrase, then a percentage figure nearby.
+      const lineRe = /^[\d.\-*\s)]*([A-Za-z][A-Za-z0-9 ,'&/\-]{2,74}?)\s*[:\-(]?\s*(\d{1,3})\s*%/gm;
+      for (const m of raw.matchAll(lineRe)) {
+        const rawTitle = m[1].trim().replace(/\s+/g, ' ');
+        const title = rawTitle.charAt(0).toUpperCase() + rawTitle.slice(1);
+        if (title.length < 4) continue;
+        if (/^(lecture|tutorial|workshop|topic|theme|module|reading|week)\b/i.test(title)) continue;
+        const key = title.toLowerCase();
+        if (seen2.has(key)) continue;
+        seen2.add(key);
+        briefs.push({ title, weight: `${m[2]}%`, wordCountGoal: 0, dueDate: '' });
+      }
+      if (briefs.length > 0 && typeof console !== 'undefined') {
+        console.info(`[RewriteService] text-level rescue recovered ${briefs.length} briefs from raw model output`);
+      }
+    }
+
     return briefs.slice(0, 12);
   } catch (err) {
     if (typeof console !== 'undefined') console.warn('[RewriteService] assessment extraction failed:', err?.name, err?.message);
