@@ -1,5 +1,5 @@
 const DB_NAME = 'SimplifiiOS_Vault';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 // Wipes the database and reloads the page. Call this if a version conflict
 // leaves the vault in an unrecoverable state.
@@ -42,6 +42,16 @@ export const initDB = () => {
       }
       if (!db.objectStoreNames.contains('ghostAssets')) {
         db.createObjectStore('ghostAssets', { keyPath: 'id' });
+      }
+      // history_of_thought_events is owned by HistoryOfThought.js but must
+      // be declared here too so that whichever module wins the upgrade race,
+      // all three stores are created in the same transaction.
+      if (!db.objectStoreNames.contains('history_of_thought_events')) {
+        const s = db.createObjectStore('history_of_thought_events', { keyPath: 'event_id' });
+        s.createIndex('by_user', 'user_id');
+        s.createIndex('by_stream', 'stream_id');
+        s.createIndex('by_timestamp', 'timestamp_iso');
+        s.createIndex('by_type', 'event_type');
       }
     };
   });

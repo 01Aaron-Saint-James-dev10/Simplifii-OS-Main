@@ -137,7 +137,7 @@ export const unlockWithUserId = async (userId) => {
 // IndexedDB store
 // ============================================================
 
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 const openDB = () => new Promise((resolve, reject) => {
   if (typeof indexedDB === 'undefined') return reject(new Error('IndexedDB unavailable.'));
