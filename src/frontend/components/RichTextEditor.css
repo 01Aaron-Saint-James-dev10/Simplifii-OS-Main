@@ -121,6 +121,18 @@
 .rich-editor[data-line-spacing="loose"] .ProseMirror { line-height: 2.4; }
 
 /* ============================================================
+   Font family overrides (read from data attribute)
+   ============================================================ */
+
+.rich-editor[data-font-family="opendyslexic"] .ProseMirror {
+  font-family: 'OpenDyslexic', 'Inter', sans-serif;
+}
+
+.rich-editor[data-font-family="atkinson"] .ProseMirror {
+  font-family: 'Atkinson Hyperlegible', 'Inter', sans-serif;
+}
+
+/* ============================================================
    Reduced motion
    ============================================================ */
 

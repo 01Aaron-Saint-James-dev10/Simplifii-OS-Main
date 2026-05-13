@@ -63,6 +63,56 @@
 }
 
 /* ============================================================
+   High contrast mode
+   ============================================================ */
+
+.canvas-high-contrast {
+  background: #000 !important;
+  color: #fff !important;
+}
+
+.canvas-high-contrast .ProseMirror {
+  color: #fff !important;
+}
+
+.canvas-high-contrast .ProseMirror a {
+  color: #34d399 !important; /* ACCENT_GLOW: brighter for contrast */
+}
+
+/* ============================================================
+   Zen / distraction-free mode
+   ============================================================ */
+
+.canvas-zen .canvas-body > aside {
+  display: none !important;
+}
+
+.canvas-zen .canvas-body > div:last-child {
+  /* PanelRail container */
+  display: none !important;
+}
+
+.canvas-zen footer {
+  display: none !important;
+}
+
+.canvas-zen .canvas-centre {
+  max-width: 720px;
+}
+
+/* ============================================================
+   Bionic reading mode (render-layer only)
+   ============================================================ */
+
+.bionic-word b {
+  font-weight: 700;
+}
+
+.bionic-word span {
+  font-weight: 400;
+}
+
+/* ============================================================
    Reduced motion
    ============================================================ */
 

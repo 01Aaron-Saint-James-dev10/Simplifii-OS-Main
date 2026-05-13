@@ -14,6 +14,7 @@ import CheckPanel from './components/CheckPanel';
 import ProvenancePanel from './components/ProvenancePanel';
 import BottomStrip from './components/BottomStrip';
 import ReentryOverlay from './components/ReentryOverlay';
+import CanvasSettingsOverlay from './components/CanvasSettingsOverlay';
 import './CanvasScreen.css';
 
 /**
@@ -29,7 +30,8 @@ import './CanvasScreen.css';
 export default function CanvasScreen() {
   const { courseId, assessmentTitle } = useRouter();
   const { courses, activeCourse } = useProject();
-  const { reducedMotion } = useSettings();
+  const { reducedMotion, isZenMode, highContrast } = useSettings();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Resolve course and assessment
   const course = courses?.[courseId] || activeCourse || {};
@@ -118,7 +120,7 @@ export default function CanvasScreen() {
   ) : null;
 
   return (
-    <div className={`canvas-root ${reducedMotion ? 'canvas-no-motion' : ''}`}>
+    <div className={`canvas-root ${reducedMotion ? 'canvas-no-motion' : ''} ${highContrast ? 'canvas-high-contrast' : ''} ${isZenMode ? 'canvas-zen' : ''}`}>
       <CanvasNav
         courseName={courseName}
         assessmentTitle={currentTitle}
@@ -127,6 +129,7 @@ export default function CanvasScreen() {
         tiptapDoc={tiptapDoc}
         htmlContent={draftText}
         courseId={courseId}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
 
       <div className="canvas-body">
@@ -170,6 +173,10 @@ export default function CanvasScreen() {
           else if (choiceId === 'forgot') setActivePanel('brief');
         }}
       />
+
+      {settingsOpen && (
+        <CanvasSettingsOverlay onClose={() => setSettingsOpen(false)} />
+      )}
     </div>
   );
 }

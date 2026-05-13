@@ -30,7 +30,7 @@ import {
  *   lastSavedAgo      - string (e.g. "2s ago")
  */
 
-export default function CanvasNav({ courseName, assessmentTitle, saveStatus, lastSavedAgo, tiptapDoc, htmlContent, courseId }) {
+export default function CanvasNav({ courseName, assessmentTitle, saveStatus, lastSavedAgo, tiptapDoc, htmlContent, courseId, onOpenSettings }) {
   const { navigateHome } = useRouter();
 
   return (
@@ -112,6 +112,24 @@ export default function CanvasNav({ courseName, assessmentTitle, saveStatus, las
           assessmentTitle={assessmentTitle}
           courseId={courseId}
         />
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          aria-label="Open settings"
+          style={{
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            padding: 8, minHeight: 44, minWidth: 44,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            outline: 'none', borderRadius: BORDER_RADIUS,
+          }}
+          onFocus={e => { e.currentTarget.style.boxShadow = `0 0 0 2px ${FOCUS_RING}`; }}
+          onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M8 10a2 2 0 100-4 2 2 0 000 4z" stroke={TEXT_MUTED} strokeWidth="1.2" />
+            <path d="M13.5 8a5.5 5.5 0 01-.4 2l1.2 1.2-1.5 1.5L11.6 11.5a5.5 5.5 0 01-2 .4v1.6H7.4v-1.6a5.5 5.5 0 01-2-.4L4.2 12.7l-1.5-1.5L3.9 10a5.5 5.5 0 01-.4-2H2V5.8h1.5a5.5 5.5 0 01.4-2L2.7 2.6l1.5-1.5L5.4 2.3a5.5 5.5 0 012-.4V.4h2.2v1.5a5.5 5.5 0 012 .4l1.2-1.2 1.5 1.5-1.2 1.2a5.5 5.5 0 01.4 2H15V8h-1.5z" stroke={TEXT_MUTED} strokeWidth="1.2" />
+          </svg>
+        </button>
       </div>
     </nav>
   );

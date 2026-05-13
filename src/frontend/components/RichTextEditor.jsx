@@ -27,7 +27,17 @@ import './RichTextEditor.css';
 
 export default function RichTextEditor({ initialContent, onTextChange, onWordCountChange, onJsonChange }) {
   const { fontScale, lineSpacing } = useSettings();
+  const [fontFamily, setFontFamily] = React.useState(() =>
+    localStorage.getItem('simplifii_editor_font') || 'inter'
+  );
   const editorRef = useRef(null);
+
+  // Listen for font change from CanvasSettingsOverlay
+  useEffect(() => {
+    const handler = (e) => setFontFamily(e.detail?.font || 'inter');
+    window.addEventListener('simplifii:font-change', handler);
+    return () => window.removeEventListener('simplifii:font-change', handler);
+  }, []);
 
   const editor = useEditor({
     extensions: [
@@ -72,6 +82,7 @@ export default function RichTextEditor({ initialContent, onTextChange, onWordCou
       className="rich-editor"
       data-font-scale={fontScale || 'normal'}
       data-line-spacing={lineSpacing || 'normal'}
+      data-font-family={fontFamily || 'inter'}
     >
       <EditorToolbar editor={editor} />
       <EditorContent editor={editor} />
