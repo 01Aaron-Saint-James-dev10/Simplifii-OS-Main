@@ -166,6 +166,17 @@ export const ProjectProvider = ({ children }) => {
     return stored || DEFAULT_COURSE_ID;
   });
 
+  // Merged from InstitutionalContext. Holds course-level institutional
+  // overrides that are not yet grounded in extractionData: learning
+  // outcomes, referencing style, and rubric criteria. These are set
+  // explicitly (e.g. by the v2 Setup screen or course settings) and
+  // supplement the extraction-derived grounding object.
+  const [institutionalData, setInstitutionalData] = useState({
+    learningOutcomes: [],
+    referencingStyle: 'Harvard',
+    rubricCriteria: []
+  });
+
   useEffect(() => { localStorage.setItem('simplifii_profile', JSON.stringify(profile)); }, [profile]);
   useEffect(() => { localStorage.setItem('simplifii_courses_v1', JSON.stringify(courses)); }, [courses]);
   useEffect(() => { localStorage.setItem('simplifii_activeCourseId', activeCourseId); }, [activeCourseId]);
@@ -603,9 +614,18 @@ export const ProjectProvider = ({ children }) => {
       // CourseManager
       courses, activeCourse, activeCourseId, setActiveCourseId, addCourse, addCourseWithData, upgradeCourseExtraction, removeCourse, renameCourse, switchSprint,
       // Sovereign stream resolver (Layer 1 of the Architecture Blueprint)
-      stream
+      stream,
+      // Institutional overrides (merged from InstitutionalContext)
+      institutionalData, setInstitutionalData
     }}>{children}</ProjectContext.Provider>
   );
 };
 
 export const useProject = () => useContext(ProjectContext);
+
+// Drop-in replacement for the deleted InstitutionalContext.useInstitution.
+// Any surviving import of useInstitution should be updated to point here.
+export const useInstitution = () => {
+  const { institutionalData, setInstitutionalData } = useProject();
+  return { institutionalData, setInstitutionalData };
+};
