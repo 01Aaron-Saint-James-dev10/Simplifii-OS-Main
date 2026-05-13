@@ -233,10 +233,12 @@ export function useIngestion({
     if (onCoursesReady) onCoursesReady();
   };
 
-  // Sprint 8.2: Pillar Re-Architecture. Exactly 4 uppercase letters followed
-  // by exactly 4 digits (e.g. BABS1201, COMP3900). Case-insensitive for
-  // file-system edge cases (e.g. babs1201_outline.pdf still matches).
-  const COURSE_CODE_RE = /\b([A-Z]{4}\d{4})\b/i;
+  // Sprint 8.3: Data Quality. Match exactly 4 letters followed by 4 digits
+  // anywhere in the filename. Leading \b was removed because underscore is a
+  // word character in regex, so \b fails between CO_ and BABS in filenames
+  // like CO_BABS1202_outline.pdf. Trailing \b kept to prevent partial matches
+  // against longer digit strings.
+  const COURSE_CODE_RE = /([A-Z]{4}\d{4})\b/i;
 
   // Classify a grounding file by document type so the extractor sees documents
   // in CourseCode > Outline > Brief > Rubric order. Files whose name contains
@@ -290,13 +292,9 @@ export function useIngestion({
         fileGroups[code].push(file);
       }
 
-      // Sort codes so BABS1201 is processed last and becomes the active
-      // course (addCourseWithData sets activeCourseId on each call; last wins).
-      const codes = Object.keys(fileGroups).sort((a, b) => {
-        if (a === 'BABS1201') return 1;
-        if (b === 'BABS1201') return -1;
-        return a.localeCompare(b);
-      });
+      // Sprint 8.3: removed hardcoded BABS1201 sort. Alphabetical order is
+      // deterministic and the last-processed code becomes the active course.
+      const codes = Object.keys(fileGroups).sort((a, b) => a.localeCompare(b));
 
       if (typeof console !== 'undefined') console.info('[handleIngestGrounding] detected', codes.length, 'unit groups:', codes.join(', '));
 
