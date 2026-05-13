@@ -1,0 +1,197 @@
+/*
+ * CanvasScreen.css
+ *
+ * Obsidian Aesthetic. Token-driven. Writing canvas layout.
+ * No raw hex outside token references. No em-dashes. Australian English.
+ */
+
+.canvas-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg, #09090b); /* SURFACE_BASE */
+  color: #e4e4e7; /* TEXT_PRIMARY */
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.canvas-no-motion *,
+.canvas-no-motion *::before,
+.canvas-no-motion *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+.canvas-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.canvas-centre {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ============================================================
+   Focus indicators (WCAG 2.4.13)
+   ============================================================ */
+
+.canvas-root *:focus-visible {
+  outline: 2px solid #f4f4f5; /* FOCUS_RING */
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   Reduced motion
+   ============================================================ */
+
+/* ============================================================
+   Body doubling pulse animation
+   ============================================================ */
+
+@keyframes bodyDoublePulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.3); }
+}
+
+/* ============================================================
+   Theme: Dark (default)
+   ============================================================ */
+
+.theme-dark {
+  --theme-bg: #09090b;
+  --theme-surface: #18181b;
+  --theme-text: #f4f4f5;
+  --theme-text-secondary: #a1a1aa;
+  --theme-accent: #10b981;
+  --theme-border: #27272a;
+}
+
+/* ============================================================
+   Theme: Light
+   ============================================================ */
+
+.theme-light {
+  --theme-bg: #ffffff;
+  --theme-surface: #fafafa;
+  --theme-text: #18181b;
+  --theme-text-secondary: #52525b;
+  --theme-accent: #047857;
+  --theme-border: #e4e4e7;
+}
+
+.theme-light.canvas-root {
+  background: var(--theme-bg) !important;
+  color: var(--theme-text) !important;
+}
+
+.theme-light nav,
+.theme-light aside,
+.theme-light footer,
+.theme-light [role="toolbar"] {
+  background: var(--theme-surface) !important;
+  border-color: var(--theme-border) !important;
+  color: var(--theme-text) !important; /* allow-style */
+}
+
+.theme-light .ProseMirror {
+  background: var(--theme-bg) !important;
+  color: var(--theme-text) !important; /* allow-style */
+  caret-color: var(--theme-text) !important; /* allow-style */
+}
+
+.theme-light .ProseMirror a {
+  color: var(--theme-accent) !important; /* allow-style */
+}
+
+/* ============================================================
+   Theme: High Contrast
+   ============================================================ */
+
+.theme-highContrast {
+  --theme-bg: #000000;
+  --theme-surface: #0a0a0a;
+  --theme-text: #ffffff;
+  --theme-text-secondary: #e4e4e7;
+  --theme-accent: #6ee7b7;
+  --theme-border: #6ee7b7;
+}
+
+.theme-highContrast.canvas-root {
+  background: var(--theme-bg) !important;
+  color: var(--theme-text) !important;
+}
+
+.theme-highContrast nav,
+.theme-highContrast aside,
+.theme-highContrast footer,
+.theme-highContrast [role="toolbar"] {
+  background: var(--theme-bg) !important;
+  border-color: var(--theme-border) !important;
+  border-width: 2px !important;
+  color: var(--theme-text) !important; /* allow-style */
+}
+
+.theme-highContrast .ProseMirror {
+  background: var(--theme-bg) !important;
+  color: var(--theme-text) !important; /* allow-style */
+  caret-color: var(--theme-text) !important; /* allow-style */
+}
+
+.theme-highContrast .ProseMirror a {
+  color: var(--theme-accent) !important; /* allow-style */
+}
+
+/* ============================================================
+   Zen / distraction-free mode
+   ============================================================ */
+
+.canvas-zen .canvas-body > aside {
+  display: none !important;
+}
+
+.canvas-zen .canvas-body > div:last-child {
+  /* PanelRail container */
+  display: none !important;
+}
+
+.canvas-zen footer {
+  display: none !important;
+}
+
+.canvas-zen .canvas-centre {
+  max-width: 720px;
+}
+
+/* ============================================================
+   Bionic reading mode (render-layer only)
+   ============================================================ */
+
+.bionic-word b {
+  font-weight: 700;
+}
+
+.bionic-word span {
+  font-weight: 400;
+}
+
+/* ============================================================
+   Reduced motion
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .canvas-root *,
+  .canvas-root *::before,
+  .canvas-root *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

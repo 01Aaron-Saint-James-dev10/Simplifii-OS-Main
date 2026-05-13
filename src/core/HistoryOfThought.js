@@ -46,6 +46,8 @@ const SCHEMA_VERSION = '2.0';
 // touches storage. Cleared by lockSession().
 let __derivedKey = null;
 let __activePassphraseSet = false;
+let __cloudSyncEnabled = false;
+let __cloudUserId = null;
 
 const isCryptoAvailable = () =>
   typeof window !== 'undefined' && window.crypto && window.crypto.subtle;
@@ -120,20 +122,46 @@ export const lockSession = () => {
   __activePassphraseSet = false;
 };
 
+// Unlocks the vault using the Google user ID as the passphrase seed.
+// Stable across sessions: the Google sub never changes, so the same
+// PBKDF2 derivation always produces the same key for the same user.
+// Replaces the manual passphrase flow once Google OAuth is confirmed.
+export const unlockWithUserId = async (userId) => {
+  if (!userId || typeof userId !== 'string') {
+    throw new Error('Valid user ID required to unlock vault.');
+  }
+  return unlockWithPassphrase(`simplifii_${userId}`);
+};
+
 // ============================================================
 // IndexedDB store
 // ============================================================
 
+// Must match IndexedDBService.js DB_VERSION so whichever module opens
+// the database first, the version is consistent and no VersionError fires.
+const DB_VERSION = 5;
+
 const openDB = () => new Promise((resolve, reject) => {
   if (typeof indexedDB === 'undefined') return reject(new Error('IndexedDB unavailable.'));
-  const req = indexedDB.open(DB_NAME, 2);
+  const req = indexedDB.open(DB_NAME, DB_VERSION);
+
+  req.onblocked = () => {
+    if (typeof console !== 'undefined') console.warn('[HistoryOfThought] upgrade blocked by another tab. Close other tabs and reload.');
+  };
+
   req.onupgradeneeded = (e) => {
     const db = e.target.result;
+    // All stores declared in both IndexedDBService and HistoryOfThought
+    // so whichever module wins the upgrade race, the schema is complete.
     if (!db.objectStoreNames.contains('blockHistory')) {
       db.createObjectStore('blockHistory', { keyPath: 'id', autoIncrement: true });
     }
     if (!db.objectStoreNames.contains('ghostAssets')) {
       db.createObjectStore('ghostAssets', { keyPath: 'id' });
+    }
+    if (!db.objectStoreNames.contains('uploaded_pdfs')) {
+      const s = db.createObjectStore('uploaded_pdfs', { keyPath: 'id' });
+      s.createIndex('by_name', 'name');
     }
     if (!db.objectStoreNames.contains(STORE)) {
       const s = db.createObjectStore(STORE, { keyPath: 'event_id' });
@@ -143,8 +171,14 @@ const openDB = () => new Promise((resolve, reject) => {
       s.createIndex('by_type', 'event_type');
     }
   };
+
   req.onsuccess = () => resolve(req.result);
-  req.onerror = () => reject(req.error);
+
+  req.onerror = () => {
+    const err = req.error;
+    if (typeof console !== 'undefined') console.error('[HistoryOfThought] DB open failed:', err?.name, err?.message);
+    reject(err);
+  };
 });
 
 // ============================================================
@@ -176,6 +210,20 @@ const decryptPayload = async (envelope) => {
   return JSON.parse(new TextDecoder().decode(plain));
 };
 
+// Sprint 6.0: Bio-Sovereignty. Hashes the biometric signal attached to an
+// event so markers and auditors can confirm the author was present and
+// physiologically engaged, not a bot. The hash covers: device fingerprint,
+// event timestamp, and the biometric reading (focus level and/or HRV).
+// The raw biometric value is never stored; only the one-way SHA-256 hash.
+const computeBiometricHash = async (biometricSignal) => {
+  if (!isCryptoAvailable() || !biometricSignal) return null;
+  try {
+    const enc = new TextEncoder().encode(JSON.stringify(biometricSignal));
+    const buf = await window.crypto.subtle.digest('SHA-256', enc);
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch { return null; }
+};
+
 const deviceSignature = async () => {
   if (!isCryptoAvailable()) return 'unknown';
   const ua = (typeof navigator !== 'undefined' && navigator.userAgent) || 'no-ua';
@@ -188,6 +236,52 @@ const deviceSignature = async () => {
 const newEventId = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
   return `ev_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+};
+
+// ============================================================
+// Cloud sync helpers
+// ============================================================
+
+const getLocalUserId = () => __cloudUserId || 'local';
+
+const pushToCloud = async (event) => {
+  if (!__cloudSyncEnabled || !__cloudUserId) return;
+  try {
+    const { createClient } = await import(/* webpackChunkName: "supabase" */ '@supabase/supabase-js');
+    const supabaseUrl = typeof process !== 'undefined' && process.env.REACT_APP_SUPABASE_URL
+      ? process.env.REACT_APP_SUPABASE_URL
+      : 'https://aqcreatryuvuuynwvnqy.supabase.co';
+    const supabaseAnonKey = typeof process !== 'undefined' && process.env.REACT_APP_SUPABASE_ANON_KEY
+      ? process.env.REACT_APP_SUPABASE_ANON_KEY
+      : '';
+    // Sprint 8.3: guard against empty anon key. Without a valid key, every
+    // Supabase request returns 401 and floods the console with errors.
+    if (!supabaseAnonKey) {
+      if (typeof console !== 'undefined') console.debug('[pushToCloud] REACT_APP_SUPABASE_ANON_KEY not set, skipping cloud sync');
+      return;
+    }
+    const sb = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
+    });
+    const { error } = await sb.from('history_of_thought_events').insert({
+      user_id: __cloudUserId,
+      event_id: event.event_id,
+      event_type: event.event_type,
+      stream_id: event.stream_id,
+      payload_encrypted: event.payload_encrypted,
+      device_signature_sha256: event.device_signature_sha256,
+      biometric_hash: event.biometric_hash,
+      schema_version: event.schema_version,
+      timestamp_iso: event.timestamp_iso
+    });
+    if (error && typeof console !== 'undefined') {
+      console.warn('[HistoryOfThought] cloud sync insert failed:', error.message);
+    }
+  } catch (err) {
+    if (typeof console !== 'undefined') {
+      console.warn('[HistoryOfThought] cloud sync error:', err.message);
+    }
+  }
 };
 
 // ============================================================
@@ -204,7 +298,8 @@ export const EVENT_TYPES = Object.freeze([
   'nudge_triggered',
   'section_health_change',
   'playtime_granted',
-  'playtime_expired'
+  'playtime_expired',
+  'steering_adjusted'
 ]);
 
 // ============================================================
@@ -216,31 +311,42 @@ export const appendEvent = async ({ user_id = 'local', stream_id = 'tertiary', e
     throw new Error(`Unknown event_type: ${event_type}`);
   }
   if (!__derivedKey) {
-    // Soft-fail. The cockpit should keep working when the student has
-    // not unlocked yet; the Blueprint says local-first, not
-    // crash-on-no-key. Events are dropped silently with a console
-    // hint so the developer can spot it.
     if (typeof console !== 'undefined') console.info('[HistoryOfThought] dropped event; vault locked', event_type);
     return null;
   }
   const envelope = await encryptPayload(payload);
+  const timestampIso = new Date().toISOString();
+  const devSig = await deviceSignature();
+  // biometric_hash: SHA-256 of the biometric reading (focus, HRV) combined with
+  // the device fingerprint and timestamp. Proves biological presence at the time
+  // of the event without storing raw physiological data.
+  const biometricHash = payload.biometric_signal
+    ? await computeBiometricHash({ signal: payload.biometric_signal, device: devSig, ts: timestampIso })
+    : null;
   const event = {
     event_id: newEventId(),
     user_id,
     stream_id,
     event_type,
-    timestamp_iso: new Date().toISOString(),
+    timestamp_iso: timestampIso,
     payload_encrypted: JSON.stringify(envelope),
-    device_signature_sha256: await deviceSignature(),
+    device_signature_sha256: devSig,
+    biometric_hash: biometricHash,
     schema_version: SCHEMA_VERSION
   };
   const db = await openDB();
-  return new Promise((resolve, reject) => {
+  const result = await new Promise((resolve, reject) => {
     const tx = db.transaction(STORE, 'readwrite');
     tx.objectStore(STORE).add(event);
     tx.oncomplete = () => resolve(event);
     tx.onerror = () => reject(tx.error);
   });
+
+  if (__cloudSyncEnabled && __cloudUserId) {
+    pushToCloud(event);
+  }
+
+  return result;
 };
 
 export const listEvents = async ({ user_id = 'local', limit = 500 } = {}) => {
@@ -262,6 +368,34 @@ export const listEvents = async ({ user_id = 'local', limit = 500 } = {}) => {
     };
     req.onerror = () => reject(req.error);
   });
+};
+
+export const listCloudEvents = async ({ limit = 500 } = {}) => {
+  if (!__cloudSyncEnabled || !__cloudUserId) return [];
+  try {
+    const { createClient } = await import(/* webpackChunkName: "supabase" */ '@supabase/supabase-js');
+    const supabaseUrl = typeof process !== 'undefined' && process.env.REACT_APP_SUPABASE_URL
+      ? process.env.REACT_APP_SUPABASE_URL
+      : 'https://aqcreatryuvuuynwvnqy.supabase.co';
+    const supabaseAnonKey = typeof process !== 'undefined' && process.env.REACT_APP_SUPABASE_ANON_KEY
+      ? process.env.REACT_APP_SUPABASE_ANON_KEY
+      : '';
+    if (!supabaseAnonKey) return [];
+    const sb = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
+    });
+    const { data, error } = await sb
+      .from('history_of_thought_events')
+      .select('*')
+      .eq('user_id', __cloudUserId)
+      .order('timestamp_iso', { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    if (typeof console !== 'undefined') console.warn('[HistoryOfThought] cloud list failed:', err.message);
+    return [];
+  }
 };
 
 // ============================================================
@@ -307,11 +441,20 @@ export const generateAuthenticityReport = async ({ user_id = 'local' } = {}) => 
 };
 
 // ============================================================
-// Cloud sync (opt-in stub; transport not wired)
+// Cloud sync (opt-in)
 // ============================================================
 
-export const enableCloudSync = () => {
-  throw new Error('Cloud sync requires an explicit user opt-in flow that has not shipped yet. The Blueprint defers transport until that lands.');
+export const enableCloudSync = (userId) => {
+  if (!userId) throw new Error('Cloud sync requires a valid user ID. Pass the authenticated user ID.');
+  __cloudSyncEnabled = true;
+  __cloudUserId = userId;
 };
+
+export const disableCloudSync = () => {
+  __cloudSyncEnabled = false;
+  __cloudUserId = null;
+};
+
+export const isCloudSyncEnabled = () => __cloudSyncEnabled;
 
 export const __internals = { DB_NAME, STORE, SALT_KEY, PBKDF2_ITERATIONS, deviceSignature, deriveKey };

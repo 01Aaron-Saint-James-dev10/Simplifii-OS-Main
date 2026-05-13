@@ -1,0 +1,224 @@
+import React, { useEffect, useRef } from 'react';
+import { useSettings } from '../SettingsContext';
+import {
+  SURFACE_CARD,
+  SURFACE_RAISED,
+  TEXT_PRIMARY,
+  TEXT_MUTED,
+  TEXT_FAINT,
+  ACCENT_PULSE,
+  ACCENT_GLASS,
+  ACCENT_BORDER,
+  FONT_SYSTEM,
+  FONT_BODY,
+  BORDER_RADIUS,
+  FOCUS_RING,
+  OVERLAY_BACKDROP,
+} from '../../theme/tokens';
+
+/**
+ * CanvasSettingsOverlay
+ *
+ * In-canvas settings panel. Surfaces accessibility toggles that
+ * exist in SettingsContext and wires them to visually apply.
+ *
+ * Props:
+ *   onClose - callback
+ */
+
+function Toggle({ label, description, value, onChange }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={value}
+      aria-label={label}
+      onClick={() => onChange(!value)}
+      style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        width: '100%', padding: '10px 0', background: 'transparent', border: 'none',
+        cursor: 'pointer', outline: 'none', minHeight: 44, textAlign: 'left',
+      }}
+      onFocus={e => { e.currentTarget.style.boxShadow = `0 0 0 2px ${FOCUS_RING}`; }}
+      onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
+    >
+      <div>
+        <div style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600, color: TEXT_PRIMARY }}>{label}</div>
+        {description && <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_MUTED, marginTop: 1 }}>{description}</div>}
+      </div>
+      <div style={{
+        width: 36, height: 20, borderRadius: 10, padding: 2,
+        background: value ? ACCENT_PULSE : SURFACE_RAISED,
+        transition: 'background 150ms ease',
+        display: 'flex', alignItems: 'center',
+      }}>
+        <div style={{
+          width: 16, height: 16, borderRadius: '50%', background: '#fff',
+          transform: value ? 'translateX(16px)' : 'translateX(0)',
+          transition: 'transform 150ms ease',
+        }} />
+      </div>
+    </button>
+  );
+}
+
+function RadioGroup({ label, options, value, onChange }) {
+  return (
+    <div style={{ padding: '8px 0' }}>
+      <div style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600, color: TEXT_PRIMARY, marginBottom: 6 }}>{label}</div>
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        {options.map(opt => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            aria-pressed={value === opt.value}
+            style={{
+              fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 600, letterSpacing: '0.04em',
+              color: value === opt.value ? ACCENT_PULSE : TEXT_MUTED, // allow-style
+              background: value === opt.value ? ACCENT_GLASS : 'transparent',
+              border: `1px solid ${value === opt.value ? ACCENT_BORDER : SURFACE_RAISED}`,
+              borderRadius: BORDER_RADIUS, padding: '6px 12px', cursor: 'pointer',
+              outline: 'none', minHeight: 36,
+            }}
+            onFocus={e => { e.currentTarget.style.boxShadow = `0 0 0 2px ${FOCUS_RING}`; }}
+            onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function CanvasSettingsOverlay({ onClose }) {
+  const {
+    isBionicActive, setIsBionicActive,
+    fontScale, setFontScale,
+    lineSpacing, setLineSpacing,
+    reducedMotion, setReducedMotion,
+    isZenMode, setIsZenMode,
+    theme, setTheme,
+  } = useSettings();
+
+  // Font family stored in localStorage directly (not in SettingsContext to avoid
+  // touching the context file per sprint rules). Reads on mount, writes on change.
+  const [fontFamily, setFontFamilyState] = React.useState(() =>
+    localStorage.getItem('simplifii_editor_font') || 'inter'
+  );
+  const setFontFamily = (v) => {
+    setFontFamilyState(v);
+    localStorage.setItem('simplifii_editor_font', v);
+    // Dispatch event so RichTextEditor CSS picks it up
+    window.dispatchEvent(new CustomEvent('simplifii:font-change', { detail: { font: v } }));
+  };
+
+  const dialogRef = useRef(null);
+
+  useEffect(() => {
+    const handleKey = (e) => { if (e.key === 'Escape') onClose?.(); };
+    document.addEventListener('keydown', handleKey);
+    dialogRef.current?.focus();
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', justifyContent: 'flex-end', background: OVERLAY_BACKDROP }}
+      onClick={onClose}
+    >
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Canvas settings"
+        tabIndex={-1}
+        style={{
+          width: 340, maxWidth: '90vw', height: '100vh', overflowY: 'auto',
+          background: SURFACE_CARD, borderLeft: `1px solid ${SURFACE_RAISED}`,
+          padding: '20px 20px 40px', outline: 'none',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <h2 style={{ fontFamily: FONT_BODY, fontSize: 16, fontWeight: 700, color: TEXT_PRIMARY, margin: 0 }}>
+            Settings
+          </h2>
+          <button
+            type="button" onClick={onClose} aria-label="Close settings"
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 8, minHeight: 44, minWidth: 44, outline: 'none', borderRadius: BORDER_RADIUS }}
+            onFocus={e => { e.currentTarget.style.boxShadow = `0 0 0 2px ${FOCUS_RING}`; }}
+            onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M11 3L3 11M3 3L11 11" stroke={TEXT_MUTED} strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        <SectionLabel>Reading</SectionLabel>
+        <Toggle label="Bionic Reading" description="Bold the first 40% of each word for faster scanning" value={isBionicActive} onChange={setIsBionicActive} />
+
+        <RadioGroup
+          label="Editor font"
+          options={[
+            { value: 'inter', label: 'Inter' },
+            { value: 'opendyslexic', label: 'OpenDyslexic' },
+            { value: 'atkinson', label: 'Atkinson' },
+          ]}
+          value={fontFamily}
+          onChange={setFontFamily}
+        />
+
+        <RadioGroup
+          label="Font size"
+          options={[
+            { value: 'normal', label: 'Default (16)' },
+            { value: 'large', label: 'Large (18)' },
+            { value: 'xl', label: 'Extra large (22)' },
+          ]}
+          value={fontScale}
+          onChange={setFontScale}
+        />
+
+        <RadioGroup
+          label="Line spacing"
+          options={[
+            { value: 'normal', label: 'Default (1.8)' },
+            { value: 'relaxed', label: 'Relaxed (2.0)' },
+            { value: 'loose', label: 'Loose (2.4)' },
+          ]}
+          value={lineSpacing}
+          onChange={setLineSpacing}
+        />
+
+        <div style={{ borderTop: `1px solid ${SURFACE_RAISED}`, margin: '12px 0' }} />
+        <SectionLabel>Display</SectionLabel>
+        <RadioGroup
+          label="Theme"
+          options={[
+            { value: 'dark', label: 'Dark' },
+            { value: 'light', label: 'Light' },
+            { value: 'highContrast', label: 'High Contrast' },
+          ]}
+          value={theme}
+          onChange={setTheme}
+        />
+        <Toggle label="Reduced motion" description="Disable all animations and transitions" value={reducedMotion} onChange={setReducedMotion} />
+
+        <div style={{ borderTop: `1px solid ${SURFACE_RAISED}`, margin: '12px 0' }} />
+        <SectionLabel>Focus</SectionLabel>
+        <Toggle label="Distraction-free mode" description="Hide rails and bottom strip. Press Escape to exit." value={isZenMode} onChange={setIsZenMode} />
+      </div>
+    </div>
+  );
+}
+
+function SectionLabel({ children }) {
+  return (
+    <div style={{ fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: TEXT_FAINT, marginTop: 8, marginBottom: 4 }}>
+      {children}
+    </div>
+  );
+}

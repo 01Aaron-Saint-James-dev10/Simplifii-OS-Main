@@ -1,0 +1,338 @@
+/*
+ * HomeScreen.css
+ *
+ * Obsidian Aesthetic. All colours use token values as fallbacks.
+ * Typography: Inter for body/headings, JetBrains Mono for metadata
+ * (course codes, dates, percentages, labels, counters).
+ *
+ * No raw hex outside token references. No em-dashes. Australian English.
+ */
+
+/* ============================================================
+   Root
+   ============================================================ */
+
+.home-root {
+  min-height: 100vh;
+  background: var(--bg, #09090b); /* SURFACE_BASE */
+  color: #e4e4e7; /* TEXT_PRIMARY */
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.home-no-motion *,
+.home-no-motion *::before,
+.home-no-motion *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ============================================================
+   Top nav
+   ============================================================ */
+
+.home-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 56px;
+  background: var(--bg, #09090b); /* SURFACE_BASE, solid for sticky */
+  border-bottom: 1px solid #27272a; /* SURFACE_RAISED */
+  backdrop-filter: blur(8px);
+}
+
+.home-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.home-nav-logo {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 800;
+  color: #10b981; /* ACCENT_PULSE */
+  background: rgba(16,185,129,0.08); /* ACCENT_GLASS */
+  border: 1px solid rgba(16,185,129,0.15); /* ACCENT_BORDER_FAINT */
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  letter-spacing: 0;
+}
+
+.home-nav-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #e4e4e7; /* TEXT_PRIMARY */
+  letter-spacing: 0.01em;
+}
+
+.home-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.home-overdue-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 800;
+  color: #f43f5e; /* COLOUR_DANGER */
+  background: rgba(239,68,68,0.06); /* COLOUR_DANGER_GLASS */
+  border: 1px solid rgba(239,68,68,0.2); /* COLOUR_DANGER_BORDER */
+  border-radius: 3px;
+  padding: 4px 8px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+}
+
+/* ============================================================
+   Main content
+   ============================================================ */
+
+.home-main {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 28px 28px 56px;
+}
+
+.home-section {
+  margin-bottom: 28px;
+}
+
+.home-section + .home-section {
+  padding-top: 4px;
+}
+
+/* ============================================================
+   "Your week" header (above timeline)
+   ============================================================ */
+
+.home-week-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.home-week-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.home-week-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #e4e4e7; /* TEXT_PRIMARY */
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+.home-term-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #71717a; /* TEXT_MUTED */
+}
+
+.home-term-switcher {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.home-term-pill {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #52525b; /* TEXT_FAINT */
+  background: transparent;
+  border: 1px solid #27272a; /* SURFACE_RAISED */
+  border-radius: 3px;
+  padding: 3px 8px;
+  cursor: pointer;
+  min-height: 28px;
+  min-width: 28px;
+  outline: none;
+  transition: all 120ms ease;
+}
+
+.home-term-pill:hover {
+  color: #e4e4e7; /* TEXT_PRIMARY */
+  border-color: #71717a; /* TEXT_MUTED */
+}
+
+.home-term-pill-active {
+  color: #10b981; /* ACCENT_PULSE */
+  border-color: rgba(16,185,129,0.2); /* ACCENT_BORDER */
+  background: rgba(16,185,129,0.08); /* ACCENT_GLASS */
+}
+
+.home-week-counters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.home-counter {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 3px;
+  line-height: 1;
+}
+
+.home-counter-red {
+  color: #f43f5e; /* COLOUR_DANGER */
+  background: rgba(239,68,68,0.06); /* COLOUR_DANGER_GLASS */
+  border: 1px solid rgba(239,68,68,0.2); /* COLOUR_DANGER_BORDER */
+}
+
+.home-counter-amber {
+  color: #f59e0b; /* COLOUR_WARN */
+  background: rgba(245,158,11,0.06); /* COLOUR_WARN_TINT */
+  border: 1px solid rgba(245,158,11,0.2); /* COLOUR_WARN_BORDER */
+}
+
+.home-counter-muted {
+  color: #71717a; /* TEXT_MUTED */
+  background: rgba(255,255,255,0.04); /* WHITE_TINT_FAINT */
+  border: 1px solid #27272a; /* SURFACE_RAISED */
+}
+
+/* ============================================================
+   Course grid header
+   ============================================================ */
+
+.home-grid-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.home-section-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #71717a; /* TEXT_MUTED */
+  margin: 0;
+}
+
+.home-sort-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: #52525b; /* TEXT_FAINT */
+}
+
+.home-view-all {
+  display: block;
+  margin: 14px auto 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #71717a; /* TEXT_MUTED */
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px 16px;
+  min-height: 44px;
+  outline: none;
+}
+
+.home-view-all:hover {
+  color: #e4e4e7; /* TEXT_PRIMARY */
+}
+
+/* ============================================================
+   Course grid
+   ============================================================ */
+
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 10px;
+}
+
+.home-grid-compact {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px;
+}
+
+/* ============================================================
+   Empty state
+   ============================================================ */
+
+.home-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  text-align: center;
+  padding: 48px 24px;
+}
+
+.home-empty-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #e4e4e7; /* TEXT_PRIMARY */
+  margin: 0 0 10px;
+}
+
+.home-empty-sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #71717a; /* TEXT_MUTED */
+  max-width: 400px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ============================================================
+   Focus indicators (WCAG 2.4.13)
+   ============================================================ */
+
+.home-root *:focus-visible {
+  outline: 2px solid #f4f4f5; /* FOCUS_RING */
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   Reduced motion
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .home-root *,
+  .home-root *::before,
+  .home-root *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

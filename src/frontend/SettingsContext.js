@@ -37,6 +37,54 @@ export const SettingsProvider = ({ children }) => {
   const [gritLevel, setGritLevel] = useState(localStorage.getItem('gritLevel') || 'balanced');
   const [lodLevel, setLodLevel] = useState(localStorage.getItem('lodLevel') || 'compass');
 
+  // Display preferences for Home screen layout.
+  // Spec: PRODUCT_SPEC_STATUS_AND_PREFERENCES.md Section 2.3
+  const [display, setDisplay] = useState(() => {
+    try {
+      const raw = localStorage.getItem('simplifii_display');
+      return raw ? { ...{ timeline: true, upNext: true, cardDensity: 'standard', bodyDoubling: true, overdueTally: true }, ...JSON.parse(raw) } : { timeline: true, upNext: true, cardDensity: 'standard', bodyDoubling: true, overdueTally: true };
+    } catch { return { timeline: true, upNext: true, cardDensity: 'standard', bodyDoubling: true, overdueTally: true }; }
+  });
+  const updateDisplay = (patch) => setDisplay(prev => ({ ...prev, ...patch }));
+
+  // Canvas theme: 'dark' | 'light' | 'highContrast'. Migrates from boolean highContrast.
+  const [theme, setTheme] = useState(() => {
+    const stored = localStorage.getItem('simplifii_theme');
+    if (stored) return stored;
+    // Migrate from boolean highContrast
+    return highContrast ? 'highContrast' : 'dark';
+  });
+  useEffect(() => { localStorage.setItem('simplifii_theme', theme); }, [theme]);
+
+  // Sprint 6.0: Bio-Sovereignty. Transient stress signal; not persisted.
+  // Set to true via the "Simulate Stress" DevTools toggle or by NeuralService
+  // when HRV drops below threshold. Causes the Vibe Meter to pulse red and
+  // auto-routes the cockpit into a reduced cognitive-load state.
+  const [isStressed, setIsStressed] = useState(false);
+
+  // Dispatch stress signal to NeuralService listeners and the executive spine.
+  // When stress is detected, the OS reduces cognitive load: LOD drops to compass,
+  // and the Vibe Meter signals the state shift in red.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (isStressed) {
+      window.dispatchEvent(new CustomEvent('simplifii:stress-detected', {
+        detail: { source: 'simulate', timestamp: new Date().toISOString() }
+      }));
+    }
+  }, [isStressed]);
+
+  // Dispatch STEERING_UPDATE whenever the three AI-behaviour dials change.
+  // EventBus picks this up and writes a steering_adjusted event to the
+  // History of Thought log so the Authenticity Report can prove the student
+  // manually adjusted the AI rather than relying on defaults.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent('simplifii:steering-update', {
+      detail: { gritLevel, scaffoldingLevel, isLiteralMode }
+    }));
+  }, [gritLevel, scaffoldingLevel, isLiteralMode]);
+
   useEffect(() => {
     localStorage.setItem('mode', mode);
     localStorage.setItem('eduLevel', eduLevel);
@@ -58,10 +106,11 @@ export const SettingsProvider = ({ children }) => {
     localStorage.setItem('scaffoldingLevel', scaffoldingLevel);
     localStorage.setItem('gritLevel', gritLevel);
     localStorage.setItem('lodLevel', lodLevel);
+    localStorage.setItem('simplifii_display', JSON.stringify(display));
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('simplifii:lod-change', { detail: { lodLevel } }));
     }
-  }, [mode, eduLevel, highContrast, reducedMotion, darkMode, persona, overlayTint, fontScale, lineSpacing, isRulerActive, isBionicActive, bionicIntensity, isDriveAttached, isZenMode, isLeftCollapsed, isRightCollapsed, isLiteralMode, scaffoldingLevel, gritLevel, lodLevel]);
+  }, [mode, eduLevel, highContrast, reducedMotion, darkMode, persona, overlayTint, fontScale, lineSpacing, isRulerActive, isBionicActive, bionicIntensity, isDriveAttached, isZenMode, isLeftCollapsed, isRightCollapsed, isLiteralMode, scaffoldingLevel, gritLevel, lodLevel, display]);
 
   const rules = {
     sequential: { font: 'Inter', spacing: 'normal', lineHeight: 'normal', letterSpacing: 'normal' },
@@ -91,6 +140,9 @@ export const SettingsProvider = ({ children }) => {
       scaffoldingLevel, setScaffoldingLevel,
       gritLevel, setGritLevel,
       lodLevel, setLodLevel,
+      isStressed, setIsStressed,
+      display, updateDisplay,
+      theme, setTheme,
       activeRules: rules[mode]
     }}>
       <div 

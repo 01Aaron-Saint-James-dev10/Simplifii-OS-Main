@@ -94,7 +94,21 @@ const swapByLevel = (text, level) => {
 const LOGIC_FRAMES = {
   inst1: 'Comparing methodologies across the primary sources reviewed,',
   inst2: 'A critical gap remains in the literature, namely',
-  inst3: 'Synthesising the evidence reviewed above,'
+  inst3: 'Synthesising the evidence reviewed above,',
+  easy_read:        'Here is the key idea in plain English:',
+  faded_scaffold:   'Working from the structure of the passage, here is a partially completed paragraph for you to finish:',
+  align_to_rubric:  'Reviewing this passage against the High Distinction marking criteria:',
+  // Sprint 8.2: Universal View. Renders the full cognitive map of the passage
+  // across three registers simultaneously (academic, plain, action) so the
+  // learner can choose the framing that fits their processing style.
+  universal_view:   'Viewing this passage through three lenses:',
+  // Sprint 8.1 Sovereign Translator. EASL = Easy and Accessible Service Language.
+  // Strips institutional jargon from task instructions and rebuilds them as
+  // learner-actionable, clear-language directives.
+  easl_bridge:      'Plain-language translation of the instructions:',
+  // Friction-to-Action. Converts bureaucratic or dense task descriptions into
+  // numbered steps with bolded verbs and a Definition of Done checklist.
+  friction_to_action: 'Step-by-step action plan:'
 };
 
 // Logic Block lens instructions sent to Ollama. These describe HOW to look at
@@ -102,7 +116,39 @@ const LOGIC_FRAMES = {
 const LOGIC_LENSES = {
   inst1: 'Examine the passage for how methodological choices are described. Surface comparisons between methods, identify which method the passage privileges, and call out where methodology is implied but not stated. Do not invent methods the student did not mention.',
   inst2: 'Examine the passage for unanswered questions and unstated assumptions. Surface a clear statement of what remains unknown in the field according to the evidence the student has cited. Do not introduce new gaps the passage does not support.',
-  inst3: 'Examine the passage for how separate findings can be combined into a single position. Draw the through-line. Do not add findings the student did not present.'
+  inst3: 'Examine the passage for how separate findings can be combined into a single position. Draw the through-line. Do not add findings the student did not present.',
+  easy_read:      'EASY READ MODE. Rewrite for a user with a processing or intellectual disability. Rules: short sentences only (max 15 words each), active verbs, no jargon, no nested clauses, no academic hedging. Keep only the core action items from the passage. Use Australian English.',
+  faded_scaffold: 'FADED SCAFFOLD MODE. Convert this passage into a partially completed academic paragraph. Rules: preserve the academic register and argument structure; reproduce the first two-thirds of the paragraph as polished, submission-ready prose; replace the final two sentences with clearly marked sentence-starting stems in the format [STEM: "..."] that give the student enough structure to complete the thought without telling them the answer. Never invent new claims or citations. Use Australian English. No em-dashes.',
+  align_to_rubric: 'RUBRIC ALIGNMENT MODE. Review the passage against the High Distinction marking criteria. For each criterion, state: (a) whether the passage meets it, (b) what is missing or weak, and (c) one specific targeted improvement the student can make. Do NOT rewrite the passage. Return only the review as a short numbered list. Australian English. No em-dashes.',
+  // Sprint 8.2: Universal View. Returns three parallel renderings of the same
+  // passage. Each section is labelled. The model must not add new content to
+  // any register; it only reframes what the student already wrote.
+  universal_view: 'UNIVERSAL VIEW MODE. Render the passage in three cognitive registers, each as a clearly labelled block. Block 1 (ACADEMIC): the passage restated in full academic register with signal phrases and hedging appropriate for submission. Block 2 (PLAIN): the same ideas in plain language (max 15 words per sentence, no jargon). Block 3 (ACTIONS): the content converted into a numbered action list of what the student still needs to do based on what is written. Do not add claims, citations, or content the student did not write. Australian English. No em-dashes.',
+  // Sprint 8.1 Sovereign Translator. EASL Bridge: translates institutional
+  // task instructions into plain, clear-language directives. The model must
+  // strip jargon but preserve every requirement and deadline exactly.
+  easl_bridge: 'EASL BRIDGE MODE. Translate the task instructions below from institutional language into Easy and Accessible Service Language (EASL). Rules: (1) Replace every piece of academic or bureaucratic jargon with plain everyday words. (2) Keep every deadline, word count, and submission requirement exactly as stated. (3) Use short sentences (max 15 words). (4) Use the second person ("you"). (5) Number each requirement as a separate instruction. Return only the translated instructions. Australian English. No em-dashes.',
+  // Friction-to-Action. Converts dense bureaucratic text into numbered steps.
+  // Each step must have a bolded action verb. Final line is the Definition of Done.
+  friction_to_action: 'FRICTION TO ACTION MODE. Convert the passage below into a numbered action plan. Rules: (1) Each numbered step must open with a bolded action verb in the format **Verb** rest-of-step. (2) Steps must be ordered chronologically or by dependency. (3) Each step must be one sentence only. (4) End with a single line labelled "Definition of Done:" that describes what completion looks like. Do not add tasks the passage does not imply. Return only the numbered plan and the Definition of Done. Australian English. No em-dashes.'
+};
+
+// Sprint 7.2: Grounding Audit. Extracts up to 3 source sentences from the
+// student's input and returns them as citation anchors for the [G] pins.
+// Citations are always verbatim subsets of what the student wrote; no content
+// is invented. The source label comes from ctx.sourceName (course name / PDF
+// filename) passed in from the cockpit.
+const extractGroundingCitations = (inputText, sourceName = 'Course Material') => {
+  const source = sourceName || 'Course Material';
+  const sentences = inputText
+    .replace(/\n+/g, ' ')
+    .split(/(?<=[.!?])\s+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 20);
+  return sentences.slice(0, 3).map(s => ({
+    source,
+    snippet: s.slice(0, 140)
+  }));
 };
 
 const localMock = {
@@ -111,13 +157,56 @@ const localMock = {
     const opener = ctx.level === 'highschool'
       ? `Looking at this carefully, ${swapped.charAt(0).toLowerCase()}${swapped.slice(1)}`
       : `Drawing on the peer-reviewed literature, ${swapped.charAt(0).toLowerCase()}${swapped.slice(1)}`;
-    return opener;
+    return { text: opener, groundingCitations: extractGroundingCitations(text, ctx.sourceName) };
   },
   async synthesise(text, ctx = {}) {
     const swapped = swapByLevel(text, ctx.level);
-    return `Synthesising the evidence reviewed above: ${swapped}`;
+    return {
+      text: `Synthesising the evidence reviewed above: ${swapped}`,
+      groundingCitations: extractGroundingCitations(text, ctx.sourceName)
+    };
   },
   async applyLogicMode(text, mode, ctx = {}) {
+    if (mode === 'easy_read') {
+      // Strip academic vocabulary swaps: Easy Read uses plain, everyday words.
+      const sentences = text.split(/(?<=[.!?])\s+/).slice(0, 5);
+      return `Here is the key idea in plain English:\n${sentences.join(' ')}`;
+    }
+    if (mode === 'faded_scaffold') {
+      // Split into sentences; return first two-thirds polished, last two as stems.
+      const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean);
+      const splitAt = Math.max(1, Math.ceil(sentences.length * 0.67));
+      const polished = sentences.slice(0, splitAt).join(' ');
+      const stems = sentences.slice(splitAt).map((s, i) =>
+        `[STEM ${i + 1}: "${s.split(' ').slice(0, 4).join(' ')}..."]`
+      ).join(' ');
+      return `${polished} ${stems || '[STEM 1: "Building on this argument..."] [STEM 2: "This suggests that..."]'}`;
+    }
+    if (mode === 'align_to_rubric') {
+      const criteria = (Array.isArray(ctx.hdCriteria) && ctx.hdCriteria.length > 0)
+        ? ctx.hdCriteria
+        : ['Critical Analysis', 'Evidence and Referencing', 'Originality', 'Argument Coherence'];
+      const review = criteria.map((c, i) => `${i + 1}. ${c}: Review your passage to ensure this criterion is addressed.`).join('\n');
+      return `Reviewing against HD criteria:\n${review}`;
+    }
+    if (mode === 'universal_view') {
+      const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean);
+      const academic = sentences.map(s => swapByLevel(s, ctx?.level || 'university')).join(' ');
+      const plain = sentences.map(s => s.replace(/\b(\w{10,})\b/g, w => w)).join(' ');
+      const actions = sentences.slice(0, 5).map((s, i) => `${i + 1}. ${s}`).join('\n');
+      return `ACADEMIC:\n${academic}\n\nPLAIN:\n${plain}\n\nACTIONS:\n${actions}`;
+    }
+    if (mode === 'easl_bridge') {
+      const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean);
+      const instructions = sentences.map((s, i) => `${i + 1}. ${s.replace(/\b(utilise|leverage|endeavour|facilitate|commence|henceforth|pursuant|thereof)\b/gi, (m) => ({ utilise: 'use', leverage: 'use', endeavour: 'try', facilitate: 'help', commence: 'start', henceforth: 'from now on', pursuant: 'following', thereof: 'of it' }[m.toLowerCase()] || m))}`).join('\n');
+      return `Plain-language version of the instructions:\n\n${instructions}`;
+    }
+    if (mode === 'friction_to_action') {
+      const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 8);
+      const verbs = ['Read', 'Write', 'Review', 'Submit', 'Check', 'Identify', 'Draft', 'Finalise'];
+      const steps = sentences.map((s, i) => `${i + 1}. **${verbs[i] || 'Complete'}** ${s.charAt(0).toLowerCase()}${s.slice(1)}`).join('\n');
+      return `${steps}\n\nDefinition of Done: All steps above are complete and the section is ready to submit.`;
+    }
     const frame = LOGIC_FRAMES[mode] || 'Working from the active logic frame:';
     const swapped = swapByLevel(text, ctx?.level);
     return `${frame} ${swapped}`;
@@ -168,12 +257,13 @@ const buildElevatePrompt = (text, ctx) => [
   `STUDENT LEVEL: ${ctx.level || 'university'}`,
   `LEVEL GUIDANCE: ${levelGuidance(ctx.level)}`,
   `PERSONA TONE: ${personaTone(ctx.persona)}`,
+  ctx.selectedTopic ? `FOCUS TOPIC: ${ctx.selectedTopic}` : '',
   '',
   'PASSAGE:',
   text,
   '',
   'Return only the rewritten passage.'
-].join('\n');
+].filter(l => l !== '').join('\n');
 
 const buildSynthesisePrompt = (text, ctx) => [
   'TASK: Synthesise the passage below into one coherent academic paragraph.',
@@ -183,14 +273,101 @@ const buildSynthesisePrompt = (text, ctx) => [
   `STUDENT LEVEL: ${ctx.level || 'university'}`,
   `LEVEL GUIDANCE: ${levelGuidance(ctx.level)}`,
   `PERSONA TONE: ${personaTone(ctx.persona)}`,
+  ctx.selectedTopic ? `FOCUS TOPIC: ${ctx.selectedTopic}` : '',
   '',
   'PASSAGE:',
   text,
   '',
   'Return only the synthesised paragraph.'
-].join('\n');
+].filter(l => l !== '').join('\n');
 
 const buildLogicModePrompt = (text, mode, ctx) => {
+  // Easy Read is a completely different register. Academic level guidance and
+  // persona tone are irrelevant and counterproductive here; strip them out so
+  // the model does not get mixed signals between "be academic" and "be plain".
+  if (mode === 'easy_read') {
+    return [
+      'TASK: Rewrite the passage below into Easy English.',
+      '',
+      LOGIC_LENSES.easy_read,
+      '',
+      'PASSAGE:',
+      text,
+      '',
+      'Return only the rewritten passage. No preamble.'
+    ].join('\n');
+  }
+  if (mode === 'faded_scaffold') {
+    // Faded Scaffold bypasses persona/level: the academic structure is held fixed;
+    // only the final two sentences become student-completion stems.
+    return [
+      'TASK: Convert the passage below into a Faded Scaffold.',
+      '',
+      LOGIC_LENSES.faded_scaffold,
+      '',
+      'PASSAGE:',
+      text,
+      '',
+      'Return only the scaffolded paragraph with stems. No preamble.'
+    ].join('\n');
+  }
+  if (mode === 'align_to_rubric') {
+    // Rubric Alignment bypasses persona/level tone so the feedback reads as
+    // neutral, criterion-anchored marking commentary rather than AI voice.
+    const criteriaBlock = (Array.isArray(ctx.hdCriteria) && ctx.hdCriteria.length > 0)
+      ? ctx.hdCriteria.map((c, i) => `${i + 1}. ${c}`).join('\n')
+      : '1. Critical Analysis\n2. Evidence and Referencing\n3. Originality\n4. Argument Coherence\n5. Academic Register';
+    const topicLine = ctx.selectedTopic ? `\nFOCUS TOPIC: ${ctx.selectedTopic}` : '';
+    return [
+      'TASK: Review the passage below against the High Distinction marking criteria.',
+      '',
+      `MARKING CRITERIA:${topicLine}`,
+      criteriaBlock,
+      '',
+      LOGIC_LENSES.align_to_rubric,
+      '',
+      'PASSAGE:',
+      text,
+      '',
+      'Return only the numbered review. No preamble.'
+    ].join('\n');
+  }
+  if (mode === 'universal_view') {
+    return [
+      'TASK: Render the passage below in three cognitive registers.',
+      '',
+      LOGIC_LENSES.universal_view,
+      '',
+      'PASSAGE:',
+      text,
+      '',
+      'Return the three labelled blocks (ACADEMIC, PLAIN, ACTIONS) with no preamble.'
+    ].join('\n');
+  }
+  if (mode === 'easl_bridge') {
+    return [
+      'TASK: Translate the task instructions below into plain language.',
+      '',
+      LOGIC_LENSES.easl_bridge,
+      '',
+      'INSTRUCTIONS TO TRANSLATE:',
+      text,
+      '',
+      'Return only the translated numbered instructions. No preamble.'
+    ].join('\n');
+  }
+  if (mode === 'friction_to_action') {
+    return [
+      'TASK: Convert the passage below into a numbered action plan.',
+      '',
+      LOGIC_LENSES.friction_to_action,
+      '',
+      'PASSAGE:',
+      text,
+      '',
+      'Return only the numbered plan and the Definition of Done line. No preamble.'
+    ].join('\n');
+  }
   const lens = LOGIC_LENSES[mode] || 'Examine the passage carefully and reframe it through the active analytical lens. Do not invent new content.';
   return [
     'TASK: Reframe the passage below through this analytical lens.',
@@ -231,27 +408,86 @@ const getOllamaEndpoint = () => safeReadLocalStorage(OLLAMA_ENDPOINT_KEY, DEFAUL
 
 const getOllamaModel = () => safeReadLocalStorage(OLLAMA_MODEL_KEY, DEFAULT_OLLAMA_MODEL) || DEFAULT_OLLAMA_MODEL;
 
-async function callOllama(userPrompt) {
+// Read the four steering dials from localStorage each call so that a
+// dial flip mid-session takes effect on the next rewrite without a
+// page reload. Mirrors the pattern in ChatService.js.
+const readSteering = () => ({
+  isLiteralMode: safeReadLocalStorage('isLiteralMode') === 'true',
+  scaffoldingLevel: safeReadLocalStorage('scaffoldingLevel') || 'balanced',
+  gritLevel: safeReadLocalStorage('gritLevel') || 'balanced',
+  lodLevel: safeReadLocalStorage('lodLevel') || 'compass'
+});
+
+// Map grit dial to Ollama temperature. Direct mode produces tight,
+// predictable rewrites; Socratic mode allows more interpretive range.
+const gritToTemperature = { literal: 0.2, balanced: 0.4, socratic: 0.6 };
+
+// Build the steering block injected at the top of the rewrite system
+// prompt. Tells the model how assertively to transform the prose.
+const buildRewriteSteeringBlock = ({ isLiteralMode, scaffoldingLevel, gritLevel }) => {
+  const personaLine = isLiteralMode
+    ? 'PERSONA DIAL: Literal. Plain English only. Minimise jargon. Short sentences. Preserve the student\'s phrasing wherever possible.'
+    : 'PERSONA DIAL: Academic. Discipline register intact. Elevate where appropriate.';
+  const scaffoldLine = ({
+    heavy:    'SCAFFOLDING DIAL: Heavy. Break any compound sentence into shorter units. Surface the sub-claim explicitly.',
+    balanced: 'SCAFFOLDING DIAL: Balanced. Tighten the passage without over-fragmenting.',
+    light:    'SCAFFOLDING DIAL: Light. Treat the student\'s structure as intentional. Only change diction and register.'
+  })[scaffoldingLevel] || '';
+  const gritLine = ({
+    literal:  'GRIT DIAL: Direct. Apply the transformation straightforwardly. Do not probe or add questions.',
+    balanced: 'GRIT DIAL: Balanced. Where the student\'s claim is underspecified, surface the gap in one brief parenthetical.',
+    socratic: 'GRIT DIAL: Hard Socratic. If the passage lacks a clear position, surface that gap explicitly at the end of the rewrite. One sentence only.'
+  })[gritLevel] || '';
+  return [
+    'STEERING DIALS (set by the student; respect them):',
+    personaLine,
+    scaffoldLine,
+    gritLine
+  ].filter(Boolean).join('\n');
+};
+
+// Sprint 8.3: Data Quality. Default timeout for rewrite calls (elevateRigour,
+// synthesise, applyLogicMode). Longer than nameCourse (20s) because rewrites
+// produce more tokens (num_predict: 800). Shorter than extractAssessmentBriefs
+// (45s) because rewrites are single-paragraph operations.
+const OLLAMA_REWRITE_TIMEOUT_MS = 60000;
+
+async function callOllama(userPrompt, steering) {
+  const { gritLevel } = steering || readSteering();
+  const temperature = gritToTemperature[gritLevel] ?? 0.4;
+  const steeringBlock = buildRewriteSteeringBlock(steering || readSteering());
+  const systemPromptWithSteering = `${steeringBlock}\n\n${SYSTEM_PROMPT}`;
+
   const endpoint = getOllamaEndpoint().replace(/\/$/, '');
   const model = getOllamaModel();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), OLLAMA_REWRITE_TIMEOUT_MS);
   let response;
   try {
     response = await fetch(`${endpoint}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
       body: JSON.stringify({
         model,
         stream: false,
-        options: { temperature: 0.4, num_predict: 800 },
+        options: { temperature, num_predict: 800 },
         messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'system', content: systemPromptWithSteering },
           { role: 'user', content: userPrompt }
         ]
       })
     });
   } catch (networkErr) {
-    throw new Error(`Local AI not reachable at ${endpoint}. Run 'ollama serve' on this machine, or switch provider to local-mock.`);
+    clearTimeout(timer);
+    const isTimeout = networkErr && networkErr.name === 'AbortError';
+    throw new Error(
+      isTimeout
+        ? `Local AI timed out after ${OLLAMA_REWRITE_TIMEOUT_MS / 1000}s. The model may be loading or overloaded. Try again shortly.`
+        : `Local AI not reachable at ${endpoint}. Run 'ollama serve' on this machine, or switch provider to local-mock.`
+    );
   }
+  clearTimeout(timer);
 
   if (!response.ok) {
     const body = await response.text().catch(() => '');
@@ -272,13 +508,15 @@ async function callOllama(userPrompt) {
 
 const ollama = {
   async elevateRigour(text, ctx = {}) {
-    return callOllama(buildElevatePrompt(text, ctx));
+    const result = await callOllama(buildElevatePrompt(text, ctx), ctx.steering);
+    return { text: result, groundingCitations: extractGroundingCitations(text, ctx.sourceName) };
   },
   async synthesise(text, ctx = {}) {
-    return callOllama(buildSynthesisePrompt(text, ctx));
+    const result = await callOllama(buildSynthesisePrompt(text, ctx), ctx.steering);
+    return { text: result, groundingCitations: extractGroundingCitations(text, ctx.sourceName) };
   },
   async applyLogicMode(text, mode, ctx = {}) {
-    return callOllama(buildLogicModePrompt(text, mode, ctx));
+    return callOllama(buildLogicModePrompt(text, mode, ctx), ctx.steering);
   }
 };
 
@@ -423,18 +661,20 @@ const ASSESSMENT_SYSTEM_PROMPT = [
   'CRITICAL CONTEXT: The input may be MULTIPLE documents concatenated together (Course Outline, Assessment Brief, Marking Rubric). You must look at ALL the text, not just the start. Course Outlines often list every assessment in a table or schedule; individual Assessment Briefs zoom in on one task. Combine the views: the canonical assessment list lives in the Course Outline. Your job is to surface EVERY graded assessment across all documents, not just the one that has the most prose.',
   '',
   'OUTPUT FORMAT: A JSON array of objects. Each object MUST use these EXACT lowercase keys:',
-  '  "title"           (string, required, 3 to 60 chars, capital first letter)',
-  '  "weight"          (string like "30%", or "" if not specified)',
-  '  "wordCountGoal"   (integer like 1500, or 0 if not specified)',
-  '  "dueDate"         (string like "Friday Week 5", or "" if not specified)',
+  '  "title"            (string, required, 3 to 60 chars, capital first letter)',
+  '  "weight"           (string like "30%", or "" if not specified)',
+  '  "wordCountGoal"    (integer like 1500, or 0 if not specified)',
+  '  "dueDate"          (string like "Friday Week 5", or "" if not specified)',
+  '  "availableTopics"  (array of strings: the specific topics, questions, or prompts the student may choose from for this assessment. Each string is one option. Use [] if no topic menu is listed.)',
+  '  "hdCriteria"       (array of strings: the specific marking criteria required for a High Distinction grade, extracted verbatim from the rubric table. Each string is one criterion or descriptor. Use [] if no rubric is present.)',
   '',
-  'DO NOT use alternate keys like "id", "name", "weightage", "date", "type". The keys must be exactly title, weight, wordCountGoal, dueDate.',
+  'DO NOT use alternate keys. The keys must be exactly title, weight, wordCountGoal, dueDate, availableTopics, hdCriteria.',
   '',
   'Example output:',
-  '  [{"title":"Literature Review","weight":"25%","wordCountGoal":2000,"dueDate":"Friday Week 5"},',
-  '   {"title":"Test 1","weight":"30%","wordCountGoal":0,"dueDate":"Week 7"},',
-  '   {"title":"Science Communication Project","weight":"25%","wordCountGoal":0,"dueDate":"Week 11"},',
-  '   {"title":"Final Exam","weight":"20%","wordCountGoal":0,"dueDate":"Exam Period"}]',
+  '  [{"title":"Literature Review","weight":"25%","wordCountGoal":2000,"dueDate":"Friday Week 5",',
+  '    "availableTopics":["Climate change mitigation","Urban food systems","Ocean acidification"],',
+  '    "hdCriteria":["Demonstrates critical synthesis of 8+ peer-reviewed sources","Original argument clearly stated and defended","APA 7 referencing with zero errors"]},',
+  '   {"title":"Final Exam","weight":"20%","wordCountGoal":0,"dueDate":"Exam Period","availableTopics":[],"hdCriteria":[]}]',
   '',
   'ABSOLUTE RULES:',
   '1. Australian English only.',
@@ -571,9 +811,15 @@ const __callAssessmentExtractor = async (rawText) => {
     // syllabus where the model uses yet another key, add it to the
     // appropriate fallback chain here.
     const NOISE_WORDS = /^(item|cation|p\s*\d+|figure|table|page|section|lecture|topic|content|outline|rubric|details|overview|description|length|information|notes|comments|criteria)$/i;
-    const pickTitle = (item) => String(
-      item.title ?? item.name ?? item.assessment ?? item.task ?? item.id ?? ''
-    ).trim().replace(/\s+/g, ' ');
+    const pickTitle = (item) => {
+      const raw = String(
+        item.title ?? item.name ?? item.assessment ?? item.task ?? item.id ?? ''
+      ).trim().replace(/\s+/g, ' ');
+      // Normalise first character to uppercase so models that return
+      // "literature review" still produce a valid title rather than being
+      // silently dropped by the capital-letter guard below.
+      return raw.length > 0 ? raw.charAt(0).toUpperCase() + raw.slice(1) : raw;
+    };
     const pickWeight = (item) => {
       const raw = String(item.weight ?? item.weighting ?? item.weightage ?? item.percentage ?? item.percent ?? '').trim();
       return raw && /\d/.test(raw) ? raw : '';
@@ -620,11 +866,47 @@ const __callAssessmentExtractor = async (rawText) => {
       const weight = pickWeight(item);
       const wordCountGoal = pickWordCount(item);
       const dueDate = pickDueDate(item);
-      briefs.push({ title, weight, wordCountGoal, dueDate });
+      const availableTopics = Array.isArray(item.availableTopics)
+        ? item.availableTopics.filter(t => typeof t === 'string' && t.trim().length > 3).map(t => t.trim())
+        : [];
+      const hdCriteria = Array.isArray(item.hdCriteria)
+        ? item.hdCriteria.filter(c => typeof c === 'string' && c.trim().length > 3).map(c => c.trim())
+        : [];
+      briefs.push({ title, weight, wordCountGoal, dueDate, availableTopics, hdCriteria });
     }
     if (typeof console !== 'undefined') {
-      console.info('[RewriteService] Ollama extracted', briefs.length, 'assessment briefs (dropped:', { short: droppedShort, noLetter: droppedNoLetter, noise: droppedNoise, dup: droppedDup }, ')');
+      console.info(
+        `[RewriteService] Ollama extracted ${briefs.length} assessment briefs` +
+        ` (dropped short=${droppedShort} noLetter=${droppedNoLetter} noise=${droppedNoise} dup=${droppedDup})`
+      );
     }
+
+    // Defensive text-level rescue. When the JSON parse succeeded but the
+    // quality filter dropped every item (common when the model ignores the
+    // capitalisation instruction), the raw response often still contains
+    // readable lines like "Literature Review (25%)". Scan those directly
+    // before giving up. Only runs when raw is non-trivially long to avoid
+    // false positives on genuinely empty syllabi.
+    if (briefs.length === 0 && raw.trim().length > 20) {
+      const seen2 = new Set();
+      // Matches: optional leading number/bullet, then a capitalised-or-any
+      // phrase, then a percentage figure nearby.
+      const lineRe = /^[\d.\-*\s)]*([A-Za-z][A-Za-z0-9 ,'&/\-]{2,74}?)\s*[:\-(]?\s*(\d{1,3})\s*%/gm;
+      for (const m of raw.matchAll(lineRe)) {
+        const rawTitle = m[1].trim().replace(/\s+/g, ' ');
+        const title = rawTitle.charAt(0).toUpperCase() + rawTitle.slice(1);
+        if (title.length < 4) continue;
+        if (/^(lecture|tutorial|workshop|topic|theme|module|reading|week)\b/i.test(title)) continue;
+        const key = title.toLowerCase();
+        if (seen2.has(key)) continue;
+        seen2.add(key);
+        briefs.push({ title, weight: `${m[2]}%`, wordCountGoal: 0, dueDate: '' });
+      }
+      if (briefs.length > 0 && typeof console !== 'undefined') {
+        console.info(`[RewriteService] text-level rescue recovered ${briefs.length} briefs from raw model output`);
+      }
+    }
+
     return briefs.slice(0, 12);
   } catch (err) {
     if (typeof console !== 'undefined') console.warn('[RewriteService] assessment extraction failed:', err?.name, err?.message);

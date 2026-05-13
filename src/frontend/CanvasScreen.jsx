@@ -1,0 +1,182 @@
+import React, { useState, useCallback, useMemo } from 'react';
+import { useProject } from './ProjectContext';
+import { useSettings } from './SettingsContext';
+import { useRouter } from '../contexts/RouterContext';
+import CanvasNav from './components/CanvasNav';
+import CanvasEditor from './components/CanvasEditor';
+import SectionRail from './components/SectionRail';
+import PanelRail from './components/PanelRail';
+import BriefPanel from './components/BriefPanel';
+import TutorPanel from './components/TutorPanel';
+import PreviewPanel from './components/PreviewPanel';
+import SourcesPanel from './components/SourcesPanel';
+import CheckPanel from './components/CheckPanel';
+import ProvenancePanel from './components/ProvenancePanel';
+import BottomStrip from './components/BottomStrip';
+import ReentryOverlay from './components/ReentryOverlay';
+import CanvasSettingsOverlay from './components/CanvasSettingsOverlay';
+import './CanvasScreen.css';
+
+/**
+ * CanvasScreen (Screen 4)
+ *
+ * Orchestrator for the writing canvas.
+ * Reads active course + assessment from RouterContext + ProjectContext.
+ * Manages panel state (collapsed by default = focused mode).
+ *
+ * BottomStrip and ReentryOverlay are wired in Step 4.
+ */
+
+export default function CanvasScreen() {
+  const { courseId, assessmentTitle } = useRouter();
+  const { courses, activeCourse } = useProject();
+  const { reducedMotion, isZenMode, theme } = useSettings();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Resolve course and assessment
+  const course = courses?.[courseId] || activeCourse || {};
+  const courseName = course.name || 'Untitled';
+  const briefs = course.extractionData?.assessmentBriefs || [];
+  const brief = useMemo(() => {
+    if (!assessmentTitle) return briefs[0] || null;
+    return briefs.find(b => {
+      const display = b.weight ? `${b.title} (${b.weight})` : b.title;
+      return display === assessmentTitle || b.title === assessmentTitle;
+    }) || briefs[0] || null;
+  }, [briefs, assessmentTitle]);
+
+  const targetWords = brief?.wordCountGoal || 1500;
+  const currentTitle = brief?.title || assessmentTitle || 'Assessment';
+  const rubricCriteria = course.extractionData?.rubricCriteria || [];
+  const rubricBands = course.extractionData?.rubricBands || [];
+  const rubricDetected = course.extractionData?.rubricDetected || false;
+  const sourceFiles = course.extractionData?.sourceFiles || [];
+
+  // Save status
+  const [saveStatus, setSaveStatus] = useState('unsaved');
+  const [lastSavedAgo, setLastSavedAgo] = useState('');
+  const handleSaveStatus = useCallback((status, ago) => {
+    setSaveStatus(status);
+    setLastSavedAgo(ago || '');
+  }, []);
+
+  // Word count + draft text + TipTap JSON (for panels and export)
+  const [wordCount, setWordCount] = useState(0);
+  const [draftText, setDraftText] = useState('');
+  const [tiptapDoc, setTiptapDoc] = useState(null);
+  const handleWordCount = useCallback((count) => setWordCount(count), []);
+
+  // Section rail
+  const [activeSection, setActiveSection] = useState('introduction');
+
+  // Panel rail
+  const [activePanel, setActivePanel] = useState(null);
+
+  // Each panel is always mounted (preserves local state like chat messages
+  // and check results) but hidden via display:none when not active. Only
+  // PreviewPanel and CheckPanel receive draftText; the others never
+  // re-render on keystrokes.
+  const panelContent = activePanel ? (
+    <>
+      <div style={{ display: activePanel === 'brief' ? 'contents' : 'none' }}>
+        <BriefPanel
+          brief={brief}
+          rubricCriteria={rubricCriteria}
+          rubricBands={rubricBands}
+          rubricDetected={rubricDetected}
+          courseId={courseId}
+          assessmentTitle={currentTitle}
+        />
+      </div>
+      <div style={{ display: activePanel === 'tutor' ? 'contents' : 'none' }}>
+        <TutorPanel assessmentTitle={currentTitle} />
+      </div>
+      <div style={{ display: activePanel === 'preview' ? 'contents' : 'none' }}>
+        <PreviewPanel draftText={draftText} wordCount={wordCount} />
+      </div>
+      <div style={{ display: activePanel === 'sources' ? 'contents' : 'none' }}>
+        <SourcesPanel sourceFiles={sourceFiles} />
+      </div>
+      <div style={{ display: activePanel === 'provenance' ? 'contents' : 'none' }}>
+        <ProvenancePanel
+          courseId={courseId}
+          assessmentTitle={currentTitle}
+          courseName={courseName}
+          courseCode={courseName}
+          term={course.term || course.extractionData?.term}
+        />
+      </div>
+      <div style={{ display: activePanel === 'check' ? 'contents' : 'none' }}>
+        <CheckPanel
+          draftText={draftText}
+          wordCount={wordCount}
+          targetWords={targetWords}
+          rubricCriteria={rubricCriteria}
+          courseId={courseId}
+          assessmentTitle={currentTitle}
+        />
+      </div>
+    </>
+  ) : null;
+
+  return (
+    <div className={`canvas-root theme-${theme || 'dark'} ${reducedMotion ? 'canvas-no-motion' : ''} ${isZenMode ? 'canvas-zen' : ''}`}>
+      <CanvasNav
+        courseName={courseName}
+        assessmentTitle={currentTitle}
+        saveStatus={saveStatus}
+        lastSavedAgo={lastSavedAgo}
+        tiptapDoc={tiptapDoc}
+        htmlContent={draftText}
+        courseId={courseId}
+        onOpenSettings={() => setSettingsOpen(true)}
+      />
+
+      <div className="canvas-body">
+        <SectionRail
+          activeSection={activeSection}
+          onSelectSection={setActiveSection}
+          courseId={courseId}
+          assessmentTitle={currentTitle}
+          brief={brief}
+        />
+
+        <div className="canvas-centre">
+          <CanvasEditor
+            courseId={courseId}
+            assessmentTitle={currentTitle}
+            targetWords={targetWords}
+            onWordCountChange={handleWordCount}
+            onSaveStatusChange={handleSaveStatus}
+            onTextChange={setDraftText}
+            onJsonDocChange={setTiptapDoc}
+          />
+        </div>
+
+        <PanelRail
+          activePanel={activePanel}
+          onSelectPanel={setActivePanel}
+          panelContent={panelContent}
+        />
+      </div>
+
+      <BottomStrip wordCount={wordCount} targetWords={targetWords} />
+
+      <ReentryOverlay
+        courseId={courseId}
+        assessmentTitle={currentTitle}
+        onDismiss={() => {}}
+        onChoice={(choiceId) => {
+          // TODO: route to appropriate panel based on choice
+          if (choiceId === 'lost-flow') setActivePanel('tutor');
+          else if (choiceId === 'overwhelmed') setActivePanel('check');
+          else if (choiceId === 'forgot') setActivePanel('brief');
+        }}
+      />
+
+      {settingsOpen && (
+        <CanvasSettingsOverlay onClose={() => setSettingsOpen(false)} />
+      )}
+    </div>
+  );
+}

@@ -1,3 +1,4 @@
+import { COLOUR_WARN_GLOW_STRONG } from '../theme/tokens';
 // Bionic Reading Bio-Logic Algorithm.
 // allow-style:file
 // This is a recognition lookup. Both US and AU forms appear so a student
@@ -33,7 +34,7 @@ export default function BionicText({ text, intensity = 3, className = "", active
         // Bionize Algorithm Logic
         const len = token.length;
         if (len === 1) {
-          return <b key={index} className={`font-[800] transition-colors duration-150 ${isSpeaking ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)] scale-110 inline-block' : ''}`}>{token}</b>;
+          return <b key={index} className={`font-[800] transition-colors duration-150 ${isSpeaking ? 'text-amber-400 scale-110 inline-block' : ''}`} style={isSpeaking ? { filter: `drop-shadow(0 0 8px ${COLOUR_WARN_GLOW_STRONG})` } : undefined}>{token}</b>;
         }
 
         let splitRatio = ratio; // baseline from intensity
@@ -68,7 +69,7 @@ export default function BionicText({ text, intensity = 3, className = "", active
         const wordTint = isCoreWord ? 'text-emerald-300' : '';
 
         return (
-          <span key={index} className={`transition-all duration-150 ${wordTint} ${isSpeaking ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)] scale-110 inline-block z-10 relative' : ''}`}>
+          <span key={index} className={`transition-all duration-150 ${wordTint} ${isSpeaking ? 'text-amber-400 scale-110 inline-block z-10 relative' : ''}`} style={isSpeaking ? { filter: `drop-shadow(0 0 8px ${COLOUR_WARN_GLOW_STRONG})` } : undefined}>
             <b className="font-[900] opacity-100">{boldPart}</b>
             <span className="opacity-70">{normalPart}</span>
           </span>

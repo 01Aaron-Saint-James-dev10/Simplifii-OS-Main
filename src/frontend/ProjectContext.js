@@ -1,10 +1,10 @@
-import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef, useMemo } from 'react';
 import { checkTemporalAlignment } from '../services/TemporalFilter';
-import { appendThinkingLog } from '../services/SheetsService';
 import { hydrate as hydrateStream, applyTheme as applyStreamTheme, streamFromLevel } from '../core/SovereignRouter';
 import { startEventBus, stopEventBus } from '../core/EventBus';
 import { configureSpine } from '../core/ExecutiveSpine';
-
+import { useAuth } from '../contexts/AuthContext';
+import { enableCloudSync, isCloudSyncEnabled } from '../core/HistoryOfThought';
 const ProjectContext = createContext();
 
 // Blocks intentionally start empty. Once a brief is grounded, mapToWorkspace
@@ -20,11 +20,23 @@ const initialProjectState = {
 // Profile collected during onboarding. Empty name falls back to a neutral
 // 'Sovereign User' label at display time so the OS never assumes who you are.
 const DEFAULT_PROFILE = {
+  // Core identity (set by UniversalOnboarding stages 1-3)
   name: '',
   deadline: 'Friday',
   courseName: '',
   level: 'university',
-  processingStyles: []
+  processingStyles: [],
+  // NeuroProfiler fields (set on first launch)
+  preferredMode: null,         // 'literal' | 'visual' | 'deep_focus'
+  emotionalBaseline: null,     // 'overwhelmed' | 'on_top' | 'starting' | 'burned_out'
+  institution: '',
+  referencingStyle: 'Harvard',
+  integrations: { zotero: false, mendeley: false },
+  consents: { dataSharing: false, commercialResearch: false, affiliateOptimisation: false },
+  // Metadata tags: populated by AURA at runtime (Step 2.5 schema)
+  institutionId: null,         // normalised institution key for Bloomberg-filter queries
+  cognitiveFrictionScore: null, // 0-100; computed from idle patterns + task-initiation latency
+  toolIntentTags: [],          // e.g. ['citation_needed', 'burnout_risk', 'lit_review_active']
 };
 
 const DEFAULT_COURSE_ID = 'course_default';
@@ -78,7 +90,13 @@ const makeEmptyCourse = (name = 'New Course') => ({
   // out of multiple tasks without losing their place. Empty by default;
   // populated lazily as the student switches sprints.
   activeAssessmentTitle: null,
-  sprintDrafts: {}
+  sprintDrafts: {},
+  // Referencing style is course-scoped, not global. Set per-faculty
+  // in CourseSettings once the student knows their submission requirements.
+  // 'Not Set' keeps the export pipeline honest until explicitly configured.
+  referencingStyle: 'Not Set',
+  term: null,
+  archived: false,
 });
 
 // Zero-state by default. The cockpit boots with NO placeholder course so
@@ -122,7 +140,20 @@ const tryMigrateLegacy = () => {
 };
 
 export const ProjectProvider = ({ children }) => {
-  const [profile, setProfile] = useState(() => loadJSON('simplifii_profile', DEFAULT_PROFILE));
+  const { user } = useAuth();
+  const [profile, setProfile] = useState(() => {
+    const stored = loadJSON('simplifii_profile', DEFAULT_PROFILE);
+    // Merge NeuroProfiler output (written by LandingPage) if the
+    // emotional baseline has not been hydrated yet. This gives AURA
+    // the learner's cognitive state on the very first render, before
+    // any effect runs. The neuro profile key is left in place as an
+    // audit trail; it is not removed here.
+    const neuro = loadJSON('simplifii_neuro_profile', null);
+    if (neuro && !stored.emotionalBaseline) {
+      return { ...DEFAULT_PROFILE, ...stored, ...neuro };
+    }
+    return stored;
+  });
   const [courses, setCourses] = useState(() => {
     const stored = loadJSON('simplifii_courses_v1', null);
     if (stored && Object.keys(stored).length > 0) return stored;
@@ -133,6 +164,58 @@ export const ProjectProvider = ({ children }) => {
     const stored = localStorage.getItem('simplifii_activeCourseId');
     return stored || DEFAULT_COURSE_ID;
   });
+
+  // Merged from InstitutionalContext. Holds course-level institutional
+  // overrides that are not yet grounded in extractionData: learning
+  // outcomes, referencing style, and rubric criteria. These are set
+  // explicitly (e.g. by the v2 Setup screen or course settings) and
+  // supplement the extraction-derived grounding object.
+  const [institutionalData, setInstitutionalData] = useState({
+    learningOutcomes: [],
+    referencingStyle: 'Harvard',
+    rubricCriteria: []
+  });
+
+  // Active term filter for Home screen. Persisted to localStorage.
+  const [activeTerm, setActiveTerm] = useState(() => loadJSON('simplifii_active_term', null));
+
+  // Computed: unique terms across all courses, deduped by year+code.
+  const terms = useMemo(() => {
+    const seen = new Set();
+    const result = [];
+    for (const course of Object.values(courses || {})) {
+      const t = course.term || course.extractionData?.term;
+      if (!t || !t.year) continue;
+      const key = `${t.year}-${t.code || ''}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push({ year: t.year, code: t.code, label: t.label || `${t.code || ''} ${t.year}`.trim() });
+    }
+    return result.sort((a, b) => b.year - a.year || (a.code || '').localeCompare(b.code || ''));
+  }, [courses]);
+
+  // Auto-pick activeTerm when none is set and courses have terms.
+  useEffect(() => {
+    if (activeTerm || terms.length === 0) return;
+    // Pick the term with the most courses created in the last 90 days.
+    const now = Date.now();
+    const NINETY_DAYS = 90 * 24 * 60 * 60 * 1000;
+    const counts = {};
+    for (const [id, course] of Object.entries(courses || {})) {
+      const t = course.term || course.extractionData?.term;
+      if (!t || !t.year) continue;
+      const key = `${t.year}-${t.code || ''}`;
+      const created = parseInt(id.replace('course_', ''), 10) || 0;
+      if (now - created < NINETY_DAYS) counts[key] = (counts[key] || 0) + 1;
+    }
+    const best = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    if (best) {
+      const [y, c] = best[0].split('-');
+      setActiveTerm({ year: parseInt(y, 10), code: c || null });
+    }
+  }, [terms, activeTerm, courses]);
+
+  useEffect(() => { localStorage.setItem('simplifii_active_term', JSON.stringify(activeTerm)); }, [activeTerm]);
 
   useEffect(() => { localStorage.setItem('simplifii_profile', JSON.stringify(profile)); }, [profile]);
   useEffect(() => { localStorage.setItem('simplifii_courses_v1', JSON.stringify(courses)); }, [courses]);
@@ -427,18 +510,6 @@ export const ProjectProvider = ({ children }) => {
     setCourses(prev => prev[id] ? { ...prev, [id]: { ...prev[id], name } } : prev);
   };
 
-  const lastSyncIndex = useRef(0);
-  useEffect(() => {
-    const syncInterval = setInterval(() => {
-      const logsToSync = (project.integrityLog || []).slice(lastSyncIndex.current);
-      if (logsToSync.length > 0) {
-        appendThinkingLog(logsToSync, 'mock_jwt_token_xyz123');
-        lastSyncIndex.current = (project.integrityLog || []).length;
-      }
-    }, 60000);
-    return () => clearInterval(syncInterval);
-  }, [project.integrityLog]);
-
   const appendToBlock = (type, content) => {
     setProject(prev => {
       const existing = prev.blocks.find(b => b.type.toLowerCase().includes(type.toLowerCase()));
@@ -515,8 +586,15 @@ export const ProjectProvider = ({ children }) => {
   // moment the student unlocks. Stream / user context is read via
   // closure each event so a stream switch picks up immediately
   // without rewiring listeners.
-  const __busCtxRef = useRef({ streamId: stream.streamId, userId: 'local' });
-  useEffect(() => { __busCtxRef.current = { streamId: stream.streamId, userId: 'local' }; }, [stream.streamId]);
+  const __authUserId = user?.id || 'local';
+  const __busCtxRef = useRef({ streamId: stream.streamId, userId: __authUserId });
+  useEffect(() => {
+    const uid = user?.id || 'local';
+    __busCtxRef.current = { streamId: stream.streamId, userId: uid };
+    if (uid !== 'local' && !isCloudSyncEnabled()) {
+      enableCloudSync(uid);
+    }
+  }, [stream.streamId, user?.id]);
   useEffect(() => {
     startEventBus(() => __busCtxRef.current);
     return () => stopEventBus();
@@ -533,9 +611,20 @@ export const ProjectProvider = ({ children }) => {
       // CourseManager
       courses, activeCourse, activeCourseId, setActiveCourseId, addCourse, addCourseWithData, upgradeCourseExtraction, removeCourse, renameCourse, switchSprint,
       // Sovereign stream resolver (Layer 1 of the Architecture Blueprint)
-      stream
+      stream,
+      // Term grouping
+      terms, activeTerm, setActiveTerm,
+      // Institutional overrides (merged from InstitutionalContext)
+      institutionalData, setInstitutionalData
     }}>{children}</ProjectContext.Provider>
   );
 };
 
 export const useProject = () => useContext(ProjectContext);
+
+// Drop-in replacement for the deleted InstitutionalContext.useInstitution.
+// Any surviving import of useInstitution should be updated to point here.
+export const useInstitution = () => {
+  const { institutionalData, setInstitutionalData } = useProject();
+  return { institutionalData, setInstitutionalData };
+};
