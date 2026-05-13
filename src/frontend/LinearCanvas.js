@@ -289,7 +289,7 @@ export default function LinearCanvas({
   const [showSupportBridge, setShowSupportBridge] = useState(false);
   const [showAccessibilityVault, setShowAccessibilityVault] = useState(false);
   const [showSosPulse, setShowSosPulse] = useState(false);
-  const { fontScale, lineSpacing, isBionicActive, bionicIntensity, isDriveAttached, persona } = useSettings();
+  const { fontScale, lineSpacing, isBionicActive, bionicIntensity, isDriveAttached, persona, gritLevel, scaffoldingLevel, isLiteralMode: steeringLiteralMode } = useSettings();
   const [showDevInsights, setShowDevInsights] = useState(false);
 
   const [showSuccessPulse, setShowSuccessPulse] = useState(false);
@@ -459,7 +459,7 @@ export default function LinearCanvas({
     }
     setRewritingSectionId(section.id);
     try {
-      const elevated = await rewriteElevateRigour(trimmed, { level: profile?.level, persona, logicMode: activeLogicMode });
+      const elevated = await rewriteElevateRigour(trimmed, { level: profile?.level, persona, logicMode: activeLogicMode, steering: { gritLevel, scaffoldingLevel, isLiteralMode: steeringLiteralMode } });
       handleContentChange(section.id, elevated);
       speakSystemMessage(getPersonaResponse(persona, 'elevate_rigour'), "Rigour preview applied.");
     } catch (err) {
@@ -477,7 +477,7 @@ export default function LinearCanvas({
     }
     setRewritingSectionId(section.id);
     try {
-      const synthesised = await rewriteSynthesise(trimmed, { level: profile?.level, persona });
+      const synthesised = await rewriteSynthesise(trimmed, { level: profile?.level, persona, steering: { gritLevel, scaffoldingLevel, isLiteralMode: steeringLiteralMode } });
       handleContentChange(section.id, synthesised);
       speakSystemMessage(getPersonaResponse(persona, 'synthesise'), "Synthesis preview applied.");
     } catch (err) {
@@ -499,7 +499,7 @@ export default function LinearCanvas({
     }
     setRewritingSectionId(section.id);
     try {
-      const reframed = await rewriteApplyLogicMode(trimmed, activeLogicMode, { level: profile?.level, persona });
+      const reframed = await rewriteApplyLogicMode(trimmed, activeLogicMode, { level: profile?.level, persona, steering: { gritLevel, scaffoldingLevel, isLiteralMode: steeringLiteralMode } });
       handleContentChange(section.id, reframed);
       speakSystemMessage(getPersonaResponse(persona, 'logic_mode'), "Logic frame applied.");
     } catch (err) {

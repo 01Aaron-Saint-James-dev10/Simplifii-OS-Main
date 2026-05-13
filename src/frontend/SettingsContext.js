@@ -37,6 +37,17 @@ export const SettingsProvider = ({ children }) => {
   const [gritLevel, setGritLevel] = useState(localStorage.getItem('gritLevel') || 'balanced');
   const [lodLevel, setLodLevel] = useState(localStorage.getItem('lodLevel') || 'compass');
 
+  // Dispatch STEERING_UPDATE whenever the three AI-behaviour dials change.
+  // EventBus picks this up and writes a steering_adjusted event to the
+  // History of Thought log so the Authenticity Report can prove the student
+  // manually adjusted the AI rather than relying on defaults.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent('simplifii:steering-update', {
+      detail: { gritLevel, scaffoldingLevel, isLiteralMode }
+    }));
+  }, [gritLevel, scaffoldingLevel, isLiteralMode]);
+
   useEffect(() => {
     localStorage.setItem('mode', mode);
     localStorage.setItem('eduLevel', eduLevel);

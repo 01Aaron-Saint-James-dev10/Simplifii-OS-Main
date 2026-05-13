@@ -25,6 +25,12 @@
  *   simplifii:reasoning-start     -> ai_assist_invoked    (RewriteService /
  *                                                          ChatService /
  *                                                          MicroStepService)
+ *   simplifii:steering-update     -> steering_adjusted    (SettingsContext
+ *                                                          dispatches on dial
+ *                                                          change; proves the
+ *                                                          student steered the
+ *                                                          AI, not the other
+ *                                                          way around)
  *
  * Lifecycle: startEventBus() once on app mount; stopEventBus() on
  * unmount. Re-entrant safe (start clears any prior listeners).
@@ -40,7 +46,8 @@ const SPINE_TO_HOT = {
   'simplifii:playtime-granted':  'playtime_granted',
   'simplifii:playtime-expired':  'playtime_expired',
   'simplifii:reasoning-start':   'ai_assist_invoked',
-  'simplifii:credits-earned':    'ai_assist_invoked'
+  'simplifii:credits-earned':    'ai_assist_invoked',
+  'simplifii:steering-update':   'steering_adjusted'
 };
 
 const __listeners = new Map();
@@ -142,6 +149,15 @@ const pickSafePayload = (hotEventType, detail) => {
       return { reason: detail.reason || 'time-up' };
     case 'ai_assist_invoked':
       return { mode: detail.mode || 'reasoning', source: detail.source || 'spine' };
+    case 'steering_adjusted':
+      // Records which dials the student changed and what values they
+      // chose. This is the Authenticity Report's proof that the student
+      // actively controlled the AI behaviour rather than accepting defaults.
+      return {
+        gritLevel: String(detail.gritLevel || ''),
+        scaffoldingLevel: String(detail.scaffoldingLevel || ''),
+        isLiteralMode: Boolean(detail.isLiteralMode)
+      };
     default:
       return {};
   }

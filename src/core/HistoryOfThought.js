@@ -276,7 +276,8 @@ export const EVENT_TYPES = Object.freeze([
   'nudge_triggered',
   'section_health_change',
   'playtime_granted',
-  'playtime_expired'
+  'playtime_expired',
+  'steering_adjusted'
 ]);
 
 // ============================================================

@@ -231,7 +231,50 @@ const getOllamaEndpoint = () => safeReadLocalStorage(OLLAMA_ENDPOINT_KEY, DEFAUL
 
 const getOllamaModel = () => safeReadLocalStorage(OLLAMA_MODEL_KEY, DEFAULT_OLLAMA_MODEL) || DEFAULT_OLLAMA_MODEL;
 
-async function callOllama(userPrompt) {
+// Read the four steering dials from localStorage each call so that a
+// dial flip mid-session takes effect on the next rewrite without a
+// page reload. Mirrors the pattern in ChatService.js.
+const readSteering = () => ({
+  isLiteralMode: safeReadLocalStorage('isLiteralMode') === 'true',
+  scaffoldingLevel: safeReadLocalStorage('scaffoldingLevel') || 'balanced',
+  gritLevel: safeReadLocalStorage('gritLevel') || 'balanced',
+  lodLevel: safeReadLocalStorage('lodLevel') || 'compass'
+});
+
+// Map grit dial to Ollama temperature. Direct mode produces tight,
+// predictable rewrites; Socratic mode allows more interpretive range.
+const gritToTemperature = { literal: 0.2, balanced: 0.4, socratic: 0.6 };
+
+// Build the steering block injected at the top of the rewrite system
+// prompt. Tells the model how assertively to transform the prose.
+const buildRewriteSteeringBlock = ({ isLiteralMode, scaffoldingLevel, gritLevel }) => {
+  const personaLine = isLiteralMode
+    ? 'PERSONA DIAL: Literal. Plain English only. Minimise jargon. Short sentences. Preserve the student\'s phrasing wherever possible.'
+    : 'PERSONA DIAL: Academic. Discipline register intact. Elevate where appropriate.';
+  const scaffoldLine = ({
+    heavy:    'SCAFFOLDING DIAL: Heavy. Break any compound sentence into shorter units. Surface the sub-claim explicitly.',
+    balanced: 'SCAFFOLDING DIAL: Balanced. Tighten the passage without over-fragmenting.',
+    light:    'SCAFFOLDING DIAL: Light. Treat the student\'s structure as intentional. Only change diction and register.'
+  })[scaffoldingLevel] || '';
+  const gritLine = ({
+    literal:  'GRIT DIAL: Direct. Apply the transformation straightforwardly. Do not probe or add questions.',
+    balanced: 'GRIT DIAL: Balanced. Where the student\'s claim is underspecified, surface the gap in one brief parenthetical.',
+    socratic: 'GRIT DIAL: Hard Socratic. If the passage lacks a clear position, surface that gap explicitly at the end of the rewrite. One sentence only.'
+  })[gritLevel] || '';
+  return [
+    'STEERING DIALS (set by the student; respect them):',
+    personaLine,
+    scaffoldLine,
+    gritLine
+  ].filter(Boolean).join('\n');
+};
+
+async function callOllama(userPrompt, steering) {
+  const { gritLevel } = steering || readSteering();
+  const temperature = gritToTemperature[gritLevel] ?? 0.4;
+  const steeringBlock = buildRewriteSteeringBlock(steering || readSteering());
+  const systemPromptWithSteering = `${steeringBlock}\n\n${SYSTEM_PROMPT}`;
+
   const endpoint = getOllamaEndpoint().replace(/\/$/, '');
   const model = getOllamaModel();
   let response;
@@ -242,9 +285,9 @@ async function callOllama(userPrompt) {
       body: JSON.stringify({
         model,
         stream: false,
-        options: { temperature: 0.4, num_predict: 800 },
+        options: { temperature, num_predict: 800 },
         messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'system', content: systemPromptWithSteering },
           { role: 'user', content: userPrompt }
         ]
       })
@@ -272,13 +315,13 @@ async function callOllama(userPrompt) {
 
 const ollama = {
   async elevateRigour(text, ctx = {}) {
-    return callOllama(buildElevatePrompt(text, ctx));
+    return callOllama(buildElevatePrompt(text, ctx), ctx.steering);
   },
   async synthesise(text, ctx = {}) {
-    return callOllama(buildSynthesisePrompt(text, ctx));
+    return callOllama(buildSynthesisePrompt(text, ctx), ctx.steering);
   },
   async applyLogicMode(text, mode, ctx = {}) {
-    return callOllama(buildLogicModePrompt(text, mode, ctx));
+    return callOllama(buildLogicModePrompt(text, mode, ctx), ctx.steering);
   }
 };
 
