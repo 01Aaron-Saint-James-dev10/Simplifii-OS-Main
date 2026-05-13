@@ -141,6 +141,30 @@
 
 ---
 
+## Sprint 5: Rubric Translator Anthropic Backend
+
+| Field | Value |
+|-------|-------|
+| Status | **COMPLETED, MERGED** |
+| Branch | v2-overnight-sprint-5-rubric-backend |
+| Commit | 2298fb61 |
+| Merge commit | 6fc94622 |
+| Error recovery attempts | 0 |
+
+**Files updated (2):**
+- src/services/RubricTranslatorService.js (real API call with mock fallback, response validation, source/latency/error logging)
+- docs/TOOLS_SPEC.md (Rubric Translator marked as "shipped, backend wired")
+
+No new packages. No UI changes. Mock path works identically to before.
+
+**Updated summary:** 5/5 sprints completed. 0 failures. 0 rollbacks.
+
+**Final HEAD on v2-rebuild-canvas-first:** 6fc94622
+
+**Sprint 5 branch HEAD:** v2-overnight-sprint-5-rubric-backend: 2298fb61
+
+---
+
 ## Open issues for tomorrow
 
 1. TipTap toolbar needs visual polish (Obsidian Aesthetic pass)
