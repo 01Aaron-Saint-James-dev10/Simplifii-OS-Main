@@ -2,7 +2,7 @@
 
 **Created:** 13 May 2026  
 **Branch:** v2-rebuild-canvas-first  
-**Status:** PLAN ONLY. Nothing deleted yet. Awaiting approval.
+**Status:** UNCERTAIN files resolved 13 May 2026. Commit 1 applied. Awaiting approval to proceed to Commit 2.
 
 This plan classifies every file in `src/` against the v2 product spec (PRODUCT_SPEC.md, PRODUCT_SPEC_TIER_UPDATE.md, PRODUCT_SPEC_INCLUSION_AND_MOAT.md). Files not listed here (e.g. `public/`, `scripts/`, `docs/`, config files) are out of scope for this pass.
 
@@ -48,6 +48,7 @@ Files that survive the rebuild. Some need cleanup but their core logic maps to a
 | `src/services/VerificationService.js` | Project context audit before unlocking drafting; validation gate |
 | `src/utils/GroundingLoader.js` | Two-source PDF loader (build-time + IndexedDB); feeds ingestion |
 | `src/backend/LMSConnector.js` | LMS data fetch simulation; planned for real LTI integration |
+| `src/frontend/hooks/useStressSignals.js` | Renamed from EffortTracker.js (Commit 5). Backbone of behavioural stress detection (spec section 2.4): keystroke burst count, deletions, pulse level. Feeds telemetry pipeline. |
 
 ---
 
@@ -97,27 +98,29 @@ Files that do not map to any v2 screen, are on the explicit kill list, or will b
 | `src/streams/primary/Dashboard.js` | Stream skeleton with quest/XP gamification; kill list |
 | `src/streams/secondary/Dashboard.js` | Stream skeleton with streak grid; kill list |
 | `src/streams/tafe/Dashboard.js` | Stream skeleton; v2 has one unified course list home screen |
+| `src/App.js` | Decided DELETE (Commit 4): rebuild fresh for v2's 5-screen router; provider nesting pattern not worth salvaging |
+| `src/frontend/MasterDashboard.js` | Decided DELETE (Commit 4): imports ~30 components mostly being deleted; rebuild from spec |
+| `src/frontend/LandingPage.js` | Decided DELETE (Commit 4): v2 sign-in is magic link + password; auth wiring not salvageable |
+| `src/frontend/DashboardNav.js` | Decided DELETE (Commit 4): v2 nav layout differs sufficiently to rebuild |
+| `src/frontend/SemesterSidebar.js` | Decided DELETE (Commit 4): v2 course list is structurally different; rebuild from spec |
+| `src/frontend/InstitutionalContext.js` | Decided DELETE (Commit 2): merge learningOutcomes, referencingStyle, rubricCriteria fields into ProjectContext.js first, then delete |
+| `src/frontend/SimplifiiStudio.js` | Decided DELETE (Commit 4): tri-column AURA layout not carried forward; v2 canvas is 4-panel |
+| `src/frontend/Scaffolder.js` | Decided DELETE (Commit 4): extract scaffolding logic to src/services/ScaffoldingService.js (or fold into BriefService.js if cleaner) in Commit 3 first |
+| `src/frontend/ResourceIngestor.js` | Decided DELETE (Commit 4): extract formula slot filler + translation/entity logic to a service in Commit 3 first |
+| `src/frontend/AuthoringCockpit.js` | Decided DELETE (Commit 4): inspect Pareto step renderer in Commit 3; extract to src/services/ParetoStepService.js if reusable, then delete |
+| `src/frontend/TaskCard.js` | Decided DELETE (Commit 4): sprint concept changing; new card will be built from v2 spec |
 
 ---
 
-## UNCERTAIN
+## Execution Plan
 
-Files that need your decision. Each has a specific question.
-
-| File | Question |
-|------|----------|
-| `src/App.js` | Root component wiring providers and routing. Will need full rewrite for v2's 5-screen router, but the provider nesting pattern (Auth, Settings, Project) is reusable. **Keep as shell to rewrite, or delete and start fresh?** |
-| `src/frontend/MasterDashboard.js` | Main orchestrator importing ~30 components (most being deleted). Contains stage management and view routing. **Keep as shell for the v2 home screen, or delete and rebuild?** |
-| `src/frontend/LandingPage.js` | Current sign-in screen with Google OAuth and password fields. V2 sign-in is simpler (magic link + password) but auth flow wiring may be salvageable. **Rewrite in place or delete?** |
-| `src/frontend/DashboardNav.js` | Top navigation bar (70px header, brand, ingestion status). V2 needs a nav but layout differs. **Rewrite in place or delete?** |
-| `src/frontend/SemesterSidebar.js` | Left sidebar with course list and task cards. V2 course list is structurally different (cards + priority panel). **Rewrite in place or delete?** |
-| `src/frontend/InstitutionalContext.js` | React context for learning outcomes, referencing style, rubric criteria (15 lines). **Does this fold into ProjectContext, or keep separate?** |
-| `src/frontend/SimplifiiStudio.js` | Tri-column NotebookLM-style cockpit (Sources, Cockpit, AURA). Closest existing code to v2's 4-panel canvas but layout differs. **Salvage the source/chat wiring, or delete?** |
-| `src/frontend/Scaffolder.js` | Tiered support engine rendering assessment briefs into scaffolds. Scaffolding concept survives but the multi-tier UI is being flattened. **Keep the logic and strip the UI, or delete?** |
-| `src/frontend/ResourceIngestor.js` | Evidence formula slot filler with translation and entity extraction. V2 canvas has a Sources panel that may reuse this. **Keep or rebuild from scratch?** |
-| `src/frontend/AuthoringCockpit.js` | Stage 04 active task view with 5-step Pareto workflow. V2 canvas is different but Pareto step rendering could be reused. **Delete the component but extract Pareto logic first?** |
-| `src/frontend/TaskCard.js` | Course/task card with "Start Sprint" button. V2 course list uses cards. Simple enough to keep but sprint concept may change. **Keep or delete?** |
-| `src/frontend/EffortTracker.js` | Hook tracking keystroke metrics (burst count, deletions, pulse level). Feeds telemetry. Not on kill list but not explicitly in v2 spec. **Is per-block effort tracking still wanted?** |
+| Commit | Action |
+|--------|--------|
+| Commit 1 | Update REBUILD_DELETION_PLAN.md with all decisions (this commit) |
+| Commit 2 | Merge InstitutionalContext fields (learningOutcomes, referencingStyle, rubricCriteria) into ProjectContext.js; delete InstitutionalContext.js |
+| Commit 3 | Extract logic from Scaffolder.js to ScaffoldingService.js (or BriefService.js); extract ResourceIngestor.js formula/translation/entity logic to a service; inspect and extract AuthoringCockpit.js Pareto renderer to ParetoStepService.js if reusable. Components NOT deleted yet. |
+| Commit 4 | Delete all 51 files: original 40 DELETE list + 11 resolved UNCERTAIN files (all except EffortTracker.js) |
+| Commit 5 | Rename src/frontend/hooks/EffortTracker.js to useStressSignals.js; update all imports |
 
 ---
 
@@ -125,9 +128,9 @@ Files that need your decision. Each has a specific question.
 
 | Category | Count |
 |----------|-------|
-| KEEP | 34 files |
-| DELETE | 40 files |
-| UNCERTAIN | 12 files |
+| KEEP | 35 files (34 original + useStressSignals.js) |
+| DELETE | 51 files (40 original + 11 resolved UNCERTAIN) |
+| UNCERTAIN | 0 files |
 | **Total** | **86 files** |
 
-**Next step:** Resolve the 12 UNCERTAIN files, then execute deletions in a single commit.
+**Next step:** Approve to proceed to Commit 2.
