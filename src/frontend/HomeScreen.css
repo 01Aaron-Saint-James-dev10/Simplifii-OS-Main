@@ -1,0 +1,175 @@
+/*
+ * HomeScreen.css
+ *
+ * Obsidian Aesthetic. All colours reference tokens.js via CSS custom
+ * properties set by SovereignRouter's applyStreamTheme, or use the
+ * token values directly as fallbacks.
+ *
+ * No raw hex. No em-dashes. Australian English in comments.
+ */
+
+/* ============================================================
+   Root
+   ============================================================ */
+
+.home-root {
+  min-height: 100vh;
+  background: #09090b; /* SURFACE_BASE fallback; overridden by var(--bg) */
+  background: var(--bg, #09090b);
+  color: #e4e4e7; /* TEXT_PRIMARY */
+  font-family: 'Inter', sans-serif;
+}
+
+.home-no-motion * {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ============================================================
+   Top nav
+   ============================================================ */
+
+.home-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  border-bottom: 1px solid #27272a; /* SURFACE_RAISED */
+  min-height: 48px;
+}
+
+.home-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.home-nav-logo {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 800;
+  color: #10b981; /* ACCENT_PULSE */
+  background: rgba(16,185,129,0.08); /* ACCENT_GLASS */
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+}
+
+.home-nav-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #e4e4e7; /* TEXT_PRIMARY */
+  letter-spacing: 0.02em;
+}
+
+.home-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.home-overdue-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 800;
+  color: #f43f5e; /* COLOUR_DANGER */
+  background: rgba(239,68,68,0.06); /* COLOUR_DANGER_GLASS */
+  border: 1px solid rgba(239,68,68,0.2); /* COLOUR_DANGER_BORDER */
+  border-radius: 3px;
+  padding: 3px 8px;
+  line-height: 1;
+}
+
+/* ============================================================
+   Main content
+   ============================================================ */
+
+.home-main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 24px 48px;
+}
+
+.home-section {
+  margin-bottom: 20px;
+}
+
+.home-section-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #71717a; /* TEXT_MUTED */
+  margin: 0 0 12px;
+}
+
+/* ============================================================
+   Course grid
+   ============================================================ */
+
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+.home-grid-compact {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px;
+}
+
+/* ============================================================
+   Empty state
+   ============================================================ */
+
+.home-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.home-empty-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #e4e4e7; /* TEXT_PRIMARY */
+  margin: 0 0 8px;
+}
+
+.home-empty-sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #71717a; /* TEXT_MUTED */
+  max-width: 400px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ============================================================
+   Focus indicators (WCAG 2.4.13)
+   ============================================================ */
+
+.home-root *:focus-visible {
+  outline: 2px solid #f4f4f5; /* FOCUS_RING */
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   Reduced motion
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .home-root * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

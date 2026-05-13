@@ -37,6 +37,16 @@ export const SettingsProvider = ({ children }) => {
   const [gritLevel, setGritLevel] = useState(localStorage.getItem('gritLevel') || 'balanced');
   const [lodLevel, setLodLevel] = useState(localStorage.getItem('lodLevel') || 'compass');
 
+  // Display preferences for Home screen layout.
+  // Spec: PRODUCT_SPEC_STATUS_AND_PREFERENCES.md Section 2.3
+  const [display, setDisplay] = useState(() => {
+    try {
+      const raw = localStorage.getItem('simplifii_display');
+      return raw ? { ...{ timeline: true, upNext: true, cardDensity: 'standard', bodyDoubling: true, overdueTally: true }, ...JSON.parse(raw) } : { timeline: true, upNext: true, cardDensity: 'standard', bodyDoubling: true, overdueTally: true };
+    } catch { return { timeline: true, upNext: true, cardDensity: 'standard', bodyDoubling: true, overdueTally: true }; }
+  });
+  const updateDisplay = (patch) => setDisplay(prev => ({ ...prev, ...patch }));
+
   // Sprint 6.0: Bio-Sovereignty. Transient stress signal; not persisted.
   // Set to true via the "Simulate Stress" DevTools toggle or by NeuralService
   // when HRV drops below threshold. Causes the Vibe Meter to pulse red and
@@ -87,10 +97,11 @@ export const SettingsProvider = ({ children }) => {
     localStorage.setItem('scaffoldingLevel', scaffoldingLevel);
     localStorage.setItem('gritLevel', gritLevel);
     localStorage.setItem('lodLevel', lodLevel);
+    localStorage.setItem('simplifii_display', JSON.stringify(display));
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('simplifii:lod-change', { detail: { lodLevel } }));
     }
-  }, [mode, eduLevel, highContrast, reducedMotion, darkMode, persona, overlayTint, fontScale, lineSpacing, isRulerActive, isBionicActive, bionicIntensity, isDriveAttached, isZenMode, isLeftCollapsed, isRightCollapsed, isLiteralMode, scaffoldingLevel, gritLevel, lodLevel]);
+  }, [mode, eduLevel, highContrast, reducedMotion, darkMode, persona, overlayTint, fontScale, lineSpacing, isRulerActive, isBionicActive, bionicIntensity, isDriveAttached, isZenMode, isLeftCollapsed, isRightCollapsed, isLiteralMode, scaffoldingLevel, gritLevel, lodLevel, display]);
 
   const rules = {
     sequential: { font: 'Inter', spacing: 'normal', lineHeight: 'normal', letterSpacing: 'normal' },
@@ -121,6 +132,7 @@ export const SettingsProvider = ({ children }) => {
       gritLevel, setGritLevel,
       lodLevel, setLodLevel,
       isStressed, setIsStressed,
+      display, updateDisplay,
       activeRules: rules[mode]
     }}>
       <div 

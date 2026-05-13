@@ -1,0 +1,172 @@
+import React, { useMemo } from 'react';
+import { useProject } from './ProjectContext';
+import { useSettings } from './SettingsContext';
+import { getTaskStatus } from '../services/StatusService';
+import TimelineStrip from './components/TimelineStrip';
+import UpNextCard from './components/UpNextCard';
+import CourseCard from './components/CourseCard';
+import DecisionButton from './components/DecisionButton';
+import BodyDoublingLine from './components/BodyDoublingLine';
+import TalkToSomeoneLink from './components/TalkToSomeoneLink';
+import AddCourseButton from './components/AddCourseButton';
+import './HomeScreen.css';
+
+/**
+ * HomeScreen (Screen 3)
+ *
+ * Orchestrator for the course list home view.
+ * Layout order per spec Section 2.2:
+ *   1. Top nav (logo + Add course + Settings + TalkToSomeoneLink)
+ *   2. 7-day timeline strip (toggleable)
+ *   3. Up Next hero card (toggleable)
+ *   4. Decision row
+ *   5. Body doubling line (toggleable)
+ *   6. Course grid
+ *
+ * Reads display preferences from SettingsContext.
+ * Reads courses from ProjectContext.
+ * Sorts courses by earliest next-due date ascending.
+ */
+
+function findEarliestDue(course, now) {
+  const briefs = course.extractionData?.assessmentBriefs || [];
+  let earliest = Infinity;
+  for (const brief of briefs) {
+    if (!brief.dueDate) continue;
+    const due = new Date(brief.dueDate);
+    if (isNaN(due.getTime())) continue;
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const daysToDue = Math.floor((due - now) / msPerDay);
+    if (daysToDue < earliest) earliest = daysToDue;
+  }
+  return earliest;
+}
+
+function countOverdue(courses, now) {
+  let count = 0;
+  for (const course of Object.values(courses || {})) {
+    const briefs = course.extractionData?.assessmentBriefs || [];
+    for (const brief of briefs) {
+      if (!brief.dueDate) continue;
+      const status = getTaskStatus(brief.dueDate, now);
+      if (status.state === 'overdue') count++;
+    }
+  }
+  return count;
+}
+
+export default function HomeScreen() {
+  const { courses } = useProject();
+  const { display, reducedMotion } = useSettings();
+  const now = useMemo(() => new Date(), []);
+
+  const courseEntries = Object.entries(courses || {});
+  const isEmpty = courseEntries.length === 0;
+
+  // Sort courses by earliest next-due date ascending (most urgent first)
+  const sortedCourses = useMemo(() => {
+    return [...courseEntries].sort((a, b) => {
+      const aDays = findEarliestDue(a[1], now);
+      const bDays = findEarliestDue(b[1], now);
+      return aDays - bDays;
+    });
+  }, [courseEntries, now]);
+
+  const overdueCount = useMemo(() => countOverdue(courses, now), [courses, now]);
+
+  return (
+    <div className={`home-root ${reducedMotion ? 'home-no-motion' : ''}`}>
+      {/* Top nav */}
+      <nav className="home-nav" role="navigation" aria-label="Home navigation">
+        <div className="home-nav-brand">
+          <span className="home-nav-logo">S</span>
+          <span className="home-nav-title">Simplifii</span>
+        </div>
+        <div className="home-nav-actions">
+          <AddCourseButton />
+          {display.overdueTally && overdueCount > 0 && (
+            <span className="home-overdue-badge" aria-label={`${overdueCount} overdue task${overdueCount === 1 ? '' : 's'}`}>
+              {overdueCount}
+            </span>
+          )}
+          <TalkToSomeoneLink />
+        </div>
+      </nav>
+
+      <main className="home-main">
+        {/* Empty state */}
+        {isEmpty && (
+          <div className="home-empty">
+            <h1 className="home-empty-title">No courses yet</h1>
+            <p className="home-empty-sub">
+              Upload a syllabus PDF to get started. We will extract your assessments, due dates, and rubric criteria automatically.
+            </p>
+          </div>
+        )}
+
+        {/* Populated state */}
+        {!isEmpty && (
+          <>
+            {/* Timeline strip */}
+            {display.timeline && (
+              <section className="home-section" aria-label="Timeline">
+                <TimelineStrip courses={courses} now={now} />
+              </section>
+            )}
+
+            {/* Up Next card */}
+            {display.upNext && (
+              <section className="home-section" aria-label="Up next">
+                <UpNextCard
+                  courses={courses}
+                  now={now}
+                  onOpenCanvas={(courseId, title) => {
+                    // TODO: navigate to Screen 4 (Writing canvas) with courseId + title
+                    console.info('[HomeScreen] Open canvas:', courseId, title);
+                  }}
+                />
+              </section>
+            )}
+
+            {/* Decision row */}
+            <section className="home-section" aria-label="Decision helper">
+              <DecisionButton
+                onDecide={() => {
+                  // TODO: pick most urgent task, navigate to Screen 4 with 15-min timer
+                  console.info('[HomeScreen] Decision externalisation triggered');
+                }}
+              />
+            </section>
+
+            {/* Body doubling line */}
+            {display.bodyDoubling && (
+              <section className="home-section" aria-label="Body doubling">
+                <BodyDoublingLine />
+              </section>
+            )}
+
+            {/* Course grid */}
+            <section className="home-section" aria-label="Your courses">
+              <h2 className="home-section-label">Your courses</h2>
+              <div className={`home-grid ${display.cardDensity === 'compact' ? 'home-grid-compact' : ''}`}>
+                {sortedCourses.map(([id, course]) => (
+                  <CourseCard
+                    key={id}
+                    courseId={id}
+                    course={course}
+                    density={display.cardDensity}
+                    now={now}
+                    onOpen={(courseId) => {
+                      // TODO: navigate to course view or Screen 4
+                      console.info('[HomeScreen] Open course:', courseId);
+                    }}
+                  />
+                ))}
+              </div>
+            </section>
+          </>
+        )}
+      </main>
+    </div>
+  );
+}
