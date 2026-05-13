@@ -42,17 +42,19 @@ function findEarliestDue(course, now) {
   return earliest;
 }
 
-function countOverdue(courses, now) {
-  let count = 0;
+function countByState(courses, now) {
+  let overdue = 0;
+  let thisWeek = 0;
   for (const course of Object.values(courses || {})) {
     const briefs = course.extractionData?.assessmentBriefs || [];
     for (const brief of briefs) {
       if (!brief.dueDate) continue;
       const status = getTaskStatus(brief.dueDate, now);
-      if (status.state === 'overdue') count++;
+      if (status.state === 'overdue') overdue++;
+      else if (status.state === 'due-this-week') thisWeek++;
     }
   }
-  return count;
+  return { overdue, thisWeek };
 }
 
 export default function HomeScreen() {
@@ -72,7 +74,8 @@ export default function HomeScreen() {
     });
   }, [courseEntries, now]);
 
-  const overdueCount = useMemo(() => countOverdue(courses, now), [courses, now]);
+  const courseCount = courseEntries.length;
+  const { overdue: overdueCount, thisWeek: thisWeekCount } = useMemo(() => countByState(courses, now), [courses, now]);
 
   return (
     <div className={`home-root ${reducedMotion ? 'home-no-motion' : ''}`}>
@@ -110,6 +113,18 @@ export default function HomeScreen() {
             {/* Timeline strip */}
             {display.timeline && (
               <section className="home-section" aria-label="Timeline">
+                <div className="home-week-header">
+                  <h2 className="home-week-title">Your week</h2>
+                  <div className="home-week-counters">
+                    {overdueCount > 0 && (
+                      <span className="home-counter home-counter-red">{overdueCount} overdue</span>
+                    )}
+                    {thisWeekCount > 0 && (
+                      <span className="home-counter home-counter-amber">{thisWeekCount} this week</span>
+                    )}
+                    <span className="home-counter home-counter-muted">{courseCount} course{courseCount !== 1 ? 's' : ''}</span>
+                  </div>
+                </div>
                 <TimelineStrip courses={courses} now={now} />
               </section>
             )}
@@ -147,7 +162,10 @@ export default function HomeScreen() {
 
             {/* Course grid */}
             <section className="home-section" aria-label="Your courses">
-              <h2 className="home-section-label">Your courses</h2>
+              <div className="home-grid-header">
+                <h2 className="home-section-label">Your courses</h2>
+                <span className="home-sort-label">Sorted by earliest next-due</span>
+              </div>
               <div className={`home-grid ${display.cardDensity === 'compact' ? 'home-grid-compact' : ''}`}>
                 {sortedCourses.map(([id, course]) => (
                   <CourseCard

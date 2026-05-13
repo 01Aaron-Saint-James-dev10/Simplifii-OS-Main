@@ -152,9 +152,10 @@ function DayCell({ dayName, dateLabel, tasks, isToday, isOverdue }) {
       style={{
         background: SURFACE_CARD,
         border: `1px solid ${isToday ? ACCENT_BORDER : SURFACE_RAISED}`,
+        borderTop: isToday ? `2px solid ${ACCENT_PULSE}` : isOverdue ? `2px solid ${COLOUR_DANGER}` : `1px solid ${SURFACE_RAISED}`,
         borderRadius: BORDER_RADIUS,
         padding: '10px 8px',
-        minHeight: 80,
+        minHeight: 84,
         display: 'flex',
         flexDirection: 'column',
         gap: 6,

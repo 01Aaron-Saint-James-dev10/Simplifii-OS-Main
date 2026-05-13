@@ -10,6 +10,7 @@ import {
   ACCENT_PULSE,
   ACCENT_HOVER,
   ACCENT_BORDER,
+  ACCENT_BORDER_FAINT,
   ACCENT_FOCUS,
   FONT_SYSTEM,
   FONT_BODY,
@@ -91,10 +92,11 @@ export default function UpNextCard({ courses, onOpenCanvas, now: nowProp }) {
         background: SURFACE_CARD,
         border: `1px solid ${ACCENT_BORDER}`,
         borderRadius: BORDER_RADIUS,
-        padding: '20px',
+        padding: '22px 20px',
         display: 'flex',
         flexDirection: 'column',
-        gap: 12,
+        gap: 14,
+        boxShadow: `0 0 24px ${ACCENT_BORDER_FAINT}, 0 0 0 1px ${ACCENT_BORDER}`,
       }}
     >
       {/* Header row */}
