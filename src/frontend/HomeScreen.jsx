@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useProject } from './ProjectContext';
 import { useSettings } from './SettingsContext';
 import { useRouter } from '../contexts/RouterContext';
+import { hydrate } from '../core/SovereignRouter';
 import { getTaskStatus } from '../services/StatusService';
 import TimelineStrip from './components/TimelineStrip';
 import UpNextCard from './components/UpNextCard';
@@ -67,8 +68,12 @@ function matchesTerm(course, term) {
 
 export default function HomeScreen() {
   const { courses, terms, activeTerm, setActiveTerm } = useProject();
-  const { display, reducedMotion } = useSettings();
+  const { display, reducedMotion, activeTier } = useSettings();
   const { navigateToCanvas } = useRouter();
+  // Pass activeTier into the existing stream system so SovereignRouter
+  // can resolve the correct profile. No layout changes in this sprint.
+  // eslint-disable-next-line no-unused-vars
+  const _stream = useMemo(() => hydrate({ streamId: activeTier }), [activeTier]);
   const now = useMemo(() => new Date(), []);
 
   const allEntries = Object.entries(courses || {});

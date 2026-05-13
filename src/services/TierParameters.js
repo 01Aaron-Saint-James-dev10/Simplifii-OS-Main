@@ -1,3 +1,8 @@
+// NOTE: This file is superseded by TierService.js for all new code.
+// TierService.js is the canonical source of tier definitions, capability maps,
+// and facet gating. TierParameters remains here because existing services
+// (BriefService, ScaffoldingService, etc.) still import it directly.
+// Do not add new tiers or facets here. Removal is a separate cleanup sprint.
 export const TierParameters = {
   Undergrad: {
     heuristics: {

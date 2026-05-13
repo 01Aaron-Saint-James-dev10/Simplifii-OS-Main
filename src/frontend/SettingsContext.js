@@ -1,9 +1,21 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { TIER_UNDERGRAD } from '../services/TierService';
 
 const SettingsContext = createContext();
 
 export const SettingsProvider = ({ children }) => {
-  const [mode, setMode] = useState(localStorage.getItem('mode') || 'sequential'); 
+  // Active tier: canonical tier constant from TierService.
+  // Persisted as 'simplifii_tier'. Defaults to TIER_UNDERGRAD so existing
+  // users land where they always have.
+  const [activeTier, setActiveTierState] = useState(
+    localStorage.getItem('simplifii_tier') || TIER_UNDERGRAD
+  );
+  const setActiveTier = (tier) => {
+    localStorage.setItem('simplifii_tier', tier);
+    setActiveTierState(tier);
+  };
+
+  const [mode, setMode] = useState(localStorage.getItem('mode') || 'sequential');
   const [eduLevel, setEduLevel] = useState(localStorage.getItem('eduLevel') || 'university');
   const [highContrast, setHighContrast] = useState(localStorage.getItem('highContrast') === 'true');
   const [reducedMotion, setReducedMotion] = useState(localStorage.getItem('reducedMotion') === 'true');
@@ -119,8 +131,9 @@ export const SettingsProvider = ({ children }) => {
   };
 
   return (
-    <SettingsContext.Provider value={{ 
-      mode, setMode, 
+    <SettingsContext.Provider value={{
+      activeTier, setActiveTier,
+      mode, setMode,
       eduLevel, setEduLevel, 
       highContrast, setHighContrast,
       reducedMotion, setReducedMotion,
