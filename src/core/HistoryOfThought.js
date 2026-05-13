@@ -137,24 +137,31 @@ export const unlockWithUserId = async (userId) => {
 // IndexedDB store
 // ============================================================
 
-const DB_VERSION = 4;
+// Must match IndexedDBService.js DB_VERSION so whichever module opens
+// the database first, the version is consistent and no VersionError fires.
+const DB_VERSION = 5;
 
 const openDB = () => new Promise((resolve, reject) => {
   if (typeof indexedDB === 'undefined') return reject(new Error('IndexedDB unavailable.'));
   const req = indexedDB.open(DB_NAME, DB_VERSION);
 
   req.onblocked = () => {
-    if (typeof console !== 'undefined') console.warn('[HistoryOfThought] upgrade blocked by another tab. Reloading.');
-    if (typeof window !== 'undefined') window.location.reload();
+    if (typeof console !== 'undefined') console.warn('[HistoryOfThought] upgrade blocked by another tab. Close other tabs and reload.');
   };
 
   req.onupgradeneeded = (e) => {
     const db = e.target.result;
+    // All stores declared in both IndexedDBService and HistoryOfThought
+    // so whichever module wins the upgrade race, the schema is complete.
     if (!db.objectStoreNames.contains('blockHistory')) {
       db.createObjectStore('blockHistory', { keyPath: 'id', autoIncrement: true });
     }
     if (!db.objectStoreNames.contains('ghostAssets')) {
       db.createObjectStore('ghostAssets', { keyPath: 'id' });
+    }
+    if (!db.objectStoreNames.contains('uploaded_pdfs')) {
+      const s = db.createObjectStore('uploaded_pdfs', { keyPath: 'id' });
+      s.createIndex('by_name', 'name');
     }
     if (!db.objectStoreNames.contains(STORE)) {
       const s = db.createObjectStore(STORE, { keyPath: 'event_id' });
@@ -169,13 +176,7 @@ const openDB = () => new Promise((resolve, reject) => {
 
   req.onerror = () => {
     const err = req.error;
-    if (err && err.name === 'VersionError' && typeof window !== 'undefined') {
-      if (typeof console !== 'undefined') console.warn('[HistoryOfThought] version conflict: resetting vault.');
-      const del = indexedDB.deleteDatabase(DB_NAME);
-      del.onsuccess = () => window.location.reload();
-      del.onerror = () => window.location.reload();
-      return;
-    }
+    if (typeof console !== 'undefined') console.error('[HistoryOfThought] DB open failed:', err?.name, err?.message);
     reject(err);
   };
 });
