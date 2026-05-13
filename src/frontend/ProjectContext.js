@@ -1,13 +1,10 @@
 import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
 import { checkTemporalAlignment } from '../services/TemporalFilter';
-import { appendThinkingLog } from '../services/SheetsService';
 import { hydrate as hydrateStream, applyTheme as applyStreamTheme, streamFromLevel } from '../core/SovereignRouter';
 import { startEventBus, stopEventBus } from '../core/EventBus';
 import { configureSpine } from '../core/ExecutiveSpine';
 import { useAuth } from '../contexts/AuthContext';
 import { enableCloudSync, isCloudSyncEnabled } from '../core/HistoryOfThought';
-import { computeCognitiveFrictionScore, computeAuraTags } from '../services/AuraTagWriter';
-
 const ProjectContext = createContext();
 
 // Blocks intentionally start empty. Once a brief is grounded, mapToWorkspace
@@ -180,37 +177,6 @@ export const ProjectProvider = ({ children }) => {
   useEffect(() => { localStorage.setItem('simplifii_profile', JSON.stringify(profile)); }, [profile]);
   useEffect(() => { localStorage.setItem('simplifii_courses_v1', JSON.stringify(courses)); }, [courses]);
   useEffect(() => { localStorage.setItem('simplifii_activeCourseId', activeCourseId); }, [activeCourseId]);
-
-  // AURA intelligence hydration. Runs once after mount (and again if the
-  // emotional baseline changes). Computes the Cognitive Friction Score from
-  // the HistoryOfThought event log, then derives AURA toolIntentTags. Both
-  // values are merged into profile so every downstream consumer (AURA, the
-  // Scaffolder, and affiliate card triggers) sees them on the same render
-  // cycle. Safe if the vault is locked: falls back to baseline-only scoring.
-  useEffect(() => {
-    if (!profile.emotionalBaseline) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const activeCourse = courses[activeCourseId];
-        const activeTask = activeCourse?.tasks?.[0] || null;
-        const score = await computeCognitiveFrictionScore({
-          userId: user?.id || 'local',
-          emotionalBaseline: profile.emotionalBaseline,
-        });
-        if (cancelled) return;
-        const tags = computeAuraTags({
-          emotionalBaseline: profile.emotionalBaseline,
-          cognitiveFrictionScore: score,
-          activeTask,
-          profile,
-        });
-        setProfile(p => ({ ...p, cognitiveFrictionScore: score, toolIntentTags: tags }));
-      } catch { /* non-fatal: AURA degrades gracefully without tags */ }
-    })();
-    return () => { cancelled = true; };
-  // Recompute when baseline or active course changes; not on every profile write.
-  }, [profile.emotionalBaseline, activeCourseId]);
 
   // Roadmap legacy purge. One-time: any course whose roadmap exactly matches
   // the pre-purge defaults gets wiped to nulls so the cockpit shows empty
@@ -500,18 +466,6 @@ export const ProjectProvider = ({ children }) => {
   const renameCourse = (id, name) => {
     setCourses(prev => prev[id] ? { ...prev, [id]: { ...prev[id], name } } : prev);
   };
-
-  const lastSyncIndex = useRef(0);
-  useEffect(() => {
-    const syncInterval = setInterval(() => {
-      const logsToSync = (project.integrityLog || []).slice(lastSyncIndex.current);
-      if (logsToSync.length > 0) {
-        appendThinkingLog(logsToSync, 'mock_jwt_token_xyz123');
-        lastSyncIndex.current = (project.integrityLog || []).length;
-      }
-    }, 60000);
-    return () => clearInterval(syncInterval);
-  }, [project.integrityLog]);
 
   const appendToBlock = (type, content) => {
     setProject(prev => {

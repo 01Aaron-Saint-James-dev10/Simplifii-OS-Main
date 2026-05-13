@@ -8,7 +8,6 @@
  */
 
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf';
-import { speakSystemMessage } from './MessagingHub';
 import { auditCurriculum } from './UDLAuditService';
 
 const PROJECT_ID = process.env.REACT_APP_GCP_PROJECT_ID || 'simplifii-os-production';

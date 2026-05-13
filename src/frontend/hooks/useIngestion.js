@@ -5,7 +5,6 @@ import { fetchGroundingPdfs, listGroundingPdfs } from '../../utils/GroundingLoad
 import { listUploadedPdfs } from '../../services/IndexedDBService';
 import { nameCourse, getProviderName, extractAssessmentBriefs, REASONING_START_EVENT, REASONING_END_EVENT } from '../../services/RewriteService';
 import { reconcile as reconcileBriefs } from '../../services/SovereignReconciler';
-import { speakSystemMessage } from '../../services/MessagingHub';
 import { SOVEREIGN_DATA_READY } from '../../core/Events';
 
 /**
@@ -122,13 +121,6 @@ export function useIngestion({
 
     const courseId = addCourseWithData(draftName, draftPayload);
 
-    speakSystemMessage(
-      draft.assessmentTitles.length > 0
-        ? `Draft roadmap ready. ${draft.assessmentTitles.length} pillars detected. Refining in the background.`
-        : 'Draft cockpit ready. Refining the syllabus in the background.',
-      `${draftName} draft ready.`
-    );
-
     // Background: run Ollama extraction and nameCourse in parallel, then
     // upgrade the course in place. The learner keeps interacting with the
     // draft state during this window. If both LLM calls fail the draft
@@ -207,7 +199,6 @@ export function useIngestion({
         } else {
           greeting = `Course ${greetingName} confirmed. ${count} pillars mapped.`;
         }
-        speakSystemMessage(greeting, `${greetingName} confirmed.`);
       } finally {
         window.dispatchEvent(new CustomEvent(REASONING_END_EVENT));
       }
