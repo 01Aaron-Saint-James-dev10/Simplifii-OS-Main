@@ -19,6 +19,8 @@ import {
   BORDER_RADIUS, GRADIENT_EMERALD_CYAN,
 } from '../../theme/tokens';
 import NeuralAvatar from '../components/visuals/NeuralAvatar';
+import ShowcasePreview from './ShowcasePreview';
+import EducationLevels from './EducationLevels';
 import './LandingPage.css';
 
 const MQ_REDUCE = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -40,8 +42,8 @@ const AWARDS = [
 
 const SHOWCASE = [
   { id: 'workspace', label: 'Your workspace', desc: 'Research dashboard with phases, strands, chapters, and corpus in one view.' },
-  { id: 'draft', label: 'Your draft', desc: 'Chapter editor with amber citation flags and real-time source verification.' },
-  { id: 'reset', label: 'Your reset', desc: 'Pit Stop overlay with guided breaks, stretches, and the Neural Companion.' },
+  { id: 'draft', label: 'Your draft', desc: 'Chapter editor with real-time citation flagging. Every claim checked against your uploaded sources.' },
+  { id: 'reset', label: 'Your reset', desc: 'Built-in breaks designed for sustainable thinking. No guilt. No streak shaming.' },
 ];
 
 const COMPARISON = [
@@ -57,7 +59,7 @@ const FAQS = [
   { q: 'How is this different from ChatGPT or Grammarly?', a: 'ChatGPT writes for you. Grammarly polishes what you wrote. Simplifii-OS works with you across the entire workflow: from decoding the brief, to organising sources, to verifying every claim before submission. Your voice stays yours.' },
   { q: 'What happens to my data?', a: 'Your data is stored encrypted in Sydney, Australia. We do not sell it, share it with advertisers, or use it to train AI models. You can export or delete your data at any time.' },
   { q: 'Is it really free?', a: 'Yes. Simplifii-OS is free for all individual learners during beta. When we introduce paid plans, free accounts will always have a free tier.' },
-  { q: 'Does it work for high school students?', a: 'Yes. Simplifii-OS supports Year 10 to 12 students as well as university undergraduates, postgraduates, and researchers. The interface adapts to your academic level.' },
+  { q: 'Does it work for high school students?', a: 'Yes. Simplifii-OS works for Year 7 through Year 12, including HSC preparation, as well as primary school students with parental support. The UI and language adapt to the learner\'s stage.', link: '/accessibility', linkText: 'Read more on our accessibility page' },
   { q: 'What if I have ADHD or dyslexia?', a: 'Simplifii-OS was built by a dyslexic, ADHD founder specifically for neurodivergent learners. Executive function support, clear visual hierarchy, no guilt notifications, and calm transitions are core to the design.', link: '/accessibility', linkText: 'Read more on our accessibility page' },
   { q: 'Can I use it for non-academic work?', a: 'The current beta is optimised for academic workflows: assignments, theses, and research. Job applications, reports, and decision-making workflows are on the roadmap.' },
 ];
@@ -101,7 +103,7 @@ export default function LandingPage() {
     if (e.key === 'ArrowLeft') { e.preventDefault(); setActiveTab(ids[(idx - 1 + ids.length) % ids.length]); }
   }, [activeTab]);
 
-  const r1 = useReveal(), r2 = useReveal(), r3 = useReveal(), r4 = useReveal(), r5 = useReveal(), r6 = useReveal(), r7 = useReveal(), rA = useReveal();
+  const r1 = useReveal(), r2 = useReveal(), r3 = useReveal(), r4 = useReveal(), r5 = useReveal(), r6 = useReveal(), r7 = useReveal(), rA = useReveal(), rE = useReveal();
 
   return (
     <div className="lp-root" style={{ minHeight: '100vh', background: SURFACE_BASE }}>
@@ -153,6 +155,7 @@ export default function LandingPage() {
               >
                 <NeuralAvatar persona="browser" size={160} />
               </motion.div>
+              <p style={{ fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 'clamp(1.25rem, 2vw, 1.5rem)', color: TEXT_PRIMARY, letterSpacing: '-0.02em', textAlign: 'center', margin: '16px 0 0' }}>Simplifii-OS</p>
             </div>
           </motion.div>
         </div>
@@ -222,6 +225,9 @@ export default function LandingPage() {
         </p>
       </section>
 
+      {/* ── EDUCATION LEVELS ─────────────────────────────────── */}
+      <EducationLevels revealRef={rE.ref} revealCls={rE.cls} />
+
       {/* ── PRODUCT SHOWCASE ──────────────────────────────────── */}
       <section ref={r3.ref} className={r3.cls} style={{ maxWidth: 960, margin: '0 auto', padding: '80px 24px' }}>
         <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 'clamp(1.5rem, 4vw, 2.25rem)', textAlign: 'center', margin: '0 0 40px', color: TEXT_PRIMARY }}>
@@ -235,15 +241,7 @@ export default function LandingPage() {
           ))}
         </div>
         <div role="tabpanel" id={`showcase-panel-${activeTab}`} aria-labelledby={`showcase-tab-${activeTab}`} tabIndex={0} style={{ background: GLASS_SURFACE, border: `1px solid ${GLASS_BORDER}`, borderRadius: 12, overflow: 'hidden', boxShadow: GLOW_EMERALD }}>
-          <div style={{ aspectRatio: '16/9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, background: `radial-gradient(ellipse at center, ${ACCENT_GLASS_FAINT} 0%, ${SURFACE_BASE} 70%)`, minHeight: 320 }}>
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={ACCENT_BORDER} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-            <p style={{ fontFamily: FONT_SYSTEM, fontSize: 11, color: TEXT_FAINT, letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0 }}>
-              Product preview coming soon
-            </p>
-          </div>
+          <ShowcasePreview activeTab={activeTab} />
         </div>
         <p style={{ fontFamily: FONT_BODY, fontSize: 15, color: TEXT_MUTED, textAlign: 'center', marginTop: 20 }}>
           {SHOWCASE.find(t => t.id === activeTab)?.desc}
@@ -323,7 +321,7 @@ export default function LandingPage() {
           Stop using AI tools that erase your voice.
         </h2>
         <p style={{ fontFamily: FONT_BODY, fontSize: 16, color: TEXT_MUTED, margin: '0 0 32px' }}>
-          Simplifii-OS is free during beta. Built for every kind of mind. Used by researchers.
+          Simplifii-OS is free during beta. Built for every kind of mind. Used from Year 7 to PhD.
         </p>
         <Link to="/signup" className="lp-cta-primary" style={{ display: 'inline-block', padding: '16px 48px', background: ACCENT_PULSE, borderRadius: 8, fontFamily: FONT_BODY, fontSize: 17, fontWeight: 700, textDecoration: 'none', boxShadow: GLOW_EMERALD }}>
           Start free
