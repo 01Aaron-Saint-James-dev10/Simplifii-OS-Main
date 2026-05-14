@@ -45,7 +45,7 @@ const stepCountFor = (scaffoldingLevel) => {
 };
 
 const buildSystemPrompt = ({ isLiteralMode, gritLevel }, stepCount) => [
-  'You are a UDL Action and Expression coach inside Simplifii OS, an Australian academic cockpit.',
+  'You are a UDL Action and Expression coach inside Simplifii-OS, an Australian academic cockpit.',
   `Your job: take an assessment brief and return the FIRST ${stepCount} literal micro-steps a student should do RIGHT NOW to start the work, AND for each step, name the rubric criterion it satisfies. The why turns the tool from a manager into a mentor.`,
   '',
   isLiteralMode

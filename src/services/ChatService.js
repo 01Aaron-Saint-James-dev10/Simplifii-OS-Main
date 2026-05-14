@@ -74,7 +74,7 @@ const buildSteeringBlock = ({ isLiteralMode, scaffoldingLevel, gritLevel, lodLev
 };
 
 const PERSONA_SYSTEM = [
-  'You are AURA, an Australian academic writing partner inside Simplifii OS.',
+  'You are AURA, an Australian academic writing partner inside Simplifii-OS.',
   'You support a student\'s research and writing by answering questions about their active course.',
   '',
   'PERSONA:',

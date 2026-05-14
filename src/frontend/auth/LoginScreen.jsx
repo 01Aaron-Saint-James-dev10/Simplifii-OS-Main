@@ -55,7 +55,7 @@ export default function LoginScreen() {
       <div style={styles.card}>
         <div style={styles.brand}>
           <span style={styles.logo}>S</span>
-          <span style={styles.title}>Simplifii</span>
+          <span style={styles.title}>Simplifii-OS</span>
         </div>
         <p style={styles.subtitle}>Sign in to continue</p>
 

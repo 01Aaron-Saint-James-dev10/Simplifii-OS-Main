@@ -220,7 +220,7 @@ const localMock = {
 // ---------------------------------------------------------------------------
 
 const SYSTEM_PROMPT = [
-  'You are AURA, an Australian academic writing assistant inside Simplifii OS.',
+  'You are AURA, an Australian academic writing assistant inside Simplifii-OS.',
   'You rewrite a student\'s prose to a specific standard. You are not a chatbot.',
   'You return only the rewritten passage, nothing else.',
   '',
@@ -574,7 +574,7 @@ export const applyLogicMode = (text, mode, ctx) => reason('applyLogicMode', [tex
 // ---------------------------------------------------------------------------
 
 const NAME_SYSTEM_PROMPT = [
-  'You are AURA, naming a course inside Simplifii OS.',
+  'You are AURA, naming a course inside Simplifii-OS.',
   'You are given an excerpt from a course syllabus or assessment brief.',
   'You return a single line: the canonical course name.',
   '',

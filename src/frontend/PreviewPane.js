@@ -171,7 +171,7 @@ export default function PreviewPane({ activePillarId, onClose }) {
         })}
 
         <footer style={{ marginTop: 36, paddingTop: 14, borderTop: '1px solid #e5e7eb', fontSize: 10, color: '#9ca3af', display: 'flex', justifyContent: 'space-between' }}>
-          <span>Generated from Simplifii Logic Blocks</span>
+          <span>Generated from Simplifii-OS Logic Blocks</span>
           <span>{new Date().toLocaleDateString('en-AU')}</span>
         </footer>
       </article>
