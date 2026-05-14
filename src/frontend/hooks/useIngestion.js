@@ -57,15 +57,18 @@ export function useIngestion({
   const TERM_NOISE_RE = /^(Term\s*[1-3]|Semester\s*[1-2]|Trimester\s*[1-3]|Session\s*[1-3]|T[1-3]|S[1-2]|Summer|Winter)$/i;
   // Reading list / navigation noise
   const NAV_NOISE_RE = /\b(Library holds|UNSW Library|Available at|Located at|accessed via|click here|see the|log in|visit the)\b/i;
-  // Minimum 8 chars to reject pure metadata fragments like "T3 2025"
+  // Minimum 6 chars. Must contain an assessment keyword or be numbered.
+  const ASSESSMENT_KW_RE = /\b(assessment|report|lab|essay|exam|quiz|practical|presentation|submission|task|assignment|project|test|review|analysis|portfolio|case study|journal|bibliography|proposal|chapter)\b/i;
+  const NUMBERED_RE = /^(?:Assessment|Task|AT|Part)\s*[A-Z0-9]/i;
   const isEliteTitle = (t) => {
     if (typeof t !== 'string') return false;
     const s = t.trim();
-    if (s.length < 8) return false;
+    if (s.length < 6) return false;
+    if (s.length > 80) return false;
     if (CONJUNCTION_RE.test(s)) return false;
     if (TERM_NOISE_RE.test(s)) return false;
     if (NAV_NOISE_RE.test(s)) return false;
-    if (s.length > 60) return false;
+    if (!ASSESSMENT_KW_RE.test(s) && !NUMBERED_RE.test(s)) return false;
     return true;
   };
 

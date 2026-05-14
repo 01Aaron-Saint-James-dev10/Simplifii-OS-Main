@@ -12,6 +12,7 @@ import ResearchHomeScreen from './research/ResearchHomeScreen';
 import FirstRunModal from './components/disclaimers/FirstRunModal';
 import AiDisclaimerFooter from './components/disclaimers/AiDisclaimerFooter';
 import FeedbackButton from './feedback/FeedbackButton';
+import BetaBanner from './components/BetaBanner';
 import {
   SURFACE_BASE, SURFACE_RAISED,
   TEXT_MUTED, FONT_BODY,
@@ -77,6 +78,7 @@ export default function AppShell() {
         <ResearchProjectProvider>
           <RouterProvider>
             <div style={{ position: 'relative', minHeight: '100vh' }}>
+              <BetaBanner />
               <ViewSwitch />
               <FeedbackButton />
               <div style={{ position: 'fixed', bottom: 0, right: 0, zIndex: 50, borderTop: `1px solid ${SURFACE_RAISED}`, borderLeft: `1px solid ${SURFACE_RAISED}`, background: SURFACE_BASE, borderTopLeftRadius: 4 }}>

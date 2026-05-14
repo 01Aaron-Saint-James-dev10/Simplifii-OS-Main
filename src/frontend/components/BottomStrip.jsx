@@ -26,8 +26,8 @@ import {
  *   targetWords  - number
  */
 
-// TODO: wire to real anonymous aggregate count from telemetry.
-const HARDCODED_BODY_DOUBLE_COUNT = 47;
+// Body doubling count removed. Was hardcoded fiction (47 students).
+// Will wire to real telemetry post-beta.
 
 function wordCountDisplay(count, target) {
   if (target <= 0) return { text: `${count} words`, colour: TEXT_MUTED, guidance: '' }; // allow-style
@@ -79,30 +79,15 @@ export default function BottomStrip({ wordCount, targetWords }) {
           )}
         </span>
 
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: TEXT_FAINT }}>
-          {/* Body doubling pulse dot */}
-          <span
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: '50%',
-              background: ACCENT_PULSE,
-              display: 'inline-block',
-              animation: reducedMotion ? 'none' : 'bodyDoublePulse 2s ease-in-out infinite',
-            }}
-            aria-hidden="true"
-          />
-          <span>{HARDCODED_BODY_DOUBLE_COUNT} students writing now</span>
+        <span style={{ color: TEXT_FAINT }}>
+          Beta. Local-only. Your work stays yours.
         </span>
       </div>
 
-      {/* Right: authenticity + local badge */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: TEXT_FAINT }}>
-        <span>87% human</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-          <span style={{ width: 5, height: 5, borderRadius: '50%', background: ACCENT_PULSE, display: 'inline-block' }} aria-hidden="true" />
-          Local-only
-        </span>
+      {/* Right: local badge */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 3, color: TEXT_FAINT }}>
+        <span style={{ width: 5, height: 5, borderRadius: '50%', background: ACCENT_PULSE, display: 'inline-block' }} aria-hidden="true" />
+        Local-only
       </div>
     </footer>
   );

@@ -6,13 +6,11 @@ export const mapToWorkspace = (text, level = 'Tertiary') => {
   
   if (level === 'Tertiary') {
     return [
-      { id: 1, type: 'Informative Title', content: '', targetWords: 50, placeholder: 'What specific reaction or organism are you analyzing?' },
-      { id: 2, type: 'Introduction & Context', content: '', targetWords: 300, placeholder: 'What is the broad scientific context? What specific gap in knowledge does your thesis address?' },
-      { id: 3, type: 'Primary Article 1 Summary', content: '', targetWords: 350, placeholder: 'What method did the authors use? What were the specific statistical findings?' },
-      { id: 4, type: 'Primary Article 2 Summary', content: '', targetWords: 350, placeholder: 'How does this article\'s methodology compare to the first? Does it confirm or challenge the findings?' },
-      { id: 5, type: 'Review Article Synthesis', content: '', targetWords: 400, placeholder: 'What is the consensus between these sources? How do they collectively support your thesis?' },
-      { id: 6, type: 'Conclusion & Future Directions', content: '', targetWords: 200, placeholder: 'What is the ultimate takeaway? What future research is needed to resolve remaining gaps?' },
-      { id: 7, type: 'Research Process Documentation', content: '', targetWords: 400, placeholder: 'Which databases did you search? Why were these specific articles chosen over others?' }
+      { id: 1, type: 'Introduction', content: '', targetWords: 300, placeholder: 'Start here. What is the context and what will you cover?' },
+      { id: 2, type: 'Body Section 1', content: '', targetWords: 400, placeholder: '' },
+      { id: 3, type: 'Body Section 2', content: '', targetWords: 400, placeholder: '' },
+      { id: 4, type: 'Body Section 3', content: '', targetWords: 400, placeholder: '' },
+      { id: 5, type: 'Conclusion', content: '', targetWords: 200, placeholder: 'Summarise your key points.' },
     ];
   }
 
@@ -324,13 +322,23 @@ export const extractDeepCourseData = (text) => {
   const NAV_NOISE = /\b(moodle|canvas|blackboard|hub|portal|click(?: here)?|see (?:the|your|moodle|canvas)|more details|further information|via the link|the link below|see\s*\w*\s*for|url|Library holds|UNSW Library|Available at|Located at|accessed via|log in to)\b/i;
   const GENERIC_NOISE = /^(item|structure|details|overview|description|length|information|topics|tasks|lecture|content|brief|outline|rubric|page|section|figure|notes|comments|criteria|requirement|requirements|delivery mode|due date|weight|weighting|format|submission)$/i;
   const TERM_NOISE = /^(Term\s*[1-3]|Semester\s*[1-2]|Trimester\s*[1-3]|Session\s*[1-3]|T[1-3]|S[1-2]|Summer|Winter)$/i;
+  // Allowlist: title must contain one of these keywords OR be explicitly
+  // numbered (Assessment 1, Task 2, Part A). Rejects body-text fragments
+  // like "Nitrophenol at 410 nm" or "Perform 10".
+  const ASSESSMENT_KEYWORDS = /\b(assessment|report|lab|essay|exam|quiz|practical|presentation|submission|task|assignment|project|test|review|analysis|portfolio|case study|journal|bibliography|proposal|chapter)\b/i;
+  const NUMBERED_ANCHOR = /^(?:Assessment|Task|AT|Part)\s*[A-Z0-9]/i;
+  const TOO_MANY_NUMBERS = /(\d[^a-zA-Z]*){3,}/;
+
   const isAssessmentNoise = (title) => {
     const t = title.trim();
     if (NAV_NOISE.test(t)) return true;
     if (GENERIC_NOISE.test(t)) return true;
     if (TERM_NOISE.test(t)) return true;
-    if (t.length < 8) return true;
-    if (t.length > 60) return true;
+    if (t.length < 6) return true;
+    if (t.length > 80) return true;
+    if (/^[a-z]/.test(t)) return true;
+    if (TOO_MANY_NUMBERS.test(t)) return true;
+    if (!ASSESSMENT_KEYWORDS.test(t) && !NUMBERED_ANCHOR.test(t)) return true;
     return false;
   };
 
@@ -372,6 +380,12 @@ export const extractDeepCourseData = (text) => {
     if (isAssessmentNoise(title)) continue;
     seen.add(key);
     assessmentTitles.push(display);
+  }
+
+  // Cap at 8 assessments. More than 8 is almost certainly false positives.
+  if (assessmentTitles.length > 8) {
+    if (typeof console !== 'undefined') console.warn('[BriefService] capped assessments from', assessmentTitles.length, 'to 8');
+    assessmentTitles.length = 8;
   }
 
   // Build the Definition of Done checklist. Assessments only. Learning
