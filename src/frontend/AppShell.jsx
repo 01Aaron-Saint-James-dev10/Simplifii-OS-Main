@@ -9,6 +9,7 @@ import HomeScreen from './HomeScreen';
 import CanvasScreen from './CanvasScreen';
 import AssessmentListScreen from './AssessmentListScreen';
 import ResearchHomeScreen from './research/ResearchHomeScreen';
+import FeedbackDashboard from './admin/FeedbackDashboard';
 import FirstRunModal from './components/disclaimers/FirstRunModal';
 import AiDisclaimerFooter from './components/disclaimers/AiDisclaimerFooter';
 import FeedbackButton from './feedback/FeedbackButton';
@@ -26,6 +27,10 @@ import {
  */
 function ViewSwitch() {
   const { view } = useRouter();
+  // Admin views: check URL params for Aaron-only routes
+  if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('admin') === 'feedback') {
+    return <FeedbackDashboard />;
+  }
   if (view === 'canvas')      return <CanvasScreen />;
   if (view === 'assessments') return <AssessmentListScreen />;
   if (view === 'research')    return <ResearchHomeScreen />;
