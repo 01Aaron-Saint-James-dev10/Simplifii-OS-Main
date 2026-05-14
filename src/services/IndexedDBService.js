@@ -1,5 +1,5 @@
 const DB_NAME = 'SimplifiiOS_Vault';
-const DB_VERSION = 7; // v7: added Sovereign Research stores (Sprint 4)
+const DB_VERSION = 8; // v8: sync with HistoryOfThought to prevent VersionError
 
 // Wipes the database and reloads the page. Call this if a version conflict
 // leaves the vault in an unrecoverable state.

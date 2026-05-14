@@ -59,13 +59,16 @@ const s = {
     fontWeight: 600,
     letterSpacing: '0.04em',
     whiteSpace: 'nowrap',
+    color: TEXT_MUTED, // allow-style
   },
   learnMore: {
     fontFamily: FONT_SYSTEM,
     fontSize: 10,
     fontWeight: 700,
     textDecoration: 'underline',
+    textUnderlineOffset: 2,
     marginLeft: 4,
+    color: ACCENT_PULSE, // allow-style
   },
   tooltip: {
     position: 'absolute',
@@ -90,5 +93,6 @@ const s = {
     fontSize: 10,
     fontWeight: 700,
     textDecoration: 'underline',
+    color: ACCENT_PULSE, // allow-style
   },
 };

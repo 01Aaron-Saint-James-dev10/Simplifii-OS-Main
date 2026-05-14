@@ -41,15 +41,31 @@ function findNextDue(course, now) {
   let best = null;
   let bestDays = Infinity;
 
+  // First pass: find the nearest FUTURE due date
   for (const brief of briefs) {
     if (!brief.dueDate) continue;
     const due = new Date(brief.dueDate);
     if (isNaN(due.getTime())) continue;
     const msPerDay = 1000 * 60 * 60 * 24;
     const daysToDue = Math.floor((due - now) / msPerDay);
-    if (daysToDue < bestDays) {
+    if (daysToDue >= 0 && daysToDue < bestDays) {
       bestDays = daysToDue;
       best = { title: brief.title || 'Assessment', weight: brief.weight || '', dueDate: brief.dueDate };
+    }
+  }
+  // Fallback: if all dates are past, pick the least overdue
+  if (!best) {
+    let leastOverdue = -Infinity;
+    for (const brief of briefs) {
+      if (!brief.dueDate) continue;
+      const due = new Date(brief.dueDate);
+      if (isNaN(due.getTime())) continue;
+      const msPerDay = 1000 * 60 * 60 * 24;
+      const daysToDue = Math.floor((due - now) / msPerDay);
+      if (daysToDue > leastOverdue) {
+        leastOverdue = daysToDue;
+        best = { title: brief.title || 'Assessment', weight: brief.weight || '', dueDate: brief.dueDate };
+      }
     }
   }
   return best;

@@ -139,7 +139,8 @@ export const unlockWithUserId = async (userId) => {
 
 // Must match IndexedDBService.js DB_VERSION so whichever module opens
 // the database first, the version is consistent and no VersionError fires.
-const DB_VERSION = 5;
+// Bumped to 8 to exceed any historical version (IndexedDBService was at 7).
+const DB_VERSION = 8;
 
 const openDB = () => new Promise((resolve, reject) => {
   if (typeof indexedDB === 'undefined') return reject(new Error('IndexedDB unavailable.'));

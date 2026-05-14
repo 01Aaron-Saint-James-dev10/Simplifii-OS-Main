@@ -37,16 +37,19 @@ import './HomeScreen.css';
 
 function findEarliestDue(course, now) {
   const briefs = course.extractionData?.assessmentBriefs || [];
-  let earliest = Infinity;
+  let nearestFuture = Infinity;
+  let leastOverdue = -Infinity;
   for (const brief of briefs) {
     if (!brief.dueDate) continue;
     const due = new Date(brief.dueDate);
     if (isNaN(due.getTime())) continue;
     const msPerDay = 1000 * 60 * 60 * 24;
     const daysToDue = Math.floor((due - now) / msPerDay);
-    if (daysToDue < earliest) earliest = daysToDue;
+    if (daysToDue >= 0 && daysToDue < nearestFuture) nearestFuture = daysToDue;
+    else if (daysToDue < 0 && daysToDue > leastOverdue) leastOverdue = daysToDue;
   }
-  return earliest;
+  // Prefer upcoming dates; fall back to overdue if nothing is upcoming
+  return nearestFuture < Infinity ? nearestFuture : (leastOverdue > -Infinity ? leastOverdue : Infinity);
 }
 
 function countByState(courses, now) {

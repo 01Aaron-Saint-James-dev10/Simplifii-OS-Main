@@ -522,7 +522,14 @@ const ollama = {
 
 const PROVIDERS = { 'local-mock': localMock, ollama };
 
-export const getProviderName = () => safeReadLocalStorage(PROVIDER_KEY, DEFAULT_PROVIDER) || DEFAULT_PROVIDER;
+export const getProviderName = () => {
+  // In production, skip Ollama (localhost not reachable). Use rule-based extraction.
+  if (process.env.NODE_ENV === 'production') {
+    if (typeof console !== 'undefined') console.info('[RewriteService] Ollama disabled in production, using rule-based extraction');
+    return 'local-mock';
+  }
+  return safeReadLocalStorage(PROVIDER_KEY, DEFAULT_PROVIDER) || DEFAULT_PROVIDER;
+};
 
 const getProvider = () => {
   const name = getProviderName();
