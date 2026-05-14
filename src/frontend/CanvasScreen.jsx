@@ -1,6 +1,8 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useProject } from './ProjectContext';
 import { useSettings } from './SettingsContext';
+import { detectSuspectedCitations } from '../services/CitationStyleService';
+import { verifyFromSources } from '../services/CitationService';
 import { useRouter } from '../contexts/RouterContext';
 import CanvasNav from './components/CanvasNav';
 import CanvasEditor from './components/CanvasEditor';
@@ -12,6 +14,7 @@ import PreviewPanel from './components/PreviewPanel';
 import SourcesPanel from './components/SourcesPanel';
 import CheckPanel from './components/CheckPanel';
 import ProvenancePanel from './components/ProvenancePanel';
+import BibliographyView from './components/BibliographyView';
 import BottomStrip from './components/BottomStrip';
 import ReentryOverlay from './components/ReentryOverlay';
 import CanvasSettingsOverlay from './components/CanvasSettingsOverlay';
@@ -29,7 +32,7 @@ import './CanvasScreen.css';
 
 export default function CanvasScreen() {
   const { courseId, assessmentTitle } = useRouter();
-  const { courses, activeCourse } = useProject();
+  const { courses, activeCourse, projectSources } = useProject();
   const { reducedMotion, isZenMode, theme } = useSettings();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -66,6 +69,31 @@ export default function CanvasScreen() {
   const [tiptapDoc, setTiptapDoc] = useState(null);
   const handleWordCount = useCallback((count) => setWordCount(count), []);
 
+  // Hallucination scanner: detects citations in draft text and flags
+  // any that are not found+verified in the project corpus.
+  const [unverifiedMatches, setUnverifiedMatches] = useState([]);
+  const scanTimerRef = useRef(null);
+  useEffect(() => {
+    clearTimeout(scanTimerRef.current);
+    scanTimerRef.current = setTimeout(() => {
+      const plain = draftText.replace(/<[^>]*>/g, ' ');
+      const suspected = detectSuspectedCitations(plain);
+      if (suspected.length === 0) {
+        setUnverifiedMatches([]);
+        return;
+      }
+      const sourcesList = Object.values(projectSources || {});
+      const flagged = suspected
+        .filter(hit => {
+          const result = verifyFromSources(sourcesList, { author: hit.author, year: hit.year });
+          return !result.found || !result.verified;
+        })
+        .map(hit => hit.match);
+      setUnverifiedMatches(flagged);
+    }, 1500);
+    return () => clearTimeout(scanTimerRef.current);
+  }, [draftText, projectSources]);
+
   // Section rail
   const [activeSection, setActiveSection] = useState('introduction');
 
@@ -95,7 +123,7 @@ export default function CanvasScreen() {
         <PreviewPanel draftText={draftText} wordCount={wordCount} />
       </div>
       <div style={{ display: activePanel === 'sources' ? 'contents' : 'none' }}>
-        <SourcesPanel sourceFiles={sourceFiles} />
+        <SourcesPanel courseId={courseId} />
       </div>
       <div style={{ display: activePanel === 'provenance' ? 'contents' : 'none' }}>
         <ProvenancePanel
@@ -150,7 +178,9 @@ export default function CanvasScreen() {
             onSaveStatusChange={handleSaveStatus}
             onTextChange={setDraftText}
             onJsonDocChange={setTiptapDoc}
+            citationFlags={unverifiedMatches}
           />
+          <BibliographyView />
         </div>
 
         <PanelRail

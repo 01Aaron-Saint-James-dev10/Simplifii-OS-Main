@@ -69,7 +69,7 @@ function matchesTerm(course, term) {
 export default function HomeScreen() {
   const { courses, terms, activeTerm, setActiveTerm } = useProject();
   const { display, reducedMotion, activeTier } = useSettings();
-  const { navigateToCanvas } = useRouter();
+  const { navigateToCanvas, navigateToResearch } = useRouter();
   // Pass activeTier into the existing stream system so SovereignRouter
   // can resolve the correct profile. No layout changes in this sprint.
   // eslint-disable-next-line no-unused-vars
@@ -113,6 +113,14 @@ export default function HomeScreen() {
         </div>
         <div className="home-nav-actions">
           <AddCourseButton />
+          <button
+            type="button"
+            onClick={navigateToResearch}
+            style={{ padding: '4px 12px', background: 'transparent', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 6, fontFamily: 'system-ui,sans-serif', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#10b981', cursor: 'pointer' }}
+            aria-label="Open Research Workspace"
+          >
+            Research
+          </button>
           {display.overdueTally && overdueCount > 0 && (
             <span className="home-overdue-badge" aria-label={`${overdueCount} overdue task${overdueCount === 1 ? '' : 's'}`}>
               {overdueCount}

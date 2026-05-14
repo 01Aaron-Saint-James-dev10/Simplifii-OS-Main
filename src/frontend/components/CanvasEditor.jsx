@@ -24,7 +24,7 @@ import {
 
 const AUTOSAVE_MS = 2000;
 
-export default function CanvasEditor({ courseId, assessmentTitle, targetWords, onWordCountChange, onSaveStatusChange, onTextChange, onJsonDocChange }) {
+export default function CanvasEditor({ courseId, assessmentTitle, targetWords, onWordCountChange, onSaveStatusChange, onTextChange, onJsonDocChange, citationFlags }) {
   const [initialContent, setInitialContent] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const saveTimerRef = useRef(null);
@@ -117,6 +117,7 @@ export default function CanvasEditor({ courseId, assessmentTitle, targetWords, o
         onTextChange={handleTextChange}
         onWordCountChange={onWordCountChange}
         onJsonChange={handleJsonChange}
+        citationFlags={citationFlags}
       />
     </div>
   );

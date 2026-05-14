@@ -21,6 +21,16 @@ export const RouterProvider = ({ children }) => {
     setView('home');
   }, []);
 
+  const navigateToResearch = useCallback(() => {
+    setView('research');
+  }, []);
+
+  // Research chapters reuse the canvas view, keyed by projectId + chapterId.
+  const navigateToChapter = useCallback((projectId, chapterId) => {
+    setCanvasTarget({ courseId: projectId, assessmentTitle: chapterId });
+    setView('canvas');
+  }, []);
+
   return (
     <RouterContext.Provider value={{
       view,
@@ -28,6 +38,8 @@ export const RouterProvider = ({ children }) => {
       assessmentTitle: canvasTarget.assessmentTitle,
       navigateToCanvas,
       navigateHome,
+      navigateToResearch,
+      navigateToChapter,
     }}>
       {children}
     </RouterContext.Provider>

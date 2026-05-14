@@ -6,6 +6,7 @@ import CharacterCount from '@tiptap/extension-character-count';
 import Typography from '@tiptap/extension-typography';
 import Link from '@tiptap/extension-link';
 import { BionicReadingExtension } from './extensions/BionicReadingExtension';
+import { CitationHighlightExtension, citationHighlightKey } from './extensions/CitationHighlightExtension';
 import EditorToolbar from './EditorToolbar';
 import { useSettings } from '../SettingsContext';
 import './RichTextEditor.css';
@@ -26,7 +27,7 @@ import './RichTextEditor.css';
  *   onJsonChange    - callback(tiptapJsonDoc) on every edit (for autosave)
  */
 
-export default function RichTextEditor({ initialContent, onTextChange, onWordCountChange, onJsonChange }) {
+export default function RichTextEditor({ initialContent, onTextChange, onWordCountChange, onJsonChange, citationFlags }) {
   const { fontScale, lineSpacing, isBionicActive } = useSettings();
   const [fontFamily, setFontFamily] = React.useState(() =>
     localStorage.getItem('simplifii_editor_font') || 'inter'
@@ -56,6 +57,9 @@ export default function RichTextEditor({ initialContent, onTextChange, onWordCou
       }),
       BionicReadingExtension.configure({
         enabled: isBionicActive,
+      }),
+      CitationHighlightExtension.configure({
+        flags: citationFlags || [],
       }),
     ],
     content: initialContent || '',
@@ -91,6 +95,26 @@ export default function RichTextEditor({ initialContent, onTextChange, onWordCou
     const words = editor.storage.characterCount?.words() ?? 0;
     onWordCountChange?.(words);
   }, [editor, onWordCountChange]);
+
+  // Rebuild citation highlight decorations when flags change
+  useEffect(() => {
+    if (!editor) return;
+    const citationExt = editor.extensionManager.extensions.find(e => e.name === 'citationHighlight');
+    if (citationExt) {
+      citationExt.options.flags = citationFlags || [];
+      editor.view.dispatch(editor.state.tr.setMeta(citationHighlightKey, true));
+    }
+  }, [editor, citationFlags]);
+
+  // Insert citation text at cursor when requested by CitationInserter
+  useEffect(() => {
+    const handler = (e) => {
+      if (!editor || !e.detail?.text) return;
+      editor.chain().focus().insertContent(e.detail.text).run();
+    };
+    window.addEventListener('simplifii:insert-citation', handler);
+    return () => window.removeEventListener('simplifii:insert-citation', handler);
+  }, [editor]);
 
   return (
     <div

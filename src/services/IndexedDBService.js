@@ -1,5 +1,5 @@
 const DB_NAME = 'SimplifiiOS_Vault';
-const DB_VERSION = 6; // v6: added project_sources store for Citation Integrity Engine
+const DB_VERSION = 7; // v7: added Sovereign Research stores (Sprint 4)
 
 // Wipes the database and reloads the page. Call this if a version conflict
 // leaves the vault in an unrecoverable state.
@@ -66,6 +66,37 @@ export const initDB = () => {
         ps.createIndex('by_project', 'projectId');
         ps.createIndex('by_citation_key', 'citationKey');
         ps.createIndex('by_verified', 'verified');
+      }
+      // Sprint 4: Sovereign Research container stores.
+      if (!db.objectStoreNames.contains('research_projects')) {
+        db.createObjectStore('research_projects', { keyPath: 'projectId' });
+      }
+      if (!db.objectStoreNames.contains('phases')) {
+        const s = db.createObjectStore('phases', { keyPath: 'phaseId' });
+        s.createIndex('by_project', 'projectId');
+      }
+      if (!db.objectStoreNames.contains('strands')) {
+        const s = db.createObjectStore('strands', { keyPath: 'strandId' });
+        s.createIndex('by_project', 'projectId');
+        s.createIndex('by_phase', 'phaseId');
+      }
+      if (!db.objectStoreNames.contains('chapters')) {
+        const s = db.createObjectStore('chapters', { keyPath: 'chapterId' });
+        s.createIndex('by_project', 'projectId');
+        s.createIndex('by_phase', 'phaseId');
+      }
+      if (!db.objectStoreNames.contains('methodology_log')) {
+        const s = db.createObjectStore('methodology_log', { keyPath: 'entryId' });
+        s.createIndex('by_project', 'projectId');
+      }
+      if (!db.objectStoreNames.contains('reflexivity_log')) {
+        const s = db.createObjectStore('reflexivity_log', { keyPath: 'entryId' });
+        s.createIndex('by_project', 'projectId');
+      }
+      if (!db.objectStoreNames.contains('supervisor_feedback')) {
+        const s = db.createObjectStore('supervisor_feedback', { keyPath: 'feedbackId' });
+        s.createIndex('by_project', 'projectId');
+        s.createIndex('by_status', 'status');
       }
     };
   });
@@ -220,3 +251,81 @@ export const deleteSourceById = async (sourceId) => {
     tx.onerror = () => reject(tx.error);
   });
 };
+
+// ============================================================
+// Sprint 4: Sovereign Research store helpers
+// ============================================================
+
+function putRecord(storeName, record) {
+  return initDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readwrite');
+    tx.objectStore(storeName).put(record);
+    tx.oncomplete = () => resolve(record);
+    tx.onerror  = () => reject(tx.error);
+  }));
+}
+
+function getAllByIndex(storeName, indexName, key) {
+  return initDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly');
+    const req = tx.objectStore(storeName).index(indexName).getAll(key);
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror  = () => reject(req.error);
+  }));
+}
+
+function getByKey(storeName, key) {
+  return initDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly');
+    const req = tx.objectStore(storeName).get(key);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror  = () => reject(req.error);
+  }));
+}
+
+function deleteByKey(storeName, key) {
+  return initDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readwrite');
+    tx.objectStore(storeName).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror  = () => reject(tx.error);
+  }));
+}
+
+// research_projects
+export const saveResearchProject     = (r) => putRecord('research_projects', r);
+export const getResearchProjectById  = (id) => getByKey('research_projects', id);
+export const deleteResearchProject   = (id) => deleteByKey('research_projects', id);
+export const getAllResearchProjects   = () =>
+  initDB().then(db => new Promise((res, rej) => {
+    const req = db.transaction('research_projects', 'readonly').objectStore('research_projects').getAll();
+    req.onsuccess = () => res(req.result || []);
+    req.onerror  = () => rej(req.error);
+  }));
+
+// phases
+export const savePhase           = (r) => putRecord('phases', r);
+export const getPhasesByProject  = (id) => getAllByIndex('phases', 'by_project', id);
+
+// strands
+export const saveStrand          = (r) => putRecord('strands', r);
+export const getStrandsByProject = (id) => getAllByIndex('strands', 'by_project', id);
+export const getStrandsByPhase   = (id) => getAllByIndex('strands', 'by_phase', id);
+
+// chapters
+export const saveChapter            = (r) => putRecord('chapters', r);
+export const getChaptersByProject   = (id) => getAllByIndex('chapters', 'by_project', id);
+export const getChapterById         = (id) => getByKey('chapters', id);
+
+// methodology_log
+export const saveMethodologyEntry              = (r) => putRecord('methodology_log', r);
+export const getMethodologyEntriesByProject    = (id) => getAllByIndex('methodology_log', 'by_project', id);
+
+// reflexivity_log
+export const saveReflexivityEntry             = (r) => putRecord('reflexivity_log', r);
+export const getReflexivityEntriesByProject   = (id) => getAllByIndex('reflexivity_log', 'by_project', id);
+
+// supervisor_feedback
+export const saveSupervisorFeedback          = (r) => putRecord('supervisor_feedback', r);
+export const updateSupervisorFeedbackRecord  = (r) => putRecord('supervisor_feedback', r);
+export const getSupervisorFeedbackByProject  = (id) => getAllByIndex('supervisor_feedback', 'by_project', id);
