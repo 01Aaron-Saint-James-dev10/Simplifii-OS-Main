@@ -83,6 +83,34 @@
 
 ---
 
+## Sprint M+ — Enhancement Features
+
+### Text-to-Speech (TTS)
+
+Read AI responses + editor content aloud for accessibility and processing-disorder support.
+- Browser SpeechSynthesis API (free, native, no API key needed)
+- Settings: voice selection, speed, pitch
+- Surfaces: read AI tutor responses, read BionicText passages, read selected text in editor
+- Keyboard shortcut: Cmd+Shift+R to read selection
+- Accessibility: pause/resume, skip sentence, stop
+- Estimated effort: 3-4 hours MVP, 6-8 hours full
+
+### Teleprompter Mode
+
+Auto-scrolling presentation view for reading rehearsal, oral assessments, speech practice.
+- Toggle in editor: "Teleprompter Mode"
+- Auto-scrolls at user-configurable WPM
+- Optional countdown timer for total speech length
+- Mirror toggle for actual teleprompter hardware setups
+- Auto-pause on voice detection (you stop speaking, scroll pauses)
+- Combines with TTS for "read along while it auto-scrolls" mode
+- Surfaces: oral presentation prep, debate prep, speech assessments, reading aloud for dyslexic learners
+- Estimated effort: 4-6 hours
+
+Priority: Sprint M/M+ post-tester, informed by Y10-12 feedback on voice features
+
+---
+
 ## Post-Testing Sprint L+
 
 ### Study Pattern Tracking (location + time + session telemetry)
