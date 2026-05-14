@@ -6,6 +6,7 @@ node_modules/
 
 build/
 
+.mcp.json
 .vercel/
 
 # Generated at install time by scripts/copy-pdf-worker.js
