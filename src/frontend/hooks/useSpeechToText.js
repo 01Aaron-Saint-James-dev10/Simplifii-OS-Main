@@ -1,18 +1,22 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 
 /**
- * useSpeechToText
+ * Voice-to-text via Web Speech API.
  *
- * Wraps the Web Speech API (SpeechRecognition / webkitSpeechRecognition).
- * Returns controls for start/stop and live transcript state.
- *
- * - Continuous mode ON, interim results ON
- * - Language: en-AU
- * - Handles permission denied, no-speech, network errors
- * - Does NOT store recordings or send data anywhere
+ * Privacy posture:
+ * - Audio NEVER touches Simplifii-OS servers.
+ * - Audio processing is delegated to the browser's speech service:
+ *   - Chrome/Edge: Google's speech service
+ *   - Safari: on-device (since Safari 14.1)
+ *   - Firefox: unsupported (hook returns isSupported: false)
+ * - Transcripts are NEVER persisted to Supabase.
+ * - Transcripts are NEVER logged to HistoryOfThought.
+ * - Transcripts are NEVER sent through any Simplifii-OS analytics.
+ * - The only place a transcript lives is wherever the consuming component
+ *   inserts it (e.g. inside the TipTap editor as user-owned content).
  */
 
-const SpeechRecognition = typeof window !== 'undefined'
+const SpeechRecognitionAPI = typeof window !== 'undefined'
   ? window.SpeechRecognition || window.webkitSpeechRecognition
   : null;
 
@@ -22,7 +26,7 @@ export function useSpeechToText() {
   const [interimTranscript, setInterimTranscript] = useState('');
   const [error, setError] = useState(null);
   const recognitionRef = useRef(null);
-  const isSupported = !!SpeechRecognition;
+  const isSupported = Boolean(SpeechRecognitionAPI);
 
   const stop = useCallback(() => {
     if (recognitionRef.current) {
@@ -32,19 +36,26 @@ export function useSpeechToText() {
     setInterimTranscript('');
   }, []);
 
+  const reset = useCallback(() => {
+    setTranscript('');
+    setInterimTranscript('');
+    setError(null);
+  }, []);
+
   const start = useCallback(() => {
-    if (!SpeechRecognition) {
-      setError('Voice input is not supported in this browser.');
+    if (!SpeechRecognitionAPI) {
+      setError({ type: 'unsupported', message: 'Voice input is not supported in this browser.' });
       return;
     }
     setError(null);
     setTranscript('');
     setInterimTranscript('');
 
-    const recognition = new SpeechRecognition();
+    const recognition = new SpeechRecognitionAPI();
     recognition.lang = 'en-AU';
     recognition.continuous = true;
     recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {
       setIsListening(true);
@@ -64,7 +75,6 @@ export function useSpeechToText() {
       if (finalChunk) {
         setTranscript(finalChunk);
         setInterimTranscript('');
-        // Dispatch event so CanvasEditor can insert at cursor
         window.dispatchEvent(new CustomEvent('simplifii:voice-transcript', { detail: { text: finalChunk } }));
       } else {
         setInterimTranscript(interimChunk);
@@ -72,15 +82,17 @@ export function useSpeechToText() {
     };
 
     recognition.onerror = (event) => {
-      if (event.error === 'not-allowed') {
-        setError('Microphone access denied. Check your browser permissions.');
-      } else if (event.error === 'no-speech') {
-        setError('No speech detected. Try again.');
-      } else if (event.error === 'network') {
-        setError('Network error. Voice input requires an internet connection in Chrome.');
-      } else {
-        setError(`Voice error: ${event.error}`);
-      }
+      const map = {
+        'not-allowed': 'Microphone permission denied. Enable it in your browser settings.',
+        'service-not-allowed': 'Microphone permission denied. Enable it in your browser settings.',
+        'no-speech': 'No speech detected. Try speaking closer to the mic.',
+        'audio-capture': 'No microphone found. Check your audio setup.',
+        'network': 'Speech service unavailable. Try again.',
+      };
+      setError({
+        type: event.error,
+        message: map[event.error] || 'Voice input failed. Please try again.',
+      });
       setIsListening(false);
     };
 
@@ -94,14 +106,14 @@ export function useSpeechToText() {
     recognition.start();
   }, []);
 
-  // Cleanup on unmount
+  // Cleanup on unmount: release mic
   useEffect(() => {
     return () => {
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        recognitionRef.current.abort();
       }
     };
   }, []);
 
-  return { isListening, transcript, interimTranscript, start, stop, isSupported, error };
+  return { isListening, transcript, interimTranscript, start, stop, reset, isSupported, error };
 }
