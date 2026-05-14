@@ -159,15 +159,29 @@ export default function HomeScreen() {
       </nav>
 
       <main className="home-main">
-        {/* Greeting */}
-        {(displayName || isAaron) && (
-          <p style={{ fontFamily: FONT_DISPLAY, fontSize: 15, color: TEXT_MUTED, margin: '16px 24px 0', padding: 0 }}>
-            {isFirstSession
-              ? `Welcome to Simplifii-OS${displayName ? `, ${displayName}` : ''}`
-              : `Welcome back${displayName ? `, ${displayName}` : ''}`
-            }
-          </p>
-        )}
+        {/* Greeting: time-aware, context-aware */}
+        {(displayName || isAaron) && (() => {
+          const hour = new Date().getHours();
+          const name = displayName || '';
+          const nameSuffix = name ? `, ${name}` : '';
+          let greeting;
+          if (isFirstSession) {
+            greeting = `Welcome to Simplifii-OS${nameSuffix}`;
+          } else if (hour < 6) {
+            greeting = `Working late${nameSuffix}?`;
+          } else if (hour < 12) {
+            greeting = `Good morning${nameSuffix}`;
+          } else if (hour < 17) {
+            greeting = `Good afternoon${nameSuffix}`;
+          } else {
+            greeting = `Good evening${nameSuffix}`;
+          }
+          return (
+            <p style={{ fontFamily: FONT_DISPLAY, fontSize: 15, color: TEXT_MUTED, margin: '16px 24px 0', padding: 0 }}>
+              {greeting}
+            </p>
+          );
+        })()}
 
         {/* Empty state */}
         {isEmpty && !isAaron && (

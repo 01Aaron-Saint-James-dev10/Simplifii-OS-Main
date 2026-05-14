@@ -168,7 +168,15 @@ function OrbitalRing({ size, duration, color }) {
 
 const FLAME_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
 
-export default function NeuralAvatar({ persona = 'browser', wordCount = 0, deepWork = false, size = 80, style }) {
+/**
+ * BrOWSER 2.0 states:
+ *   'idle'      - gentle breathing pulse (default)
+ *   'listening' - faster pulse, expanded glow ring
+ *   'thinking'  - rapid shimmer, geometry rotating slowly
+ *   'speaking'  - pulsing at speech rhythm cadence
+ *   'resting'   - minimal glow, near-static, low opacity
+ */
+export default function NeuralAvatar({ persona = 'browser', wordCount = 0, deepWork = false, size = 80, state = 'idle', style }) {
   const pathControls = useAnimation();
   const glowControls = useAnimation();
   const prevMilestone = useRef(0);
@@ -198,12 +206,20 @@ export default function NeuralAvatar({ persona = 'browser', wordCount = 0, deepW
         opacity:    { delay: i * 0.06, duration: 0.2 },
       },
     }));
-    const pulseDuration = isSparq ? 0.8 : isCompass ? 4 : 3;
+    // BrOWSER 2.0: glow pulse varies by state
+    const stateConfig = {
+      idle:      { duration: isSparq ? 0.8 : isCompass ? 4 : 3, peak: isSparq ? 0.9 : 0.65 },
+      listening: { duration: 1.2, peak: 0.85 },
+      thinking:  { duration: 0.6, peak: 0.95 },
+      speaking:  { duration: 0.9, peak: 0.75 },
+      resting:   { duration: 6, peak: 0.3 },
+    };
+    const cfg = stateConfig[state] || stateConfig.idle;
     glowControls.start({
-      opacity: [0.3, isSparq ? 0.9 : 0.65, 0.3],
-      transition: { duration: pulseDuration, repeat: Infinity, ease: 'easeInOut' },
+      opacity: [state === 'resting' ? 0.1 : 0.3, cfg.peak, state === 'resting' ? 0.1 : 0.3],
+      transition: { duration: cfg.duration, repeat: Infinity, ease: 'easeInOut' },
     });
-  }, []); // eslint-disable-line
+  }, [state]); // eslint-disable-line
 
   // Redraw when deepWork changes (BrOWSER geometry hardens)
   useEffect(() => {
@@ -230,8 +246,15 @@ export default function NeuralAvatar({ persona = 'browser', wordCount = 0, deepW
     setFlames(prev => prev.filter(f => f.id !== id));
   }
 
+  const containerStyle = {
+    position: 'relative', width: size, height: size, flexShrink: 0,
+    opacity: state === 'resting' ? 0.5 : 1,
+    transition: 'opacity 0.8s ease',
+    ...style,
+  };
+
   return (
-    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0, ...style }}>
+    <div style={containerStyle}>
       {/* C-MPASS orbital rings (behind SVG) */}
       {isCompass && (
         <>
@@ -246,7 +269,10 @@ export default function NeuralAvatar({ persona = 'browser', wordCount = 0, deepW
         height={size}
         fill="none"
         aria-hidden="true"
-        style={{ display: 'block', position: 'relative', zIndex: 1 }}
+        style={{
+          display: 'block', position: 'relative', zIndex: 1,
+          animation: state === 'thinking' ? 'browserThinkSpin 8s linear infinite' : 'none',
+        }}
       >
         <circle cx="50" cy="50" r="48" fill={ZINC_800} stroke={ZINC_700} strokeWidth="1" />
 
@@ -288,6 +314,14 @@ export default function NeuralAvatar({ persona = 'browser', wordCount = 0, deepW
       <AnimatePresence>
         {flashing && <LightningFlash key="flash" />}
       </AnimatePresence>
+
+      {/* BrOWSER 2.0 state keyframes */}
+      <style>{`
+        @keyframes browserThinkSpin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { endSession } from '../../core/StudyPatternTracker';
 import {
   TEXT_MUTED, ACCENT_PULSE,
   FONT_SYSTEM, BORDER_RADIUS, SURFACE_RAISED, ACCENT_BORDER,
@@ -14,6 +15,7 @@ export default function LogoutButton() {
 
   const handleLogout = async () => {
     setBusy(true);
+    endSession();
     try {
       await signOut();
     } catch (err) {

@@ -13,6 +13,7 @@ import FirstRunModal from './components/disclaimers/FirstRunModal';
 import AiDisclaimerFooter from './components/disclaimers/AiDisclaimerFooter';
 import FeedbackButton from './feedback/FeedbackButton';
 import BetaBanner from './components/BetaBanner';
+import { startSession, endSession } from '../core/StudyPatternTracker';
 import {
   SURFACE_BASE, SURFACE_RAISED,
   TEXT_MUTED, FONT_BODY,
@@ -59,6 +60,13 @@ export default function AppShell() {
       }
     })();
   }, [user]);
+
+  // Study pattern tracking: start session on mount, end on unmount
+  useEffect(() => {
+    if (disclaimerState !== 'done') return;
+    startSession();
+    return () => endSession();
+  }, [disclaimerState]);
 
   if (disclaimerState === 'loading') {
     return (

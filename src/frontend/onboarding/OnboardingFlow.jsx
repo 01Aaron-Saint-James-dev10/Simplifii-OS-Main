@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import TierPickerStep from './TierPickerStep';
 import AccessibilityStep from './AccessibilityStep';
+import ProfilerStep from './ProfilerStep';
 import AiDisclaimerFooter from '../components/disclaimers/AiDisclaimerFooter';
 import {
   SURFACE_BASE, SURFACE_RAISED,
@@ -52,7 +53,9 @@ export default function OnboardingFlow() {
   const [step, setStep] = useState(0);
   const [tier, setTier] = useState(null);
   const [prefs, setPrefs] = useState(defaultPrefs);
+  const [profilerData, setProfilerData] = useState(null);
   const [saving, setSaving] = useState(false);
+  const TOTAL_STEPS = 3;
 
   const [saveError, setSaveError] = useState('');
 
@@ -60,12 +63,13 @@ export default function OnboardingFlow() {
     setSaving(true);
     setSaveError('');
     try {
+      const mergedPrefs = { ...accessibilityPrefs, profiler: profilerData || null };
       const { error: updateErr } = await supabase
         .from('profiles')
         .update({
           tier: tier,
           onboarding_completed: true,
-          preferences: accessibilityPrefs,
+          preferences: mergedPrefs,
         })
         .eq('id', user.id);
       if (updateErr) throw updateErr;
@@ -82,12 +86,12 @@ export default function OnboardingFlow() {
     <div style={{ minHeight: '100vh', background: SURFACE_BASE, display: 'flex', flexDirection: 'column' }}>
       {/* Progress indicator */}
       <div style={{ display: 'flex', justifyContent: 'center', gap: 8, padding: '32px 24px 0' }}>
-        {[0, 1].map(i => (
+        {Array.from({ length: TOTAL_STEPS }, (_, i) => (
           <div key={i} style={{ width: 48, height: 3, borderRadius: 2, background: step >= i ? '#10b981' : SURFACE_RAISED, transition: 'background 0.3s' }} aria-hidden="true" />
         ))}
       </div>
       <p style={{ textAlign: 'center', fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_FAINT, letterSpacing: '0.06em', margin: '8px 0 0' }}>
-        Step {step + 1} of 2
+        Step {step + 1} of {TOTAL_STEPS}
       </p>
 
       {/* Save error toast */}
@@ -114,8 +118,16 @@ export default function OnboardingFlow() {
               <AccessibilityStep
                 prefs={prefs}
                 onPrefsChange={setPrefs}
-                onSave={() => finish(prefs)}
-                onSkip={() => finish(defaultPrefs)}
+                onSave={() => setStep(2)}
+                onSkip={() => setStep(2)}
+              />
+            </motion.div>
+          )}
+          {step === 2 && (
+            <motion.div key="profiler" variants={slideVariants} initial="enter" animate="centre" exit="exit" transition={{ duration: 0.3 }}>
+              <ProfilerStep
+                onComplete={(data) => { setProfilerData(data); finish(prefs); }}
+                onSkip={() => finish(prefs)}
               />
             </motion.div>
           )}
