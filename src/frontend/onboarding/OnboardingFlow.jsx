@@ -6,6 +6,8 @@ import { supabase } from '../../lib/supabaseClient';
 import TierPickerStep from './TierPickerStep';
 import AccessibilityStep from './AccessibilityStep';
 import ProfilerStep from './ProfilerStep';
+import SecondaryDetailsStep from './SecondaryDetailsStep';
+import PainPointsStep from './PainPointsStep';
 import AiDisclaimerFooter from '../components/disclaimers/AiDisclaimerFooter';
 import {
   SURFACE_BASE, SURFACE_RAISED,
@@ -47,30 +49,53 @@ function applyPrefsToLocalStorage(prefs) {
   localStorage.setItem('highContrast', String(prefs.highContrast));
 }
 
+// Steps are dynamic based on tier. Secondary tier gets extra steps.
+// Non-secondary: tier -> accessibility -> profiler
+// Secondary:     tier -> secondaryDetails -> accessibility -> painPoints -> profiler
+function buildSteps(tier) {
+  const steps = ['tier'];
+  if (tier === 'secondary') steps.push('secondaryDetails');
+  steps.push('accessibility');
+  if (tier === 'secondary') steps.push('painPoints');
+  steps.push('profiler');
+  return steps;
+}
+
 export default function OnboardingFlow() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [step, setStep] = useState(0);
+  const [stepIndex, setStepIndex] = useState(0);
   const [tier, setTier] = useState(null);
   const [prefs, setPrefs] = useState(defaultPrefs);
   const [profilerData, setProfilerData] = useState(null);
+  const [secondaryData, setSecondaryData] = useState({});
+  const [painPoints, setPainPoints] = useState([]);
   const [saving, setSaving] = useState(false);
-  const TOTAL_STEPS = 3;
-
   const [saveError, setSaveError] = useState('');
+
+  const steps = buildSteps(tier);
+  const currentStep = steps[stepIndex] || 'tier';
+  const totalSteps = steps.length;
+
+  const next = () => setStepIndex(i => Math.min(i + 1, totalSteps - 1));
 
   const finish = async (accessibilityPrefs) => {
     setSaving(true);
     setSaveError('');
     try {
       const mergedPrefs = { ...accessibilityPrefs, profiler: profilerData || null };
+      const update = {
+        tier,
+        onboarding_completed: true,
+        preferences: mergedPrefs,
+      };
+      if (secondaryData.yearLevel) update.year_level = secondaryData.yearLevel;
+      if (secondaryData.state) update.state = secondaryData.state;
+      if (painPoints.length > 0) update.pain_points = painPoints;
+
       const { error: updateErr } = await supabase
         .from('profiles')
-        .update({
-          tier: tier,
-          onboarding_completed: true,
-          preferences: mergedPrefs,
-        })
+        .update(update)
         .eq('id', user.id);
       if (updateErr) throw updateErr;
       applyPrefsToLocalStorage(accessibilityPrefs);
@@ -86,12 +111,12 @@ export default function OnboardingFlow() {
     <div style={{ minHeight: '100vh', background: SURFACE_BASE, display: 'flex', flexDirection: 'column' }}>
       {/* Progress indicator */}
       <div style={{ display: 'flex', justifyContent: 'center', gap: 8, padding: '32px 24px 0' }}>
-        {Array.from({ length: TOTAL_STEPS }, (_, i) => (
-          <div key={i} style={{ width: 48, height: 3, borderRadius: 2, background: step >= i ? '#10b981' : SURFACE_RAISED, transition: 'background 0.3s' }} aria-hidden="true" />
+        {Array.from({ length: totalSteps }, (_, i) => (
+          <div key={i} style={{ width: 48, height: 3, borderRadius: 2, background: stepIndex >= i ? '#10b981' : SURFACE_RAISED, transition: 'background 0.3s' }} aria-hidden="true" />
         ))}
       </div>
       <p style={{ textAlign: 'center', fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_FAINT, letterSpacing: '0.06em', margin: '8px 0 0' }}>
-        Step {step + 1} of {TOTAL_STEPS}
+        Step {stepIndex + 1} of {totalSteps}
       </p>
 
       {/* Save error toast */}
@@ -108,22 +133,38 @@ export default function OnboardingFlow() {
       {/* Steps */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 0 80px' }}>
         <AnimatePresence mode="wait">
-          {step === 0 && (
+          {currentStep === 'tier' && (
             <motion.div key="tier" variants={slideVariants} initial="enter" animate="centre" exit="exit" transition={{ duration: 0.3 }}>
-              <TierPickerStep selected={tier} onSelect={setTier} onContinue={() => setStep(1)} />
+              <TierPickerStep selected={tier} onSelect={setTier} onContinue={next} />
             </motion.div>
           )}
-          {step === 1 && (
+          {currentStep === 'secondaryDetails' && (
+            <motion.div key="secDetails" variants={slideVariants} initial="enter" animate="centre" exit="exit" transition={{ duration: 0.3 }}>
+              <SecondaryDetailsStep
+                onContinue={(data) => { setSecondaryData(data); next(); }}
+                onSkip={next}
+              />
+            </motion.div>
+          )}
+          {currentStep === 'accessibility' && (
             <motion.div key="a11y" variants={slideVariants} initial="enter" animate="centre" exit="exit" transition={{ duration: 0.3 }}>
               <AccessibilityStep
                 prefs={prefs}
                 onPrefsChange={setPrefs}
-                onSave={() => setStep(2)}
-                onSkip={() => setStep(2)}
+                onSave={next}
+                onSkip={next}
               />
             </motion.div>
           )}
-          {step === 2 && (
+          {currentStep === 'painPoints' && (
+            <motion.div key="painPoints" variants={slideVariants} initial="enter" animate="centre" exit="exit" transition={{ duration: 0.3 }}>
+              <PainPointsStep
+                onContinue={(pts) => { setPainPoints(pts); next(); }}
+                onSkip={next}
+              />
+            </motion.div>
+          )}
+          {currentStep === 'profiler' && (
             <motion.div key="profiler" variants={slideVariants} initial="enter" animate="centre" exit="exit" transition={{ duration: 0.3 }}>
               <ProfilerStep
                 onComplete={(data) => { setProfilerData(data); finish(prefs); }}
