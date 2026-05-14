@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useSettings } from '../SettingsContext';
 import {
   SURFACE_RAISED,
   TEXT_PRIMARY,
@@ -33,6 +34,7 @@ const QUICK_PROMPTS = [
 ];
 
 export default function TutorPanel({ assessmentTitle }) {
+  const { activeTier } = useSettings();
   const [messages, setMessages] = useState([
     { role: 'tutor', text: `Working on "${assessmentTitle || 'your assessment'}". What are you stuck on?` },
   ]);
@@ -64,6 +66,7 @@ export default function TutorPanel({ assessmentTitle }) {
         body: JSON.stringify({
           messages: updatedMessages.slice(1), // skip the initial greeting
           assessmentTitle,
+          tier: activeTier || 'tertiary',
         }),
       });
       const data = await response.json();
