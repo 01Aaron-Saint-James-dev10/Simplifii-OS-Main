@@ -16,19 +16,23 @@ export default function LogoutButton() {
     setBusy(true);
     try {
       await signOut();
-      // Clear all app state so next login starts clean
-      const keysToKeep = ['simplifii_beta_banner_dismissed'];
-      const allKeys = Object.keys(localStorage);
-      for (const key of allKeys) {
-        if (key.startsWith('simplifii') && !keysToKeep.includes(key)) {
-          localStorage.removeItem(key);
-        }
-      }
-      // Force full page reload to reset all React context + IndexedDB handles
-      window.location.replace('/login');
-    } catch {
-      window.location.replace('/login');
+    } catch (err) {
+      if (typeof console !== 'undefined') console.warn('[LogoutButton] signOut error (proceeding anyway):', err?.message);
     }
+    // Clear ALL app + Supabase state so next login starts clean.
+    // sb-* keys are Supabase session tokens that must go to prevent
+    // stale-token re-login failures.
+    const keysToKeep = new Set(['simplifii_beta_banner_dismissed']);
+    const allKeys = Object.keys(localStorage);
+    for (const key of allKeys) {
+      if (keysToKeep.has(key)) continue;
+      if (key.startsWith('simplifii') || key.startsWith('sb-')) {
+        localStorage.removeItem(key);
+      }
+    }
+    // Full page reload resets React context, IndexedDB handles, and
+    // ensures AuthProvider re-initialises with no cached session.
+    window.location.replace('/login');
   };
 
   return (

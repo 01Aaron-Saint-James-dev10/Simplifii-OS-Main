@@ -15,7 +15,7 @@ import TalkToSomeoneLink from './components/TalkToSomeoneLink';
 import AddCourseButton from './components/AddCourseButton';
 import LogoutButton from './auth/LogoutButton';
 import EmptyWorkspace from './workspace/EmptyWorkspace';
-import { ACCENT_BORDER, ACCENT_PULSE } from '../theme/tokens';
+import { ACCENT_BORDER, ACCENT_PULSE, TEXT_MUTED, FONT_DISPLAY } from '../theme/tokens';
 import './HomeScreen.css';
 
 /**
@@ -82,12 +82,20 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const { navigateToCanvas, navigateToAssessments, navigateToResearch } = useRouter();
   const [profileTier, setProfileTier] = useState(null);
+  const [displayName, setDisplayName] = useState(null);
   const isAaron = user?.email === AARON_EMAIL;
+
+  // Track whether this is first render of the session for greeting copy
+  const isFirstSession = !sessionStorage.getItem('simplifii_greeted');
 
   useEffect(() => {
     if (!user || isAaron) return;
-    supabase.from('profiles').select('tier').eq('id', user.id).single()
-      .then(({ data }) => { if (data?.tier) setProfileTier(data.tier); });
+    supabase.from('profiles').select('tier, display_name').eq('id', user.id).single()
+      .then(({ data }) => {
+        if (data?.tier) setProfileTier(data.tier);
+        if (data?.display_name) setDisplayName(data.display_name);
+        sessionStorage.setItem('simplifii_greeted', 'true');
+      });
   }, [user, isAaron]);
   // Pass activeTier into the existing stream system so SovereignRouter
   // can resolve the correct profile. No layout changes in this sprint.
@@ -151,6 +159,16 @@ export default function HomeScreen() {
       </nav>
 
       <main className="home-main">
+        {/* Greeting */}
+        {(displayName || isAaron) && (
+          <p style={{ fontFamily: FONT_DISPLAY, fontSize: 15, color: TEXT_MUTED, margin: '16px 24px 0', padding: 0 }}>
+            {isFirstSession
+              ? `Welcome to Simplifii-OS${displayName ? `, ${displayName}` : ''}`
+              : `Welcome back${displayName ? `, ${displayName}` : ''}`
+            }
+          </p>
+        )}
+
         {/* Empty state */}
         {isEmpty && !isAaron && (
           <EmptyWorkspace
