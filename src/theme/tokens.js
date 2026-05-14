@@ -161,8 +161,10 @@ export const BORDER_RADIUS  = 3; // px: max 4px per Sovereign Standards
 // Typography tokens
 // ============================================================
 
-export const FONT_SYSTEM = "'JetBrains Mono', monospace"; // Labels, badges, status
-export const FONT_BODY   = "'Inter', sans-serif";          // Body, headings
+export const FONT_SYSTEM  = "'JetBrains Mono', monospace"; // Labels, badges, status
+export const FONT_BODY    = "'Inter', sans-serif";          // Body, headings
+export const FONT_DISPLAY = "'Geist', -apple-system, BlinkMacSystemFont, sans-serif"; // Landing headlines
+export const FONT_GEIST_MONO = "'Geist Mono', ui-monospace, monospace"; // Landing mono
 
 export const TYPE_LABEL = {
   fontFamily: FONT_SYSTEM,

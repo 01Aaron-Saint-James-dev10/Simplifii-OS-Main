@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import '@fontsource/geist-sans/400.css';
+import '@fontsource/geist-sans/500.css';
+import '@fontsource/geist-sans/600.css';
+import '@fontsource/geist-sans/700.css';
+import '@fontsource/geist-sans/800.css';
 import {
   SURFACE_BASE, SURFACE_CARD, SURFACE_RAISED,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT, TEXT_LABEL,
@@ -9,10 +15,13 @@ import {
   ACCENT_GLASS_FAINT, ACCENT_GLASS_SUBTLE,
   GLASS_SURFACE, GLASS_BORDER, GLASS_BORDER_HOVER,
   GLOW_EMERALD, ACCENT_SHADOW_FAINT,
-  FONT_BODY, FONT_SYSTEM, TEXT_LINK,
+  FONT_BODY, FONT_SYSTEM, FONT_DISPLAY, TEXT_LINK,
   BORDER_RADIUS, GRADIENT_EMERALD_CYAN,
 } from '../../theme/tokens';
+import NeuralAvatar from '../components/visuals/NeuralAvatar';
 import './LandingPage.css';
+
+const MQ_REDUCE = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 /* ── Data ────────────────────────────────────────────────────────── */
 
@@ -100,32 +109,52 @@ export default function LandingPage() {
 
       {/* ── HERO ──────────────────────────────────────────────── */}
       <header className="lp-hero" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 24px 64px', position: 'relative' }}>
-        <div style={{ maxWidth: 860, textAlign: 'center', position: 'relative', zIndex: 1 }}>
-          <h1 className="lp-fade-1" style={{ fontFamily: FONT_BODY, fontWeight: 800, fontSize: 'clamp(2.5rem, 8vw, 5rem)', lineHeight: 1.05, letterSpacing: '-0.03em', margin: '0 0 8px' }}>
-            <span style={{ background: GRADIENT_EMERALD_CYAN, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-              Not AI that does your thinking.
-            </span>
-            <br />
-            <span style={{ color: TEXT_PRIMARY }}>AI that protects it.</span>
-          </h1>
+        <div className="lp-hero-grid">
+          <div className="lp-hero-content">
+            <p className="lp-fade-1" style={{ fontFamily: FONT_SYSTEM, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: ACCENT_PULSE, margin: '0 0 16px' }}>
+              For every kind of mind
+            </p>
+            <h1 className="lp-fade-1" style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(2.5rem, 8vw, 5rem)', lineHeight: 1.05, letterSpacing: '-0.03em', margin: '0 0 8px' }}>
+              <span style={{ background: GRADIENT_EMERALD_CYAN, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                Not AI that does your thinking.
+              </span>
+              <br />
+              <span style={{ color: TEXT_PRIMARY }}>AI that protects it.</span>
+            </h1>
 
-          <p className="lp-fade-2" style={{ fontFamily: FONT_BODY, fontSize: 'clamp(1rem, 2.4vw, 1.25rem)', lineHeight: 1.7, maxWidth: 580, margin: '24px auto 36px', color: TEXT_MUTED }}>
-            The neuroinclusive thinking layer between you and the work that matters.<br />
-            Prepare, organise, decide, follow through: in your own voice.
-          </p>
+            <p className="lp-fade-2" style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(1rem, 2.4vw, 1.25rem)', lineHeight: 1.7, maxWidth: 520, margin: '24px 0 36px', color: TEXT_MUTED }}>
+              The neuroinclusive thinking layer between you and the work that matters.<br />
+              Prepare, organise, decide, follow through: in your own voice.
+            </p>
 
-          <div className="lp-fade-3" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
-            <Link to="/signup" className="lp-cta-primary" style={{ display: 'inline-block', padding: '16px 40px', background: ACCENT_PULSE, borderRadius: 8, fontFamily: FONT_BODY, fontSize: 17, fontWeight: 700, textDecoration: 'none', boxShadow: GLOW_EMERALD }}>
-              Start free
-            </Link>
-            <a href="#how-it-works" onClick={scrollToHow} style={{ fontFamily: FONT_BODY, fontSize: 15, fontWeight: 600, textDecoration: 'none', color: TEXT_LINK, cursor: 'pointer' }}>
-              See it work &darr;
-            </a>
+            <div className="lp-fade-3" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
+              <Link to="/signup" className="lp-cta-primary" style={{ display: 'inline-block', padding: '16px 40px', background: ACCENT_PULSE, borderRadius: 8, fontFamily: FONT_DISPLAY, fontSize: 17, fontWeight: 700, textDecoration: 'none', boxShadow: GLOW_EMERALD }}>
+                Start free
+              </Link>
+              <a href="#how-it-works" onClick={scrollToHow} style={{ fontFamily: FONT_DISPLAY, fontSize: 15, fontWeight: 600, textDecoration: 'none', color: TEXT_LINK, cursor: 'pointer' }}>
+                See it work &#8595;
+              </a>
+            </div>
+
+            <p className="lp-fade-4" style={{ fontFamily: FONT_SYSTEM, fontSize: 12, letterSpacing: '0.04em', color: TEXT_FAINT }}>
+              No credit card. No ads. Your data stays yours.
+            </p>
           </div>
 
-          <p className="lp-fade-4" style={{ fontFamily: FONT_SYSTEM, fontSize: 12, letterSpacing: '0.04em', color: TEXT_FAINT }}>
-            No credit card. No ads. Your data stays yours.
-          </p>
+          <motion.div
+            className="lp-hero-visual lp-fade-3"
+            animate={MQ_REDUCE ? {} : { y: [0, -8, 0] }}
+            transition={MQ_REDUCE ? {} : { duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            <div style={{ background: GLASS_SURFACE, border: `1px solid ${GLASS_BORDER}`, borderRadius: 16, padding: 32, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: GLOW_EMERALD }}>
+              <motion.div
+                animate={MQ_REDUCE ? {} : { scale: [1, 1.02, 1] }}
+                transition={MQ_REDUCE ? {} : { duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <NeuralAvatar persona="browser" size={160} />
+              </motion.div>
+            </div>
+          </motion.div>
         </div>
       </header>
 
@@ -148,10 +177,10 @@ export default function LandingPage() {
 
       {/* ── PILLARS ───────────────────────────────────────────── */}
       <section id="how-it-works" ref={r2.ref} className={r2.cls} style={{ maxWidth: 1120, margin: '0 auto', padding: '80px 24px' }}>
-        <h2 style={{ fontFamily: FONT_BODY, fontWeight: 700, fontSize: 'clamp(1.5rem, 4vw, 2.25rem)', textAlign: 'center', margin: '0 0 12px', background: GRADIENT_EMERALD_CYAN, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+        <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 'clamp(1.5rem, 4vw, 2.25rem)', textAlign: 'center', margin: '0 0 12px', background: GRADIENT_EMERALD_CYAN, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
           Built around how thinking actually works
         </h2>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 16, color: TEXT_MUTED, textAlign: 'center', maxWidth: 520, margin: '0 auto 48px' }}>
+        <p style={{ fontFamily: FONT_DISPLAY, fontSize: 16, color: TEXT_MUTED, textAlign: 'center', maxWidth: 520, margin: '0 auto 48px' }}>
           Four stages. One workflow. Every tool you need, nothing you do not.
         </p>
 
@@ -170,7 +199,7 @@ export default function LandingPage() {
 
       {/* ── BUILT FOR EVERY KIND OF MIND (accessibility features) ── */}
       <section ref={rA.ref} className={rA.cls} style={{ maxWidth: 1120, margin: '0 auto', padding: '80px 24px' }}>
-        <h2 style={{ fontFamily: FONT_BODY, fontWeight: 700, fontSize: 'clamp(1.5rem, 4vw, 2.25rem)', textAlign: 'center', margin: '0 0 12px', background: GRADIENT_EMERALD_CYAN, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+        <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 'clamp(1.5rem, 4vw, 2.25rem)', textAlign: 'center', margin: '0 0 12px', background: GRADIENT_EMERALD_CYAN, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
           Built for every kind of mind
         </h2>
         <p style={{ fontFamily: FONT_BODY, fontSize: 16, color: TEXT_MUTED, textAlign: 'center', maxWidth: 560, margin: '0 auto 48px' }}>
@@ -195,7 +224,7 @@ export default function LandingPage() {
 
       {/* ── PRODUCT SHOWCASE ──────────────────────────────────── */}
       <section ref={r3.ref} className={r3.cls} style={{ maxWidth: 960, margin: '0 auto', padding: '80px 24px' }}>
-        <h2 style={{ fontFamily: FONT_BODY, fontWeight: 700, fontSize: 'clamp(1.5rem, 4vw, 2.25rem)', textAlign: 'center', margin: '0 0 40px', color: TEXT_PRIMARY }}>
+        <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 'clamp(1.5rem, 4vw, 2.25rem)', textAlign: 'center', margin: '0 0 40px', color: TEXT_PRIMARY }}>
           See it in action
         </h2>
         <div role="tablist" aria-label="Product showcase" style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 32, flexWrap: 'wrap' }} onKeyDown={handleTabKey}>
@@ -205,10 +234,14 @@ export default function LandingPage() {
             </button>
           ))}
         </div>
-        <div role="tabpanel" id={`showcase-panel-${activeTab}`} aria-labelledby={`showcase-tab-${activeTab}`} tabIndex={0} style={{ background: GLASS_SURFACE, border: `1px solid ${GLASS_BORDER}`, borderRadius: 12, overflow: 'hidden', boxShadow: ACCENT_SHADOW_FAINT }}>
-          <div style={{ aspectRatio: '16/9', display: 'flex', alignItems: 'center', justifyContent: 'center', background: `radial-gradient(ellipse at center, ${ACCENT_GLASS_FAINT} 0%, transparent 70%)`, minHeight: 320 }}>
-            <p style={{ fontFamily: FONT_SYSTEM, fontSize: 13, color: TEXT_FAINT, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-              {SHOWCASE.find(t => t.id === activeTab)?.label} preview
+        <div role="tabpanel" id={`showcase-panel-${activeTab}`} aria-labelledby={`showcase-tab-${activeTab}`} tabIndex={0} style={{ background: GLASS_SURFACE, border: `1px solid ${GLASS_BORDER}`, borderRadius: 12, overflow: 'hidden', boxShadow: GLOW_EMERALD }}>
+          <div style={{ aspectRatio: '16/9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, background: `radial-gradient(ellipse at center, ${ACCENT_GLASS_FAINT} 0%, ${SURFACE_BASE} 70%)`, minHeight: 320 }}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={ACCENT_BORDER} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <p style={{ fontFamily: FONT_SYSTEM, fontSize: 11, color: TEXT_FAINT, letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0 }}>
+              Product preview coming soon
             </p>
           </div>
         </div>
@@ -221,7 +254,7 @@ export default function LandingPage() {
       <section ref={r4.ref} className={r4.cls} style={{ maxWidth: 1000, margin: '0 auto', padding: '80px 24px' }}>
         <div className="lp-diff-grid">
           <div>
-            <h2 style={{ fontFamily: FONT_BODY, fontWeight: 700, fontSize: 'clamp(1.5rem, 4vw, 2.25rem)', margin: '0 0 20px', color: TEXT_PRIMARY }}>Not AI doing your homework</h2>
+            <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 'clamp(1.5rem, 4vw, 2.25rem)', margin: '0 0 20px', color: TEXT_PRIMARY }}>Not AI doing your homework</h2>
             <p style={{ fontFamily: FONT_BODY, fontSize: 17, lineHeight: 1.75, color: TEXT_MUTED }}>
               Most AI tools write for you. Simplifii-OS works with you. Every claim is checked against sources you upload. Every word stays yours. The work is harder than ChatGPT. The results are actually defensible.
             </p>
@@ -237,10 +270,10 @@ export default function LandingPage() {
               {COMPARISON.map((c, i) => (
                 <tr key={i}>
                   <td style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_FAINT }}>
-                    <span aria-hidden="true" style={{ marginRight: 6, opacity: 0.5 }}>&times;</span>{c.them}
+                    <span aria-hidden="true" style={{ marginRight: 6, opacity: 0.5 }}>{'\u2717'}</span>{c.them}
                   </td>
                   <td style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_PRIMARY }}>
-                    <span aria-hidden="true" style={{ marginRight: 6, color: ACCENT_PULSE }}>&check;</span>{c.us}
+                    <span aria-hidden="true" style={{ marginRight: 6, color: ACCENT_PULSE }}>{'\u2713'}</span>{c.us}
                   </td>
                 </tr>
               ))}
@@ -251,7 +284,7 @@ export default function LandingPage() {
 
       {/* ── FAQ ────────────────────────────────────────────────── */}
       <section ref={r5.ref} className={r5.cls} style={{ maxWidth: 720, margin: '0 auto', padding: '80px 24px' }}>
-        <h2 style={{ fontFamily: FONT_BODY, fontWeight: 700, fontSize: 'clamp(1.5rem, 4vw, 2.25rem)', textAlign: 'center', margin: '0 0 48px', color: TEXT_PRIMARY }}>Common questions</h2>
+        <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 'clamp(1.5rem, 4vw, 2.25rem)', textAlign: 'center', margin: '0 0 48px', color: TEXT_PRIMARY }}>Common questions</h2>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {FAQS.map((f, i) => (
             <div key={i} style={{ borderBottom: `1px solid ${GLASS_BORDER}` }}>
@@ -286,7 +319,7 @@ export default function LandingPage() {
 
       {/* ── FINAL CTA ─────────────────────────────────────────── */}
       <section style={{ width: '100%', padding: '80px 24px', textAlign: 'center', background: `radial-gradient(ellipse at center bottom, ${ACCENT_GLASS_SUBTLE} 0%, transparent 60%)` }}>
-        <h2 style={{ fontFamily: FONT_BODY, fontWeight: 700, fontSize: 'clamp(1.5rem, 4vw, 2.25rem)', margin: '0 0 12px', color: TEXT_PRIMARY }}>
+        <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 'clamp(1.5rem, 4vw, 2.25rem)', margin: '0 0 12px', color: TEXT_PRIMARY }}>
           Stop using AI tools that erase your voice.
         </h2>
         <p style={{ fontFamily: FONT_BODY, fontSize: 16, color: TEXT_MUTED, margin: '0 0 32px' }}>
