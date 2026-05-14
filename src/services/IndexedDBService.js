@@ -1,5 +1,5 @@
 const DB_NAME = 'SimplifiiOS_Vault';
-const DB_VERSION = 5;
+const DB_VERSION = 6; // v6: added project_sources store for Citation Integrity Engine
 
 // Wipes the database and reloads the page. Call this if a version conflict
 // leaves the vault in an unrecoverable state.
@@ -58,6 +58,14 @@ export const initDB = () => {
         s.createIndex('by_stream', 'stream_id');
         s.createIndex('by_timestamp', 'timestamp_iso');
         s.createIndex('by_type', 'event_type');
+      }
+      // Sprint 3: Citation Integrity Engine. Corpus sources per project.
+      // Never sent to any server. Stored locally, verified by the user.
+      if (!db.objectStoreNames.contains('project_sources')) {
+        const ps = db.createObjectStore('project_sources', { keyPath: 'sourceId' });
+        ps.createIndex('by_project', 'projectId');
+        ps.createIndex('by_citation_key', 'citationKey');
+        ps.createIndex('by_verified', 'verified');
       }
     };
   });
@@ -162,6 +170,52 @@ export const clearAllUploadedPdfs = async () => {
   return new Promise((resolve, reject) => {
     const tx = db.transaction('uploaded_pdfs', 'readwrite');
     tx.objectStore('uploaded_pdfs').clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+};
+
+// ============================================================
+// Sprint 3: Citation Integrity Engine : project_sources store
+// Local-first corpus. Never sent to any server.
+// ============================================================
+
+export const saveSource = async (source) => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('project_sources', 'readwrite');
+    tx.objectStore('project_sources').put(source);
+    tx.oncomplete = () => resolve(source);
+    tx.onerror = () => reject(tx.error);
+  });
+};
+
+export const getSourceById = async (sourceId) => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('project_sources', 'readonly');
+    const req = tx.objectStore('project_sources').get(sourceId);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+};
+
+export const listSourcesByProject = async (projectId) => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('project_sources', 'readonly');
+    const index = tx.objectStore('project_sources').index('by_project');
+    const req = index.getAll(projectId);
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+};
+
+export const deleteSourceById = async (sourceId) => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('project_sources', 'readwrite');
+    tx.objectStore('project_sources').delete(sourceId);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });

@@ -80,3 +80,27 @@ export const FOCUS_SESSION_START = 'focus-session-start';
 
 /** Fired when a focus session ends (manual or idle timeout). */
 export const FOCUS_SESSION_END = 'focus-session-end';
+
+// ============================================================
+// Sprint 3: Citation Integrity Engine events
+// ============================================================
+
+/** Fired when a citation is inserted into the editor.
+ *  Payload: { sourceId, citationKey, style, projectId }
+ */
+export const CITATION_INSERTED = 'citation-inserted';
+
+/** Fired when a source is marked as verified by the user.
+ *  Payload: { sourceId, citationKey, projectId }
+ */
+export const CITATION_VERIFIED = 'citation-verified';
+
+/** Fired when a new source is added to the corpus.
+ *  Payload: { sourceId, citationKey, projectId, verified: false }
+ */
+export const SOURCE_ADDED = 'source-added';
+
+/** Fired when the hallucination scanner detects a citation that is not
+ *  in the corpus or is unverified. Payload: { author, year, projectId }
+ */
+export const HALLUCINATION_FLAGGED = 'hallucination-flagged';

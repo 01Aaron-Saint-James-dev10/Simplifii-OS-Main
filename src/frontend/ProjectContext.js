@@ -1,10 +1,16 @@
-import React, { createContext, useState, useContext, useEffect, useRef, useMemo } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef, useMemo, useCallback } from 'react';
 import { checkTemporalAlignment } from '../services/TemporalFilter';
 import { hydrate as hydrateStream, applyTheme as applyStreamTheme, streamFromLevel } from '../core/SovereignRouter';
 import { startEventBus, stopEventBus } from '../core/EventBus';
 import { configureSpine } from '../core/ExecutiveSpine';
 import { useAuth } from '../contexts/AuthContext';
 import { enableCloudSync, isCloudSyncEnabled } from '../core/HistoryOfThought';
+import {
+  listSources,
+  addSource as dbAddSource,
+  verifySource as dbVerifySource,
+  deleteSource as dbDeleteSource,
+} from '../services/CitationService';
 const ProjectContext = createContext();
 
 // Blocks intentionally start empty. Once a brief is grounded, mapToWorkspace
@@ -175,6 +181,42 @@ export const ProjectProvider = ({ children }) => {
     referencingStyle: 'Harvard',
     rubricCriteria: []
   });
+
+  // Sprint 3: Citation corpus for the active project.
+  // Loaded from IndexedDB when activeCourseId changes.
+  // Map of sourceId -> source record for O(1) lookups.
+  const [projectSources, setProjectSources] = useState({});
+
+  // Load corpus whenever the active course changes.
+  useEffect(() => {
+    if (!activeCourseId) { setProjectSources({}); return; }
+    listSources(activeCourseId).then(sources => {
+      const map = {};
+      for (const s of sources) map[s.sourceId] = s;
+      setProjectSources(map);
+    }).catch(() => setProjectSources({}));
+  }, [activeCourseId]);
+
+  const addProjectSource = useCallback(async (data) => {
+    const saved = await dbAddSource(activeCourseId, data);
+    setProjectSources(prev => ({ ...prev, [saved.sourceId]: saved }));
+    return saved;
+  }, [activeCourseId]);
+
+  const verifyProjectSource = useCallback(async (sourceId) => {
+    const updated = await dbVerifySource(sourceId);
+    setProjectSources(prev => ({ ...prev, [sourceId]: updated }));
+    return updated;
+  }, []);
+
+  const removeProjectSource = useCallback(async (sourceId) => {
+    await dbDeleteSource(sourceId);
+    setProjectSources(prev => {
+      const next = { ...prev };
+      delete next[sourceId];
+      return next;
+    });
+  }, []);
 
   // Active term filter for Home screen. Persisted to localStorage.
   const [activeTerm, setActiveTerm] = useState(() => loadJSON('simplifii_active_term', null));
@@ -612,6 +654,8 @@ export const ProjectProvider = ({ children }) => {
       courses, activeCourse, activeCourseId, setActiveCourseId, addCourse, addCourseWithData, upgradeCourseExtraction, removeCourse, renameCourse, switchSprint,
       // Sovereign stream resolver (Layer 1 of the Architecture Blueprint)
       stream,
+      // Citation corpus (Sprint 3)
+      projectSources, addProjectSource, verifyProjectSource, removeProjectSource,
       // Term grouping
       terms, activeTerm, setActiveTerm,
       // Institutional overrides (merged from InstitutionalContext)
