@@ -1,3 +1,9 @@
+-- SUPERSEDED by 20260514120000_baseline_live_schema.sql
+-- This file does not reflect the live state. Manual changes were applied
+-- to the live database after this migration ran. See the baseline migration
+-- for the authoritative schema.
+--
+-- Original description:
 -- Simplifii-OS initial schema
 -- Creates core tables for cloud sync, profiles, and course storage.
 

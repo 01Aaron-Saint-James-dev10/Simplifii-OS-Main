@@ -69,7 +69,10 @@ export default function AddCourseModal({ onClose, onCourseAdded, tier }) {
   };
 
   const finishWithCourse = () => {
-    onCourseAdded({ id: courseId, name: name.trim(), code: code.trim(), term });
+    const assessment = assessTitle.trim()
+      ? { title: assessTitle.trim(), dueDate: dueDate || null }
+      : null;
+    onCourseAdded({ id: courseId, name: name.trim(), code: code.trim(), term, assessment });
   };
 
   const handleBriefUploaded = async (url) => {

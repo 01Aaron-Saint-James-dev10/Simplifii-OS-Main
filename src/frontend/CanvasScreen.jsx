@@ -4,6 +4,7 @@ import { useSettings } from './SettingsContext';
 import { detectSuspectedCitations } from '../services/CitationStyleService';
 import { verifyFromSources } from '../services/CitationService';
 import { useRouter } from '../contexts/RouterContext';
+import { supabase } from '../lib/supabaseClient';
 import CanvasNav from './components/CanvasNav';
 import CanvasEditor from './components/CanvasEditor';
 import SectionRail from './components/SectionRail';
@@ -18,6 +19,7 @@ import BibliographyView from './components/BibliographyView';
 import BottomStrip from './components/BottomStrip';
 import ReentryOverlay from './components/ReentryOverlay';
 import CanvasSettingsOverlay from './components/CanvasSettingsOverlay';
+import NoBriefPrompt from './components/NoBriefPrompt';
 import './CanvasScreen.css';
 
 /**
@@ -31,13 +33,43 @@ import './CanvasScreen.css';
  */
 
 export default function CanvasScreen() {
-  const { courseId, assessmentTitle } = useRouter();
+  const { courseId, assessmentTitle, navigateToAssessments } = useRouter();
   const { courses, activeCourse, projectSources } = useProject();
   const { reducedMotion, isZenMode, theme } = useSettings();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  // Supabase fallback: if localStorage has no course for this courseId,
+  // fetch course + assessments from Supabase and rebuild extractionData.
+  const [sbCourse, setSbCourse] = useState(null);
+  useEffect(() => {
+    if (courses?.[courseId] || !courseId) return;
+    (async () => {
+      const { data: courseRow } = await supabase.from('courses')
+        .select('id, name, code, tier, term').eq('id', courseId).single();
+      if (!courseRow) return;
+      const { data: assessRows } = await supabase.from('assessments')
+        .select('id, title, brief_text, due_date, weight, status')
+        .eq('course_id', courseId).order('created_at');
+      const briefs = (assessRows || []).map(a => ({
+        title: a.title,
+        body: a.brief_text || '',
+        dueDate: a.due_date || null,
+        weight: a.weight || '',
+        wordCountGoal: 0,
+      }));
+      setSbCourse({
+        name: courseRow.name,
+        extractionData: {
+          assessmentBriefs: briefs,
+          assessmentTitles: briefs.map(b => b.weight ? `${b.title} (${b.weight})` : b.title),
+          rubricCriteria: [],
+        },
+      });
+    })();
+  }, [courseId, courses]);
+
   // Resolve course and assessment
-  const course = courses?.[courseId] || activeCourse || {};
+  const course = courses?.[courseId] || activeCourse || sbCourse || {};
   const courseName = course.name || 'Untitled';
   const briefs = course.extractionData?.assessmentBriefs || [];
   const brief = useMemo(() => {
@@ -158,6 +190,7 @@ export default function CanvasScreen() {
         htmlContent={draftText}
         courseId={courseId}
         onOpenSettings={() => setSettingsOpen(true)}
+        onCourseName={briefs.length > 1 ? () => navigateToAssessments(courseId) : undefined}
       />
 
       <div className="canvas-body">
@@ -170,6 +203,7 @@ export default function CanvasScreen() {
         />
 
         <div className="canvas-centre">
+          {briefs.length === 0 && <NoBriefPrompt courseId={courseId} />}
           <CanvasEditor
             courseId={courseId}
             assessmentTitle={currentTitle}

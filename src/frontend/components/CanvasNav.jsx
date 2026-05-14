@@ -30,7 +30,7 @@ import {
  *   lastSavedAgo      - string (e.g. "2s ago")
  */
 
-export default function CanvasNav({ courseName, assessmentTitle, saveStatus, lastSavedAgo, tiptapDoc, htmlContent, courseId, onOpenSettings }) {
+export default function CanvasNav({ courseName, assessmentTitle, saveStatus, lastSavedAgo, tiptapDoc, htmlContent, courseId, onOpenSettings, onCourseName }) {
   const { navigateHome } = useRouter();
 
   return (
@@ -78,7 +78,12 @@ export default function CanvasNav({ courseName, assessmentTitle, saveStatus, las
           </svg>
         </button>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-          <span style={{ fontFamily: FONT_SYSTEM, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: TEXT_FAINT }}>
+          <span
+            role={onCourseName ? 'button' : undefined}
+            tabIndex={onCourseName ? 0 : undefined}
+            onClick={onCourseName}
+            onKeyDown={onCourseName ? (e) => { if (e.key === 'Enter') onCourseName(); } : undefined}
+            style={{ fontFamily: FONT_SYSTEM, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: TEXT_FAINT, cursor: onCourseName ? 'pointer' : 'default', textDecoration: onCourseName ? 'underline' : 'none', textUnderlineOffset: 3 }}>
             {courseName || 'Course'}
           </span>
           <span style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_FAINT }}>/</span>

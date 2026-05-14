@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import AddCourseModal from './AddCourseModal';
+import UrlIngestModal from './UrlIngestModal';
+import { useProject } from '../ProjectContext';
+import { useIngestion } from '../hooks/useIngestion';
+import { useRouter } from '../../contexts/RouterContext';
 import {
-  SURFACE_BASE,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
-  ACCENT_PULSE,
-  GLASS_SURFACE, GLASS_BORDER, GLOW_EMERALD,
-  FONT_DISPLAY, FONT_SYSTEM, FONT_BODY,
+  ACCENT_PULSE, ACCENT_BORDER,
+  GLASS_BORDER, GLOW_EMERALD,
+  FONT_DISPLAY, FONT_SYSTEM,
 } from '../../theme/tokens';
 
 const SUBHEADS = {
@@ -20,13 +23,44 @@ const SUBHEADS = {
 
 export default function EmptyWorkspace({ tier, onCourseAdded }) {
   const [showModal, setShowModal] = useState(false);
-  const [showUpload, setShowUpload] = useState(false);
+  const [showUrlModal, setShowUrlModal] = useState(false);
+  const fileRef = useRef(null);
   const subhead = SUBHEADS[tier] || "Let's add your first course.";
+  const { navigateToCanvas } = useRouter();
+
+  const {
+    profile,
+    activeCourseId,
+    courses,
+    addCourseWithData,
+    upgradeCourseExtraction,
+    setInstitutionalData,
+  } = useProject();
+
+  const { handleUploadedFiles, ingesting, ingestStatus } = useIngestion({
+    profile,
+    activeCourseId,
+    courses,
+    addCourseWithData,
+    upgradeCourseExtraction,
+    setInstitutionalData,
+    onCoursesReady: (courseId) => {
+      if (courseId) navigateToCanvas(courseId, null);
+    },
+  });
 
   const handleCourseAdded = (course) => {
     setShowModal(false);
-    setShowUpload(false);
-    onCourseAdded(course);
+    const localId = onCourseAdded(course);
+    // Auto-navigate to canvas after manual creation
+    if (localId) navigateToCanvas(localId, null);
+  };
+
+  const handleFilePick = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    handleUploadedFiles(files);
+    e.target.value = '';
   };
 
   return (
@@ -44,23 +78,68 @@ export default function EmptyWorkspace({ tier, onCourseAdded }) {
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
-          <button type="button" onClick={() => setShowModal(true)} style={{ padding: '14px 36px', borderRadius: 8, fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 700, background: ACCENT_PULSE, border: 'none', color: '#09090b', cursor: 'pointer', boxShadow: GLOW_EMERALD, minHeight: 44 }}>
-            Add your first course
+          {/* Primary CTA: PDF upload */}
+          <button
+            type="button"
+            onClick={() => { if (!ingesting) fileRef.current?.click(); }}
+            disabled={ingesting}
+            style={{ padding: '14px 36px', borderRadius: 8, fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 700, background: ACCENT_PULSE, border: 'none', color: '#09090b', cursor: ingesting ? 'wait' : 'pointer', boxShadow: GLOW_EMERALD, minHeight: 44, opacity: ingesting ? 0.7 : 1 }}
+          >
+            {ingesting ? 'Reading your files...' : 'Upload an assignment brief or syllabus'}
           </button>
-          <button type="button" onClick={() => { setShowUpload(true); setShowModal(true); }} style={{ padding: '10px 24px', borderRadius: 8, fontFamily: FONT_DISPLAY, fontSize: 14, fontWeight: 600, background: 'transparent', border: `1px solid ${GLASS_BORDER}`, color: TEXT_MUTED, cursor: 'pointer', minHeight: 44 }}>
-            I have a brief to upload
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".pdf"
+            multiple
+            onChange={handleFilePick}
+            style={{ display: 'none' }}
+            aria-hidden="true"
+          />
+
+          {/* Status line during ingestion */}
+          {ingestStatus && (
+            <p style={{ fontFamily: FONT_SYSTEM, fontSize: 11, color: ACCENT_PULSE, margin: 0, letterSpacing: '0.04em' }}>
+              {ingestStatus}
+            </p>
+          )}
+
+          {/* Secondary CTA: URL ingestion */}
+          <button
+            type="button"
+            onClick={() => setShowUrlModal(true)}
+            disabled={ingesting}
+            style={{ padding: '10px 24px', borderRadius: 8, fontFamily: FONT_DISPLAY, fontSize: 14, fontWeight: 600, background: 'transparent', border: `1px solid ${GLASS_BORDER}`, color: TEXT_MUTED, cursor: 'pointer', minHeight: 44 }}
+          >
+            Paste a course outline link
           </button>
-          <p style={{ fontFamily: FONT_SYSTEM, fontSize: 11, color: TEXT_FAINT, margin: '8px 0 0', letterSpacing: '0.04em' }}>
-            Or explore the workspace first
-          </p>
+
+          {/* Tertiary: manual fallback */}
+          <button
+            type="button"
+            onClick={() => setShowModal(true)}
+            style={{ padding: 0, background: 'none', border: 'none', fontFamily: FONT_SYSTEM, fontSize: 11, color: TEXT_FAINT, cursor: 'pointer', letterSpacing: '0.04em', textDecoration: 'underline', textUnderlineOffset: 3, minHeight: 44, display: 'flex', alignItems: 'center' }}
+          >
+            {"Don't have a PDF? Set up manually"}
+          </button>
         </div>
       </div>
 
       {showModal && (
         <AddCourseModal
           tier={tier}
-          onClose={() => { setShowModal(false); setShowUpload(false); }}
+          onClose={() => setShowModal(false)}
           onCourseAdded={handleCourseAdded}
+        />
+      )}
+
+      {showUrlModal && (
+        <UrlIngestModal
+          onClose={() => setShowUrlModal(false)}
+          onCourseReady={(courseId) => {
+            setShowUrlModal(false);
+            if (courseId) navigateToCanvas(courseId, null);
+          }}
         />
       )}
     </div>

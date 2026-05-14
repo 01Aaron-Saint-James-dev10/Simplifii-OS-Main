@@ -54,10 +54,13 @@ export default function OnboardingFlow() {
   const [prefs, setPrefs] = useState(defaultPrefs);
   const [saving, setSaving] = useState(false);
 
+  const [saveError, setSaveError] = useState('');
+
   const finish = async (accessibilityPrefs) => {
     setSaving(true);
+    setSaveError('');
     try {
-      await supabase
+      const { error: updateErr } = await supabase
         .from('profiles')
         .update({
           tier: tier,
@@ -65,11 +68,14 @@ export default function OnboardingFlow() {
           preferences: accessibilityPrefs,
         })
         .eq('id', user.id);
+      if (updateErr) throw updateErr;
       applyPrefsToLocalStorage(accessibilityPrefs);
+      navigate('/app', { replace: true });
     } catch (err) {
       console.error('[OnboardingFlow] Save failed:', err);
+      setSaveError('Could not save your preferences. Check your connection and try again.');
+      setSaving(false);
     }
-    navigate('/app', { replace: true });
   };
 
   return (
@@ -83,6 +89,17 @@ export default function OnboardingFlow() {
       <p style={{ textAlign: 'center', fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_FAINT, letterSpacing: '0.06em', margin: '8px 0 0' }}>
         Step {step + 1} of 2
       </p>
+
+      {/* Save error toast */}
+      {saveError && (
+        <div role="alert" style={{ margin: '0 auto', maxWidth: 440, padding: '12px 20px', background: SURFACE_RAISED, borderRadius: 8, textAlign: 'center' }}>
+          <p style={{ fontFamily: FONT_SYSTEM, fontSize: 13, color: '#ef4444', margin: '0 0 8px' }}>{saveError}</p>
+          <button type="button" onClick={() => finish(prefs)} disabled={saving}
+            style={{ fontFamily: FONT_SYSTEM, fontSize: 12, fontWeight: 600, color: '#10b981', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+            {saving ? 'Retrying...' : 'Try again'}
+          </button>
+        </div>
+      )}
 
       {/* Steps */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 0 80px' }}>

@@ -6,6 +6,7 @@ import { listUploadedPdfs } from '../../services/IndexedDBService';
 import { nameCourse, getProviderName, extractAssessmentBriefs, REASONING_START_EVENT, REASONING_END_EVENT } from '../../services/RewriteService';
 import { reconcile as reconcileBriefs } from '../../services/SovereignReconciler';
 import { SOVEREIGN_DATA_READY } from '../../core/Events';
+import { persistCourseToSupabase } from '../../lib/coursePersistence';
 
 /**
  * useIngestion
@@ -203,6 +204,18 @@ export function useIngestion({
     } else {
       courseId = addCourseWithData(draftName, draftPayload);
     }
+
+    // Persist to Supabase (fire-and-forget, does not block the UI).
+    // Writes course + assessments rows so data survives across browsers.
+    persistCourseToSupabase({
+      name: draftName,
+      code: data.unitCode || null,
+      tier: data.level || null,
+      term: data.term?.label || data.term?.code || null,
+      assessments: draft.reconciledBriefs,
+    }).catch(err => {
+      if (typeof console !== 'undefined') console.warn('[useIngestion] Supabase persist failed:', err?.message);
+    });
 
     // Background: run Ollama extraction and nameCourse in parallel, then
     // upgrade the course in place. The learner keeps interacting with the
@@ -465,6 +478,7 @@ export function useIngestion({
       }
 
       const codes = Object.keys(fileGroups).sort((a, b) => a.localeCompare(b));
+      let lastCourseId = null;
 
       for (const code of codes) {
         const groupFiles = fileGroups[code];
@@ -488,11 +502,11 @@ export function useIngestion({
         }
         if (primaryRawText) aggregated.primaryRawText = primaryRawText;
         setIngestStatus(`Creating ${code} cockpit...`);
-        await handleSprintCreation(aggregated);
+        lastCourseId = await handleSprintCreation(aggregated);
       }
 
       setIngestStatus(`Ingested ${sorted.length} file${sorted.length === 1 ? '' : 's'} across ${codes.length} course${codes.length === 1 ? '' : 's'}.`);
-      if (onCoursesReady) onCoursesReady();
+      if (onCoursesReady) onCoursesReady(lastCourseId);
     } catch (err) {
       if (typeof console !== 'undefined') console.error('[handleUploadedFiles] failed', err);
       setIngestStatus(`Upload failed: ${err && err.message ? err.message : 'unknown error'}`);

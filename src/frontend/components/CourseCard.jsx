@@ -119,6 +119,7 @@ export default function CourseCard({ course, courseId, density = 'standard', onO
       {/* Meta row */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: isCompact ? 10 : 14 }}>
         <MetaItem label="Assessments" value={assessmentCount > 0 ? String(assessmentCount) : 'None extracted'} />
+        {nextDue && <MetaItem label="Next due" value={new Date(nextDue.dueDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} />}
         <MetaItem label="Rubric" value={rubricExtracted ? 'Yes' : 'No'} />
         {referencingStyle && <MetaItem label="Referencing" value={referencingStyle} />}
       </div>

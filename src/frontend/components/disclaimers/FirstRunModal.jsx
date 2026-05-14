@@ -30,17 +30,22 @@ export default function FirstRunModal({ onAcknowledged }) {
     dialogRef.current?.focus();
   }, []);
 
+  const [saveError, setSaveError] = useState('');
+
   const handleContinue = async () => {
     if (!canContinue) return;
     setSaving(true);
+    setSaveError('');
     try {
-      await supabase
+      const { error: updateErr } = await supabase
         .from('profiles')
         .update({ acknowledged_disclaimers: true })
         .eq('id', user.id);
+      if (updateErr) throw updateErr;
       onAcknowledged();
     } catch {
-      onAcknowledged();
+      setSaveError('Could not save. Check your connection and try again.');
+      setSaving(false);
     }
   };
 
@@ -124,13 +129,19 @@ export default function FirstRunModal({ onAcknowledged }) {
           </label>
         </div>
 
+        {saveError && (
+          <p role="alert" style={{ fontFamily: FONT_BODY, fontSize: 13, color: '#ef4444', textAlign: 'center', margin: '0 28px 8px' }}>
+            {saveError}
+          </p>
+        )}
+
         <button
           type="button"
           onClick={handleContinue}
           disabled={!canContinue}
           style={canContinue ? s.button : s.buttonDisabled}
         >
-          {saving ? 'Saving...' : 'Continue to Simplifii-OS'}
+          {saving ? 'Saving...' : saveError ? 'Try again' : 'Continue to Simplifii-OS'}
         </button>
       </div>
     </div>

@@ -210,6 +210,10 @@ export const extractDeepCourseData = (text) => {
     { re: /(?:due|deadline|submission|submit)\s*(?:on|by|date)?[:\-]?\s*((?:[A-Z][a-z]+day\s+)?Week\s+\d{1,2})/gi, type: 'week' },
     // Standalone "Week 7: 27 October" near assessment context
     { re: /Week\s+\d{1,2}\s*[:\-]\s*(\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)(?:\s+\d{2,4})?)/gi, type: 'absolute' },
+    // Standalone "15 July 2026" or "15th July 2026" (no due/deadline prefix needed)
+    { re: /\b(\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{4})\b/gi, type: 'absolute' },
+    // Month-first: "July 15th 2026", "July 15, 2026"
+    { re: /\b((?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4})\b/gi, type: 'absolute' },
   ];
   const MONTH_MAP = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
   const parseExtractedDate = (raw) => {
@@ -229,6 +233,15 @@ export const extractDeepCourseData = (text) => {
         return new Date(y, mon, parseInt(nameMatch[1], 10));
       }
     }
+    // Try month-first: "July 15th 2026", "July 15, 2026"
+    const monthFirstMatch = s.match(/^([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{2,4})$/);
+    if (monthFirstMatch) {
+      const mon = MONTH_MAP[monthFirstMatch[1].toLowerCase().slice(0, 3)];
+      if (mon !== undefined) {
+        const y = monthFirstMatch[3].length === 2 ? 2000 + parseInt(monthFirstMatch[3], 10) : parseInt(monthFirstMatch[3], 10);
+        return new Date(y, mon, parseInt(monthFirstMatch[2], 10));
+      }
+    }
     return null;
   };
   const dateSet = new Set();
@@ -239,7 +252,9 @@ export const extractDeepCourseData = (text) => {
       const raw = m[1].trim();
       if (dateSet.has(raw.toLowerCase())) continue;
       dateSet.add(raw.toLowerCase());
-      assessmentDates.push({ raw, parsed: parseExtractedDate(raw), type });
+      const parsed = parseExtractedDate(raw);
+      if (typeof console !== 'undefined') console.info('[BriefService] date detected:', raw, '| type:', type, '| parsed:', parsed);
+      assessmentDates.push({ raw, parsed, type });
     }
   }
   // Sort absolute dates chronologically; week refs stay in extraction order
@@ -334,11 +349,15 @@ export const extractDeepCourseData = (text) => {
     const title = titleMatch[1].trim().replace(/\s+/g, ' ');
     if (title.length < 4) continue;
     if (isAssessmentNoise(title)) continue;
-    const weightMatch = block.match(/(\d{1,3})\s*%/);
-    const display = weightMatch ? `${title} (${weightMatch[1]}%)` : title;
+    const weightMatch = block.match(/(\d{1,3})\s*%/) || block.match(/(?:worth|weighting)[:\s]*(\d{1,3})\s*%/i) || block.match(/(\d{1,3})\s*marks?\b/i);
+    const weightLabel = weightMatch
+      ? (block.match(/(\d{1,3})\s*marks?\b/i) && !block.match(/(\d{1,3})\s*%/) ? `${weightMatch[1]} marks` : `${weightMatch[1]}%`)
+      : '';
+    const display = weightLabel ? `${title} (${weightLabel})` : title;
     const key = display.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
+    if (typeof console !== 'undefined') console.info('[BriefService] assessment detected:', title, '| weight:', weightLabel || 'none');
     assessmentTitles.push(display);
   }
 

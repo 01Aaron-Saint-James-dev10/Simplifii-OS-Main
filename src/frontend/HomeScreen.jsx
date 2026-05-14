@@ -77,7 +77,7 @@ export default function HomeScreen() {
   const { courses, terms, activeTerm, setActiveTerm, addCourseWithData } = useProject();
   const { display, reducedMotion, activeTier } = useSettings();
   const { user } = useAuth();
-  const { navigateToCanvas, navigateToResearch } = useRouter();
+  const { navigateToCanvas, navigateToAssessments, navigateToResearch } = useRouter();
   const [profileTier, setProfileTier] = useState(null);
   const isAaron = user?.email === AARON_EMAIL;
 
@@ -153,11 +153,19 @@ export default function HomeScreen() {
           <EmptyWorkspace
             tier={profileTier}
             onCourseAdded={(course) => {
-              addCourseWithData(course.name, {
+              const payload = {
                 code: course.code || null,
                 term: course.term ? { code: course.term, year: new Date().getFullYear() } : null,
                 supabaseId: course.id,
-              });
+              };
+              if (course.assessment) {
+                payload.extractionData = {
+                  assessmentBriefs: [{ title: course.assessment.title, dueDate: course.assessment.dueDate, weight: '', wordCountGoal: 0 }],
+                  assessmentTitles: [course.assessment.title],
+                  doneWhenChecklist: [{ id: 'manual_0', text: course.assessment.title, checked: false, triggerWord: course.assessment.title.toLowerCase().split(' ').slice(0, 3).join(' ') }],
+                };
+              }
+              return addCourseWithData(course.name, payload);
             }}
           />
         )}
@@ -266,7 +274,15 @@ export default function HomeScreen() {
                     course={course}
                     density={display.cardDensity}
                     now={now}
-                    onOpen={(cId) => navigateToCanvas(cId, null)}
+                    onOpen={(cId) => {
+                      const c = courses[cId];
+                      const briefs = c?.extractionData?.assessmentBriefs || [];
+                      if (briefs.length > 1) {
+                        navigateToAssessments(cId);
+                      } else {
+                        navigateToCanvas(cId, null);
+                      }
+                    }}
                   />
                 ))}
               </div>

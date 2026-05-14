@@ -6,7 +6,7 @@ const RouterContext = createContext();
  * RouterContext
  *
  * Minimal in-app router for v1. No URL routing.
- * Views: 'home' | 'canvas'
+ * Views: 'home' | 'assessments' | 'canvas' | 'research'
  */
 export const RouterProvider = ({ children }) => {
   const [view, setView] = useState('home');
@@ -15,6 +15,11 @@ export const RouterProvider = ({ children }) => {
   const navigateToCanvas = useCallback((courseId, assessmentTitle) => {
     setCanvasTarget({ courseId, assessmentTitle: assessmentTitle || null });
     setView('canvas');
+  }, []);
+
+  const navigateToAssessments = useCallback((courseId) => {
+    setCanvasTarget({ courseId, assessmentTitle: null });
+    setView('assessments');
   }, []);
 
   const navigateHome = useCallback(() => {
@@ -37,6 +42,7 @@ export const RouterProvider = ({ children }) => {
       courseId: canvasTarget.courseId,
       assessmentTitle: canvasTarget.assessmentTitle,
       navigateToCanvas,
+      navigateToAssessments,
       navigateHome,
       navigateToResearch,
       navigateToChapter,
