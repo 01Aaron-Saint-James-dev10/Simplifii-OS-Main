@@ -11,6 +11,7 @@ import DecisionButton from './components/DecisionButton';
 import BodyDoublingLine from './components/BodyDoublingLine';
 import TalkToSomeoneLink from './components/TalkToSomeoneLink';
 import AddCourseButton from './components/AddCourseButton';
+import LogoutButton from './auth/LogoutButton';
 import { ACCENT_BORDER, ACCENT_PULSE } from '../theme/tokens';
 import './HomeScreen.css';
 
@@ -128,6 +129,7 @@ export default function HomeScreen() {
             </span>
           )}
           <TalkToSomeoneLink />
+          <LogoutButton />
         </div>
       </nav>
 

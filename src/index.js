@@ -9,6 +9,7 @@ import HomeScreen from './frontend/HomeScreen';
 import CanvasScreen from './frontend/CanvasScreen';
 import ResearchHomeScreen from './frontend/research/ResearchHomeScreen';
 import { ResearchProjectProvider } from './frontend/ResearchProjectContext';
+import AuthGate from './frontend/auth/AuthGate';
 
 // v2 entry point. Providers: Auth > Settings > Project > ResearchProject > Router > ViewSwitch.
 function ViewSwitch() {
@@ -22,15 +23,17 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <AuthProvider>
-      <SettingsProvider>
-        <ProjectProvider>
-          <ResearchProjectProvider>
-            <RouterProvider>
-              <ViewSwitch />
-            </RouterProvider>
-          </ResearchProjectProvider>
-        </ProjectProvider>
-      </SettingsProvider>
+      <AuthGate>
+        <SettingsProvider>
+          <ProjectProvider>
+            <ResearchProjectProvider>
+              <RouterProvider>
+                <ViewSwitch />
+              </RouterProvider>
+            </ResearchProjectProvider>
+          </ProjectProvider>
+        </SettingsProvider>
+      </AuthGate>
     </AuthProvider>
   </React.StrictMode>
 );

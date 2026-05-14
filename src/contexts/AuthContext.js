@@ -55,6 +55,34 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  const signUp = async (email, password, metadata = {}) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: metadata }
+    });
+    if (error) throw error;
+    return data;
+  };
+
+  const signInWithPassword = async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+    if (error) throw error;
+    return data;
+  };
+
+  const signInWithOtp = async (email) => {
+    const { data, error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin }
+    });
+    if (error) throw error;
+    return data;
+  };
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
@@ -68,6 +96,9 @@ export const AuthProvider = ({ children }) => {
       isAuthenticated: !!user,
       authError,
       signInWithIdToken,
+      signUp,
+      signInWithPassword,
+      signInWithOtp,
       signOut
     }}>
       {children}
