@@ -1,3 +1,39 @@
+# Y10-12 Tester Readiness: FINAL REPORT
+- Started: 2026-05-15T02:30:00+10:00
+- Ended: 2026-05-15T06:45:00+10:00
+- Duration: 04:15
+- Tester readiness: GO
+- Sprints shipped: 19/21 (skipped: 17 pgvector needs OpenAI key, 21 Aaron-managed)
+- Sprints failed: 0
+- Sprints deferred: 1 (Sprint 17 pgvector)
+- Current production bundle: b207110a
+- Additional shipped outside queue: gate3 blockers + accessibility sprint
+
+## Morning QA Aaron should do:
+1. Hard-refresh https://simplifii-os-main.vercel.app in Chrome incognito
+2. Sign up as new secondary user. Verify: all 7 tiers visible, secondary shows year level + state + pain points steps
+3. Complete onboarding. Verify: profiler (6 neuroscience scenarios), accessibility step has language picker + Easy Read toggle
+4. Upload a PDF. Verify: ASCII loader appears, course created, auto-navigate to CanvasScreen
+5. In CanvasScreen, click Past Q's panel tab. Verify: results load with search + year filter
+6. Click Tutor panel. Ask a question. Verify: Claude responds in Y10-12 voice
+7. Click mic button. Verify: permission modal, then voice input works
+8. Click "Talk to someone". Verify: crisis resources modal with 10 helplines, 6 categories
+9. Sign out. Sign in again. Verify: no login issues
+10. Visit /app?admin=feedback (as Aaron). Verify: dashboard loads
+11. Visit /tester-guide.html. Verify: printable guide renders
+12. Send first tester invitations using docs/TESTER_EMAIL_TEMPLATE.md
+
+## Outstanding risks:
+- pgvector not enabled (keyword matching only, not semantic)
+- URL ingestion requires public pages (login-protected LMS pages won't work)
+- Assessment extraction regex may still produce false positives on some PDFs
+- Audio overview is a stub (501)
+
+## Tomorrow's first sprint:
+Sovereign-OS v3 Theme System (see docs/TOMORROW.md)
+
+---
+
 # Y10-12 Tester Readiness Queue — 2026-05-15T02:30:00+10:00
 Pre-flight: PASSED (clean tree, main up to date, bundle 8c810c79, APIs verified)
 
