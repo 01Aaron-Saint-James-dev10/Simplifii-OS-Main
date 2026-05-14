@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import UploadBriefStep from './UploadBriefStep';
+import AsciiLoader from '../components/AsciiLoader';
 import {
   SURFACE_BASE, SURFACE_CARD, SURFACE_RAISED,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
@@ -121,14 +122,18 @@ export default function AddCourseModal({ onClose, onCourseAdded, tier }) {
               {TERMS.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
 
-            <div style={{ display: 'flex', gap: 10, marginTop: 28 }}>
-              <button type="submit" disabled={saving} style={{ flex: 1, padding: '12px 0', borderRadius: 8, fontFamily: FONT_DISPLAY, fontSize: 15, fontWeight: 700, background: ACCENT_PULSE, border: 'none', color: '#09090b', cursor: saving ? 'wait' : 'pointer', boxShadow: GLOW_EMERALD }}>
-                {saving ? 'Creating...' : 'Create course'}
-              </button>
-              <button type="button" onClick={onClose} style={{ padding: '12px 20px', borderRadius: 8, fontFamily: FONT_DISPLAY, fontSize: 14, fontWeight: 600, background: 'transparent', border: `1px solid ${GLASS_BORDER}`, color: TEXT_MUTED, cursor: 'pointer' }}>
-                Cancel
-              </button>
-            </div>
+            {saving ? (
+              <AsciiLoader status="Setting up your course..." />
+            ) : (
+              <div style={{ display: 'flex', gap: 10, marginTop: 28 }}>
+                <button type="submit" style={{ flex: 1, padding: '12px 0', borderRadius: 8, fontFamily: FONT_DISPLAY, fontSize: 15, fontWeight: 700, background: ACCENT_PULSE, border: 'none', color: '#09090b', cursor: 'pointer', boxShadow: GLOW_EMERALD }}>
+                  Create course
+                </button>
+                <button type="button" onClick={onClose} style={{ padding: '12px 20px', borderRadius: 8, fontFamily: FONT_DISPLAY, fontSize: 14, fontWeight: 600, background: 'transparent', border: `1px solid ${GLASS_BORDER}`, color: TEXT_MUTED, cursor: 'pointer' }}>
+                  Cancel
+                </button>
+              </div>
+            )}
           </form>
         )}
 

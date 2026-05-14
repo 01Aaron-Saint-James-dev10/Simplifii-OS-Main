@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { supabase } from '../../lib/supabaseClient';
+import AsciiLoader from '../components/AsciiLoader';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   SURFACE_CARD, SURFACE_RAISED,
@@ -119,10 +120,13 @@ export default function UploadBriefStep({ courseId, assessmentId, onUploaded, on
       {error && <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: COLOUR_DANGER, margin: '12px 0 0' }} role="alert">{error}</p>}
 
       <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-        {file && (
-          <button type="button" onClick={upload} disabled={uploading} style={{ flex: 1, padding: '12px 0', borderRadius: 8, fontFamily: FONT_DISPLAY, fontSize: 15, fontWeight: 700, background: ACCENT_PULSE, border: 'none', color: '#09090b', cursor: uploading ? 'wait' : 'pointer' }}>
-            {uploading ? 'Uploading...' : 'Upload and continue'}
+        {file && !uploading && (
+          <button type="button" onClick={upload} style={{ flex: 1, padding: '12px 0', borderRadius: 8, fontFamily: FONT_DISPLAY, fontSize: 15, fontWeight: 700, background: ACCENT_PULSE, border: 'none', color: '#09090b', cursor: 'pointer' }}>
+            Upload and continue
           </button>
+        )}
+        {uploading && (
+          <div style={{ flex: 1 }}><AsciiLoader status="Uploading your brief..." /></div>
         )}
         <button type="button" onClick={onSkip} style={{ flex: file ? 0 : 1, padding: '12px 24px', borderRadius: 8, fontFamily: FONT_DISPLAY, fontSize: 14, fontWeight: 600, background: 'transparent', border: `1px solid ${GLASS_BORDER}`, color: TEXT_MUTED, cursor: 'pointer' }}>
           {file ? 'Skip' : 'Skip for now'}

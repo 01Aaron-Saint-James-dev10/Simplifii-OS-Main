@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import AddCourseModal from './AddCourseModal';
+import AsciiLoader from '../components/AsciiLoader';
 // UrlIngestModal disabled until Firecrawl API key is configured
 // import UrlIngestModal from './UrlIngestModal';
 import { useProject } from '../ProjectContext';
@@ -98,12 +99,8 @@ export default function EmptyWorkspace({ tier, onCourseAdded }) {
             aria-hidden="true"
           />
 
-          {/* Status line during ingestion */}
-          {ingestStatus && (
-            <p style={{ fontFamily: FONT_SYSTEM, fontSize: 11, color: ACCENT_PULSE, margin: 0, letterSpacing: '0.04em' }}>
-              {ingestStatus}
-            </p>
-          )}
+          {/* Branded loader during ingestion */}
+          {ingestStatus && <AsciiLoader status={ingestStatus} />}
 
           {/* Secondary CTA: URL ingestion (coming soon) */}
           <button
