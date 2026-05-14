@@ -37,16 +37,20 @@ export default function AppShell() {
       try {
         const { data } = await supabase
           .from('profiles')
-          .select('acknowledged_disclaimers')
+          .select('acknowledged_disclaimers, onboarding_completed')
           .eq('id', user.id)
           .single();
+        // If onboarding not completed, redirect to /onboarding
+        if (data && !data.onboarding_completed) {
+          window.location.replace('/onboarding');
+          return;
+        }
         if (data?.acknowledged_disclaimers) {
           setDisclaimerState('done');
         } else {
           setDisclaimerState('needed');
         }
       } catch {
-        // If profile fetch fails (new user, no row yet), show modal
         setDisclaimerState('needed');
       }
     })();

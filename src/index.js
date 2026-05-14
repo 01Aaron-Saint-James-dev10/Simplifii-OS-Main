@@ -12,10 +12,11 @@ import AccessibilityPage from './frontend/landing/AccessibilityPage';
 import LoginScreen from './frontend/auth/LoginScreen';
 import SignupScreen from './frontend/auth/SignupScreen';
 import AppShell from './frontend/AppShell';
+import OnboardingFlow from './frontend/onboarding/OnboardingFlow';
 
 /**
  * PublicOnly: redirects authenticated users to /app.
- * Used for landing, login, signup pages.
+ * AppShell handles the onboarding check and redirects to /onboarding if needed.
  */
 function PublicOnly({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -49,7 +50,8 @@ root.render(
           <Route path="/ai-use" element={<AiUsePage />} />
           <Route path="/accessibility" element={<AccessibilityPage />} />
 
-          {/* Protected app routes */}
+          {/* Protected routes */}
+          <Route path="/onboarding" element={<RequireAuth><OnboardingFlow /></RequireAuth>} />
           <Route path="/app/*" element={<RequireAuth><AppShell /></RequireAuth>} />
 
           {/* Catch-all: redirect to landing */}
