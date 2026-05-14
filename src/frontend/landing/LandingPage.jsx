@@ -9,7 +9,7 @@ import {
   ACCENT_GLASS_FAINT, ACCENT_GLASS_SUBTLE,
   GLASS_SURFACE, GLASS_BORDER, GLASS_BORDER_HOVER,
   GLOW_EMERALD, ACCENT_SHADOW_FAINT,
-  FONT_BODY, FONT_SYSTEM,
+  FONT_BODY, FONT_SYSTEM, TEXT_LINK,
   BORDER_RADIUS, GRADIENT_EMERALD_CYAN,
 } from '../../theme/tokens';
 import './LandingPage.css';
@@ -49,8 +49,17 @@ const FAQS = [
   { q: 'What happens to my data?', a: 'Your data is stored encrypted in Sydney, Australia. We do not sell it, share it with advertisers, or use it to train AI models. You can export or delete your data at any time.' },
   { q: 'Is it really free?', a: 'Yes. Simplifii-OS is free for all individual learners during beta. When we introduce paid plans, free accounts will always have a free tier.' },
   { q: 'Does it work for high school students?', a: 'Yes. Simplifii-OS supports Year 10 to 12 students as well as university undergraduates, postgraduates, and researchers. The interface adapts to your academic level.' },
-  { q: 'What if I have ADHD or dyslexia?', a: 'Simplifii-OS was built by a dyslexic, ADHD founder specifically for neurodivergent learners. Executive function support, clear visual hierarchy, no guilt notifications, and calm transitions are core to the design.' },
+  { q: 'What if I have ADHD or dyslexia?', a: 'Simplifii-OS was built by a dyslexic, ADHD founder specifically for neurodivergent learners. Executive function support, clear visual hierarchy, no guilt notifications, and calm transitions are core to the design.', link: '/accessibility', linkText: 'Read more on our accessibility page' },
   { q: 'Can I use it for non-academic work?', a: 'The current beta is optimised for academic workflows: assignments, theses, and research. Job applications, reports, and decision-making workflows are on the roadmap.' },
+];
+
+const A11Y_FEATURES = [
+  { icon: 'M4 6h16M4 12h16M4 18h7', title: 'BionicText reading mode', body: 'Bold the first syllable of every word. Five intensity levels. Academic word highlighting built in.' },
+  { icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253', title: 'OpenDyslexic and Atkinson Hyperlegible', body: 'Choose fonts designed for readability. Available across the entire editor.' },
+  { icon: 'M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129', title: 'LiteralMode', body: 'AI output translated to plain English. No jargon, no academic posturing. You control the voice.' },
+  { icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z', title: 'Reading comfort overlays', body: 'Mint, cream, or sky blue tints. Adjustable font scale and line spacing for reduced visual fatigue.' },
+  { icon: 'M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4', title: 'LOD Steering Drawer', body: 'Control how much the OS scaffolds you. Compass, Sprint, or Map: you set the cognitive load.' },
+  { icon: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z', title: 'No guilt. No deficit framing.', body: 'Zero competitive ranking. Zero shame notifications. Strengths-based, trauma-informed design throughout.' },
 ];
 
 /* ── Scroll reveal hook ──────────────────────────────────────────── */
@@ -76,11 +85,18 @@ export default function LandingPage() {
 
   const scrollToHow = (e) => { e.preventDefault(); document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' }); };
   const toggleFaq = useCallback((i) => setOpenFaq(prev => prev === i ? null : i), []);
+  const handleTabKey = useCallback((e) => {
+    const ids = SHOWCASE.map(t => t.id);
+    const idx = ids.indexOf(activeTab);
+    if (e.key === 'ArrowRight') { e.preventDefault(); setActiveTab(ids[(idx + 1) % ids.length]); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); setActiveTab(ids[(idx - 1 + ids.length) % ids.length]); }
+  }, [activeTab]);
 
-  const r1 = useReveal(), r2 = useReveal(), r3 = useReveal(), r4 = useReveal(), r5 = useReveal(), r6 = useReveal(), r7 = useReveal();
+  const r1 = useReveal(), r2 = useReveal(), r3 = useReveal(), r4 = useReveal(), r5 = useReveal(), r6 = useReveal(), r7 = useReveal(), rA = useReveal();
 
   return (
-    <div style={{ minHeight: '100vh', background: SURFACE_BASE }}>
+    <div className="lp-root" style={{ minHeight: '100vh', background: SURFACE_BASE }}>
+      <a href="#main-content" className="lp-skip-link">Skip to main content</a>
 
       {/* ── HERO ──────────────────────────────────────────────── */}
       <header className="lp-hero" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 24px 64px', position: 'relative' }}>
@@ -94,7 +110,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="lp-fade-2" style={{ fontFamily: FONT_BODY, fontSize: 'clamp(1rem, 2.4vw, 1.25rem)', lineHeight: 1.7, maxWidth: 580, margin: '24px auto 36px', color: TEXT_MUTED }}>
-            The thinking layer between you and the work that matters.<br />
+            The neuroinclusive thinking layer between you and the work that matters.<br />
             Prepare, organise, decide, follow through: in your own voice.
           </p>
 
@@ -102,7 +118,7 @@ export default function LandingPage() {
             <Link to="/signup" className="lp-cta-primary" style={{ display: 'inline-block', padding: '16px 40px', background: ACCENT_PULSE, borderRadius: 8, fontFamily: FONT_BODY, fontSize: 17, fontWeight: 700, textDecoration: 'none', boxShadow: GLOW_EMERALD }}>
               Start free
             </Link>
-            <a href="#how-it-works" onClick={scrollToHow} style={{ fontFamily: FONT_BODY, fontSize: 15, fontWeight: 600, textDecoration: 'none', color: TEXT_MUTED, cursor: 'pointer' }}>
+            <a href="#how-it-works" onClick={scrollToHow} style={{ fontFamily: FONT_BODY, fontSize: 15, fontWeight: 600, textDecoration: 'none', color: TEXT_LINK, cursor: 'pointer' }}>
               See it work &darr;
             </a>
           </div>
@@ -113,10 +129,12 @@ export default function LandingPage() {
         </div>
       </header>
 
+      <main id="main-content">
+
       {/* ── AWARDS BAR ────────────────────────────────────────── */}
       <section ref={r1.ref} className={r1.cls} style={{ padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
         <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_FAINT, textAlign: 'center', margin: 0 }}>
-          Built by a neurodivergent UNSW researcher and award-winning advocate
+          Built by a neurodivergent UNSW researcher. Accessibility-first by design, not by deadline.
         </p>
         <div className="lp-awards">
           {AWARDS.map(a => (
@@ -150,19 +168,44 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── BUILT FOR EVERY KIND OF MIND (accessibility features) ── */}
+      <section ref={rA.ref} className={rA.cls} style={{ maxWidth: 1120, margin: '0 auto', padding: '80px 24px' }}>
+        <h2 style={{ fontFamily: FONT_BODY, fontWeight: 700, fontSize: 'clamp(1.5rem, 4vw, 2.25rem)', textAlign: 'center', margin: '0 0 12px', background: GRADIENT_EMERALD_CYAN, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+          Built for every kind of mind
+        </h2>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 16, color: TEXT_MUTED, textAlign: 'center', maxWidth: 560, margin: '0 auto 48px' }}>
+          Neuroinclusive by architecture. Every feature designed with UDL 3.0 principles and WCAG 2.2 AA as the baseline.
+        </p>
+        <div className="lp-a11y-grid">
+          {A11Y_FEATURES.map(f => (
+            <div key={f.title} className="lp-a11y-card" style={{ background: GLASS_SURFACE, border: `1px solid ${GLASS_BORDER}`, borderRadius: 10, padding: '28px 24px', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={ACCENT_PULSE} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 14 }} aria-hidden="true">
+                <path d={f.icon} />
+              </svg>
+              <h3 style={{ fontFamily: FONT_SYSTEM, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: TEXT_PRIMARY, margin: '0 0 8px' }}>{f.title}</h3>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.6, color: TEXT_MUTED, margin: 0 }}>{f.body}</p>
+            </div>
+          ))}
+        </div>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_FAINT, textAlign: 'center', marginTop: 32 }}>
+          Simplifii-OS meets WCAG 2.2 Level AA. Not because we had to. Because it is the baseline.{' '}
+          <Link to="/accessibility" style={{ color: ACCENT_PULSE, textDecoration: 'underline' }}>Read our accessibility commitment</Link>
+        </p>
+      </section>
+
       {/* ── PRODUCT SHOWCASE ──────────────────────────────────── */}
       <section ref={r3.ref} className={r3.cls} style={{ maxWidth: 960, margin: '0 auto', padding: '80px 24px' }}>
         <h2 style={{ fontFamily: FONT_BODY, fontWeight: 700, fontSize: 'clamp(1.5rem, 4vw, 2.25rem)', textAlign: 'center', margin: '0 0 40px', color: TEXT_PRIMARY }}>
           See it in action
         </h2>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 32, flexWrap: 'wrap' }}>
+        <div role="tablist" aria-label="Product showcase" style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 32, flexWrap: 'wrap' }} onKeyDown={handleTabKey}>
           {SHOWCASE.map(t => (
-            <button key={t.id} type="button" onClick={() => setActiveTab(t.id)} style={{ padding: '8px 20px', background: activeTab === t.id ? ACCENT_GLASS_STRONG : 'transparent', border: `1px solid ${activeTab === t.id ? ACCENT_BORDER_STRONG : GLASS_BORDER}`, borderRadius: 20, fontFamily: FONT_SYSTEM, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: activeTab === t.id ? ACCENT_PULSE : TEXT_MUTED, cursor: 'pointer' }}>
+            <button key={t.id} type="button" role="tab" id={`showcase-tab-${t.id}`} aria-selected={activeTab === t.id} aria-controls={`showcase-panel-${t.id}`} tabIndex={activeTab === t.id ? 0 : -1} onClick={() => setActiveTab(t.id)} style={{ padding: '8px 20px', background: activeTab === t.id ? ACCENT_GLASS_STRONG : 'transparent', border: `1px solid ${activeTab === t.id ? ACCENT_BORDER_STRONG : GLASS_BORDER}`, borderRadius: 20, fontFamily: FONT_SYSTEM, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: activeTab === t.id ? ACCENT_PULSE : TEXT_MUTED, cursor: 'pointer' }}>
               {t.label}
             </button>
           ))}
         </div>
-        <div style={{ background: GLASS_SURFACE, border: `1px solid ${GLASS_BORDER}`, borderRadius: 12, overflow: 'hidden', boxShadow: ACCENT_SHADOW_FAINT }}>
+        <div role="tabpanel" id={`showcase-panel-${activeTab}`} aria-labelledby={`showcase-tab-${activeTab}`} tabIndex={0} style={{ background: GLASS_SURFACE, border: `1px solid ${GLASS_BORDER}`, borderRadius: 12, overflow: 'hidden', boxShadow: ACCENT_SHADOW_FAINT }}>
           <div style={{ aspectRatio: '16/9', display: 'flex', alignItems: 'center', justifyContent: 'center', background: `radial-gradient(ellipse at center, ${ACCENT_GLASS_FAINT} 0%, transparent 70%)`, minHeight: 320 }}>
             <p style={{ fontFamily: FONT_SYSTEM, fontSize: 13, color: TEXT_FAINT, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
               {SHOWCASE.find(t => t.id === activeTab)?.label} preview
@@ -183,22 +226,26 @@ export default function LandingPage() {
               Most AI tools write for you. Simplifii-OS works with you. Every claim is checked against sources you upload. Every word stays yours. The work is harder than ChatGPT. The results are actually defensible.
             </p>
           </div>
-          <div style={{ background: GLASS_SURFACE, border: `1px solid ${GLASS_BORDER}`, borderRadius: 10, overflow: 'hidden' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-              <div style={{ padding: '14px 16px', borderBottom: `1px solid ${GLASS_BORDER}`, fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_AMBER }}>ChatGPT</div>
-              <div style={{ padding: '14px 16px', borderBottom: `1px solid ${GLASS_BORDER}`, borderLeft: `1px solid ${GLASS_BORDER}`, fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_PULSE }}>Simplifii-OS</div>
-            </div>
-            {COMPARISON.map((c, i) => (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-                <div style={{ padding: '12px 16px', borderBottom: i < COMPARISON.length - 1 ? `1px solid ${GLASS_BORDER}` : 'none', fontFamily: FONT_BODY, fontSize: 14, color: TEXT_FAINT }}>
-                  <span style={{ marginRight: 6, opacity: 0.5 }}>&times;</span>{c.them}
-                </div>
-                <div style={{ padding: '12px 16px', borderBottom: i < COMPARISON.length - 1 ? `1px solid ${GLASS_BORDER}` : 'none', borderLeft: `1px solid ${GLASS_BORDER}`, fontFamily: FONT_BODY, fontSize: 14, color: TEXT_PRIMARY }}>
-                  <span style={{ marginRight: 6, color: ACCENT_PULSE }}>&check;</span>{c.us}
-                </div>
-              </div>
-            ))}
-          </div>
+          <table className="lp-comparison-table" aria-label="Feature comparison: ChatGPT versus Simplifii-OS">
+            <thead>
+              <tr>
+                <th scope="col" style={{ color: ACCENT_AMBER }}>ChatGPT</th>
+                <th scope="col" style={{ color: ACCENT_PULSE }}>Simplifii-OS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARISON.map((c, i) => (
+                <tr key={i}>
+                  <td style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_FAINT }}>
+                    <span aria-hidden="true" style={{ marginRight: 6, opacity: 0.5 }}>&times;</span>{c.them}
+                  </td>
+                  <td style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_PRIMARY }}>
+                    <span aria-hidden="true" style={{ marginRight: 6, color: ACCENT_PULSE }}>&check;</span>{c.us}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
 
@@ -208,12 +255,15 @@ export default function LandingPage() {
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {FAQS.map((f, i) => (
             <div key={i} style={{ borderBottom: `1px solid ${GLASS_BORDER}` }}>
-              <button type="button" onClick={() => toggleFaq(i)} aria-expanded={openFaq === i} style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', minHeight: 44 }}>
+              <button type="button" id={`faq-q-${i}`} onClick={() => toggleFaq(i)} aria-expanded={openFaq === i} aria-controls={`faq-answer-${i}`} style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', minHeight: 44 }}>
                 <span style={{ fontFamily: FONT_BODY, fontSize: 16, fontWeight: 500, color: TEXT_PRIMARY, paddingRight: 16 }}>{f.q}</span>
-                <span style={{ fontFamily: FONT_SYSTEM, fontSize: 18, color: TEXT_FAINT, flexShrink: 0, transition: 'transform 0.2s', transform: openFaq === i ? 'rotate(45deg)' : 'none' }}>+</span>
+                <span aria-hidden="true" style={{ fontFamily: FONT_SYSTEM, fontSize: 18, color: TEXT_FAINT, flexShrink: 0, transition: 'transform 0.2s', transform: openFaq === i ? 'rotate(45deg)' : 'none' }}>+</span>
               </button>
-              <div className={`lp-faq-answer ${openFaq === i ? 'open' : ''}`}>
-                <p style={{ fontFamily: FONT_BODY, fontSize: 15, lineHeight: 1.7, color: TEXT_MUTED, margin: '0 0 20px' }}>{f.a}</p>
+              <div id={`faq-answer-${i}`} role="region" aria-labelledby={`faq-q-${i}`} className={`lp-faq-answer ${openFaq === i ? 'open' : ''}`}>
+                <p style={{ fontFamily: FONT_BODY, fontSize: 15, lineHeight: 1.7, color: TEXT_MUTED, margin: '0 0 20px' }}>
+                  {f.a}
+                  {f.link && <>{' '}<Link to={f.link} style={{ color: ACCENT_PULSE, textDecoration: 'underline' }}>{f.linkText}</Link></>}
+                </p>
               </div>
             </div>
           ))}
@@ -240,7 +290,7 @@ export default function LandingPage() {
           Stop using AI tools that erase your voice.
         </h2>
         <p style={{ fontFamily: FONT_BODY, fontSize: 16, color: TEXT_MUTED, margin: '0 0 32px' }}>
-          Simplifii-OS is free during beta. Built for students. Used by researchers.
+          Simplifii-OS is free during beta. Built for every kind of mind. Used by researchers.
         </p>
         <Link to="/signup" className="lp-cta-primary" style={{ display: 'inline-block', padding: '16px 48px', background: ACCENT_PULSE, borderRadius: 8, fontFamily: FONT_BODY, fontSize: 17, fontWeight: 700, textDecoration: 'none', boxShadow: GLOW_EMERALD }}>
           Start free
@@ -252,6 +302,8 @@ export default function LandingPage() {
           No credit card. No ads. Your data stays yours.
         </p>
       </section>
+
+      </main>
 
       {/* ── FOOTER ────────────────────────────────────────────── */}
       <footer style={{ width: '100%', borderTop: `1px solid ${GLASS_BORDER}`, padding: '48px 24px 32px' }}>
@@ -271,6 +323,7 @@ export default function LandingPage() {
           <div>
             <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: TEXT_FAINT, margin: '0 0 12px' }}>Product</p>
             <nav style={{ display: 'flex', flexDirection: 'column', gap: 8 }} aria-label="Product links">
+              <Link to="/accessibility" style={{ fontFamily: FONT_BODY, fontSize: 13, color: TEXT_MUTED, textDecoration: 'none' }}>Accessibility</Link>
               <Link to="/privacy" style={{ fontFamily: FONT_BODY, fontSize: 13, color: TEXT_MUTED, textDecoration: 'none' }}>Privacy</Link>
               <Link to="/terms" style={{ fontFamily: FONT_BODY, fontSize: 13, color: TEXT_MUTED, textDecoration: 'none' }}>Terms</Link>
               <Link to="/ai-use" style={{ fontFamily: FONT_BODY, fontSize: 13, color: TEXT_MUTED, textDecoration: 'none' }}>AI Use</Link>

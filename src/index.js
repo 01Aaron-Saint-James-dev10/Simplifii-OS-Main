@@ -8,6 +8,7 @@ import LandingPage from './frontend/landing/LandingPage';
 import PrivacyPage from './frontend/landing/PrivacyPage';
 import TermsPage from './frontend/landing/TermsPage';
 import AiUsePage from './frontend/landing/AiUsePage';
+import AccessibilityPage from './frontend/landing/AccessibilityPage';
 import LoginScreen from './frontend/auth/LoginScreen';
 import SignupScreen from './frontend/auth/SignupScreen';
 import AppShell from './frontend/AppShell';
@@ -46,6 +47,7 @@ root.render(
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/ai-use" element={<AiUsePage />} />
+          <Route path="/accessibility" element={<AccessibilityPage />} />
 
           {/* Protected app routes */}
           <Route path="/app/*" element={<RequireAuth><AppShell /></RequireAuth>} />
