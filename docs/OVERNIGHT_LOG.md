@@ -56,7 +56,59 @@ Aaron typed "continue". Proceeding.
   7. Admin feedback triage dashboard
 - What's next: Sprint 8 (Syllabus DB foundation), 9 (NESA ingestion), 10 (pattern matcher), 11 (HSC panel)
 
-WAITING FOR AARON TO TYPE "continue" BEFORE PROCEEDING TO SPRINT 8.
+Aaron typed "continue". Proceeding.
+
+## Sprint 11 — Y10-12 Queue — HSC Past Questions Panel: SHIPPED
+- Commit: 164e3d6c
+- Bundle: 1b017b17
+- Files: 3 (+152)
+- PastQuestionsPanel in CanvasScreen rail, calls /api/scaffold-suggest
+
+## Sprint 10 — Y10-12 Queue — Syllabus Pattern Matcher: SHIPPED
+- Commit: 130fa57f
+- Files: 1 (+100)
+- /api/scaffold-suggest: keyword extraction + scoring against past_questions
+
+## Hotfix — TesterWelcomeModal .catch(): SHIPPED
+- Commit: 4265fd93
+- Supabase v2 .catch() → try/catch fix
+
+## Sprint 9 — Y10-12 Queue — NESA HSC English Standard Ingestion: SHIPPED
+- Commit: 9d76ab61
+- 6 years (2019-2024), 55 questions with marker feedback ingested
+
+## Sprint 8 — Y10-12 Queue — Syllabus DB Foundation: SHIPPED
+- Commit: d2fa4d3a
+- 4 tables + 4 syllabi seeded (NESA, VCE, QCE, WACE)
+
+## AUDIT GATE 3 — TESTER READINESS CHECKPOINT
+- Sprints shipped: 11/21 (1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 + 1 hotfix)
+- Current bundle: 1b017b17
+- All 200 OK on /, /login, /app
+- Guardrail check:
+  - [x] Australian English maintained
+  - [x] Zero em-dashes
+  - [x] "Simplifii-OS" with hyphen everywhere
+  - [x] tokens.js for colours (2 non-blocking warnings in tester-guide.html)
+  - [x] WCAG 2.2 AA on shipped components
+  - [x] No file exceeded 500 lines
+  - [x] No scope additions outside queue
+  - [x] No branded IP referenced
+  - [x] Privacy intact
+  - [x] Schema via Supabase MCP
+  - [x] Build clean on every commit
+  - [x] check-style.js clean on every commit
+- TESTER READINESS: CONDITIONAL GO
+  - All critical path features shipped
+  - Crisis resources verified
+  - Tier-aware tutor working
+  - Y10-12 onboarding with year level + state + pain points
+  - HSC past questions panel with 55 questions from 6 years
+  - Tester welcome modal + guide + email template + recruitment docs
+  - Admin feedback dashboard
+  - Remaining: Sprint 12 (QA hardening) would be ideal but not blocking
+
+WAITING FOR AARON TO TYPE "continue" BEFORE PROCEEDING TO SPRINT 12.
 
 ## Sprint 1.5 — Y10-12 Queue — Enhanced Onboarding: SHIPPED
 - Commit: e9b49a71
