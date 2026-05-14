@@ -230,6 +230,11 @@ export default function PitStopOverlay({ isOpen, onDismiss }) {
               {mode === 'vault' && <div style={{ flex: 1, minHeight: 320 }}><GameVault onBack={() => setMode(null)} /></div>}
             </div>
 
+            {/* Disclaimer */}
+            <p style={{ padding: '6px 18px 0', margin: 0, fontFamily: FONT_BODY, fontSize: 10, color: TEXT_FAINT, lineHeight: 1.5, textAlign: 'center' }}>
+              Stretches and breathing prompts are general suggestions, not medical advice. If you have a physical condition or are unsure, check with a qualified health professional.
+            </p>
+
             {/* Footer */}
             <div style={{ padding: '10px 18px', borderTop: `1px solid ${SURFACE_RAISED}` }}>
               <button

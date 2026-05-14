@@ -125,6 +125,11 @@ export const COLOUR_PURPLE_GLOW_STRONG = 'rgba(168,85,247,0.5)';  // Strong purp
 // Amber focus/glow
 export const COLOUR_WARN_FOCUS = 'rgba(245,158,11,0.3)'; // Amber focus ring, avatar dim
 
+// AI label accent (warm gold pill for AI-suggested content)
+export const ACCENT_AMBER      = '#E8A020'; // Warm gold for AI labels
+export const ACCENT_AMBER_GLASS = 'rgba(232,160,32,0.1)'; // Amber pill background
+export const ACCENT_AMBER_BORDER = 'rgba(232,160,32,0.25)'; // Amber pill border
+
 // Yellow
 export const COLOUR_YELLOW_GLOW = 'rgba(251,191,36,0.8)'; // Yellow drop shadow
 

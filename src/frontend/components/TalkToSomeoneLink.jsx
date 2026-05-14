@@ -107,8 +107,11 @@ export default function TalkToSomeoneLink({ canHide = false }) {
             }}
             onClick={e => e.stopPropagation()}
           >
-            <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_PRIMARY, margin: '0 0 16px', lineHeight: 1.5 }}>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_PRIMARY, margin: '0 0 8px', lineHeight: 1.5 }}>
               It is OK to need help. These services are free and confidential.
+            </p>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_FAINT, margin: '0 0 16px', lineHeight: 1.5 }}>
+              Simplifii-OS is a thinking tool, not a mental health service. If you are struggling, please reach out to a trusted person, your GP, or a crisis line.
             </p>
 
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>

@@ -7,6 +7,7 @@ import { useAuth } from './contexts/AuthContext';
 import LandingPage from './frontend/landing/LandingPage';
 import PrivacyPage from './frontend/landing/PrivacyPage';
 import TermsPage from './frontend/landing/TermsPage';
+import AiUsePage from './frontend/landing/AiUsePage';
 import LoginScreen from './frontend/auth/LoginScreen';
 import SignupScreen from './frontend/auth/SignupScreen';
 import AppShell from './frontend/AppShell';
@@ -44,6 +45,7 @@ root.render(
           <Route path="/signup" element={<PublicOnly><SignupScreen /></PublicOnly>} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
+          <Route path="/ai-use" element={<AiUsePage />} />
 
           {/* Protected app routes */}
           <Route path="/app/*" element={<RequireAuth><AppShell /></RequireAuth>} />

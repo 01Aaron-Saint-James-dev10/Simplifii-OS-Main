@@ -130,6 +130,7 @@ export default function LandingPage() {
         <nav style={s.footerNav} aria-label="Footer navigation">
           <Link to="/privacy" style={s.footerLink}>Privacy</Link>
           <Link to="/terms" style={s.footerLink}>Terms</Link>
+          <Link to="/ai-use" style={s.footerLink}>AI Use</Link>
           <a href="mailto:aaron@simplifii.com.au" style={s.footerLink}>Contact</a>
         </nav>
         <p style={s.copyright}>&copy; 2026 Simplifii Pty Ltd. Built in Australia.</p>

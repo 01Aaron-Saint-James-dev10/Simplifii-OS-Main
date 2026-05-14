@@ -37,7 +37,7 @@ function buildDecorations(doc, flags) {
             // allow-style: CSS property names
             style: 'text-decoration: underline wavy; text-decoration-color: #f59e0b; text-underline-offset: 3px; cursor: help;',
             class: 'citation-unverified',
-            title: 'Citation not verified in corpus',
+            title: 'This claim is not verified against your uploaded sources. It may still be true. It may be invented. Check the original source before submitting.',
           })
         );
         from = idx + flag.length;
