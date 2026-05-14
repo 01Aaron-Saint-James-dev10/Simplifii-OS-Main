@@ -2,6 +2,85 @@
 
 ---
 
+## Sovereign-OS v3 Visual Overhaul (from Claude Design handoff)
+
+Source: `/Users/adonis666/Downloads/Simplifii-OS_Master-handoff.zip` and `Sovereign-OS v3.html`
+Prototype: 1364 lines of pixel-perfect HTML/CSS/JS with 4 themes, 4 character signatures, animated effects.
+
+### Phase 1: Theme System + Top Bar (2-3 hrs)
+
+**1a. CSS Variable Theme System**
+- Extract 4 theme definitions from prototype into tokens.js or a new themes.js:
+  - Obsidian (current default, zinc-950 + emerald)
+  - Vaporwave (deep purple + magenta + cyan)
+  - Surreal (cream + ink + terracotta, hand-drawn font Caveat)
+  - Minimal (near-white + black + teal)
+- Each theme: --bg, --bg-1, --bg-2, --grid, --line, --line-soft, --line-dim, --accent, --ink, --ink-dim, --ink-faint, --hairline, --glow, --font-display, --stroke
+- Apply via `html[data-theme]` attribute (same pattern as prototype)
+- SettingsContext: add `theme` state, persist to localStorage
+
+**1b. Theme Switcher**
+- Keyboard shortcut: T key cycles themes
+- Small button in top-right of AppShell or CanvasNav
+- Visual: current theme name as a monospace pill
+- Accessible: aria-label announces current theme
+
+**1c. Top Bar Restyling**
+- Match prototype's `.topbar` layout: brand with dot + tag, spacer, stat readouts
+- Stats: word count, session time, streak days (from StudyPatternTracker)
+- Obsidian Aesthetic with hairline borders and corner markers
+
+### Phase 2: Character Signatures (4-6 hrs)
+
+**2a. 4 SVG Glyphs**
+- ARMOUR: hexagonal shell with Star of David inner geometry, rotating outer cage
+- VECTOR: octagonal logic gate with compass chevrons, tick-mark ring
+- NEXUS: triple orbital ring system with satellite nodes
+- VELOCITY: arrow/streak geometry with motion lines
+- All from the prototype's SVG markup (hand-crafted, not generated)
+
+**2b. Matrix Rain Effect**
+- Falling monospace characters behind each glyph
+- Mask: radial gradient (transparent centre, visible edges)
+- Speed varies by state (idle: slow, sprint: fast, success: accent colour)
+
+**2c. Aura Particle System**
+- Floating character sparks around the glyph (foreground)
+- Characters from a configurable charset
+- Spawn rate + speed varies by state
+- GPU-friendly: will-change transform + opacity
+
+**2d. State Animations**
+- idle: gentle breathe (opacity 0.55 to 1.0 over 5s)
+- sprint: fast draw, jitter, accelerated rain + aura
+- success: flare (stroke thickens then settles), accent colour rain
+
+### Phase 3: Steering Drawer + ASCII Refinery (3-4 hrs)
+
+**3a. Steering Drawer UI**
+- 4 control panels from prototype: Persona, Scaffolding, Grit, LOD
+- Each panel: 4-option segmented button grid
+- Values already in SettingsContext, just need the visual UI
+- Corner markers (pseudo-elements) per prototype design
+
+**3b. ASCII Refinery Upgrade**
+- Match prototype's `.refinery` section: bordered panel with corner markers
+- Show real-time extraction/processing status
+- Upgrade existing AsciiLoader to use the prototype's visual style
+
+### Phase 4: Polish + Responsive (2-3 hrs)
+
+- Grid paper background (32px grid lines via CSS gradient, per prototype)
+- Corner markers on all panels (::before/::after pseudo-elements)
+- Selection colour: emerald bg with dark text
+- Responsive breakpoints: 1100px (2-col grid), 600px (1-col)
+- prefers-reduced-motion: disable all spin/rain/aura/jitter animations
+
+**Total: 18-24 hours across 4 phases**
+**Priority:** Phase 1 ships first (post-tester-readiness queue). Phases 2-4 in Sprint N/O.
+
+---
+
 ## Tester-Surfaced (logged during Y10-12 queue)
 
 ### HSC Past Paper Ingestion via User Upload
