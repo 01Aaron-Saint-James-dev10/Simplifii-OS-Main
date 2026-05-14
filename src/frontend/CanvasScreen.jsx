@@ -13,6 +13,7 @@ import BriefPanel from './components/BriefPanel';
 import TutorPanel from './components/TutorPanel';
 import PreviewPanel from './components/PreviewPanel';
 import SourcesPanel from './components/SourcesPanel';
+import PastQuestionsPanel from './components/PastQuestionsPanel';
 import CheckPanel from './components/CheckPanel';
 import ProvenancePanel from './components/ProvenancePanel';
 import BibliographyView from './components/BibliographyView';
@@ -174,6 +175,13 @@ export default function CanvasScreen() {
           rubricCriteria={rubricCriteria}
           courseId={courseId}
           assessmentTitle={currentTitle}
+        />
+      </div>
+      <div style={{ display: activePanel === 'pastqs' ? 'contents' : 'none' }}>
+        <PastQuestionsPanel
+          assessmentTitle={currentTitle}
+          briefText={brief?.body || brief?.title || ''}
+          courseId={courseId}
         />
       </div>
     </>

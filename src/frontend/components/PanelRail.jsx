@@ -32,6 +32,7 @@ const PANELS = [
   { id: 'sources',    icon: 'S', label: 'Sources' },
   { id: 'provenance', icon: 'A', label: 'Authenticity' },
   { id: 'check',      icon: 'C', label: 'Check' },
+  { id: 'pastqs',     icon: 'Q', label: "Past Q's" },
 ];
 
 export default function PanelRail({ activePanel, onSelectPanel, panelContent }) {
