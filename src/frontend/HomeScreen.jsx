@@ -15,6 +15,7 @@ import TalkToSomeoneLink from './components/TalkToSomeoneLink';
 import AddCourseButton from './components/AddCourseButton';
 import LogoutButton from './auth/LogoutButton';
 import EmptyWorkspace from './workspace/EmptyWorkspace';
+import TesterWelcomeModal from './components/TesterWelcomeModal';
 import { ACCENT_BORDER, ACCENT_PULSE, TEXT_MUTED, FONT_DISPLAY } from '../theme/tokens';
 import './HomeScreen.css';
 
@@ -83,6 +84,7 @@ export default function HomeScreen() {
   const { navigateToCanvas, navigateToAssessments, navigateToResearch } = useRouter();
   const [profileTier, setProfileTier] = useState(null);
   const [displayName, setDisplayName] = useState(null);
+  const [showTesterWelcome, setShowTesterWelcome] = useState(false);
   const isAaron = user?.email === AARON_EMAIL;
 
   // Track whether this is first render of the session for greeting copy
@@ -90,10 +92,13 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (!user || isAaron) return;
-    supabase.from('profiles').select('tier, display_name').eq('id', user.id).single()
+    supabase.from('profiles').select('tier, display_name, has_seen_tester_welcome').eq('id', user.id).single()
       .then(({ data }) => {
         if (data?.tier) setProfileTier(data.tier);
         if (data?.display_name) setDisplayName(data.display_name);
+        if (data?.tier === 'secondary' && !data?.has_seen_tester_welcome) {
+          setShowTesterWelcome(true);
+        }
         sessionStorage.setItem('simplifii_greeted', 'true');
       });
   }, [user, isAaron]);
@@ -334,6 +339,10 @@ export default function HomeScreen() {
           </>
         )}
       </main>
+
+      {showTesterWelcome && (
+        <TesterWelcomeModal onDismiss={() => setShowTesterWelcome(false)} />
+      )}
     </div>
   );
 }
