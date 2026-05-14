@@ -24,6 +24,7 @@ export const SHADOW_LIGHT    = 'rgba(0,0,0,0.1)';   // Light shadow
 export const SHADOW_MEDIUM   = 'rgba(0,0,0,0.25)';  // Medium shadow
 export const OVERLAY_MEDIUM  = 'rgba(0,0,0,0.5)';   // Modal backdrop, overlay
 export const OVERLAY_HEAVY   = 'rgba(0,0,0,0.8)';   // Dense overlay
+export const OVERLAY_GAME    = 'rgba(9,9,11,0.85)';  // Game over screen backdrop
 export const OVERLAY_BACKDROP = 'rgba(7,8,13,0.94)'; // Full-screen backdrop
 
 // White tint ramp
@@ -93,7 +94,10 @@ export const COLOUR_ORANGE_BORDER = 'rgba(249,115,22,0.12)'; // Orange status bo
 // Red/error family
 export const COLOUR_DANGER        = '#f43f5e'; // Rose 500
 export const COLOUR_DANGER_GLASS  = 'rgba(239,68,68,0.06)';  // Error fill
+export const COLOUR_DANGER_TINT   = 'rgba(244,63,94,0.06)';  // Rose faintest fill
 export const COLOUR_DANGER_BORDER = 'rgba(239,68,68,0.2)';   // Error border
+export const COLOUR_DANGER_BORDER_ALT = 'rgba(244,63,94,0.2)'; // Rose border
+export const COLOUR_DANGER_GLOW   = 'rgba(244,63,94,0.5)';   // Rose glow, game accent
 export const COLOUR_DANGER_SOLID  = 'rgba(244,63,94,1)';     // Full opacity danger
 
 // Red/coral (vault-specific)
@@ -104,12 +108,16 @@ export const VAULT_ERROR_BORDER = 'rgba(255,124,124,0.25)'; // Vault error borde
 export const COLOUR_INFO       = '#60a5fa'; // Blue 400
 export const COLOUR_INFO_GLASS  = 'rgba(59,130,246,0.1)';  // Info fill
 export const COLOUR_INFO_BORDER = 'rgba(59,130,246,0.15)'; // Info border/shadow
+export const COLOUR_INFO_DIM    = 'rgba(59,130,246,0.25)'; // Blue avatar dim
 export const COLOUR_INFO_GLOW   = 'rgba(59,130,246,0.3)';  // Info glow
 
 // Indigo/purple
 export const COLOUR_INDIGO_BORDER      = 'rgba(79,70,229,0.15)';  // Indigo border
 export const COLOUR_PURPLE_GLOW        = 'rgba(168,85,247,0.3)';  // Purple glow
 export const COLOUR_PURPLE_GLOW_STRONG = 'rgba(168,85,247,0.5)';  // Strong purple glow
+
+// Amber focus/glow
+export const COLOUR_WARN_FOCUS = 'rgba(245,158,11,0.3)'; // Amber focus ring, avatar dim
 
 // Yellow
 export const COLOUR_YELLOW_GLOW = 'rgba(251,191,36,0.8)'; // Yellow drop shadow

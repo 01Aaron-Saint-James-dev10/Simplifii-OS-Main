@@ -10,16 +10,26 @@
  */
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
+import {
+  SURFACE_BASE,
+  SURFACE_RAISED,
+  TEXT_LABEL,
+  ACCENT_PULSE,
+  ACCENT_GLOW_40,
+  COLOUR_DANGER,
+  COLOUR_DANGER_GLOW,
+  OVERLAY_GAME,
+} from '../../../theme/tokens';
 
 const GRID      = 22;
 const TICK_MS   = 120;
-const ZINC_950  = '#09090b';
-const ZINC_800  = '#27272a';
-const ZINC_700  = '#3f3f46';
-const EMERALD   = '#10b981';
-const EMERALD_G = 'rgba(16,185,129,0.4)';
-const ROSE      = '#f43f5e';
-const ROSE_G    = 'rgba(244,63,94,0.5)';
+const ZINC_950  = SURFACE_BASE;
+const ZINC_800  = SURFACE_RAISED;
+const ZINC_700  = TEXT_LABEL;
+const EMERALD   = ACCENT_PULSE;
+const EMERALD_G = ACCENT_GLOW_40;
+const ROSE      = COLOUR_DANGER;
+const ROSE_G    = COLOUR_DANGER_GLOW;
 
 function randomCell(exclude = []) {
   let pos;
@@ -312,7 +322,7 @@ export default function NeuralSnake({ onExit }) {
 
       {/* Game over screen */}
       {gameState === 'over' && (
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, background: 'rgba(9,9,11,0.85)' }}>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, background: OVERLAY_GAME }}>
           <p style={{ fontFamily: 'monospace', fontSize: 13, color: ROSE, margin: 0 }}>Connection Lost</p>
           <p style={{ fontFamily: 'monospace', fontSize: 18, fontWeight: 700, color: EMERALD, margin: 0 }}>{score}</p>
           <div style={{ display: 'flex', gap: 10 }}>

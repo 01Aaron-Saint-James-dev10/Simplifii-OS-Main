@@ -32,7 +32,13 @@ import {
   ACCENT_GLASS_STRONG,
   ACCENT_BORDER,
   ACCENT_BORDER_STRONG,
+  ACCENT_GLOW_50,
+  ACCENT_GLASS_SUBTLE,
   OVERLAY_HEAVY,
+  COLOUR_WARN_TINT,
+  COLOUR_WARN_BORDER,
+  COLOUR_DANGER_TINT,
+  COLOUR_DANGER_BORDER_ALT,
 } from '../../../theme/tokens';
 
 const ROSE   = '#f43f5e';
@@ -67,7 +73,7 @@ function StretchAnimation({ prompt }) {
             initial={{ strokeDasharray: len, strokeDashoffset: len }}
             animate={{ strokeDashoffset: 0 }}
             transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-            style={{ filter: 'drop-shadow(0 0 4px rgba(16,185,129,0.5))' }}
+            style={{ filter: `drop-shadow(0 0 4px ${ACCENT_GLOW_50})` }}
           />
         )}
         <path
@@ -91,11 +97,11 @@ function FuelCard({ onDone }) {
   const fuel    = getRandomPrompt('fuel');
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '4px 0' }}>
-      <div style={{ padding: '12px 16px', background: 'rgba(16,185,129,0.06)', border: `1px solid ${ACCENT_BORDER}`, borderRadius: BORDER_RADIUS * 2 }}>
+      <div style={{ padding: '12px 16px', background: ACCENT_GLASS_SUBTLE, border: `1px solid ${ACCENT_BORDER}`, borderRadius: BORDER_RADIUS * 2 }}>
         <p style={{ fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: EMERALD, margin: '0 0 6px' }}>Hydrate</p>
         <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: TEXT_PRIMARY, margin: 0, lineHeight: 1.7 }}>{hydrate}</p>
       </div>
-      <div style={{ padding: '12px 16px', background: 'rgba(245,158,11,0.06)', border: `1px solid rgba(245,158,11,0.2)`, borderRadius: BORDER_RADIUS * 2 }}>
+      <div style={{ padding: '12px 16px', background: COLOUR_WARN_TINT, border: `1px solid ${COLOUR_WARN_BORDER}`, borderRadius: BORDER_RADIUS * 2 }}>
         <p style={{ fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: AMBER, margin: '0 0 6px' }}>Fuel</p>
         <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: TEXT_PRIMARY, margin: 0, lineHeight: 1.7 }}>{fuel}</p>
       </div>
@@ -122,12 +128,14 @@ export default function PitStopOverlay({ isOpen, onDismiss }) {
     }
   }, [isOpen]);
 
+  const HUB_TINT = { [ROSE]: COLOUR_DANGER_TINT, [AMBER]: COLOUR_WARN_TINT, [EMERALD]: ACCENT_GLASS_SUBTLE };
+  const HUB_BORDER = { [ROSE]: COLOUR_DANGER_BORDER_ALT, [AMBER]: COLOUR_WARN_BORDER, [EMERALD]: ACCENT_BORDER };
   const HUB_BTN_STYLE = (colour) => ({
     flex:          1,
     minWidth:      100,
     padding:       '18px 10px',
-    background:    `rgba(${colour === ROSE ? '244,63,94' : colour === AMBER ? '245,158,11' : '16,185,129'},0.06)`,
-    border:        `1px solid rgba(${colour === ROSE ? '244,63,94' : colour === AMBER ? '245,158,11' : '16,185,129'},0.2)`,
+    background:    HUB_TINT[colour],
+    border:        `1px solid ${HUB_BORDER[colour]}`,
     borderRadius:  BORDER_RADIUS * 2,
     cursor:        'pointer',
     display:       'flex',

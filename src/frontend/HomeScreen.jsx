@@ -11,6 +11,7 @@ import DecisionButton from './components/DecisionButton';
 import BodyDoublingLine from './components/BodyDoublingLine';
 import TalkToSomeoneLink from './components/TalkToSomeoneLink';
 import AddCourseButton from './components/AddCourseButton';
+import { ACCENT_BORDER, ACCENT_PULSE } from '../theme/tokens';
 import './HomeScreen.css';
 
 /**
@@ -116,7 +117,7 @@ export default function HomeScreen() {
           <button
             type="button"
             onClick={navigateToResearch}
-            style={{ padding: '4px 12px', background: 'transparent', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 6, fontFamily: 'system-ui,sans-serif', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#10b981', cursor: 'pointer' }}
+            style={{ padding: '4px 12px', background: 'transparent', border: `1px solid ${ACCENT_BORDER}`, borderRadius: 6, fontFamily: 'system-ui,sans-serif', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_PULSE, cursor: 'pointer' }}
             aria-label="Open Research Workspace"
           >
             Research

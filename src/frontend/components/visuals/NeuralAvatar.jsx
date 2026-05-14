@@ -23,18 +23,30 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
+import {
+  ACCENT_PULSE,
+  ACCENT_BORDER_STRONG,
+  ACCENT_GLOW_50,
+  SURFACE_RAISED,
+  TEXT_LABEL,
+  COLOUR_WARN,
+  COLOUR_WARN_FOCUS,
+  COLOUR_INFO,
+  COLOUR_INFO_DIM,
+  COLOUR_INFO_BORDER,
+} from '../../../theme/tokens';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
-const EMERALD      = '#10b981';
-const EMERALD_DIM  = 'rgba(16,185,129,0.25)';
-const EMERALD_MID  = 'rgba(16,185,129,0.5)';
-const ZINC_800     = '#27272a';
-const ZINC_700     = '#3f3f46';
-const AMBER        = '#f59e0b';
-const AMBER_DIM    = 'rgba(245,158,11,0.3)';
-const BLUE         = '#3b82f6';
-const BLUE_DIM     = 'rgba(59,130,246,0.25)';
+const EMERALD      = ACCENT_PULSE;
+const EMERALD_DIM  = ACCENT_BORDER_STRONG;
+const EMERALD_MID  = ACCENT_GLOW_50;
+const ZINC_800     = SURFACE_RAISED;
+const ZINC_700     = TEXT_LABEL;
+const AMBER        = COLOUR_WARN;
+const AMBER_DIM    = COLOUR_WARN_FOCUS;
+const BLUE         = COLOUR_INFO;
+const BLUE_DIM     = COLOUR_INFO_DIM;
 
 // ─── Path data ────────────────────────────────────────────────────────────────
 
@@ -224,7 +236,7 @@ export default function NeuralAvatar({ persona = 'browser', wordCount = 0, deepW
       {isCompass && (
         <>
           <OrbitalRing size={size * 0.95} duration={8}  color={BLUE_DIM} />
-          <OrbitalRing size={size * 0.70} duration={5}  color={`rgba(59,130,246,0.15)`} />
+          <OrbitalRing size={size * 0.70} duration={5}  color={COLOUR_INFO_BORDER} />
         </>
       )}
 
