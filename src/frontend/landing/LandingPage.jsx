@@ -130,7 +130,7 @@ export default function LandingPage() {
             </p>
 
             <div className="lp-fade-3" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
-              <Link to="/signup" className="lp-cta-primary" style={{ display: 'inline-block', padding: '16px 40px', background: ACCENT_PULSE, borderRadius: 8, fontFamily: FONT_DISPLAY, fontSize: 17, fontWeight: 700, textDecoration: 'none', boxShadow: GLOW_EMERALD }}>
+              <Link to="/signup" className="lp-cta-primary" style={{ display: 'inline-block', padding: '16px 40px', background: ACCENT_PULSE, borderRadius: 8, fontFamily: FONT_DISPLAY, fontSize: 17, fontWeight: 700, textDecoration: 'none', boxShadow: GLOW_EMERALD, color: SURFACE_BASE }}>
                 Start free
               </Link>
               <a href="#how-it-works" onClick={scrollToHow} style={{ fontFamily: FONT_DISPLAY, fontSize: 15, fontWeight: 600, textDecoration: 'none', color: TEXT_LINK, cursor: 'pointer' }}>
@@ -303,7 +303,7 @@ export default function LandingPage() {
 
       {/* ── FOUNDER ───────────────────────────────────────────── */}
       <section ref={r6.ref} className={r6.cls} style={{ maxWidth: 640, margin: '0 auto', padding: '80px 24px', textAlign: 'center' }}>
-        <div style={{ display: 'inline-block', width: 56, height: 56, borderRadius: '50%', background: ACCENT_GLASS_STRONG, border: `2px solid ${ACCENT_BORDER}`, marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+        <div style={{ width: 56, height: 56, borderRadius: '50%', background: ACCENT_GLASS_STRONG, border: `2px solid ${ACCENT_BORDER}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
           <span style={{ fontFamily: FONT_SYSTEM, fontSize: 20, fontWeight: 800, color: ACCENT_PULSE }}>A</span>
         </div>
         <div style={{ borderLeft: `2px solid ${ACCENT_BORDER}`, paddingLeft: 24, textAlign: 'left', maxWidth: 520, margin: '0 auto' }}>
@@ -323,7 +323,7 @@ export default function LandingPage() {
         <p style={{ fontFamily: FONT_BODY, fontSize: 16, color: TEXT_MUTED, margin: '0 0 32px' }}>
           Simplifii-OS is free during beta. Built for every kind of mind. Used from Year 7 to PhD.
         </p>
-        <Link to="/signup" className="lp-cta-primary" style={{ display: 'inline-block', padding: '16px 48px', background: ACCENT_PULSE, borderRadius: 8, fontFamily: FONT_BODY, fontSize: 17, fontWeight: 700, textDecoration: 'none', boxShadow: GLOW_EMERALD }}>
+        <Link to="/signup" className="lp-cta-primary" style={{ display: 'inline-block', padding: '16px 48px', background: ACCENT_PULSE, borderRadius: 8, fontFamily: FONT_DISPLAY, fontSize: 17, fontWeight: 700, textDecoration: 'none', boxShadow: GLOW_EMERALD, color: SURFACE_BASE }}>
           Start free
         </Link>
         <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_MUTED, marginTop: 16 }}>

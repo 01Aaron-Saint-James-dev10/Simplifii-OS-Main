@@ -85,7 +85,7 @@ export default function AppShell() {
       <ProjectProvider>
         <ResearchProjectProvider>
           <RouterProvider>
-            <div style={{ position: 'relative', minHeight: '100vh' }}>
+            <div style={{ position: 'relative', minHeight: '100vh', background: SURFACE_BASE }}>
               <BetaBanner />
               <ViewSwitch />
               <FeedbackButton />

@@ -161,7 +161,7 @@ function DayCell({ dayName, dateLabel, tasks, isToday, isOverdue }) {
         gap: 6,
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
         <span
           style={{
             fontFamily: FONT_SYSTEM,
@@ -170,12 +170,13 @@ function DayCell({ dayName, dateLabel, tasks, isToday, isOverdue }) {
             letterSpacing: '0.1em',
             textTransform: 'uppercase',
             color: isOverdue ? COLOUR_DANGER : isToday ? ACCENT_PULSE : TEXT_MUTED,
+            flexShrink: 0,
           }}
         >
           {dayName}
         </span>
         {dateLabel && (
-          <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, color: TEXT_FAINT }}>
+          <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, color: TEXT_FAINT, whiteSpace: 'nowrap' }}>
             {dateLabel}
           </span>
         )}
