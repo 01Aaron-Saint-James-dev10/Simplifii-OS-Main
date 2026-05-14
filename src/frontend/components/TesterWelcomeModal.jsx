@@ -36,7 +36,9 @@ export default function TesterWelcomeModal({ onDismiss }) {
 
   const handleDismiss = async () => {
     if (user) {
-      await supabase.from('profiles').update({ has_seen_tester_welcome: true }).eq('id', user.id).catch(() => {});
+      try {
+        await supabase.from('profiles').update({ has_seen_tester_welcome: true }).eq('id', user.id);
+      } catch { /* network error, non-blocking */ }
     }
     onDismiss();
   };
