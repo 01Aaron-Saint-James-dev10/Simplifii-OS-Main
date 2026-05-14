@@ -26,6 +26,8 @@ export default function PastQuestionsPanel({ assessmentTitle, briefText, courseI
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [yearFilter, setYearFilter] = useState('all');
 
   useEffect(() => {
     if (!briefText || briefText.length < 20) return;
@@ -64,6 +66,39 @@ export default function PastQuestionsPanel({ assessmentTitle, briefText, courseI
         </p>
       </div>
 
+      {/* Search + filter */}
+      <div style={{ display: 'flex', gap: 6 }}>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Search questions..."
+          aria-label="Search past questions"
+          style={{
+            flex: 1, padding: '6px 10px', fontFamily: FONT_BODY, fontSize: 12,
+            color: TEXT_PRIMARY, background: 'transparent',
+            border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS,
+            outline: 'none', minHeight: 32,
+          }}
+        />
+        <select
+          value={yearFilter}
+          onChange={e => setYearFilter(e.target.value)}
+          aria-label="Filter by year"
+          style={{
+            padding: '6px 8px', fontFamily: FONT_SYSTEM, fontSize: 10,
+            color: TEXT_MUTED, background: 'transparent',
+            border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS,
+            cursor: 'pointer', minHeight: 32,
+          }}
+        >
+          <option value="all">All years</option>
+          {[2025, 2024, 2023, 2022, 2021, 2020, 2019].map(y => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
+      </div>
+
       {loading && <AsciiLoader status="Finding relevant past questions..." />}
 
       {error && (
@@ -76,12 +111,18 @@ export default function PastQuestionsPanel({ assessmentTitle, briefText, courseI
         </p>
       )}
 
-      {results && results.suggestedPastQuestions?.length > 0 && (
+      {results && results.suggestedPastQuestions?.length > 0 && (() => {
+        const filtered = results.suggestedPastQuestions.filter(q => {
+          if (yearFilter !== 'all' && q.year !== parseInt(yearFilter)) return false;
+          if (searchQuery.trim() && !`${q.questionText} ${q.markerFeedback || ''}`.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+          return true;
+        });
+        return (
         <>
           <p style={{ fontFamily: FONT_SYSTEM, fontSize: 9, color: TEXT_FAINT, margin: 0 }}>
-            Confidence: {results.confidence} | {results.suggestedPastQuestions.length} matches
+            {filtered.length} of {results.suggestedPastQuestions.length} matches | confidence: {results.confidence}
           </p>
-          {results.suggestedPastQuestions.slice(0, 3).map((q, i) => (
+          {filtered.slice(0, 5).map((q, i) => (
             <div key={q.id || i} style={{
               padding: '10px 12px', borderBottom: `1px solid ${SURFACE_RAISED}`,
             }}>
@@ -131,7 +172,8 @@ export default function PastQuestionsPanel({ assessmentTitle, briefText, courseI
             </div>
           ))}
         </>
-      )}
+        );
+      })()}
 
       {!briefText && (
         <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_FAINT, margin: 0 }}>
