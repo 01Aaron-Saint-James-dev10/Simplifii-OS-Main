@@ -1,121 +1,232 @@
 /**
  * NeuralAvatar.jsx
  *
- * Living SVG line-work avatar for Bowser-OS (Research mode).
- * Composed of geometric zinc-950 outlines with emerald-500 glow.
+ * Living SVG Neural Signature avatars for Bowser-OS.
+ * Three personas, each with a distinct geometric style and animation signature:
  *
- * Animations (Framer Motion):
- *   1. "Draw" on mount: pathLength 0 -> 1 for each line segment.
- *   2. "Pulse": opacity cycles on the glow ring every 3s.
- *   3. "Drift" burst: triggered externally via wordCount prop.
- *      Every 100-word milestone fires a high-speed line-stroke
- *      across the HUD (mimics a Mario Kart speed boost).
+ *   'browser'  (BrOWSER)  - Research mode. Heavy geometric shell, emerald glow.
+ *                           Shoots flame particles on word-count milestones.
+ *   'sparq'    (SP-RK)    - HSC mode. Erratic lightning lines, fast kinetic energy.
+ *                           Vibrates during high-focus Deep Work sessions.
+ *   'compass'  (C-MPASS)  - Undergrad mode. Smooth orbital rings, calming rotation.
+ *                           Pulses slowly to reduce assessment anxiety.
+ *
+ * All avatars draw themselves on mount via Framer Motion pathLength transitions.
  *
  * Props:
- *   wordCount  - number  (current editor word count, drives Drift)
- *   size       - number  (SVG width/height in px, default 80)
- *   style      - object  (optional container style override)
+ *   persona    - 'browser' | 'sparq' | 'compass'   (default: 'browser')
+ *   wordCount  - number   (drives Drift burst on every 100-word milestone)
+ *   deepWork   - boolean  (SP-RK vibrates faster; BrOWSER hardens geometry)
+ *   size       - number   (SVG width/height px, default 80)
+ *   style      - object   (optional container style override)
  */
 
 import React, { useRef, useEffect, useState } from 'react';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 
-const EMERALD   = '#10b981';
-const EMERALD_DIM = 'rgba(16,185,129,0.3)';
-const ZINC_800  = '#27272a';
-const ZINC_700  = '#3f3f46';
+// ─── Design tokens ────────────────────────────────────────────────────────────
 
-function bowserPaths() {
-  // Geometric Bowser silhouette rendered as line segments.
-  // All coordinates are in a 100x100 viewBox.
-  // Shapes: crown spikes, brow ridge, jaw, collar, shell highlight.
+const EMERALD      = '#10b981';
+const EMERALD_DIM  = 'rgba(16,185,129,0.25)';
+const EMERALD_MID  = 'rgba(16,185,129,0.5)';
+const ZINC_800     = '#27272a';
+const ZINC_700     = '#3f3f46';
+const AMBER        = '#f59e0b';
+const AMBER_DIM    = 'rgba(245,158,11,0.3)';
+const BLUE         = '#3b82f6';
+const BLUE_DIM     = 'rgba(59,130,246,0.25)';
+
+// ─── Path data ────────────────────────────────────────────────────────────────
+
+function browserPaths(deepWork) {
+  // Heavy geometric Bowser shell: crown spikes, head, brow, jaw, collar, shell arc
+  const spike = deepWork ? 1.8 : 1.4;
   return [
-    // Crown spike left
-    'M 30 38 L 22 20 L 34 32',
-    // Crown spike centre
-    'M 50 35 L 50 16 L 56 30',
-    // Crown spike right
-    'M 64 38 L 74 20 L 66 34',
-    // Head outline
-    'M 26 40 Q 26 28 50 26 Q 74 28 74 40 L 74 62 Q 74 74 50 74 Q 26 74 26 62 Z',
-    // Left brow
-    'M 34 46 Q 38 43 44 46',
-    // Right brow
-    'M 56 46 Q 62 43 66 46',
-    // Jaw line
-    'M 36 64 Q 50 70 64 64',
-    // Collar
-    'M 30 76 Q 50 82 70 76',
-    // Shell highlight arc
-    'M 38 80 Q 50 90 62 80',
+    { d: 'M 28 38 L 18 17 L 32 32', w: spike + 0.4 },
+    { d: 'M 50 33 L 50 13 L 57 29', w: spike + 0.4 },
+    { d: 'M 66 38 L 78 17 L 68 33', w: spike + 0.4 },
+    { d: 'M 24 42 Q 24 26 50 24 Q 76 26 76 42 L 76 64 Q 76 76 50 76 Q 24 76 24 64 Z', w: deepWork ? 2.2 : 1.8 },
+    { d: 'M 33 49 Q 38 44 44 49', w: 1.4 },
+    { d: 'M 56 49 Q 62 44 67 49', w: 1.4 },
+    { d: 'M 35 67 Q 50 73 65 67', w: 1.6 },
+    { d: 'M 28 79 Q 50 86 72 79', w: 1.2 },
+    { d: 'M 36 84 Q 50 92 64 84', w: 1.0 },
   ];
 }
 
-function SpeedBurst({ onDone }) {
+function sparqPaths() {
+  // Erratic lightning bolt geometry
+  return [
+    { d: 'M 50 15 L 38 45 L 50 40 L 38 75', w: 2.0 },
+    { d: 'M 35 25 L 22 42 L 35 38', w: 1.4 },
+    { d: 'M 65 25 L 78 42 L 65 38', w: 1.4 },
+    { d: 'M 30 50 L 20 60 L 32 58 L 25 72', w: 1.2 },
+    { d: 'M 70 50 L 80 60 L 68 58 L 75 72', w: 1.2 },
+    { d: 'M 40 20 L 30 15 L 38 28', w: 1.0 },
+    { d: 'M 60 20 L 70 15 L 62 28', w: 1.0 },
+  ];
+}
+
+function compassPaths() {
+  // Smooth orbital circles and flowing arcs
+  return [
+    { d: 'M 50 20 A 30 30 0 1 1 49.9 20', w: 1.4 },
+    { d: 'M 50 30 A 20 20 0 1 1 49.9 30', w: 1.2 },
+    { d: 'M 50 10 L 50 90', w: 0.8 },
+    { d: 'M 10 50 L 90 50',  w: 0.8 },
+    { d: 'M 29 29 L 71 71',  w: 0.6 },
+    { d: 'M 71 29 L 29 71',  w: 0.6 },
+    { d: 'M 50 40 A 10 10 0 1 1 49.9 40', w: 1.8 },
+  ];
+}
+
+// ─── Flame particle (BrOWSER milestone) ──────────────────────────────────────
+
+function FlameParticle({ angle, onDone }) {
+  const rad = (angle * Math.PI) / 180;
+  const dx  = Math.cos(rad) * 38;
+  const dy  = Math.sin(rad) * 38;
   return (
     <motion.div
-      initial={{ opacity: 0.9, scaleX: 0, x: -40 }}
-      animate={{ opacity: 0, scaleX: 1, x: 80 }}
+      initial={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+      animate={{ opacity: 0, x: dx, y: dy, scale: 0.3 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.45, ease: 'easeOut' }}
+      transition={{ duration: 0.55, ease: 'easeOut' }}
       onAnimationComplete={onDone}
       style={{
-        position: 'absolute',
-        top: '50%',
-        left: 0,
-        width: '140%',
-        height: 2,
-        background: `linear-gradient(90deg, transparent, ${EMERALD}, transparent)`,
-        transformOrigin: 'left center',
-        boxShadow: `0 0 8px 2px ${EMERALD_DIM}`,
+        position:    'absolute',
+        top:         '50%',
+        left:        '50%',
+        width:        6,
+        height:       6,
+        marginTop:   -3,
+        marginLeft:  -3,
+        borderRadius: '50%',
+        background:  EMERALD,
+        boxShadow:   `0 0 6px 2px ${EMERALD_MID}`,
         pointerEvents: 'none',
       }}
     />
   );
 }
 
-export default function NeuralAvatar({ wordCount = 0, size = 80, style }) {
-  const controls     = useAnimation();
+// ─── Lightning flash (SP-RK Deep Work) ───────────────────────────────────────
+
+function LightningFlash() {
+  return (
+    <motion.div
+      initial={{ opacity: 0.8 }}
+      animate={{ opacity: [0.8, 0, 0.6, 0] }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      style={{
+        position:     'absolute',
+        inset:         0,
+        borderRadius: '50%',
+        background:   `radial-gradient(circle, ${AMBER_DIM}, transparent 70%)`,
+        pointerEvents: 'none',
+      }}
+    />
+  );
+}
+
+// ─── Orbital ring (C-MPASS) ───────────────────────────────────────────────────
+
+function OrbitalRing({ size, duration, color }) {
+  return (
+    <motion.div
+      animate={{ rotate: 360 }}
+      transition={{ duration, repeat: Infinity, ease: 'linear' }}
+      style={{
+        position:    'absolute',
+        top:          '50%',
+        left:         '50%',
+        width:        size,
+        height:       size,
+        marginTop:   -(size / 2),
+        marginLeft:  -(size / 2),
+        borderRadius: '50%',
+        border:       `1px solid ${color}`,
+        pointerEvents: 'none',
+      }}
+    />
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+const FLAME_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
+
+export default function NeuralAvatar({ persona = 'browser', wordCount = 0, deepWork = false, size = 80, style }) {
+  const pathControls = useAnimation();
   const glowControls = useAnimation();
   const prevMilestone = useRef(0);
-  const [drifting, setDrifting] = useState(false);
+  const [flames,    setFlames]    = useState([]);
+  const [flashing,  setFlashing]  = useState(false);
+
+  const isBrowser = persona === 'browser';
+  const isSparq   = persona === 'sparq';
+  const isCompass  = persona === 'compass';
+
+  const accentColor = isBrowser ? EMERALD : isSparq ? AMBER : BLUE;
+  const accentDim   = isBrowser ? EMERALD_DIM : isSparq ? AMBER_DIM : BLUE_DIM;
+
+  const paths = isBrowser
+    ? browserPaths(deepWork)
+    : isSparq
+    ? sparqPaths()
+    : compassPaths();
 
   // Draw on mount
   useEffect(() => {
-    controls.start(i => ({
+    pathControls.start(i => ({
       pathLength: 1,
-      opacity: 1,
+      opacity:    1,
       transition: {
-        pathLength: { delay: i * 0.06, duration: 0.7, ease: 'easeOut' },
+        pathLength: { delay: i * 0.06, duration: isSparq ? 0.35 : isCompass ? 1.0 : 0.65, ease: 'easeOut' },
         opacity:    { delay: i * 0.06, duration: 0.2 },
       },
     }));
-    // Start glow pulse loop
+    const pulseDuration = isSparq ? 0.8 : isCompass ? 4 : 3;
     glowControls.start({
-      opacity: [0.3, 0.7, 0.3],
-      transition: { duration: 3, repeat: Infinity, ease: 'easeInOut' },
+      opacity: [0.3, isSparq ? 0.9 : 0.65, 0.3],
+      transition: { duration: pulseDuration, repeat: Infinity, ease: 'easeInOut' },
     });
   }, []); // eslint-disable-line
 
-  // Drift burst every 100-word milestone
+  // Redraw when deepWork changes (BrOWSER geometry hardens)
+  useEffect(() => {
+    if (!isBrowser) return;
+    pathControls.start({ pathLength: 1, opacity: 1, transition: { duration: 0.4 } });
+  }, [deepWork, isBrowser, pathControls]);
+
+  // Drift milestone: emit flame particles (BrOWSER) or lightning flash (SP-RK)
   useEffect(() => {
     const milestone = Math.floor(wordCount / 100) * 100;
     if (milestone > 0 && milestone !== prevMilestone.current) {
       prevMilestone.current = milestone;
-      setDrifting(true);
+      if (isBrowser) {
+        const newFlames = FLAME_ANGLES.map(angle => ({ id: `${Date.now()}-${angle}`, angle }));
+        setFlames(prev => [...prev, ...newFlames]);
+      } else if (isSparq) {
+        setFlashing(true);
+        setTimeout(() => setFlashing(false), 400);
+      }
     }
-  }, [wordCount]);
+  }, [wordCount, isBrowser, isSparq]);
 
-  const paths = bowserPaths();
+  function removeFlame(id) {
+    setFlames(prev => prev.filter(f => f.id !== id));
+  }
 
   return (
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0, ...style }}>
-      {/* Speed burst overlay */}
-      <AnimatePresence>
-        {drifting && (
-          <SpeedBurst key="burst" onDone={() => setDrifting(false)} />
-        )}
-      </AnimatePresence>
+      {/* C-MPASS orbital rings (behind SVG) */}
+      {isCompass && (
+        <>
+          <OrbitalRing size={size * 0.95} duration={8}  color={BLUE_DIM} />
+          <OrbitalRing size={size * 0.70} duration={5}  color={`rgba(59,130,246,0.15)`} />
+        </>
+      )}
 
       <svg
         viewBox="0 0 100 100"
@@ -123,39 +234,48 @@ export default function NeuralAvatar({ wordCount = 0, size = 80, style }) {
         height={size}
         fill="none"
         aria-hidden="true"
-        style={{ display: 'block' }}
+        style={{ display: 'block', position: 'relative', zIndex: 1 }}
       >
-        {/* Dark base fill */}
         <circle cx="50" cy="50" r="48" fill={ZINC_800} stroke={ZINC_700} strokeWidth="1" />
 
         {/* Outer glow ring */}
         <motion.circle
           cx="50" cy="50" r="46"
-          stroke={EMERALD_DIM}
+          stroke={accentDim}
           strokeWidth="1.5"
           fill="none"
           animate={glowControls}
         />
 
-        {/* Geometric line segments */}
-        {paths.map((d, i) => (
+        {/* Persona paths */}
+        {paths.map((p, i) => (
           <motion.path
             key={i}
             custom={i}
-            d={d}
-            stroke={EMERALD}
-            strokeWidth={i < 3 ? 1.8 : 1.4}
+            d={p.d}
+            stroke={accentColor}
+            strokeWidth={p.w}
             strokeLinecap="round"
             strokeLinejoin="round"
             fill="none"
             initial={{ pathLength: 0, opacity: 0 }}
-            animate={controls}
-            style={{
-              filter: `drop-shadow(0 0 3px ${EMERALD_DIM})`,
-            }}
+            animate={pathControls}
+            style={{ filter: `drop-shadow(0 0 3px ${accentDim})` }}
           />
         ))}
       </svg>
+
+      {/* BrOWSER flame particles */}
+      <AnimatePresence>
+        {flames.map(f => (
+          <FlameParticle key={f.id} angle={f.angle} onDone={() => removeFlame(f.id)} />
+        ))}
+      </AnimatePresence>
+
+      {/* SP-RK lightning flash */}
+      <AnimatePresence>
+        {flashing && <LightningFlash key="flash" />}
+      </AnimatePresence>
     </div>
   );
 }

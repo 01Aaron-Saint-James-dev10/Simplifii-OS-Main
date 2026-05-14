@@ -19,6 +19,7 @@ import SupervisorFeedbackPanel from './SupervisorFeedbackPanel';
 import SynthesisPreview from './SynthesisPreview';
 import ResearchIngestScreen from './ResearchIngestScreen';
 import NeuralAvatar from '../components/visuals/NeuralAvatar';
+import ProposalOnboarding from './ProposalOnboarding';
 import {
   SURFACE_BASE,
   SURFACE_CARD,
@@ -51,6 +52,9 @@ export default function ResearchHomeScreen() {
     reflexivityLog,
     supervisorFeedback,
     seeding,
+    needsOnboarding,
+    applyDemoSeed,
+    createProjectFromProposal,
   } = useResearchProject();
   const { navigateToCanvas, navigateToChapter, navigateHome } = useRouter();
 
@@ -87,8 +91,17 @@ export default function ResearchHomeScreen() {
   if (seeding) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: SURFACE_BASE }}>
-        <p style={{ fontFamily: FONT_SYSTEM, fontSize: 12, color: TEXT_FAINT, letterSpacing: '0.08em' }}>Loading research workspace...</p>
+        <p style={{ fontFamily: FONT_SYSTEM, fontSize: 12, color: TEXT_FAINT, letterSpacing: '0.08em' }}>Setting up research workspace...</p>
       </div>
+    );
+  }
+
+  if (needsOnboarding) {
+    return (
+      <ProposalOnboarding
+        onProjectCreated={createProjectFromProposal}
+        onUseDemo={applyDemoSeed}
+      />
     );
   }
 

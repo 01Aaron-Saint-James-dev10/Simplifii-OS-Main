@@ -3,7 +3,13 @@
  *
  * State management for the Sovereign Research container.
  * Loads phases, strands, chapters, and all three logs from IndexedDB.
- * Applies Aaron's MRes seed on first launch (guarded by localStorage flag).
+ *
+ * Onboarding model (Proposal-First):
+ *   - On mount, check IndexedDB for any existing research project.
+ *   - If none found, expose `needsOnboarding: true` so ResearchHomeScreen
+ *     shows the ProposalOnboarding gate instead of the dashboard.
+ *   - `applyDemoSeed()` loads Aaron's pre-seeded MRes for testing.
+ *   - `createProjectFromProposal(data)` creates a real project from extracted data.
  */
 
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
@@ -46,49 +52,15 @@ const SEED_FLAG = 'simplifii_aaron_seed_v1';
 const ResearchProjectContext = createContext();
 
 export function ResearchProjectProvider({ children }) {
-  const [activeProject, setActiveProject]   = useState(null);
-  const [phases,        setPhases]          = useState([]);
-  const [strands,       setStrands]         = useState([]);
-  const [chapters,      setChapters]        = useState([]);
-  const [methodologyLog,   setMethodologyLog]   = useState([]);
-  const [reflexivityLog,   setReflexivityLog]   = useState([]);
+  const [activeProject,      setActiveProject]      = useState(null);
+  const [phases,             setPhases]             = useState([]);
+  const [strands,            setStrands]            = useState([]);
+  const [chapters,           setChapters]           = useState([]);
+  const [methodologyLog,     setMethodologyLog]     = useState([]);
+  const [reflexivityLog,     setReflexivityLog]     = useState([]);
   const [supervisorFeedback, setSupervisorFeedback] = useState([]);
-  const [seeding,       setSeeding]         = useState(false);
-
-  // ─── Seed Aaron's MRes on first launch ──────────────────────────────────────
-
-  useEffect(() => {
-    if (localStorage.getItem(SEED_FLAG)) return;
-    (async () => {
-      setSeeding(true);
-      try {
-        // Save project
-        await addResearchProject('local', AARON_PROJECT);
-        // Phases
-        for (const p of AARON_PHASES) await addPhase(p.projectId, p);
-        // Strands
-        for (const s of AARON_STRANDS) await addStrand(s.projectId, s.phaseId, s);
-        // Chapters
-        for (const c of AARON_CHAPTERS) await addChapter(c.projectId, c);
-        // Methodology log
-        for (const e of AARON_METHODOLOGY_LOG) await addMethodologyEntry(e.projectId, e);
-        // Reflexivity log
-        for (const e of AARON_REFLEXIVITY_LOG) await addReflexivityEntry(e.projectId, e);
-        // Supervisor feedback
-        for (const f of AARON_SUPERVISOR_FEEDBACK) await addSupervisorFeedback(f.projectId, f);
-        // Corpus pre-seeds
-        for (const src of AARON_CORPUS_SEEDS) {
-          await addSource(AARON_PROJECT_ID, { ...src, sourceId: uuidv4() });
-        }
-        localStorage.setItem(SEED_FLAG, '1');
-      } catch (err) {
-        console.error('[ResearchProjectContext] seed failed:', err);
-      } finally {
-        setSeeding(false);
-        await loadProject(AARON_PROJECT_ID);
-      }
-    })();
-  }, []); // eslint-disable-line
+  const [seeding,            setSeeding]            = useState(false);
+  const [loaded,             setLoaded]             = useState(false);
 
   // ─── Load a project by ID ────────────────────────────────────────────────────
 
@@ -117,14 +89,108 @@ export function ResearchProjectProvider({ children }) {
     }
   }, []);
 
-  // Load Aaron's project on mount if seed is already applied
+  // ─── On mount: check for existing projects ───────────────────────────────────
+
   useEffect(() => {
+    (async () => {
+      try {
+        // If demo seed was already applied, load Aaron's project directly
+        if (localStorage.getItem(SEED_FLAG)) {
+          await loadProject(AARON_PROJECT_ID);
+          setLoaded(true);
+          return;
+        }
+        // Otherwise check if any real user project exists
+        const all = await getAllResearchProjects();
+        if (all && all.length > 0) {
+          await loadProject(all[0].projectId);
+        }
+      } catch (err) {
+        console.error('[ResearchProjectContext] mount load failed:', err);
+      } finally {
+        setLoaded(true);
+      }
+    })();
+  }, [loadProject]);
+
+  // ─── Apply Aaron demo seed (triggered by "Use Demo Data" button) ─────────────
+
+  const applyDemoSeed = useCallback(async () => {
     if (localStorage.getItem(SEED_FLAG)) {
-      loadProject(AARON_PROJECT_ID);
+      await loadProject(AARON_PROJECT_ID);
+      return;
+    }
+    setSeeding(true);
+    try {
+      await addResearchProject('local', AARON_PROJECT);
+      for (const p of AARON_PHASES) await addPhase(p.projectId, p);
+      for (const s of AARON_STRANDS) await addStrand(s.projectId, s.phaseId, s);
+      for (const c of AARON_CHAPTERS) await addChapter(c.projectId, c);
+      for (const e of AARON_METHODOLOGY_LOG) await addMethodologyEntry(e.projectId, e);
+      for (const e of AARON_REFLEXIVITY_LOG) await addReflexivityEntry(e.projectId, e);
+      for (const f of AARON_SUPERVISOR_FEEDBACK) await addSupervisorFeedback(f.projectId, f);
+      for (const src of AARON_CORPUS_SEEDS) {
+        await addSource(AARON_PROJECT_ID, { ...src, sourceId: uuidv4() });
+      }
+      localStorage.setItem(SEED_FLAG, '1');
+      await loadProject(AARON_PROJECT_ID);
+    } catch (err) {
+      console.error('[ResearchProjectContext] demo seed failed:', err);
+    } finally {
+      setSeeding(false);
     }
   }, [loadProject]);
 
-  // ─── Methodology log callbacks ───────────────────────────────────────────────
+  // ─── Create project from uploaded proposal ───────────────────────────────────
+
+  const createProjectFromProposal = useCallback(async (data) => {
+    setSeeding(true);
+    try {
+      const projectId = uuidv4();
+      const project = await addResearchProject('local', {
+        projectId,
+        title:                 data.title,
+        supervisor:            data.supervisor || '',
+        institution:           data.institution || '',
+        positionalityStatement: data.positionalityStatement || '',
+        theoreticalFramework:  data.theoreticalFramework || '',
+        status:                'active',
+        startYear:             new Date().getFullYear(),
+      });
+
+      // Create primary phase
+      const phaseType = data.researchType || 'mres';
+      const phaseTitle = { mres: 'MRes Phase 1', phd: 'PhD Candidature', honours: 'Honours Year', masters: 'Masters Phase 1' }[phaseType] || 'Phase 1';
+      const phase = await addPhase(projectId, { title: phaseTitle, type: phaseType, status: 'active', order: 0 });
+
+      // Create primary strand
+      const strand = await addStrand(projectId, phase.phaseId, { title: 'Primary Research Strand', status: 'active', order: 0 });
+
+      // Create chapters from suggested structure
+      const chapterList = (data.suggestedChapters || []);
+      const createdChapters = [];
+      for (let i = 0; i < chapterList.length; i++) {
+        const ch = chapterList[i];
+        const created = await addChapter(projectId, {
+          strandId:  strand.strandId,
+          phaseId:   phase.phaseId,
+          number:    ch.number,
+          title:     `Chapter ${ch.number}: ${ch.title}`,
+          status:    i === 0 ? 'drafting' : 'not_started',
+          order:     i,
+        });
+        createdChapters.push(created);
+      }
+
+      await loadProject(projectId);
+    } catch (err) {
+      console.error('[ResearchProjectContext] createProjectFromProposal failed:', err);
+    } finally {
+      setSeeding(false);
+    }
+  }, [loadProject]);
+
+  // ─── Methodology log ─────────────────────────────────────────────────────────
 
   const addMethodologyEntryCallback = useCallback(async (data) => {
     if (!activeProject) return;
@@ -133,7 +199,7 @@ export function ResearchProjectProvider({ children }) {
     return entry;
   }, [activeProject]);
 
-  // ─── Reflexivity log callbacks ───────────────────────────────────────────────
+  // ─── Reflexivity log ─────────────────────────────────────────────────────────
 
   const addReflexivityEntryCallback = useCallback(async (data) => {
     if (!activeProject) return;
@@ -142,7 +208,7 @@ export function ResearchProjectProvider({ children }) {
     return entry;
   }, [activeProject]);
 
-  // ─── Supervisor feedback callbacks ───────────────────────────────────────────
+  // ─── Supervisor feedback ─────────────────────────────────────────────────────
 
   const addSupervisorFeedbackCallback = useCallback(async (data) => {
     if (!activeProject) return;
@@ -157,6 +223,9 @@ export function ResearchProjectProvider({ children }) {
     return updated;
   }, []);
 
+  // needsOnboarding: loaded but no project and no demo seed
+  const needsOnboarding = loaded && !activeProject && !seeding;
+
   return (
     <ResearchProjectContext.Provider value={{
       activeProject,
@@ -167,7 +236,11 @@ export function ResearchProjectProvider({ children }) {
       reflexivityLog,
       supervisorFeedback,
       seeding,
+      loaded,
+      needsOnboarding,
       loadProject,
+      applyDemoSeed,
+      createProjectFromProposal,
       addMethodologyEntry:   addMethodologyEntryCallback,
       addReflexivityEntry:   addReflexivityEntryCallback,
       addSupervisorFeedback: addSupervisorFeedbackCallback,
