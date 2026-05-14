@@ -13,7 +13,64 @@ Pre-flight: PASSED (clean tree, main up to date, bundle 8c810c79, APIs verified)
 - Issues: none
 - Assumptions: none
 
-WAITING FOR AARON TO TYPE "continue" BEFORE PROCEEDING TO SPRINT 4.
+Aaron typed "continue". Proceeding.
+
+## Sprint 7 — Y10-12 Queue — Admin Feedback Dashboard: SHIPPED
+- Commit: d308f7cd
+- Bundle: bc8d080d
+- Files: 3 (+144)
+- Aaron-only at /app?admin=feedback, status toggles, filter pills
+
+## Sprint 6 — Y10-12 Queue — Recruitment Docs: SHIPPED
+- Commit: 5857c9fc
+- Files: 1 (docs only)
+- DM template, parent consent form, privacy briefing
+
+## Sprint 5 — Y10-12 Queue — Tester Guide: SHIPPED
+- Commit: 06c3ff29
+- Files: 1 (public/tester-guide.html)
+- Printable A4 guide at /tester-guide.html
+
+## AUDIT GATE 2 (after Sprint 7)
+- Sprints shipped: 7/21 (1, 1.5, 2, 3, 4, 5, 6, 7)
+- Current bundle: bc8d080d
+- All 200 OK on /, /login, /app
+- Guardrail check:
+  - [x] Australian English maintained
+  - [x] Zero em-dashes
+  - [x] "Simplifii-OS" with hyphen everywhere
+  - [x] tokens.js for colours (2 non-blocking warnings in tester-guide.html, static file)
+  - [x] WCAG 2.2 AA on shipped components
+  - [x] No file exceeded 500 lines
+  - [x] No scope additions outside queue
+  - [x] No branded IP referenced
+  - [x] Privacy intact (no analytics on crisis modal)
+  - [x] Schema via Supabase MCP
+  - [x] Build clean on every commit
+  - [x] check-style.js clean on every commit
+- What shipped since Gate 1:
+  4. Tester welcome modal + email template
+  1.5. Y10-12 enhanced onboarding (year level, state, pain points)
+  5. Printable tester guide
+  6. Recruitment documentation
+  7. Admin feedback triage dashboard
+- What's next: Sprint 8 (Syllabus DB foundation), 9 (NESA ingestion), 10 (pattern matcher), 11 (HSC panel)
+
+WAITING FOR AARON TO TYPE "continue" BEFORE PROCEEDING TO SPRINT 8.
+
+## Sprint 1.5 — Y10-12 Queue — Enhanced Onboarding: SHIPPED
+- Commit: e9b49a71
+- Bundle: 63212797
+- Files: 4 (+259 / -17)
+- Secondary tier gets 2 extra steps: year level + state, pain points (12 chips)
+- Dynamic step routing in OnboardingFlow
+- Schema: year_level, state, pain_points, emotional_baseline, subjects columns
+
+## Sprint 4 — Y10-12 Queue — Tester Welcome Modal: SHIPPED
+- Commit: 56a546b3
+- Bundle: 3e9dcaf0
+- Files: 4 (+159 / -1)
+- TesterWelcomeModal (3-step guide), email template, has_seen_tester_welcome column
 
 ## Sprint 3 — Y10-12 Queue — Cosmetic Polish: SHIPPED
 - Commit: f3ce69e8
