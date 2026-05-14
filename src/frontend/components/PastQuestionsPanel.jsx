@@ -59,7 +59,7 @@ export default function PastQuestionsPanel({ assessmentTitle, briefText, courseI
         <h3 style={{ fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: ACCENT_PULSE, margin: '0 0 4px' }}>
           HSC Past Questions
         </h3>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_FAINT, margin: 0 }}>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_MUTED, margin: 0 }}>
           Similar questions from past HSC exams with marker feedback.
         </p>
       </div>
