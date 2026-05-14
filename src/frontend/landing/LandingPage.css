@@ -1,0 +1,212 @@
+/* ================================================================
+   LandingPage.css
+   Animations, responsive breakpoints, and glass effects.
+   Companion to LandingPage.jsx inline styles.
+   ================================================================ */
+
+/* ── Animations ─────────────────────────────────────────────────── */
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.7; }
+}
+
+.lp-fade-1 { animation: fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.1s both; }
+.lp-fade-2 { animation: fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.25s both; }
+.lp-fade-3 { animation: fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.4s both; }
+.lp-fade-4 { animation: fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.55s both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-fade-1, .lp-fade-2, .lp-fade-3, .lp-fade-4 {
+    animation: none;
+    opacity: 1;
+  }
+  .lp-float { animation: none; }
+}
+
+.lp-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* ── Hero background glow ───────────────────────────────────────── */
+
+.lp-hero {
+  position: relative;
+  overflow: hidden;
+}
+
+.lp-hero::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 800px;
+  background: radial-gradient(circle, rgba(16,185,129,0.08) 0%, transparent 70%);
+  pointer-events: none;
+  animation: glowPulse 8s ease-in-out infinite;
+}
+
+/* ── Pillar grid responsive ─────────────────────────────────────── */
+
+.lp-pillar-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .lp-pillar-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .lp-pillar-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ── Pillar card hover ──────────────────────────────────────────── */
+
+.lp-pillar-card {
+  transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+}
+
+.lp-pillar-card:hover {
+  border-color: rgba(16,185,129,0.25);
+  box-shadow: 0 0 24px rgba(16,185,129,0.08);
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-pillar-card:hover { transform: none; }
+}
+
+/* ── Awards bar ─────────────────────────────────────────────────── */
+
+.lp-awards {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.lp-award-pill {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.lp-award-pill:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(16,185,129,0.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-award-pill:hover { transform: none; }
+}
+
+/* ── Showcase tabs ──────────────────────────────────────────────── */
+
+.lp-showcase-frame {
+  transition: opacity 0.4s, transform 0.4s;
+}
+
+/* ── Comparison grid ────────────────────────────────────────────── */
+
+.lp-diff-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 48px;
+  align-items: start;
+}
+
+@media (min-width: 768px) {
+  .lp-diff-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ── FAQ ────────────────────────────────────────────────────────── */
+
+.lp-faq-answer {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.35s cubic-bezier(0.16,1,0.3,1), padding 0.35s;
+  padding: 0 0;
+}
+
+.lp-faq-answer.open {
+  max-height: 300px;
+  padding: 12px 0 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-faq-answer { transition: none; }
+}
+
+/* ── CTA button hover ───────────────────────────────────────────── */
+
+.lp-cta-primary {
+  transition: transform 0.15s, box-shadow 0.2s;
+}
+
+.lp-cta-primary:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 40px rgba(16,185,129,0.35), 0 0 80px rgba(16,185,129,0.12);
+}
+
+.lp-cta-primary:active {
+  transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-cta-primary:hover, .lp-cta-primary:active { transform: none; }
+}
+
+/* ── Footer grid ────────────────────────────────────────────────── */
+
+.lp-footer-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .lp-footer-grid {
+    grid-template-columns: 2fr 1fr 1fr;
+    text-align: left;
+  }
+}
+
+/* ── Section reveal ─────────────────────────────────────────────── */
+
+.lp-section {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s cubic-bezier(0.16,1,0.3,1), transform 0.6s cubic-bezier(0.16,1,0.3,1);
+}
+
+.lp-section.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-section {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

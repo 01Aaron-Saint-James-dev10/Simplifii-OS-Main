@@ -1,381 +1,293 @@
-import React from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   SURFACE_BASE, SURFACE_CARD, SURFACE_RAISED,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT, TEXT_LABEL,
   ACCENT_PULSE, ACCENT_HOVER, ACCENT_BORDER, ACCENT_GLOW,
   ACCENT_GLASS, ACCENT_GLASS_STRONG, ACCENT_BORDER_STRONG,
-  ACCENT_GLOW_50,
+  ACCENT_GLOW_50, ACCENT_CYAN, ACCENT_AMBER,
+  ACCENT_GLASS_FAINT, ACCENT_GLASS_SUBTLE,
+  GLASS_SURFACE, GLASS_BORDER, GLASS_BORDER_HOVER,
+  GLOW_EMERALD, ACCENT_SHADOW_FAINT,
   FONT_BODY, FONT_SYSTEM,
   BORDER_RADIUS, GRADIENT_EMERALD_CYAN,
 } from '../../theme/tokens';
+import './LandingPage.css';
+
+/* ── Data ────────────────────────────────────────────────────────── */
 
 const PILLARS = [
-  {
-    title: 'Prepare',
-    body: 'Decode the brief. Translate the rubric. Know what is actually being asked before you start.',
-  },
-  {
-    title: 'Organise',
-    body: 'Drop in your sources. Sort your thinking. Build a workspace that holds your ideas as you write.',
-  },
-  {
-    title: 'Decide',
-    body: "When you are stuck, surface the real options. When you are wrong, get told kindly.",
-  },
-  {
-    title: 'Follow through',
-    body: 'Every claim verified. Every citation real. Submission-ready, in your own words.',
-  },
+  { icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', title: 'Prepare', body: 'Decode the brief. Translate the rubric. Know what is actually being asked before you start.' },
+  { icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10', title: 'Organise', body: 'Drop in your sources. Sort your thinking. Build a workspace that holds your ideas as you write.' },
+  { icon: 'M8 9l4-4 4 4m0 6l-4 4-4-4', title: 'Decide', body: 'When you are stuck, surface the real options. When you are wrong, get told kindly.' },
+  { icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', title: 'Follow through', body: 'Every claim verified. Every citation real. Submission-ready, in your own words.' },
 ];
 
-const BADGES = [
-  'NDRP Research Leadership Award 2026',
-  'ADCET Accessibility in Action 2023',
-  'UN SDG Global Citizenship Award 2025',
+const AWARDS = [
+  { name: 'NDRP Research Leadership Award', year: '2026' },
+  { name: 'ADCET Accessibility in Action', year: '2023' },
+  { name: 'UN SDG Global Citizenship Award', year: '2025' },
 ];
+
+const SHOWCASE = [
+  { id: 'workspace', label: 'Your workspace', desc: 'Research dashboard with phases, strands, chapters, and corpus in one view.' },
+  { id: 'draft', label: 'Your draft', desc: 'Chapter editor with amber citation flags and real-time source verification.' },
+  { id: 'reset', label: 'Your reset', desc: 'Pit Stop overlay with guided breaks, stretches, and the Neural Companion.' },
+];
+
+const COMPARISON = [
+  { them: 'Writes for you', us: 'Works with you' },
+  { them: 'Hallucinates citations', us: 'Verifies every claim' },
+  { them: 'Flattens your voice', us: 'Preserves your voice' },
+  { them: 'Black box', us: 'Full history of your thinking' },
+];
+
+const FAQS = [
+  { q: 'Is this allowed under my university\'s AI policy?', a: 'Simplifii-OS is a workflow and verification tool, not a content generator. Most institutions permit tools that support your own thinking. We make disclosure easy with our AI Use Receipt feature. Always check your institution\'s specific policy.' },
+  { q: 'Will my grades improve?', a: 'We cannot promise any specific academic outcome. Simplifii-OS helps you organise, verify, and strengthen your work. Better work habits tend to produce better results, but grades depend on many factors outside our control.' },
+  { q: 'How is this different from ChatGPT or Grammarly?', a: 'ChatGPT writes for you. Grammarly polishes what you wrote. Simplifii-OS works with you across the entire workflow: from decoding the brief, to organising sources, to verifying every claim before submission. Your voice stays yours.' },
+  { q: 'What happens to my data?', a: 'Your data is stored encrypted in Sydney, Australia. We do not sell it, share it with advertisers, or use it to train AI models. You can export or delete your data at any time.' },
+  { q: 'Is it really free?', a: 'Yes. Simplifii-OS is free for all individual learners during beta. When we introduce paid plans, free accounts will always have a free tier.' },
+  { q: 'Does it work for high school students?', a: 'Yes. Simplifii-OS supports Year 10 to 12 students as well as university undergraduates, postgraduates, and researchers. The interface adapts to your academic level.' },
+  { q: 'What if I have ADHD or dyslexia?', a: 'Simplifii-OS was built by a dyslexic, ADHD founder specifically for neurodivergent learners. Executive function support, clear visual hierarchy, no guilt notifications, and calm transitions are core to the design.' },
+  { q: 'Can I use it for non-academic work?', a: 'The current beta is optimised for academic workflows: assignments, theses, and research. Job applications, reports, and decision-making workflows are on the roadmap.' },
+];
+
+/* ── Scroll reveal hook ──────────────────────────────────────────── */
+
+function useReveal() {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } }, { threshold: 0.12 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return { ref, cls: `lp-section ${visible ? 'visible' : ''}` };
+}
+
+/* ── Component ───────────────────────────────────────────────────── */
 
 export default function LandingPage() {
-  const scrollToHow = (e) => {
-    e.preventDefault();
-    document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const [activeTab, setActiveTab] = useState('workspace');
+  const [openFaq, setOpenFaq] = useState(null);
+
+  const scrollToHow = (e) => { e.preventDefault(); document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' }); };
+  const toggleFaq = useCallback((i) => setOpenFaq(prev => prev === i ? null : i), []);
+
+  const r1 = useReveal(), r2 = useReveal(), r3 = useReveal(), r4 = useReveal(), r5 = useReveal(), r6 = useReveal(), r7 = useReveal();
 
   return (
-    <div style={s.root}>
-      {/* ── Hero ──────────────────────────────────────────────── */}
-      <header style={s.hero}>
-        <div style={s.heroInner}>
-          <h1 style={s.headline}>
-            Not AI that does your thinking.
+    <div style={{ minHeight: '100vh', background: SURFACE_BASE }}>
+
+      {/* ── HERO ──────────────────────────────────────────────── */}
+      <header className="lp-hero" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 24px 64px', position: 'relative' }}>
+        <div style={{ maxWidth: 860, textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <h1 className="lp-fade-1" style={{ fontFamily: FONT_BODY, fontWeight: 800, fontSize: 'clamp(2.5rem, 8vw, 5rem)', lineHeight: 1.05, letterSpacing: '-0.03em', margin: '0 0 8px' }}>
+            <span style={{ background: GRADIENT_EMERALD_CYAN, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+              Not AI that does your thinking.
+            </span>
             <br />
-            AI that protects it.
+            <span style={{ color: TEXT_PRIMARY }}>AI that protects it.</span>
           </h1>
-          <p style={s.subheadline}>
-            Simplifii-OS is the workflow layer between you and your ideas:
-            whether that is an assignment, a thesis, a job application, or a
-            hard decision. Prepare. Organise. Decide. Follow through. In your
-            own voice.
+
+          <p className="lp-fade-2" style={{ fontFamily: FONT_BODY, fontSize: 'clamp(1rem, 2.4vw, 1.25rem)', lineHeight: 1.7, maxWidth: 580, margin: '24px auto 36px', color: TEXT_MUTED }}>
+            The thinking layer between you and the work that matters.<br />
+            Prepare, organise, decide, follow through: in your own voice.
           </p>
-          <div style={s.ctaRow}>
-            <Link to="/signup" style={s.ctaPrimary}>Start free</Link>
-            <a href="#how-it-works" onClick={scrollToHow} style={s.ctaSecondary}>
-              See how it works
+
+          <div className="lp-fade-3" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
+            <Link to="/signup" className="lp-cta-primary" style={{ display: 'inline-block', padding: '16px 40px', background: ACCENT_PULSE, borderRadius: 8, fontFamily: FONT_BODY, fontSize: 17, fontWeight: 700, textDecoration: 'none', boxShadow: GLOW_EMERALD }}>
+              Start free
+            </Link>
+            <a href="#how-it-works" onClick={scrollToHow} style={{ fontFamily: FONT_BODY, fontSize: 15, fontWeight: 600, textDecoration: 'none', color: TEXT_MUTED, cursor: 'pointer' }}>
+              See it work &darr;
             </a>
           </div>
-          <p style={s.micro}>No credit card. No ads. Your data stays yours.</p>
+
+          <p className="lp-fade-4" style={{ fontFamily: FONT_SYSTEM, fontSize: 12, letterSpacing: '0.04em', color: TEXT_FAINT }}>
+            No credit card. No ads. Your data stays yours.
+          </p>
         </div>
       </header>
 
-      {/* ── Social proof ──────────────────────────────────────── */}
-      <section style={s.proofStrip}>
-        <p style={s.proofText}>
+      {/* ── AWARDS BAR ────────────────────────────────────────── */}
+      <section ref={r1.ref} className={r1.cls} style={{ padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_FAINT, textAlign: 'center', margin: 0 }}>
           Built by a neurodivergent UNSW researcher and award-winning advocate
         </p>
-        <div style={s.badgeRow}>
-          {BADGES.map((b) => (
-            <span key={b} style={s.badge}>{b}</span>
+        <div className="lp-awards">
+          {AWARDS.map(a => (
+            <span key={a.name} className="lp-award-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', background: GLASS_SURFACE, border: `1px solid ${GLASS_BORDER}`, borderRadius: 20, fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: TEXT_MUTED, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: ACCENT_PULSE, flexShrink: 0 }} />
+              {a.name} <span style={{ color: TEXT_FAINT }}>{a.year}</span>
+            </span>
           ))}
         </div>
       </section>
 
-      {/* ── Pillars ───────────────────────────────────────────── */}
-      <section id="how-it-works" style={s.section}>
-        <h2 style={s.sectionTitle}>Built around how thinking actually works</h2>
-        <div style={s.pillarGrid}>
-          {PILLARS.map((p) => (
-            <div key={p.title} style={s.pillarCard}>
-              <h3 style={s.pillarTitle}>{p.title}</h3>
-              <p style={s.pillarBody}>{p.body}</p>
+      {/* ── PILLARS ───────────────────────────────────────────── */}
+      <section id="how-it-works" ref={r2.ref} className={r2.cls} style={{ maxWidth: 1120, margin: '0 auto', padding: '80px 24px' }}>
+        <h2 style={{ fontFamily: FONT_BODY, fontWeight: 700, fontSize: 'clamp(1.5rem, 4vw, 2.25rem)', textAlign: 'center', margin: '0 0 12px', background: GRADIENT_EMERALD_CYAN, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+          Built around how thinking actually works
+        </h2>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 16, color: TEXT_MUTED, textAlign: 'center', maxWidth: 520, margin: '0 auto 48px' }}>
+          Four stages. One workflow. Every tool you need, nothing you do not.
+        </p>
+
+        <div className="lp-pillar-grid">
+          {PILLARS.map(p => (
+            <div key={p.title} className="lp-pillar-card" style={{ background: GLASS_SURFACE, border: `1px solid ${GLASS_BORDER}`, borderRadius: 10, padding: '32px 24px', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={ACCENT_PULSE} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 16 }} aria-hidden="true">
+                <path d={p.icon} />
+              </svg>
+              <h3 style={{ fontFamily: FONT_SYSTEM, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: TEXT_PRIMARY, margin: '0 0 12px' }}>{p.title}</h3>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 15, lineHeight: 1.65, color: TEXT_MUTED, margin: 0 }}>{p.body}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ── Differentiation ───────────────────────────────────── */}
-      <section style={s.section}>
-        <h2 style={s.sectionTitle}>Not AI doing your homework</h2>
-        <p style={s.bodyText}>
-          Most AI tools write for you. Simplifii-OS works with you. Every
-          claim is checked against sources you upload. Every word stays yours.
-          The work is harder than ChatGPT. The results are actually defensible.
-        </p>
-      </section>
-
-      {/* ── Founder note ──────────────────────────────────────── */}
-      <section style={s.founderSection}>
-        <blockquote style={s.founderQuote}>
-          "I built Simplifii-OS because I am dyslexic, ADHD, and tired of
-          academic tools that pretend everyone thinks the same way. This is the
-          tool I needed at 17. And the one I still need at 36."
-        </blockquote>
-        <p style={s.founderName}>Aaron Saint-James, Founder</p>
-        <p style={s.founderRole}>MRes Candidate, UNSW Sydney</p>
-      </section>
-
-      {/* ── Final CTA ─────────────────────────────────────────── */}
-      <section style={s.finalCta}>
-        <Link to="/signup" style={s.ctaPrimary}>Start free</Link>
-        <p style={s.micro}>
-          Built for students. Used by researchers. Free for all learners during beta.
-        </p>
-      </section>
-
-      {/* ── Footer ────────────────────────────────────────────── */}
-      <footer style={s.footer}>
-        <div style={s.footerBrand}>
-          <span style={s.footerLogo}>S</span>
-          <span style={s.footerTitle}>Simplifii-OS</span>
+      {/* ── PRODUCT SHOWCASE ──────────────────────────────────── */}
+      <section ref={r3.ref} className={r3.cls} style={{ maxWidth: 960, margin: '0 auto', padding: '80px 24px' }}>
+        <h2 style={{ fontFamily: FONT_BODY, fontWeight: 700, fontSize: 'clamp(1.5rem, 4vw, 2.25rem)', textAlign: 'center', margin: '0 0 40px', color: TEXT_PRIMARY }}>
+          See it in action
+        </h2>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 32, flexWrap: 'wrap' }}>
+          {SHOWCASE.map(t => (
+            <button key={t.id} type="button" onClick={() => setActiveTab(t.id)} style={{ padding: '8px 20px', background: activeTab === t.id ? ACCENT_GLASS_STRONG : 'transparent', border: `1px solid ${activeTab === t.id ? ACCENT_BORDER_STRONG : GLASS_BORDER}`, borderRadius: 20, fontFamily: FONT_SYSTEM, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: activeTab === t.id ? ACCENT_PULSE : TEXT_MUTED, cursor: 'pointer' }}>
+              {t.label}
+            </button>
+          ))}
         </div>
-        <nav style={s.footerNav} aria-label="Footer navigation">
-          <Link to="/privacy" style={s.footerLink}>Privacy</Link>
-          <Link to="/terms" style={s.footerLink}>Terms</Link>
-          <Link to="/ai-use" style={s.footerLink}>AI Use</Link>
-          <a href="mailto:aaron@simplifii.com.au" style={s.footerLink}>Contact</a>
-        </nav>
-        <p style={s.copyright}>&copy; 2026 Simplifii Pty Ltd. Built in Australia.</p>
+        <div style={{ background: GLASS_SURFACE, border: `1px solid ${GLASS_BORDER}`, borderRadius: 12, overflow: 'hidden', boxShadow: ACCENT_SHADOW_FAINT }}>
+          <div style={{ aspectRatio: '16/9', display: 'flex', alignItems: 'center', justifyContent: 'center', background: `radial-gradient(ellipse at center, ${ACCENT_GLASS_FAINT} 0%, transparent 70%)`, minHeight: 320 }}>
+            <p style={{ fontFamily: FONT_SYSTEM, fontSize: 13, color: TEXT_FAINT, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              {SHOWCASE.find(t => t.id === activeTab)?.label} preview
+            </p>
+          </div>
+        </div>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 15, color: TEXT_MUTED, textAlign: 'center', marginTop: 20 }}>
+          {SHOWCASE.find(t => t.id === activeTab)?.desc}
+        </p>
+      </section>
+
+      {/* ── DIFFERENTIATION ───────────────────────────────────── */}
+      <section ref={r4.ref} className={r4.cls} style={{ maxWidth: 1000, margin: '0 auto', padding: '80px 24px' }}>
+        <div className="lp-diff-grid">
+          <div>
+            <h2 style={{ fontFamily: FONT_BODY, fontWeight: 700, fontSize: 'clamp(1.5rem, 4vw, 2.25rem)', margin: '0 0 20px', color: TEXT_PRIMARY }}>Not AI doing your homework</h2>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 17, lineHeight: 1.75, color: TEXT_MUTED }}>
+              Most AI tools write for you. Simplifii-OS works with you. Every claim is checked against sources you upload. Every word stays yours. The work is harder than ChatGPT. The results are actually defensible.
+            </p>
+          </div>
+          <div style={{ background: GLASS_SURFACE, border: `1px solid ${GLASS_BORDER}`, borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+              <div style={{ padding: '14px 16px', borderBottom: `1px solid ${GLASS_BORDER}`, fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_AMBER }}>ChatGPT</div>
+              <div style={{ padding: '14px 16px', borderBottom: `1px solid ${GLASS_BORDER}`, borderLeft: `1px solid ${GLASS_BORDER}`, fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_PULSE }}>Simplifii-OS</div>
+            </div>
+            {COMPARISON.map((c, i) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                <div style={{ padding: '12px 16px', borderBottom: i < COMPARISON.length - 1 ? `1px solid ${GLASS_BORDER}` : 'none', fontFamily: FONT_BODY, fontSize: 14, color: TEXT_FAINT }}>
+                  <span style={{ marginRight: 6, opacity: 0.5 }}>&times;</span>{c.them}
+                </div>
+                <div style={{ padding: '12px 16px', borderBottom: i < COMPARISON.length - 1 ? `1px solid ${GLASS_BORDER}` : 'none', borderLeft: `1px solid ${GLASS_BORDER}`, fontFamily: FONT_BODY, fontSize: 14, color: TEXT_PRIMARY }}>
+                  <span style={{ marginRight: 6, color: ACCENT_PULSE }}>&check;</span>{c.us}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQ ────────────────────────────────────────────────── */}
+      <section ref={r5.ref} className={r5.cls} style={{ maxWidth: 720, margin: '0 auto', padding: '80px 24px' }}>
+        <h2 style={{ fontFamily: FONT_BODY, fontWeight: 700, fontSize: 'clamp(1.5rem, 4vw, 2.25rem)', textAlign: 'center', margin: '0 0 48px', color: TEXT_PRIMARY }}>Common questions</h2>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {FAQS.map((f, i) => (
+            <div key={i} style={{ borderBottom: `1px solid ${GLASS_BORDER}` }}>
+              <button type="button" onClick={() => toggleFaq(i)} aria-expanded={openFaq === i} style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', minHeight: 44 }}>
+                <span style={{ fontFamily: FONT_BODY, fontSize: 16, fontWeight: 500, color: TEXT_PRIMARY, paddingRight: 16 }}>{f.q}</span>
+                <span style={{ fontFamily: FONT_SYSTEM, fontSize: 18, color: TEXT_FAINT, flexShrink: 0, transition: 'transform 0.2s', transform: openFaq === i ? 'rotate(45deg)' : 'none' }}>+</span>
+              </button>
+              <div className={`lp-faq-answer ${openFaq === i ? 'open' : ''}`}>
+                <p style={{ fontFamily: FONT_BODY, fontSize: 15, lineHeight: 1.7, color: TEXT_MUTED, margin: '0 0 20px' }}>{f.a}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── FOUNDER ───────────────────────────────────────────── */}
+      <section ref={r6.ref} className={r6.cls} style={{ maxWidth: 640, margin: '0 auto', padding: '80px 24px', textAlign: 'center' }}>
+        <div style={{ display: 'inline-block', width: 56, height: 56, borderRadius: '50%', background: ACCENT_GLASS_STRONG, border: `2px solid ${ACCENT_BORDER}`, marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+          <span style={{ fontFamily: FONT_SYSTEM, fontSize: 20, fontWeight: 800, color: ACCENT_PULSE }}>A</span>
+        </div>
+        <div style={{ borderLeft: `2px solid ${ACCENT_BORDER}`, paddingLeft: 24, textAlign: 'left', maxWidth: 520, margin: '0 auto' }}>
+          <blockquote style={{ fontFamily: FONT_BODY, fontSize: 'clamp(1rem, 2.5vw, 1.2rem)', fontStyle: 'italic', lineHeight: 1.75, margin: '0 0 20px', padding: 0, border: 'none', color: TEXT_PRIMARY }}>
+            "I built Simplifii-OS because I am dyslexic, ADHD, and tired of academic tools that pretend everyone thinks the same way. This is the tool I needed at 17. And the one I still need at 36."
+          </blockquote>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 15, fontWeight: 600, color: TEXT_PRIMARY, margin: '0 0 2px' }}>Aaron Saint-James</p>
+          <p style={{ fontFamily: FONT_SYSTEM, fontSize: 11, letterSpacing: '0.04em', color: TEXT_FAINT, margin: 0 }}>Founder and MRes Candidate, UNSW Sydney</p>
+        </div>
+      </section>
+
+      {/* ── FINAL CTA ─────────────────────────────────────────── */}
+      <section style={{ width: '100%', padding: '80px 24px', textAlign: 'center', background: `radial-gradient(ellipse at center bottom, ${ACCENT_GLASS_SUBTLE} 0%, transparent 60%)` }}>
+        <h2 style={{ fontFamily: FONT_BODY, fontWeight: 700, fontSize: 'clamp(1.5rem, 4vw, 2.25rem)', margin: '0 0 12px', color: TEXT_PRIMARY }}>
+          Stop using AI tools that erase your voice.
+        </h2>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 16, color: TEXT_MUTED, margin: '0 0 32px' }}>
+          Simplifii-OS is free during beta. Built for students. Used by researchers.
+        </p>
+        <Link to="/signup" className="lp-cta-primary" style={{ display: 'inline-block', padding: '16px 48px', background: ACCENT_PULSE, borderRadius: 8, fontFamily: FONT_BODY, fontSize: 17, fontWeight: 700, textDecoration: 'none', boxShadow: GLOW_EMERALD }}>
+          Start free
+        </Link>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_MUTED, marginTop: 16 }}>
+          Already have an account? <Link to="/login" style={{ color: ACCENT_PULSE, textDecoration: 'underline' }}>Sign in</Link>
+        </p>
+        <p style={{ fontFamily: FONT_SYSTEM, fontSize: 11, color: TEXT_FAINT, letterSpacing: '0.04em', marginTop: 8 }}>
+          No credit card. No ads. Your data stays yours.
+        </p>
+      </section>
+
+      {/* ── FOOTER ────────────────────────────────────────────── */}
+      <footer style={{ width: '100%', borderTop: `1px solid ${GLASS_BORDER}`, padding: '48px 24px 32px' }}>
+        <div className="lp-footer-grid" style={{ maxWidth: 960, margin: '0 auto' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, justifyContent: 'inherit' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: 4, background: ACCENT_PULSE, fontFamily: FONT_SYSTEM, fontWeight: 800, fontSize: 12, color: SURFACE_BASE }}>S</span>
+              <span style={{ fontFamily: FONT_BODY, fontWeight: 600, fontSize: 15, color: TEXT_PRIMARY }}>Simplifii-OS</span>
+            </div>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: TEXT_FAINT, margin: '0 0 6px', lineHeight: 1.6 }}>
+              The thinking layer between you and the work that matters.
+            </p>
+            <p style={{ fontFamily: FONT_SYSTEM, fontSize: 11, color: TEXT_LABEL, margin: 0 }}>
+              Built in Sydney, Australia
+            </p>
+          </div>
+          <div>
+            <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: TEXT_FAINT, margin: '0 0 12px' }}>Product</p>
+            <nav style={{ display: 'flex', flexDirection: 'column', gap: 8 }} aria-label="Product links">
+              <Link to="/privacy" style={{ fontFamily: FONT_BODY, fontSize: 13, color: TEXT_MUTED, textDecoration: 'none' }}>Privacy</Link>
+              <Link to="/terms" style={{ fontFamily: FONT_BODY, fontSize: 13, color: TEXT_MUTED, textDecoration: 'none' }}>Terms</Link>
+              <Link to="/ai-use" style={{ fontFamily: FONT_BODY, fontSize: 13, color: TEXT_MUTED, textDecoration: 'none' }}>AI Use</Link>
+            </nav>
+          </div>
+          <div>
+            <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: TEXT_FAINT, margin: '0 0 12px' }}>Connect</p>
+            <nav style={{ display: 'flex', flexDirection: 'column', gap: 8 }} aria-label="Connect links">
+              <a href="mailto:aaron@simplifii.com.au" style={{ fontFamily: FONT_BODY, fontSize: 13, color: TEXT_MUTED, textDecoration: 'none' }}>Email</a>
+            </nav>
+          </div>
+        </div>
+        <div style={{ maxWidth: 960, margin: '32px auto 0', paddingTop: 20, borderTop: `1px solid ${GLASS_BORDER}`, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+          <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_LABEL, letterSpacing: '0.04em', margin: 0 }}>&copy; 2026 Simplifii Pty Ltd</p>
+          <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_LABEL, letterSpacing: '0.04em', margin: 0 }}>Made with care for every kind of mind</p>
+        </div>
       </footer>
     </div>
   );
 }
-
-// ── Styles ────────────────────────────────────────────────────────────────────
-
-const s = {
-  root: {
-    minHeight: '100vh',
-    background: SURFACE_BASE,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-  },
-
-  // Hero
-  hero: {
-    width: '100%',
-    display: 'flex',
-    justifyContent: 'center',
-    padding: '80px 24px 48px',
-  },
-  heroInner: {
-    maxWidth: 680,
-    textAlign: 'center',
-  },
-  headline: {
-    fontFamily: FONT_BODY,
-    fontWeight: 800,
-    fontSize: 'clamp(28px, 5vw, 48px)',
-    lineHeight: 1.15,
-    background: GRADIENT_EMERALD_CYAN,
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-    backgroundClip: 'text',
-    margin: '0 0 24px',
-  },
-  subheadline: {
-    fontFamily: FONT_BODY,
-    fontSize: 'clamp(15px, 2.2vw, 18px)',
-    lineHeight: 1.65,
-    maxWidth: 560,
-    margin: '0 auto 32px',
-  },
-  ctaRow: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 20,
-    flexWrap: 'wrap',
-    marginBottom: 16,
-  },
-  ctaPrimary: {
-    display: 'inline-block',
-    padding: '14px 36px',
-    background: ACCENT_PULSE,
-    borderRadius: BORDER_RADIUS + 2,
-    fontFamily: FONT_BODY,
-    fontSize: 16,
-    fontWeight: 700,
-    textDecoration: 'none',
-    cursor: 'pointer',
-  },
-  ctaSecondary: {
-    fontFamily: FONT_BODY,
-    fontSize: 14,
-    fontWeight: 600,
-    textDecoration: 'none',
-    borderBottom: `1px solid transparent`,
-    cursor: 'pointer',
-  },
-  micro: {
-    fontFamily: FONT_SYSTEM,
-    fontSize: 11,
-    letterSpacing: '0.04em',
-    marginTop: 8,
-  },
-
-  // Social proof
-  proofStrip: {
-    width: '100%',
-    maxWidth: 720,
-    padding: '32px 24px',
-    textAlign: 'center',
-    borderTop: `1px solid ${SURFACE_RAISED}`,
-    borderBottom: `1px solid ${SURFACE_RAISED}`,
-  },
-  proofText: {
-    fontFamily: FONT_BODY,
-    fontSize: 13,
-    margin: '0 0 14px',
-  },
-  badgeRow: {
-    display: 'flex',
-    justifyContent: 'center',
-    gap: 12,
-    flexWrap: 'wrap',
-  },
-  badge: {
-    fontFamily: FONT_SYSTEM,
-    fontSize: 9,
-    fontWeight: 700,
-    letterSpacing: '0.06em',
-    textTransform: 'uppercase',
-    padding: '5px 10px',
-    border: `1px solid ${ACCENT_BORDER}`,
-    borderRadius: BORDER_RADIUS,
-  },
-
-  // Sections
-  section: {
-    width: '100%',
-    maxWidth: 800,
-    padding: '64px 24px',
-    textAlign: 'center',
-  },
-  sectionTitle: {
-    fontFamily: FONT_BODY,
-    fontWeight: 700,
-    fontSize: 'clamp(20px, 3vw, 28px)',
-    margin: '0 0 32px',
-  },
-  bodyText: {
-    fontFamily: FONT_BODY,
-    fontSize: 16,
-    lineHeight: 1.7,
-    maxWidth: 600,
-    margin: '0 auto',
-  },
-
-  // Pillars
-  pillarGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: 16,
-  },
-  pillarCard: {
-    background: SURFACE_CARD,
-    border: `1px solid ${ACCENT_BORDER}`,
-    borderRadius: BORDER_RADIUS + 2,
-    padding: '28px 20px',
-    textAlign: 'left',
-  },
-  pillarTitle: {
-    fontFamily: FONT_SYSTEM,
-    fontSize: 11,
-    fontWeight: 700,
-    letterSpacing: '0.1em',
-    textTransform: 'uppercase',
-    margin: '0 0 10px',
-  },
-  pillarBody: {
-    fontFamily: FONT_BODY,
-    fontSize: 14,
-    lineHeight: 1.6,
-    margin: 0,
-  },
-
-  // Founder
-  founderSection: {
-    width: '100%',
-    maxWidth: 560,
-    padding: '48px 24px',
-    textAlign: 'center',
-    borderTop: `1px solid ${SURFACE_RAISED}`,
-  },
-  founderQuote: {
-    fontFamily: FONT_BODY,
-    fontSize: 16,
-    fontStyle: 'italic',
-    lineHeight: 1.7,
-    margin: '0 0 16px',
-    padding: 0,
-    border: 'none',
-  },
-  founderName: {
-    fontFamily: FONT_BODY,
-    fontSize: 14,
-    fontWeight: 600,
-    margin: '0 0 2px',
-  },
-  founderRole: {
-    fontFamily: FONT_SYSTEM,
-    fontSize: 11,
-    letterSpacing: '0.04em',
-    margin: 0,
-  },
-
-  // Final CTA
-  finalCta: {
-    width: '100%',
-    maxWidth: 600,
-    padding: '48px 24px 64px',
-    textAlign: 'center',
-  },
-
-  // Footer
-  footer: {
-    width: '100%',
-    padding: '32px 24px',
-    borderTop: `1px solid ${SURFACE_RAISED}`,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 12,
-  },
-  footerBrand: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-  },
-  footerLogo: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 22,
-    height: 22,
-    borderRadius: BORDER_RADIUS,
-    background: ACCENT_PULSE,
-    fontFamily: FONT_SYSTEM,
-    fontWeight: 800,
-    fontSize: 11,
-  },
-  footerTitle: {
-    fontFamily: FONT_BODY,
-    fontWeight: 600,
-    fontSize: 14,
-  },
-  footerNav: {
-    display: 'flex',
-    gap: 20,
-  },
-  footerLink: {
-    fontFamily: FONT_BODY,
-    fontSize: 13,
-    textDecoration: 'none',
-  },
-  copyright: {
-    fontFamily: FONT_SYSTEM,
-    fontSize: 10,
-    letterSpacing: '0.04em',
-    margin: 0,
-  },
-};

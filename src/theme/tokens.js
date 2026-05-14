@@ -138,6 +138,15 @@ export const VAULT_GREEN_BORDER        = 'rgba(80,200,120,0.25)'; // Vault borde
 export const VAULT_GREEN_BORDER_STRONG = 'rgba(80,200,120,0.4)';  // Vault active border
 export const VAULT_GREEN_GLOW          = 'rgba(80,200,120,0.45)'; // Vault shadow
 
+// Glass and glow tokens (landing page surfaces)
+export const GLASS_SURFACE     = 'rgba(255,255,255,0.02)';  // Glass card fill
+export const GLASS_BORDER      = 'rgba(255,255,255,0.08)';  // Glass card border
+export const GLASS_BORDER_HOVER = 'rgba(255,255,255,0.14)'; // Glass card hover border
+export const GLOW_EMERALD      = `0 0 60px ${ACCENT_GLOW_50}, 0 0 120px ${ACCENT_BORDER_FAINT}`; // CTA glow
+export const GLOW_EMERALD_SM   = `0 0 20px ${ACCENT_GLOW_50}`; // Subtle card glow
+export const ACCENT_RADIAL_FAINT = ACCENT_GLASS_FAINT;      // Radial gradient fill
+export const ACCENT_SHADOW_FAINT = `0 0 60px ${ACCENT_GLASS_SUBTLE}`; // Faint box shadow
+
 // ============================================================
 // Border tokens
 // ============================================================
