@@ -4,6 +4,18 @@ import { TIER_UNDERGRAD } from '../services/TierService';
 const SettingsContext = createContext();
 
 export const SettingsProvider = ({ children }) => {
+  // EAL/D language preference
+  const [homeLanguage, setHomeLanguage] = useState(
+    localStorage.getItem('simplifii_home_language') || 'en'
+  );
+  useEffect(() => { localStorage.setItem('simplifii_home_language', homeLanguage); }, [homeLanguage]);
+
+  // Easy Read mode for intellectual disability support
+  const [easyRead, setEasyRead] = useState(
+    localStorage.getItem('simplifii_easy_read') === 'true'
+  );
+  useEffect(() => { localStorage.setItem('simplifii_easy_read', String(easyRead)); }, [easyRead]);
+
   // Active tier: canonical tier constant from TierService.
   // Persisted as 'simplifii_tier'. Defaults to TIER_UNDERGRAD so existing
   // users land where they always have.
@@ -132,6 +144,8 @@ export const SettingsProvider = ({ children }) => {
 
   return (
     <SettingsContext.Provider value={{
+      homeLanguage, setHomeLanguage,
+      easyRead, setEasyRead,
       activeTier, setActiveTier,
       mode, setMode,
       eduLevel, setEduLevel, 

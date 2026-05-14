@@ -25,16 +25,27 @@ import {
  * Wraps Settings > Project > ResearchProject > Router > ViewSwitch.
  * Also handles the first-run disclaimer modal and persistent AI footer badge.
  */
+const VIEW_LABELS = { home: 'Dashboard', canvas: 'Editor', assessments: 'Assessment list', research: 'Research workspace' };
+
 function ViewSwitch() {
   const { view } = useRouter();
   // Admin views: check URL params for Aaron-only routes
   if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('admin') === 'feedback') {
     return <FeedbackDashboard />;
   }
-  if (view === 'canvas')      return <CanvasScreen />;
-  if (view === 'assessments') return <AssessmentListScreen />;
-  if (view === 'research')    return <ResearchHomeScreen />;
-  return <HomeScreen />;
+  const content = view === 'canvas' ? <CanvasScreen />
+    : view === 'assessments' ? <AssessmentListScreen />
+    : view === 'research' ? <ResearchHomeScreen />
+    : <HomeScreen />;
+  return (
+    <>
+      {/* Screen reader announces view changes */}
+      <div aria-live="polite" aria-atomic="true" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)' }}>
+        {VIEW_LABELS[view] || 'Dashboard'} view loaded
+      </div>
+      {content}
+    </>
+  );
 }
 
 export default function AppShell() {

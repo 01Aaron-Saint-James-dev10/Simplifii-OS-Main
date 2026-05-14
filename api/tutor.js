@@ -40,7 +40,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: 'Method not allowed. Use POST.' });
   }
 
-  const { messages, assessmentTitle, tier } = req.body || {};
+  const { messages, assessmentTitle, tier, homeLanguage, easyRead } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
   if (!apiKey) {
@@ -53,9 +53,21 @@ export default async function handler(req, res) {
     content: m.text,
   }));
 
-  // Compose system prompt: base + tier-specific + assessment context
+  // Compose system prompt: base + tier + language + easy read + assessment context
   const tierAddition = TIER_PROMPTS[tier] || TIER_PROMPTS.tertiary;
   let systemPrompt = BASE_PROMPT + tierAddition;
+
+  // EAL/D language support
+  const LANG_NAMES = { zh: 'Simplified Chinese', ar: 'Arabic', vi: 'Vietnamese', ko: 'Korean', hi: 'Hindi', fil: 'Filipino', es: 'Spanish', fr: 'French', ja: 'Japanese', id: 'Indonesian' };
+  if (homeLanguage && homeLanguage !== 'en' && LANG_NAMES[homeLanguage]) {
+    systemPrompt += `\n\nIMPORTANT: The learner's first language is ${LANG_NAMES[homeLanguage]}. When you use academic vocabulary or key terms, provide the ${LANG_NAMES[homeLanguage]} translation in parentheses after the English word. Use simpler sentence structures. If the learner writes in ${LANG_NAMES[homeLanguage]}, respond in English but acknowledge what they said.`;
+  }
+
+  // Easy Read mode for intellectual disability
+  if (easyRead) {
+    systemPrompt += `\n\nIMPORTANT: Use Easy Read format. Maximum 10 words per sentence. One idea per line. Bold key words using **bold**. No metaphors. No idioms. No sarcasm. Use concrete, literal language only. If you need to explain a concept, use a simple example from everyday life.`;
+  }
+
   if (assessmentTitle) {
     systemPrompt += `\n\nThe learner is currently working on: "${assessmentTitle}".`;
   }

@@ -47,6 +47,8 @@ function applyPrefsToLocalStorage(prefs) {
   }
   localStorage.setItem('reducedMotion', String(prefs.reducedMotion));
   localStorage.setItem('highContrast', String(prefs.highContrast));
+  if (prefs.homeLanguage) localStorage.setItem('simplifii_home_language', prefs.homeLanguage);
+  if (prefs.easyRead) localStorage.setItem('simplifii_easy_read', 'true');
 }
 
 // Steps are dynamic based on tier. Secondary tier gets extra steps.

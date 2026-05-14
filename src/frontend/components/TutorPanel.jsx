@@ -34,7 +34,7 @@ const QUICK_PROMPTS = [
 ];
 
 export default function TutorPanel({ assessmentTitle }) {
-  const { activeTier } = useSettings();
+  const { activeTier, homeLanguage, easyRead } = useSettings();
   const [messages, setMessages] = useState([
     { role: 'tutor', text: `Working on "${assessmentTitle || 'your assessment'}". What are you stuck on?` },
   ]);
@@ -67,6 +67,8 @@ export default function TutorPanel({ assessmentTitle }) {
           messages: updatedMessages.slice(1), // skip the initial greeting
           assessmentTitle,
           tier: activeTier || 'tertiary',
+          homeLanguage: homeLanguage || 'en',
+          easyRead: easyRead || false,
         }),
       });
       const data = await response.json();

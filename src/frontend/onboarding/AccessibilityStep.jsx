@@ -19,6 +19,19 @@ const BIONIC = [
   { value: 'medium', label: 'Medium (40%)' },
 ];
 
+const LANGUAGES = [
+  { value: 'en', label: 'English (default)' },
+  { value: 'zh', label: 'Chinese (Simplified)' },
+  { value: 'ar', label: 'Arabic' },
+  { value: 'vi', label: 'Vietnamese' },
+  { value: 'ko', label: 'Korean' },
+  { value: 'hi', label: 'Hindi' },
+  { value: 'fil', label: 'Filipino' },
+  { value: 'es', label: 'Spanish' },
+  { value: 'id', label: 'Indonesian' },
+  { value: 'ja', label: 'Japanese' },
+];
+
 function RadioGroup({ legend, options, value, onChange }) {
   return (
     <fieldset style={{ border: 'none', padding: 0, margin: '0 0 24px' }}>
@@ -62,6 +75,23 @@ export default function AccessibilityStep({ prefs, onPrefsChange, onSave, onSkip
       <RadioGroup legend="BionicText reading mode" options={BIONIC} value={prefs.bionic} onChange={v => set('bionic', v)} />
       <Toggle label="Reduced motion" checked={prefs.reducedMotion} onChange={v => set('reducedMotion', !prefs.reducedMotion)} />
       <Toggle label="High contrast" checked={prefs.highContrast} onChange={v => set('highContrast', !prefs.highContrast)} />
+      <Toggle label="Easy Read mode (simpler language, shorter sentences)" checked={prefs.easyRead || false} onChange={() => set('easyRead', !prefs.easyRead)} />
+
+      <fieldset style={{ border: 'none', padding: 0, margin: '0 0 24px' }}>
+        <legend style={{ fontFamily: FONT_SYSTEM, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: TEXT_PRIMARY, marginBottom: 10, padding: 0 }}>
+          Home language (for EAL/D support)
+        </legend>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_FAINT, margin: '0 0 8px' }}>
+          If English is not your first language, we will translate key terms for you.
+        </p>
+        <select
+          value={prefs.homeLanguage || 'en'}
+          onChange={e => set('homeLanguage', e.target.value)}
+          style={{ width: '100%', padding: '10px 12px', background: GLASS_SURFACE, border: `1px solid ${GLASS_BORDER}`, borderRadius: 6, color: TEXT_PRIMARY, fontFamily: FONT_BODY, fontSize: 14, cursor: 'pointer', minHeight: 44 }}
+        >
+          {LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+        </select>
+      </fieldset>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 28 }}>
         <button type="button" onClick={onSave} style={{ padding: '14px 0', borderRadius: 8, fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 700, background: ACCENT_PULSE, border: 'none', color: '#09090b', cursor: 'pointer', boxShadow: GLOW_EMERALD }}>
