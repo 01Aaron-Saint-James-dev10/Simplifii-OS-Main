@@ -58,6 +58,48 @@ Aaron typed "continue". Proceeding.
 
 Aaron typed "continue". Proceeding.
 
+## AUDIT GATE 4 (after Sprint 15)
+- Sprints shipped: 17/21 (1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 + 1 hotfix)
+- Current production: latest push 5ec2e055
+- Guardrail check:
+  - [x] Australian English maintained
+  - [x] Zero em-dashes
+  - [x] "Simplifii-OS" with hyphen everywhere
+  - [x] tokens.js for colours
+  - [x] WCAG 2.2 AA (contrast fix in Sprint 12)
+  - [x] No file exceeded 500 lines
+  - [x] No scope additions outside queue
+  - [x] No branded IP referenced
+  - [x] Privacy intact
+  - [x] Schema via Supabase MCP
+  - [x] Build clean on every commit
+  - [x] check-style.js clean on every commit
+- Syllabus corpus:
+  - NESA NSW: 6 years, 55 questions with marker feedback
+  - VCE VIC: 7 years with exam + report URLs
+  - QCE QLD: 7 years, 22 question books, 11 marking guides
+  - WACE WA: 6 years with exam, marking key, exam report
+  - Total: 26 years of past papers across 4 state boards
+- What's next: Sprint 16 (Past Q search/filter), 17 (pgvector), 18 (audio stub), 19 (study sessions)
+
+WAITING FOR AARON TO TYPE "continue" BEFORE PROCEEDING TO SPRINT 16.
+
+## Sprint 15 — Y10-12 Queue — WACE English Ingestion: SHIPPED
+- Commit: 5ec2e055
+- 6 years (2020-2025), exam + marking key + exam report PDFs
+
+## Sprint 14 — Y10-12 Queue — QCE English Ingestion: SHIPPED
+- Commit: c193b310
+- 7 years (2019-2025), 22 question books, 11 marking guides
+
+## Sprint 13 — Y10-12 Queue — VCE English Ingestion: SHIPPED
+- Commit: 13d29aec
+- 7 years (2019-2025), exam + report URLs
+
+## Sprint 12 — Y10-12 Queue — QA Hardening: SHIPPED
+- Commit: 7ac39826
+- Contrast fix, all routes 200, endpoints verified
+
 ## Sprint 11 — Y10-12 Queue — HSC Past Questions Panel: SHIPPED
 - Commit: 164e3d6c
 - Bundle: 1b017b17
