@@ -2,6 +2,87 @@
 
 ---
 
+## Tester-Surfaced (logged during Y10-12 queue)
+
+### HSC Past Paper Ingestion via User Upload
+
+**Problem:** User uploaded an HSC 2025 Biology exam paper + marking guidelines. DocumentAI + BriefService extracted text successfully, but the editor showed generic placeholder scaffold steps instead of the actual exam structure.
+
+**Root cause:** The ingestion pipeline treats every PDF as an "assessment brief" (course outline with assessments, rubrics, due dates). HSC exam papers are a fundamentally different document type: they contain numbered questions with mark allocations, not assessment briefs with due dates and weightings.
+
+**Fix required:**
+1. **Document type detection:** After PDF text extraction, classify the document as one of: assessment brief, exam paper, rubric, syllabus, or unknown. Use regex signals: "Question 1" + "(X marks)" patterns = exam paper. "Assessment Task" + "Due Date" = brief. "Band 6" + "Criteria" = rubric.
+2. **Exam paper parser:** New parser that extracts questions, mark allocations, sections, and any stimulus material references. Different from BriefService's assessment extraction.
+3. **Routing:** If exam paper detected, route to the Past Questions panel (Sprint 11) instead of creating a course with generic scaffolds. Surface the questions as practice prompts with the marker feedback from the NESA corpus if available.
+4. **User choice:** Before routing, ask the user: "This looks like an exam paper, not an assignment brief. Would you like to: (a) Use it as practice questions, or (b) Treat it as an assignment brief anyway?"
+
+**Estimated effort:** 4-6 hours
+**Sprint allocation:** Post-tester Sprint L
+
+### Ask User What They Want to Work On
+
+**Problem:** After upload, the system assumes the user wants to write an assignment. But Y10-12 students may want to: practise past exam questions, decode a rubric, plan a study schedule, or understand a syllabus. The system should ask.
+
+**Fix required:**
+- After PDF upload and text extraction, show a quick-pick: "What do you want to do with this?"
+  - Write an assignment (current default)
+  - Practise exam questions
+  - Decode a rubric
+  - Understand a syllabus
+- Route each choice to the appropriate parser and UI surface
+- Align output format to the detected document type and chosen intent
+
+**Estimated effort:** 3-4 hours
+**Sprint allocation:** Post-tester Sprint L
+
+---
+
+## Sprint M — Document-Type-Aware Ingestion
+
+**Goal:** When a Y10-12 user uploads a document, ask them what they want to do with it. Route to the appropriate parser. Surface output in the format that matches their intent.
+
+**User flow:**
+1. User uploads PDF/DOCX
+2. Modal appears: "What's this document? What do you want to do?"
+3. Options shown as cards:
+   - "Assessment brief: help me plan + write a response"
+   - "Past exam paper: help me practice these questions"
+   - "Study notes or textbook: help me understand and remember this"
+   - "Marking rubric or criteria: help me check my work against this"
+   - "Reading or article: help me extract key ideas"
+   - "I'm not sure: figure it out for me" (AI classification fallback)
+4. Selection routes to the correct parser + UI surface
+
+**Parser branches:**
+- Assessment brief -> existing BriefService -> Editor scaffold (current behaviour)
+- Past exam paper -> ExamPaperParser -> Practice mode (one Q at a time, timer, marker notes if uploaded together)
+- Study notes -> NotesParser -> Knowledge graph or flashcards (post-tester scaffold)
+- Marking rubric -> RubricParser -> Check-against-rubric tool (already partially built)
+- Reading/article -> ReadingParser -> Annotation + summary tool
+- AI classification -> Anthropic /api/tutor with classification system prompt -> routes automatically
+
+**Schema:**
+- documents.document_type enum ('brief'|'exam'|'notes'|'rubric'|'reading'|'unknown')
+- documents.user_intent text (what they said they wanted to do)
+- documents.parsed_content jsonb (varies by type)
+
+**UI:**
+- New panel: "Practice Mode" for exam papers (one Q at a time, "I'm done" button, optional self-marking against guidelines)
+- Existing editor scaffold stays for briefs
+- New panel: "Annotated reading" for articles (PDF view + side notes)
+- Reuse existing components where possible
+
+**Privacy:**
+- All processing local where possible
+- AI classification calls minimal: subject + first paragraph + question count, not full text
+- User can re-classify if AI gets it wrong
+
+**Estimated effort:** 8-10 hours (UI + 5 parsers + AI classification + schema + testing)
+
+**Priority:** Sprint M (first post-tester sprint, informed by what testers actually upload)
+
+---
+
 ## Post-Testing Sprint L+
 
 ### Study Pattern Tracking (location + time + session telemetry)
