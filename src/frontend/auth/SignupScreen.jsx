@@ -12,8 +12,13 @@ import {
 } from '../../theme/tokens';
 
 const TIERS = [
-  { value: 'secondary', label: 'Secondary (Year 10 to 12)' },
-  { value: 'undergrad', label: 'University (Undergraduate)' },
+  { value: 'primary', label: 'Primary school' },
+  { value: 'secondary', label: 'Secondary school (Year 7 to 12)' },
+  { value: 'tertiary', label: 'Tertiary (undergraduate)' },
+  { value: 'postgrad', label: 'Postgrad and research' },
+  { value: 'tafe', label: 'TAFE and vocational' },
+  { value: 'homeschool', label: 'Homeschooling' },
+  { value: 'educator', label: 'Academics and educators' },
 ];
 
 export default function SignupScreen() {
@@ -21,7 +26,7 @@ export default function SignupScreen() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [tier, setTier] = useState('undergrad');
+  const [tier, setTier] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);

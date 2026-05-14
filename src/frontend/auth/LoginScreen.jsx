@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabaseClient';
 import GoogleSignInButton from './GoogleSignInButton';
 import {
   SURFACE_BASE, SURFACE_CARD, SURFACE_RAISED,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
   ACCENT_PULSE, ACCENT_HOVER, ACCENT_BORDER, ACCENT_FOCUS,
   COLOUR_DANGER, COLOUR_DANGER_GLASS, COLOUR_DANGER_BORDER,
+  OVERLAY_BACKDROP,
   FONT_BODY, FONT_SYSTEM, FOCUS_RING,
   BORDER_RADIUS,
 } from '../../theme/tokens';
@@ -22,6 +24,10 @@ export default function LoginScreen() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [magicSent, setMagicSent] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetSent, setResetSent] = useState(false);
+  const [resetError, setResetError] = useState('');
 
   const handlePasswordLogin = async (e) => {
     e.preventDefault();
@@ -31,6 +37,24 @@ export default function LoginScreen() {
       await signInWithPassword(email, password);
     } catch (err) {
       setError(err.message || 'Could not sign in. Check your email and password.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    if (!resetEmail.trim()) return;
+    setResetError('');
+    setLoading(true);
+    try {
+      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/login`,
+      });
+      if (resetErr) throw resetErr;
+      setResetSent(true);
+    } catch (err) {
+      setResetError(err.message || 'Could not send reset email. Try again.');
     } finally {
       setLoading(false);
     }
@@ -122,6 +146,10 @@ export default function LoginScreen() {
             <button type="submit" disabled={loading} style={styles.button}>
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
+            <button type="button" onClick={() => setShowForgot(true)}
+              style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_MUTED, background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3, padding: '8px 0', marginTop: 4 }}>
+              Forgot your password?
+            </button>
           </form>
         )}
 
@@ -159,6 +187,39 @@ export default function LoginScreen() {
           </Link>
         </p>
       </div>
+
+      {/* Forgot password modal */}
+      {showForgot && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: OVERLAY_BACKDROP, padding: 16 }}
+          onClick={() => setShowForgot(false)}>
+          <div role="dialog" aria-modal="true" aria-label="Reset password"
+            onClick={e => e.stopPropagation()}
+            style={{ width: '100%', maxWidth: 400, background: SURFACE_CARD, border: `1px solid ${ACCENT_BORDER}`, borderRadius: 12, padding: '28px 24px' }}>
+            <h2 style={{ fontFamily: FONT_BODY, fontWeight: 700, fontSize: 18, margin: '0 0 8px' }}>Reset your password</h2>
+            {resetSent ? (
+              <div>
+                <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_MUTED, lineHeight: 1.6 }}>
+                  Check your inbox. We sent a password reset link to <strong>{resetEmail}</strong>.
+                </p>
+                <button type="button" onClick={() => { setShowForgot(false); setResetSent(false); }}
+                  style={{ ...styles.button, marginTop: 16 }}>Back to sign in</button>
+              </div>
+            ) : (
+              <form onSubmit={handleResetPassword}>
+                <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: TEXT_MUTED, margin: '0 0 16px' }}>
+                  Enter your email and we will send you a link to reset your password.
+                </p>
+                {resetError && <p role="alert" style={{ fontFamily: FONT_BODY, fontSize: 13, color: COLOUR_DANGER, margin: '0 0 8px' }}>{resetError}</p>}
+                <input type="email" required value={resetEmail} onChange={e => setResetEmail(e.target.value)}
+                  placeholder="you@example.com" style={styles.input} />
+                <button type="submit" disabled={loading} style={{ ...styles.button, marginTop: 12 }}>
+                  {loading ? 'Sending...' : 'Send reset link'}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
