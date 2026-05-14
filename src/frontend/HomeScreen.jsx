@@ -1,9 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useProject } from './ProjectContext';
 import { useSettings } from './SettingsContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from '../contexts/RouterContext';
 import { hydrate } from '../core/SovereignRouter';
 import { getTaskStatus } from '../services/StatusService';
+import { supabase } from '../lib/supabaseClient';
 import TimelineStrip from './components/TimelineStrip';
 import UpNextCard from './components/UpNextCard';
 import CourseCard from './components/CourseCard';
@@ -12,6 +14,7 @@ import BodyDoublingLine from './components/BodyDoublingLine';
 import TalkToSomeoneLink from './components/TalkToSomeoneLink';
 import AddCourseButton from './components/AddCourseButton';
 import LogoutButton from './auth/LogoutButton';
+import EmptyWorkspace from './workspace/EmptyWorkspace';
 import { ACCENT_BORDER, ACCENT_PULSE } from '../theme/tokens';
 import './HomeScreen.css';
 
@@ -68,10 +71,21 @@ function matchesTerm(course, term) {
   return ct.year === term.year && (term.code === null || ct.code === term.code);
 }
 
+const AARON_EMAIL = 'aaronbugge@gmail.com';
+
 export default function HomeScreen() {
-  const { courses, terms, activeTerm, setActiveTerm } = useProject();
+  const { courses, terms, activeTerm, setActiveTerm, addCourseWithData } = useProject();
   const { display, reducedMotion, activeTier } = useSettings();
+  const { user } = useAuth();
   const { navigateToCanvas, navigateToResearch } = useRouter();
+  const [profileTier, setProfileTier] = useState(null);
+  const isAaron = user?.email === AARON_EMAIL;
+
+  useEffect(() => {
+    if (!user || isAaron) return;
+    supabase.from('profiles').select('tier').eq('id', user.id).single()
+      .then(({ data }) => { if (data?.tier) setProfileTier(data.tier); });
+  }, [user, isAaron]);
   // Pass activeTier into the existing stream system so SovereignRouter
   // can resolve the correct profile. No layout changes in this sprint.
   // eslint-disable-next-line no-unused-vars
@@ -135,7 +149,19 @@ export default function HomeScreen() {
 
       <main className="home-main">
         {/* Empty state */}
-        {isEmpty && (
+        {isEmpty && !isAaron && (
+          <EmptyWorkspace
+            tier={profileTier}
+            onCourseAdded={(course) => {
+              addCourseWithData(course.name, {
+                code: course.code || null,
+                term: course.term ? { code: course.term, year: new Date().getFullYear() } : null,
+                supabaseId: course.id,
+              });
+            }}
+          />
+        )}
+        {isEmpty && isAaron && (
           <div className="home-empty">
             <h1 className="home-empty-title">Welcome</h1>
             <p className="home-empty-sub">
