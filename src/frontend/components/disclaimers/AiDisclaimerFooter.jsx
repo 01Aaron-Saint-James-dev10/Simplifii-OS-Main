@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
   TEXT_FAINT, TEXT_MUTED,
   ACCENT_PULSE,
@@ -28,9 +27,9 @@ export default function AiDisclaimerFooter() {
       {/* Compact (always visible) */}
       <span style={s.compact}>
         AI assists. You decide.{' '}
-        <Link to="/ai-use" style={s.learnMore} aria-label="Learn more about how Simplifii-OS uses AI">
+        <a href="/ai-use" style={s.learnMore} aria-label="Learn more about how Simplifii-OS uses AI">
           Learn more
-        </Link>
+        </a>
       </span>
 
       {/* Expanded tooltip */}
@@ -39,7 +38,7 @@ export default function AiDisclaimerFooter() {
           <p style={s.tooltipText}>
             Simplifii-OS uses AI to support your work. AI suggestions can be wrong, incomplete, or misinterpret your context. Always verify important information. You are responsible for what you submit.
           </p>
-          <Link to="/ai-use" style={s.tooltipLink}>Read our AI Use Policy</Link>
+          <a href="/ai-use" style={s.tooltipLink}>Read our AI Use Policy</a>
         </div>
       )}
     </div>

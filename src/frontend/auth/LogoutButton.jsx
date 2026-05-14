@@ -16,10 +16,18 @@ export default function LogoutButton() {
     setBusy(true);
     try {
       await signOut();
+      // Clear all app state so next login starts clean
+      const keysToKeep = ['simplifii_beta_banner_dismissed'];
+      const allKeys = Object.keys(localStorage);
+      for (const key of allKeys) {
+        if (key.startsWith('simplifii') && !keysToKeep.includes(key)) {
+          localStorage.removeItem(key);
+        }
+      }
+      // Force full page reload to reset all React context + IndexedDB handles
+      window.location.replace('/login');
     } catch {
-      // Auth state listener will handle the UI regardless.
-    } finally {
-      setBusy(false);
+      window.location.replace('/login');
     }
   };
 

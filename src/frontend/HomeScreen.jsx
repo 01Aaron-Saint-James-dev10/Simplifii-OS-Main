@@ -128,7 +128,7 @@ export default function HomeScreen() {
       <nav className="home-nav" role="navigation" aria-label="Home navigation">
         <div className="home-nav-brand">
           <span className="home-nav-logo">S</span>
-          <span className="home-nav-title">Simplifii</span>
+          <span className="home-nav-title">Simplifii-OS</span>
         </div>
         <div className="home-nav-actions">
           <AddCourseButton />

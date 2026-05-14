@@ -7,18 +7,9 @@ import {
 /**
  * BodyDoublingLine
  *
- * "47 students working alongside you" soft text.
- * Spec: PRODUCT_SPEC_INCLUSION_AND_MOAT.md Section 1.7
- *
- * No pulsing dot on Home (that lives on canvas).
- * For v1 the count is hardcoded.
- *
- * Props: none
+ * Honest beta copy. Previously showed a hardcoded "47 students working
+ * alongside you" which was fiction. Replaced with transparent beta messaging.
  */
-
-// TODO: wire to real anonymous aggregate count from telemetry.
-const HARDCODED_COUNT = 47;
-
 export default function BodyDoublingLine() {
   return (
     <p
@@ -32,7 +23,7 @@ export default function BodyDoublingLine() {
       }}
       aria-live="polite"
     >
-      {HARDCODED_COUNT} students working alongside you
+      Beta. Local-only. Your work stays yours.
     </p>
   );
 }
