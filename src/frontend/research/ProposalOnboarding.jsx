@@ -306,16 +306,20 @@ export default function ProposalOnboarding({ onProjectCreated, onUseDemo }) {
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, color: TEXT_FAINT, letterSpacing: '0.06em' }}>OR</span>
-            </div>
-            <button
-              type="button"
-              onClick={onUseDemo}
-              style={{ width: '100%', marginTop: 12, padding: '10px', background: 'transparent', border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS * 2, fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: TEXT_MUTED, cursor: 'pointer' }}
-            >
-              Use Demo Data (Aaron Saint-James MRes)
-            </button>
+            {onUseDemo && (
+              <>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, color: TEXT_FAINT, letterSpacing: '0.06em' }}>OR</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={onUseDemo}
+                  style={{ width: '100%', marginTop: 12, padding: '10px', background: 'transparent', border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS * 2, fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: TEXT_MUTED, cursor: 'pointer' }}
+                >
+                  Use Demo Data (Aaron Saint-James MRes)
+                </button>
+              </>
+            )}
           </>
         )}
 

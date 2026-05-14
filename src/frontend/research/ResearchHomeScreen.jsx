@@ -12,6 +12,7 @@ import React, { useState, useMemo } from 'react';
 import usePomodoro from '../hooks/usePomodoro';
 import PitStopOverlay from '../components/visuals/PitStopOverlay';
 import { useResearchProject } from '../ResearchProjectContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from '../../contexts/RouterContext';
 import ResearchLeftRail from './ResearchLeftRail';
 import MetricCard from './MetricCard';
@@ -58,7 +59,9 @@ export default function ResearchHomeScreen() {
     applyDemoSeed,
     createProjectFromProposal,
   } = useResearchProject();
+  const { user } = useAuth();
   const { navigateToCanvas, navigateToChapter, navigateHome } = useRouter();
+  const isAaron = user?.email === 'aaronbugge@gmail.com';
 
   const [activeChapterId, setActiveChapterId] = useState(AARON_ACTIVE_CHAPTER_ID);
   const [panel, setPanel] = useState(null); // 'methodology' | 'reflexivity' | 'feedback' | 'synthesis' | 'ingest'
@@ -103,7 +106,7 @@ export default function ResearchHomeScreen() {
     return (
       <ProposalOnboarding
         onProjectCreated={createProjectFromProposal}
-        onUseDemo={applyDemoSeed}
+        onUseDemo={isAaron ? applyDemoSeed : undefined}
       />
     );
   }

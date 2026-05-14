@@ -14,6 +14,7 @@
 
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { useAuth } from '../contexts/AuthContext';
 import {
   addResearchProject,
   addPhase,
@@ -51,7 +52,10 @@ const SEED_FLAG = 'simplifii_aaron_seed_v1';
 
 const ResearchProjectContext = createContext();
 
+const AARON_EMAIL = 'aaronbugge@gmail.com';
+
 export function ResearchProjectProvider({ children }) {
+  const { user } = useAuth();
   const [activeProject,      setActiveProject]      = useState(null);
   const [phases,             setPhases]             = useState([]);
   const [strands,            setStrands]            = useState([]);
@@ -91,11 +95,13 @@ export function ResearchProjectProvider({ children }) {
 
   // ─── On mount: check for existing projects ───────────────────────────────────
 
+  const isAaron = user?.email === AARON_EMAIL;
+
   useEffect(() => {
     (async () => {
       try {
-        // If demo seed was already applied, load Aaron's project directly
-        if (localStorage.getItem(SEED_FLAG)) {
+        // Only auto-load Aaron's demo seed for Aaron's account
+        if (isAaron && localStorage.getItem(SEED_FLAG)) {
           await loadProject(AARON_PROJECT_ID);
           setLoaded(true);
           return;
@@ -111,7 +117,7 @@ export function ResearchProjectProvider({ children }) {
         setLoaded(true);
       }
     })();
-  }, [loadProject]);
+  }, [loadProject, isAaron]);
 
   // ─── Apply Aaron demo seed (triggered by "Use Demo Data" button) ─────────────
 

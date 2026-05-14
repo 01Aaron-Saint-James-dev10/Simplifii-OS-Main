@@ -137,10 +137,13 @@ export default function HomeScreen() {
         {/* Empty state */}
         {isEmpty && (
           <div className="home-empty">
-            <h1 className="home-empty-title">No courses yet</h1>
+            <h1 className="home-empty-title">Welcome</h1>
             <p className="home-empty-sub">
-              Upload a syllabus PDF to get started. We will extract your assessments, due dates, and rubric criteria automatically.
+              Add your first course to begin. Upload a syllabus PDF and we will extract your assessments, due dates, and rubric criteria automatically.
             </p>
+            <div style={{ marginTop: 16 }}>
+              <AddCourseButton prominent />
+            </div>
           </div>
         )}
 
