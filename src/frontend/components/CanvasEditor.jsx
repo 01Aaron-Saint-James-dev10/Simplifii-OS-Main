@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { saveDraft, loadDraft } from '../../services/DraftService';
 import { appendEvent } from '../../core/HistoryOfThought';
 import RichTextEditor from './RichTextEditor';
+import VoiceInputButton from './VoiceInputButton';
 import {
   SURFACE_BASE,
 } from '../../theme/tokens';
@@ -111,7 +112,7 @@ export default function CanvasEditor({ courseId, assessmentTitle, targetWords, o
   if (!loaded) return null;
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: SURFACE_BASE, overflow: 'auto' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: SURFACE_BASE, overflow: 'auto', position: 'relative' }}>
       <RichTextEditor
         initialContent={initialContent}
         onTextChange={handleTextChange}
@@ -119,6 +120,9 @@ export default function CanvasEditor({ courseId, assessmentTitle, targetWords, o
         onJsonChange={handleJsonChange}
         citationFlags={citationFlags}
       />
+      <div style={{ position: 'absolute', right: 16, bottom: 16, zIndex: 30 }}>
+        <VoiceInputButton />
+      </div>
     </div>
   );
 }

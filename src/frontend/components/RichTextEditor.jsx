@@ -78,6 +78,17 @@ export default function RichTextEditor({ initialContent, onTextChange, onWordCou
     editorRef.current = editor;
   }, [editor]);
 
+  // Voice input: insert transcript at cursor when voice-transcript event fires
+  useEffect(() => {
+    const handler = (e) => {
+      const text = e.detail?.text;
+      if (!text || !editorRef.current) return;
+      editorRef.current.chain().focus().insertContent(text).run();
+    };
+    window.addEventListener('simplifii:voice-transcript', handler);
+    return () => window.removeEventListener('simplifii:voice-transcript', handler);
+  }, []);
+
   // Toggle Bionic Reading decorations when setting changes
   useEffect(() => {
     if (!editor) return;
