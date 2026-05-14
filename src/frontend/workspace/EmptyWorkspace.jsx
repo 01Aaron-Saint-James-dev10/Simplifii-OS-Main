@@ -1,8 +1,7 @@
 import React, { useState, useRef } from 'react';
 import AddCourseModal from './AddCourseModal';
 import AsciiLoader from '../components/AsciiLoader';
-// UrlIngestModal disabled until Firecrawl API key is configured
-// import UrlIngestModal from './UrlIngestModal';
+import UrlIngestModal from './UrlIngestModal';
 import { useProject } from '../ProjectContext';
 import { useIngestion } from '../hooks/useIngestion';
 import { useRouter } from '../../contexts/RouterContext';
@@ -25,7 +24,7 @@ const SUBHEADS = {
 
 export default function EmptyWorkspace({ tier, onCourseAdded }) {
   const [showModal, setShowModal] = useState(false);
-  // const [showUrlModal, setShowUrlModal] = useState(false);
+  const [showUrlModal, setShowUrlModal] = useState(false);
   const fileRef = useRef(null);
   const subhead = SUBHEADS[tier] || "Let's add your first course.";
   const { navigateToCanvas } = useRouter();
@@ -102,15 +101,14 @@ export default function EmptyWorkspace({ tier, onCourseAdded }) {
           {/* Branded loader during ingestion */}
           {ingestStatus && <AsciiLoader status={ingestStatus} />}
 
-          {/* Secondary CTA: URL ingestion (coming soon) */}
+          {/* Secondary CTA: URL ingestion */}
           <button
             type="button"
-            disabled
-            title="Coming soon"
-            aria-label="Paste a course outline link (coming soon)"
-            style={{ padding: '10px 24px', borderRadius: 8, fontFamily: FONT_DISPLAY, fontSize: 14, fontWeight: 600, background: 'transparent', border: `1px solid ${GLASS_BORDER}`, color: TEXT_FAINT, cursor: 'not-allowed', minHeight: 44, opacity: 0.5 }}
+            onClick={() => setShowUrlModal(true)}
+            disabled={ingesting}
+            style={{ padding: '10px 24px', borderRadius: 8, fontFamily: FONT_DISPLAY, fontSize: 14, fontWeight: 600, background: 'transparent', border: `1px solid ${GLASS_BORDER}`, color: TEXT_MUTED, cursor: 'pointer', minHeight: 44 }}
           >
-            Paste a course outline link (coming soon)
+            Paste a course outline link
           </button>
 
           {/* Tertiary: manual fallback */}
@@ -132,7 +130,15 @@ export default function EmptyWorkspace({ tier, onCourseAdded }) {
         />
       )}
 
-      {/* UrlIngestModal disabled until Firecrawl API key is configured */}
+      {showUrlModal && (
+        <UrlIngestModal
+          onClose={() => setShowUrlModal(false)}
+          onCourseReady={(courseId) => {
+            setShowUrlModal(false);
+            if (courseId) navigateToCanvas(courseId, null);
+          }}
+        />
+      )}
     </div>
   );
 }

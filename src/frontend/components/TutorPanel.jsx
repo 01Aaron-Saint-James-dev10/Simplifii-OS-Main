@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   SURFACE_RAISED,
   TEXT_PRIMARY,
@@ -7,6 +7,7 @@ import {
   ACCENT_PULSE,
   ACCENT_GLASS,
   ACCENT_BORDER,
+  COLOUR_WARN,
   FONT_SYSTEM,
   FONT_BODY,
   BORDER_RADIUS,
@@ -16,11 +17,9 @@ import {
 /**
  * TutorPanel
  *
- * Right panel. Socratic tutor chat interface.
+ * Right panel. Socratic tutor chat powered by Claude.
  * Framing: asks questions, never writes for the user.
  * This protects the authenticity moat.
- *
- * For v1: stub responses (questions only).
  *
  * Props:
  *   assessmentTitle - string
@@ -33,30 +32,56 @@ const QUICK_PROMPTS = [
   'What is the opposite view?',
 ];
 
-// TODO: wire to /api/tutor (Anthropic API, Socratic mode only)
-function getSocraticResponse(userMessage) {
-  const responses = [
-    'That is a good start. Can you be more specific about which evidence supports that claim?',
-    'Interesting. What would someone who disagrees say?',
-    'You mentioned the method. Can you describe what you actually measured?',
-    'What is the one sentence that captures your whole argument?',
-    'If I were the marker, what would I look for in this paragraph that you have not said yet?',
-  ];
-  return responses[Math.floor(Math.random() * responses.length)];
-}
-
 export default function TutorPanel({ assessmentTitle }) {
   const [messages, setMessages] = useState([
     { role: 'tutor', text: `Working on "${assessmentTitle || 'your assessment'}". What are you stuck on?` },
   ]);
   const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const scrollRef = useRef(null);
 
-  const send = (text) => {
-    if (!text.trim()) return;
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const send = async (text) => {
+    if (!text.trim() || loading) return;
     const userMsg = { role: 'user', text: text.trim() };
-    const tutorMsg = { role: 'tutor', text: getSocraticResponse(text) };
-    setMessages(prev => [...prev, userMsg, tutorMsg]);
+    const updatedMessages = [...messages, userMsg];
+    setMessages(updatedMessages);
     setInput('');
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/tutor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: updatedMessages.slice(1), // skip the initial greeting
+          assessmentTitle,
+        }),
+      });
+      const data = await response.json();
+      if (data.success && data.reply) {
+        setMessages(prev => [...prev, { role: 'tutor', text: data.reply }]);
+      } else {
+        setError(data.error || 'Could not reach the tutor. Try again.');
+        // Fallback: local Socratic response
+        const fallback = getFallbackResponse();
+        setMessages(prev => [...prev, { role: 'tutor', text: fallback }]);
+      }
+    } catch {
+      setError('Network error. Using offline mode.');
+      const fallback = getFallbackResponse();
+      setMessages(prev => [...prev, { role: 'tutor', text: fallback }]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -72,7 +97,7 @@ export default function TutorPanel({ assessmentTitle }) {
       </div>
 
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {messages.map((m, i) => (
           <div key={i} style={{
             alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
@@ -87,7 +112,19 @@ export default function TutorPanel({ assessmentTitle }) {
             </p>
           </div>
         ))}
+        {loading && (
+          <div style={{ alignSelf: 'flex-start', maxWidth: '85%', padding: '8px 10px', border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS }}>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_FAINT, margin: 0 }}>Thinking...</p>
+          </div>
+        )}
       </div>
+
+      {/* Error */}
+      {error && (
+        <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: COLOUR_WARN, padding: '4px 16px', margin: 0 }}>
+          {error}
+        </p>
+      )}
 
       {/* Quick prompts */}
       <div style={{ padding: '8px 16px', display: 'flex', flexWrap: 'wrap', gap: 4, borderTop: `1px solid ${SURFACE_RAISED}` }}>
@@ -96,11 +133,13 @@ export default function TutorPanel({ assessmentTitle }) {
             key={i}
             type="button"
             onClick={() => send(p)}
+            disabled={loading}
             style={{
               fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 600, letterSpacing: '0.02em',
               color: TEXT_MUTED, background: 'transparent',
               border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS,
-              padding: '4px 8px', cursor: 'pointer', outline: 'none', minHeight: 28,
+              padding: '4px 8px', cursor: loading ? 'wait' : 'pointer', outline: 'none', minHeight: 28,
+              opacity: loading ? 0.5 : 1,
             }}
             onFocus={e => { e.currentTarget.style.boxShadow = `0 0 0 2px ${FOCUS_RING}`; }}
             onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
@@ -119,6 +158,7 @@ export default function TutorPanel({ assessmentTitle }) {
           onKeyDown={e => { if (e.key === 'Enter') send(input); }}
           placeholder="Ask a question..."
           aria-label="Message the tutor"
+          disabled={loading}
           style={{
             flex: 1, fontFamily: FONT_BODY, fontSize: 12, color: TEXT_PRIMARY,
             background: 'transparent', border: `1px solid ${SURFACE_RAISED}`,
@@ -130,18 +170,31 @@ export default function TutorPanel({ assessmentTitle }) {
           type="button"
           onClick={() => send(input)}
           aria-label="Send"
+          disabled={loading}
           style={{
             fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, color: ACCENT_PULSE,
             background: ACCENT_GLASS, border: `1px solid ${ACCENT_BORDER}`,
-            borderRadius: BORDER_RADIUS, padding: '8px 12px', cursor: 'pointer',
+            borderRadius: BORDER_RADIUS, padding: '8px 12px',
+            cursor: loading ? 'wait' : 'pointer',
             outline: 'none', minHeight: 44, minWidth: 44,
           }}
           onFocus={e => { e.currentTarget.style.boxShadow = `0 0 0 2px ${FOCUS_RING}`; }}
           onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
         >
-          Send
+          {loading ? '...' : 'Send'}
         </button>
       </div>
     </div>
   );
+}
+
+function getFallbackResponse() {
+  const responses = [
+    'That is a good start. Can you be more specific about which evidence supports that claim?',
+    'Interesting. What would someone who disagrees say?',
+    'You mentioned the method. Can you describe what you actually measured?',
+    'What is the one sentence that captures your whole argument?',
+    'If I were the marker, what would I look for in this paragraph that you have not said yet?',
+  ];
+  return responses[Math.floor(Math.random() * responses.length)];
 }

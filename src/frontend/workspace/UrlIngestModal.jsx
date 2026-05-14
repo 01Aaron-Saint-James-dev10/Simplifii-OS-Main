@@ -73,23 +73,16 @@ export default function UrlIngestModal({ onClose, onCourseReady }) {
       // Scrape via Firecrawl proxy endpoint.
       // In beta, we use a simple fetch to the /api/scrape edge function.
       // Falls back to a direct CORS fetch for handbook.unsw.edu.au (public).
-      const response = await fetch(`/api/scrape?url=${encodeURIComponent(url.trim())}`);
-      let text;
-      if (response.ok) {
-        const data = await response.json();
-        text = data.markdown || data.text || '';
-      } else {
-        // Fallback: try direct fetch (works for public handbook pages)
-        const directResp = await fetch(url.trim());
-        if (!directResp.ok) throw new Error('Could not reach that page.');
-        const html = await directResp.text();
-        // Strip HTML tags for a rough text extraction
-        text = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-          .replace(/<[^>]+>/g, ' ')
-          .replace(/\s+/g, ' ')
-          .trim();
+      const response = await fetch('/api/scrape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url.trim() }),
+      });
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Could not extract content from that page.');
       }
+      const text = result.content;
       if (!text || text.length < 100) {
         throw new Error('The page did not contain enough text to extract a course outline.');
       }
