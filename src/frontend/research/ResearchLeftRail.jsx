@@ -124,7 +124,7 @@ export default function ResearchLeftRail({
                             {sOpen ? '▼' : '▶'}
                           </span>
                           <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: ACCENT_PULSE, fontWeight: 600, lineHeight: 1.3 }}>
-                            {strand.title.replace(/^Strand \d+:\s*/, 'S').replace(/^S.*?:\s*/, s => s)}
+                            {strand.title.replace(/^Strand \d+:\s*/, '')}
                           </span>
                         </button>
                         {sOpen && strandChapters.map(ch => (
