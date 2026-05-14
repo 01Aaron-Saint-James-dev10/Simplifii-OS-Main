@@ -9,6 +9,8 @@
  */
 
 import React, { useState, useMemo } from 'react';
+import usePomodoro from '../hooks/usePomodoro';
+import PitStopOverlay from '../components/visuals/PitStopOverlay';
 import { useResearchProject } from '../ResearchProjectContext';
 import { useRouter } from '../../contexts/RouterContext';
 import ResearchLeftRail from './ResearchLeftRail';
@@ -60,6 +62,7 @@ export default function ResearchHomeScreen() {
 
   const [activeChapterId, setActiveChapterId] = useState(AARON_ACTIVE_CHAPTER_ID);
   const [panel, setPanel] = useState(null); // 'methodology' | 'reflexivity' | 'feedback' | 'synthesis' | 'ingest'
+  const pomodoro = usePomodoro();
 
   const unaddressedFeedback = useMemo(
     () => supervisorFeedback.filter(f => f.status === 'unaddressed').length,
@@ -124,7 +127,19 @@ export default function ResearchHomeScreen() {
             Bowser-OS Research
           </span>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {/* Pomodoro timer */}
+          <button
+            type="button"
+            onClick={pomodoro.isRunning ? pomodoro.pause : pomodoro.start}
+            aria-label={pomodoro.isRunning ? 'Pause focus sprint' : 'Start 25-minute focus sprint'}
+            style={{ padding: '4px 10px', background: 'transparent', border: `1px solid ${pomodoro.isRunning ? ACCENT_BORDER_STRONG : SURFACE_RAISED}`, borderRadius: BORDER_RADIUS, fontFamily: 'monospace', fontSize: 11, color: pomodoro.isRunning ? ACCENT_PULSE : TEXT_MUTED, cursor: 'pointer', letterSpacing: '0.04em' }}
+          >
+            {pomodoro.label}
+          </button>
+          {pomodoro.timeLeft < 1500 && (
+            <button type="button" onClick={pomodoro.reset} style={{ background: 'transparent', border: 'none', color: TEXT_FAINT, cursor: 'pointer', fontFamily: FONT_SYSTEM, fontSize: 9 }}>reset</button>
+          )}
           <NavAction label="Ingest" onClick={() => setPanel('ingest')} />
           <NavAction label="Synthesis" onClick={() => setPanel('synthesis')} accent />
         </div>
@@ -245,6 +260,9 @@ export default function ResearchHomeScreen() {
       {panel === 'feedback'     && <SupervisorFeedbackPanel onClose={() => setPanel(null)} />}
       {panel === 'synthesis'    && <SynthesisPreview        onClose={() => setPanel(null)} />}
       {panel === 'ingest'       && <ResearchIngestScreen    onClose={() => setPanel(null)} projectId={activeProject?.projectId} />}
+
+      {/* Pit Stop overlay (fires when Pomodoro sprint completes) */}
+      <PitStopOverlay isOpen={pomodoro.isPitStop} onDismiss={pomodoro.dismiss} />
     </div>
   );
 }
