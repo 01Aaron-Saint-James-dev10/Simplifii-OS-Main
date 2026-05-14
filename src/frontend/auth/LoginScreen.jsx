@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import GoogleSignInButton from './GoogleSignInButton';
 import {
@@ -13,7 +14,7 @@ import {
 const TAB_PASSWORD = 'password';
 const TAB_MAGIC = 'magic';
 
-export default function LoginScreen({ onSwitchToSignup }) {
+export default function LoginScreen() {
   const { signInWithPassword, signInWithOtp } = useAuth();
   const [activeTab, setActiveTab] = useState(TAB_PASSWORD);
   const [email, setEmail] = useState('');
@@ -153,9 +154,9 @@ export default function LoginScreen({ onSwitchToSignup }) {
 
         <p style={styles.switchText}>
           No account yet?{' '}
-          <button type="button" onClick={onSwitchToSignup} style={styles.link}>
+          <Link to="/signup" style={styles.link}>
             Create one
-          </button>
+          </Link>
         </p>
       </div>
     </div>

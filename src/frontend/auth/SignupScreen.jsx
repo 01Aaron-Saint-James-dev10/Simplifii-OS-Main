@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import GoogleSignInButton from './GoogleSignInButton';
 import {
@@ -15,8 +16,9 @@ const TIERS = [
   { value: 'undergrad', label: 'University (Undergraduate)' },
 ];
 
-export default function SignupScreen({ onSwitchToLogin }) {
+export default function SignupScreen() {
   const { signUp } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [tier, setTier] = useState('undergrad');
@@ -56,7 +58,7 @@ export default function SignupScreen({ onSwitchToLogin }) {
           <p style={styles.doneMsg}>
             You are signed in. If email confirmation is enabled, check your inbox first.
           </p>
-          <button type="button" onClick={onSwitchToLogin} style={styles.button}>
+          <button type="button" onClick={() => navigate('/login')} style={styles.button}>
             Go to sign in
           </button>
         </div>
@@ -148,9 +150,9 @@ export default function SignupScreen({ onSwitchToLogin }) {
 
         <p style={styles.switchText}>
           Already have an account?{' '}
-          <button type="button" onClick={onSwitchToLogin} style={styles.link}>
+          <Link to="/login" style={styles.link}>
             Sign in
-          </button>
+          </Link>
         </p>
       </div>
     </div>

@@ -53,6 +53,12 @@ export const ACCENT_PULSE  = '#10b981'; // Emerald 500: primary accent
 export const ACCENT_HOVER  = '#0f9d80'; // Emerald 600: hover state
 export const ACCENT_GLOW   = '#34d399'; // Emerald 300: gradient end, glow highlights
 
+// Cyan accent (landing page gradient endpoint)
+export const ACCENT_CYAN       = '#22d3ee'; // Cyan 400: gradient end
+
+// Gradient presets
+export const GRADIENT_EMERALD_CYAN = `linear-gradient(135deg, ${ACCENT_PULSE}, ${ACCENT_CYAN})`;
+
 // Emerald alpha ramp (opacity tiers)
 export const ACCENT_GLASS_FAINT   = 'rgba(16,185,129,0.03)'; // Faintest tint
 export const ACCENT_GLASS_SUBTLE  = 'rgba(16,185,129,0.06)'; // Subtle fill

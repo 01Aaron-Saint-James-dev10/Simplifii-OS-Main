@@ -1,39 +1,57 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './index.css';
-import { SettingsProvider } from './frontend/SettingsContext';
-import { ProjectProvider } from './frontend/ProjectContext';
 import { AuthProvider } from './contexts/AuthContext';
-import { RouterProvider, useRouter } from './contexts/RouterContext';
-import HomeScreen from './frontend/HomeScreen';
-import CanvasScreen from './frontend/CanvasScreen';
-import ResearchHomeScreen from './frontend/research/ResearchHomeScreen';
-import { ResearchProjectProvider } from './frontend/ResearchProjectContext';
-import AuthGate from './frontend/auth/AuthGate';
+import { useAuth } from './contexts/AuthContext';
+import LandingPage from './frontend/landing/LandingPage';
+import PrivacyPage from './frontend/landing/PrivacyPage';
+import TermsPage from './frontend/landing/TermsPage';
+import LoginScreen from './frontend/auth/LoginScreen';
+import SignupScreen from './frontend/auth/SignupScreen';
+import AppShell from './frontend/AppShell';
 
-// v2 entry point. Providers: Auth > Settings > Project > ResearchProject > Router > ViewSwitch.
-function ViewSwitch() {
-  const { view } = useRouter();
-  if (view === 'canvas')   return <CanvasScreen />;
-  if (view === 'research') return <ResearchHomeScreen />;
-  return <HomeScreen />;
+/**
+ * PublicOnly: redirects authenticated users to /app.
+ * Used for landing, login, signup pages.
+ */
+function PublicOnly({ children }) {
+  const { isAuthenticated, loading } = useAuth();
+  if (loading) return null;
+  if (isAuthenticated) return <Navigate to="/app" replace />;
+  return children;
+}
+
+/**
+ * RequireAuth: redirects unauthenticated users to /login.
+ */
+function RequireAuth({ children }) {
+  const { isAuthenticated, loading } = useAuth();
+  if (loading) return null;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return children;
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <AuthProvider>
-      <AuthGate>
-        <SettingsProvider>
-          <ProjectProvider>
-            <ResearchProjectProvider>
-              <RouterProvider>
-                <ViewSwitch />
-              </RouterProvider>
-            </ResearchProjectProvider>
-          </ProjectProvider>
-        </SettingsProvider>
-      </AuthGate>
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<PublicOnly><LandingPage /></PublicOnly>} />
+          <Route path="/login" element={<PublicOnly><LoginScreen /></PublicOnly>} />
+          <Route path="/signup" element={<PublicOnly><SignupScreen /></PublicOnly>} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+
+          {/* Protected app routes */}
+          <Route path="/app/*" element={<RequireAuth><AppShell /></RequireAuth>} />
+
+          {/* Catch-all: redirect to landing */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   </React.StrictMode>
 );
