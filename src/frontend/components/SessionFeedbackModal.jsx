@@ -43,9 +43,9 @@ export default function SessionFeedbackModal({ onDone }) {
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: OVERLAY_BACKDROP, padding: 16 }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: OVERLAY_BACKDROP, padding: 24, overflowY: 'auto' }}>
       <div role="dialog" aria-modal="true" aria-label="How was your session?"
-        style={{ width: '100%', maxWidth: 380, maxHeight: '90vh', overflowY: 'auto', background: SURFACE_CARD, border: `1px solid ${GLASS_BORDER}`, borderRadius: 12, padding: '28px 24px', textAlign: 'center' }}>
+        style={{ width: '100%', maxWidth: 380, maxHeight: 'calc(100vh - 48px)', overflowY: 'auto', margin: 'auto', background: SURFACE_CARD, border: `1px solid ${GLASS_BORDER}`, borderRadius: 12, padding: '28px 24px', textAlign: 'center' }}>
 
         <p style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 700, color: TEXT_PRIMARY, margin: '0 0 4px' }}>
           How did Simplifii-OS feel today?

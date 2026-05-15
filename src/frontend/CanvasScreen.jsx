@@ -45,7 +45,7 @@ import './CanvasScreen.css';
 export default function CanvasScreen() {
   const { courseId, assessmentTitle, navigateToAssessments } = useRouter();
   const { courses, activeCourse, projectSources } = useProject();
-  const { reducedMotion, isZenMode, theme, autismFirstEnabled, sensoryLevel } = useSettings();
+  const { reducedMotion, isZenMode, theme, autismFirstEnabled, sensoryLevel, isLiteralMode } = useSettings();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Supabase fallback: if localStorage has no course for this courseId,
@@ -329,7 +329,7 @@ export default function CanvasScreen() {
           toolId="brief-simplifier" title="Brief Simplifier" endpoint="/api/simplify-brief" resultKey="plan"
           description="Week-by-week action plan from your uploaded brief."
           buttonLabel="Generate action plan"
-          buildPayload={(brief, rubric, draft, s) => ({ briefText: brief, assessmentTitle: s.assessmentTitle, tier: s.tier, documentType: effectiveDocType || '' })}
+          buildPayload={(brief, rubric, draft, s) => ({ briefText: brief, assessmentTitle: s.assessmentTitle, tier: s.tier, documentType: effectiveDocType || '', literalMode: isLiteralMode })}
           briefText={briefOrText} rubricText="" draftText="" assessmentTitle={currentTitle} courseId={courseId}
         />
       </div>

@@ -98,7 +98,7 @@ export default function CrisisResourcesModal({ onClose }) {
 
   return (
     <div
-      style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: OVERLAY_BACKDROP, padding: 16 }}
+      style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: OVERLAY_BACKDROP, padding: 24, overflowY: 'auto' }}
       onClick={onClose}
     >
       <div
@@ -109,7 +109,7 @@ export default function CrisisResourcesModal({ onClose }) {
         tabIndex={-1}
         onClick={e => e.stopPropagation()}
         style={{
-          width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto',
+          width: '100%', maxWidth: 560, maxHeight: 'calc(100vh - 48px)', overflowY: 'auto', margin: 'auto',
           background: SURFACE_CARD, border: `1px solid ${SURFACE_RAISED}`,
           borderRadius: 12, padding: '28px 24px', outline: 'none',
         }}

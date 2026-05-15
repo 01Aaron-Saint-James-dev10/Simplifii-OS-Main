@@ -73,6 +73,20 @@ export default async function handler(req, res) {
     systemPrompt += `\n\nIMPORTANT: The learner's first language is ${LANG_NAMES[homeLanguage]}. When you use academic vocabulary or key terms, provide the ${LANG_NAMES[homeLanguage]} translation in parentheses after the English word. Use simpler sentence structures. If the learner writes in ${LANG_NAMES[homeLanguage]}, respond in English but acknowledge what they said.`;
   }
 
+  // Literal Mode: removes all metaphor, idiom, and ambiguity
+  const literalMode = req.body?.literalMode;
+  if (literalMode) {
+    systemPrompt += `\n\nLITERAL MODE ACTIVE. Strict rules:
+- Never use metaphors unless explicitly labeled [METAPHOR: X means Y]
+- Replace all idioms with literal meanings ("piece of cake" means "this is easy")
+- Remove all rhetorical questions
+- Use unambiguous language: no double meanings
+- Mark emotional/social content with brackets [feeling: anxious]
+- Mark uncertainty explicitly [uncertain] vs definite [confirmed]
+- Use "I" statements not "we" (clearer agency)
+- Number sequential steps explicitly: Step 1, Step 2, Step 3`;
+  }
+
   // Easy Read mode for intellectual disability
   if (easyRead) {
     systemPrompt += `\n\nIMPORTANT: Use Easy Read format. Maximum 10 words per sentence. One idea per line. Bold key words using **bold**. No metaphors. No idioms. No sarcasm. Use concrete, literal language only. If you need to explain a concept, use a simple example from everyday life.`;
