@@ -90,6 +90,19 @@ export default function ToolPanel({
     }
   };
 
+  // Strip markdown artifacts from AI responses so raw syntax does not
+  // leak into the UI. Handles bold, italic, links, and heading markers.
+  const cleanMarkdown = (text) => {
+    if (!text) return '';
+    return text
+      .replace(/\*\*(.+?)\*\*/g, '$1')      // **bold**
+      .replace(/__(.+?)__/g, '$1')            // __bold__
+      .replace(/\*(.+?)\*/g, '$1')            // *italic*
+      .replace(/_(.+?)_/g, '$1')              // _italic_
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // [text](url) -> text
+      .replace(/^#{1,4}\s+/gm, '');           // # headings
+  };
+
   const hasInput = (briefText && briefText.length > 20) || (draftText && draftText.length > 50);
 
   return (
@@ -135,7 +148,7 @@ export default function ToolPanel({
             </button>
           </div>
           <pre style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_PRIMARY, margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-            {result}
+            {cleanMarkdown(result)}
           </pre>
           <ResponseFeedback toolName={toolId} context={{ assessmentTitle, courseId }} />
         </div>
