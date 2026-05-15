@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -81,7 +82,7 @@ export default function FeedbackModal({ onClose }) {
   };
 
   if (done) {
-    return (
+    return createPortal(
       <div style={s.backdrop} onClick={onClose}>
         <div role="dialog" aria-modal="true" aria-label="Feedback sent" ref={dialogRef} tabIndex={-1}
           onClick={e => e.stopPropagation()}
@@ -97,11 +98,12 @@ export default function FeedbackModal({ onClose }) {
             Back to work
           </button>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
-  return (
+  return createPortal(
     <div style={s.backdrop} onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-label="Send feedback" ref={dialogRef} tabIndex={-1}
         onClick={e => e.stopPropagation()}
@@ -185,13 +187,14 @@ export default function FeedbackModal({ onClose }) {
           {saving ? 'Sending...' : 'Send feedback'}
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
 const s = {
   backdrop: {
-    position: 'fixed', inset: 0, zIndex: 9999,
+    position: 'fixed', inset: 0, zIndex: 99999,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     background: OVERLAY_BACKDROP, padding: 16,
   },

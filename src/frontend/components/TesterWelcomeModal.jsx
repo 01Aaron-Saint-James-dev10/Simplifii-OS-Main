@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -43,8 +44,8 @@ export default function TesterWelcomeModal({ onDismiss }) {
     onDismiss();
   };
 
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9998, display: 'flex', alignItems: 'center', justifyContent: 'center', background: OVERLAY_BACKDROP, padding: 16 }}
+  return createPortal(
+    <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: OVERLAY_BACKDROP, padding: 16 }}
       onClick={handleDismiss}>
       <div
         ref={dialogRef}
@@ -108,6 +109,7 @@ export default function TesterWelcomeModal({ onDismiss }) {
           {"Let's go"}
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

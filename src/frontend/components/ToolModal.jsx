@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   SURFACE_CARD,
   SURFACE_RAISED,
@@ -48,12 +49,12 @@ export default function ToolModal({ title, statusBadge, description, children, o
 
   const badge = statusBadge ? BADGE_STYLES[statusBadge] || null : null;
 
-  return (
+  return createPortal(
     <div
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 9999,
+        zIndex: 99999,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -135,6 +136,7 @@ export default function ToolModal({ title, statusBadge, description, children, o
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

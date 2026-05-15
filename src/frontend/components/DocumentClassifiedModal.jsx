@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import {
   SURFACE_CARD, SURFACE_RAISED,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
@@ -35,8 +36,8 @@ const TYPE_LABELS = {
 export default function DocumentClassifiedModal({ type, confidence, suggestedActions, onAction, onOverride, onDismiss }) {
   const info = TYPE_LABELS[type] || TYPE_LABELS.unknown;
 
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9998, display: 'flex', alignItems: 'center', justifyContent: 'center', background: OVERLAY_BACKDROP, padding: 24, overflowY: 'auto' }}
+  return createPortal(
+    <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: OVERLAY_BACKDROP, padding: 24, overflowY: 'auto' }}
       onClick={onDismiss}>
       <div role="dialog" aria-modal="true" aria-label="Document classified"
         onClick={e => e.stopPropagation()}
@@ -79,6 +80,7 @@ export default function DocumentClassifiedModal({ type, confidence, suggestedAct
           {"Actually it's something else"}
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

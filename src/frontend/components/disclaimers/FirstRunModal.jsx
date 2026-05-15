@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../../lib/supabaseClient';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -49,7 +50,7 @@ export default function FirstRunModal({ onAcknowledged }) {
     }
   };
 
-  return (
+  return createPortal(
     <div style={s.backdrop}>
       <div
         ref={dialogRef}
@@ -144,7 +145,8 @@ export default function FirstRunModal({ onAcknowledged }) {
           {saving ? 'Saving...' : saveError ? 'Try again' : 'Continue to Simplifii-OS'}
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -152,7 +154,7 @@ const s = {
   backdrop: {
     position: 'fixed',
     inset: 0,
-    zIndex: 10000,
+    zIndex: 99999,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle } from 'lucide-react';
 
 // Styled confirm dialog that matches the cockpit zinc/emerald/rose palette.
@@ -41,12 +42,12 @@ export default function ConfirmDialog({
     ? 'bg-rose-500 hover:bg-rose-400 text-white shadow-glow-rose'
     : 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-glow-emerald';
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-dialog-title"
-      className="fixed inset-0 z-[2000] flex items-center justify-center"
+      className="fixed inset-0 z-[99999] flex items-center justify-center"
     >
       <div
         className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-fade-in"
@@ -83,6 +84,7 @@ export default function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
