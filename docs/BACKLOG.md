@@ -502,6 +502,30 @@ Each is a focused mini-tool on a secondary page, not main canvas. Spoon Theory P
 
 ---
 
+## Sprint LL — Source-Grounded RAG + Multimodal Ingestion (40 hours)
+
+**Strategic intent:** Make Simplifii the only AI study tool that can prove its answers come from the student's own uploaded sources. Source-grounded RAG with citations = technical implementation of the Authenticity Report integrity promise.
+
+**Phase 1: Foundation (12 hours).** Enable pgvector on Supabase. Create document_chunks table (user_id, document_id, file_name, page_number, chunk_index, content, embedding vector(1536)). Build VectorStorageService.js: chunkDocument (500-word chunks), generateEmbedding (OpenAI text-embedding-3-small), upsertChunks (batch insert), searchSimilar (cosine similarity). Hook into existing PDF upload flow (async, non-blocking).
+
+**Phase 2: Grounded Retrieval (10 hours).** Build GroundedRAGService.js: retrieveContext (top 5 chunks with relevance scores), buildGroundedPrompt (system prompt with strict citation rules). AI answers ONLY from source blocks, appends [filename, page N] citations, refuses when sources lack the answer. Confidence threshold: top chunk relevance < 0.7 triggers UI warning.
+
+**Phase 3: Citation UI (8 hours).** Parse AI output for [filename, page N] citations. Render as clickable inline badges. Click opens document preview at correct page. Hover shows exact source text quoted.
+
+**Phase 4: Multimodal Input (10 hours).** Extend tutor input to accept text + PDF + image + audio attachments. Wire to Claude API multi-part content. Combine image vision with RAG retrieval for cross-modal grounded responses.
+
+**Integration:** Tier 2 Socratic AI uses grounded RAG for every response. Multimodal Canvas transformations grounded in source document. Authenticity Report tracks citation usage. Brief Simplifier grounds decoding in actual uploaded brief.
+
+**Dependencies:** OpenAI API key for embeddings (OPENAI_API_KEY in Vercel env, embeddings only). Supabase pgvector extension. Existing PDF parsing pipeline.
+
+**Cost:** ~$0.0001 per document indexed, ~$50-200/month per 1,000 active users for embeddings (negligible vs Claude API costs).
+
+**Deferred:** Sprint LL.2 (audio overview generation, 15 hours). Sprint LL.3 (video generation via Veo, 20 hours, only after 1,000+ paid users).
+
+**Priority:** Build AFTER current P0s verified + tester window + before Sprint FF and HH (both need RAG plumbing). Suggested order: P0s ship, tester window, Sprint LL, Sprint FF, Sprint HH.
+
+---
+
 ## Sprint II — Scholarship Discovery (20 hours)
 
 Extracted from Sprint HH as standalone feature. Aggregate ALL Australian scholarships from data.gov.au, StudyAssist, state and federal databases. Filter by user profile (disability, first-gen, low-SES, indigenous, regional). Push deadline notifications. Available to Y10-12 students for early scholarship awareness, not just postgrad. Priority: post-Sprint HH Phase 1.
