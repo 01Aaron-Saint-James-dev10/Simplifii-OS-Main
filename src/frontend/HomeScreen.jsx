@@ -17,6 +17,7 @@ import LogoutButton from './auth/LogoutButton';
 import EmptyWorkspace from './workspace/EmptyWorkspace';
 import TesterWelcomeModal from './components/TesterWelcomeModal';
 import ThemeSwitcher from './components/ThemeSwitcher';
+import AffirmationBanner from './components/AffirmationBanner';
 import { ACCENT_BORDER, ACCENT_PULSE, TEXT_MUTED, FONT_DISPLAY } from '../theme/tokens';
 import './HomeScreen.css';
 
@@ -355,6 +356,8 @@ export default function HomeScreen() {
             </section>
           </>
         )}
+        {/* Affirmation */}
+        <AffirmationBanner trigger="dashboard" />
       </main>
 
       {showTesterWelcome && (

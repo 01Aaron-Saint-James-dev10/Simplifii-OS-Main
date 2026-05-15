@@ -2,6 +2,36 @@
 
 ---
 
+## Sprint O: Game Layer (Cognitive Breaks)
+
+Embedded mini-games as ADHD/EF regulation tools: 5-min breath visualiser, pattern matching, word association, Pomodoro break activities. Voluntary, never forced. Tracks total break time as positive metric. Schema: game_sessions. Effort: 12-16 hours.
+
+---
+
+## Sprint P: Joke Generator (Joy Moments)
+
+/api/joke endpoint (Anthropic), voice command "tell me a joke", ephemeral overlay, favourites library, style prefs (puns/wordplay/observational/nerdy). Schema: user_jokes. Effort: 3-4 hours MVP.
+
+---
+
+## Sprint Q: Community Library (Shared Tips)
+
+Peer-to-peer tips: shared_tips table, AI pre-screen moderation, anonymous by default, topic taxonomy, upvote/save. New panel rail tab "Community". REQUIRES legal review (eSafety Commissioner, content moderation laws) before any code. Effort: 60-80 hours including T&S framework.
+
+---
+
+## Sprint R: Animated AI Assistant (BrOWSER 2.0 Full)
+
+AI character with 6 states (idle/listening/thinking/celebrating/concerned/suggesting), eye tracking, TTS speech, movement between corners. profiles.character_enabled/character_voice. All original art, NO branded IP. Effort: 20-30 hours.
+
+---
+
+## Sprint V: About Page with Founder Credentials
+
+Move Aaron's personal awards (NDRP, ADCET, UN SDG) to a dedicated /about page rather than the landing page. Include founder story, research background, institutional affiliations. Effort: 2-3 hours.
+
+---
+
 ## Sprint U: Sector Research Ingestion Pipeline
 
 **Goal:** Ingest publicly available Australian education research, synthesise student pain points by tier/demographic, feed into tutor system prompts so AI responses are informed by sector-wide evidence.
