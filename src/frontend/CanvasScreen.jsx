@@ -283,7 +283,7 @@ export default function CanvasScreen() {
         saveStatus={saveStatus}
         lastSavedAgo={lastSavedAgo}
         tiptapDoc={tiptapDoc}
-        htmlContent={draftText}
+        htmlContent={compileFnRef.current ? compileFnRef.current() : draftText}
         courseId={courseId}
         onOpenSettings={() => setSettingsOpen(true)}
         onCourseName={briefs.length > 1 ? () => navigateToAssessments(courseId) : undefined}
