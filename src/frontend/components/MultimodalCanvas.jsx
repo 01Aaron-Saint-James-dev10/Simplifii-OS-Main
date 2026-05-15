@@ -30,17 +30,6 @@ export default function MultimodalCanvas({ question, documentId, onAskTutor }) {
   const { activeTier, accessibilityProfile, autismFirstEnabled } = useSettings();
   const priority = getFormatPriority(accessibilityProfile);
   const [activeFormat, setActiveFormat] = useState(priority[0] || 'original');
-
-  // Auto-generate preferred format on first render (profile-aware)
-  const autoGenRef = React.useRef(false);
-  React.useEffect(() => {
-    if (autoGenRef.current) return;
-    autoGenRef.current = true;
-    const preferred = priority[0];
-    if (preferred && preferred !== 'original') {
-      generate(preferred);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [content, setContent] = useState({});
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState('');
@@ -79,6 +68,20 @@ export default function MultimodalCanvas({ question, documentId, onAskTutor }) {
       setLoading(null);
     }
   }, [question, documentId, activeTier, accessibilityProfile, content]);
+
+  // Auto-generate preferred format on first render (profile-aware).
+  // generateRef keeps the effect deps-free while still calling the latest generate.
+  const generateRef = React.useRef(generate);
+  generateRef.current = generate;
+  const autoGenRef = React.useRef(false);
+  React.useEffect(() => {
+    if (autoGenRef.current) return;
+    autoGenRef.current = true;
+    const preferred = priority[0];
+    if (preferred && preferred !== 'original') {
+      generateRef.current(preferred);
+    }
+  }, []); // safe: guarded by autoGenRef; generateRef is mutable, not reactive
 
   const renderContent = () => {
     if (loading) return <AsciiLoader status={`Generating ${FORMAT_TYPES.find(f => f.id === loading)?.label}...`} />;

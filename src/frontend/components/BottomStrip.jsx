@@ -77,6 +77,11 @@ export default function BottomStrip({ wordCount, targetWords }) {
               {wc.guidance}
             </span>
           )}
+          {(wordCount || 0) >= 50 && (
+            <span style={{ color: TEXT_FAINT, marginLeft: 8, fontWeight: 400 }} title="Estimated read time at 238 words per minute">
+              {Math.max(1, Math.ceil((wordCount || 0) / 238))} min read
+            </span>
+          )}
         </span>
 
         <span style={{ color: TEXT_FAINT }}>

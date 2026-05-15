@@ -37,6 +37,7 @@ import { parseExamPaper } from '../services/ExamPaperParser';
 import { startAmbient, stopAmbient } from './services/AmbientSound';
 import ReadingRuler from './components/ReadingRuler';
 import WritingAnalysis from './components/WritingAnalysis';
+import ComprehensionBreak from './components/ComprehensionBreak';
 import './CanvasScreen.css';
 
 /**
@@ -493,6 +494,9 @@ export default function CanvasScreen() {
       <AnnouncementBanner />
       <FidgetZone />
       <ReadingRuler />
+      {!isExamPaper && (
+        <ComprehensionBreak onCheckRequest={() => setActivePanel('check')} />
+      )}
       {showSaveAffirmation && <AffirmationBanner trigger="save_event" visible={true} />}
       <BottomStrip wordCount={wordCount} targetWords={targetWords} />
 

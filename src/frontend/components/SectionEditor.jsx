@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { saveDraft, loadDraft } from '../../services/DraftService';
 import RichTextEditor from './RichTextEditor';
 import VoiceInputButton from './VoiceInputButton';
+import SentenceStarters from './SentenceStarters';
+import IdeaToSentence from './IdeaToSentence';
 import {
   SURFACE_BASE, SURFACE_RAISED,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
@@ -9,6 +11,11 @@ import {
   FONT_SYSTEM, FONT_BODY,
   BORDER_RADIUS,
 } from '../../theme/tokens';
+
+// Insert text into whichever RichTextEditor is active (same bus voice uses)
+function insertIntoEditor(text) {
+  window.dispatchEvent(new CustomEvent('simplifii:voice-transcript', { detail: { text: ' ' + text } }));
+}
 
 const AUTOSAVE_MS = 2000;
 
@@ -41,6 +48,8 @@ export default function SectionEditor({
 }) {
   const [sectionDrafts, setSectionDrafts] = useState({});
   const [loaded, setLoaded] = useState(false);
+  const [showStarters, setShowStarters] = useState(false);
+  const [showIdea, setShowIdea] = useState(false);
   const saveTimerRef = useRef(null);
   const lastSavedRef = useRef(null);
 
@@ -136,14 +145,43 @@ export default function SectionEditor({
         ))}
       </div>
 
-      {/* Slash command hints + voice input */}
+      {/* Writing support tools: sentence starters + idea-to-sentence */}
+      {showStarters && (
+        <div style={{ position: 'absolute', bottom: 36, left: 0, right: 0, zIndex: 31, padding: '0 16px 4px' }}>
+          <SentenceStarters
+            sectionType={activeSection}
+            onInsert={(text) => { insertIntoEditor(text); setShowStarters(false); }}
+            visible
+          />
+        </div>
+      )}
+      {showIdea && (
+        <div style={{ position: 'absolute', bottom: 36, left: 0, right: 0, zIndex: 31, padding: '0 16px 4px' }}>
+          <IdeaToSentence
+            assessmentTitle={assessmentTitle}
+            onInsert={(text) => { insertIntoEditor(text); setShowIdea(false); }}
+          />
+        </div>
+      )}
+
+      {/* Slash command hints + writing tool toggles + voice input */}
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 16px', zIndex: 30 }}>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           {[{ cmd: '/joke', label: 'Joke' }, { cmd: 'Cmd+Shift+V', label: 'Voice' }].map(h => (
             <span key={h.cmd} style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: TEXT_FAINT, padding: '2px 6px', border: `1px solid ${SURFACE_RAISED}`, borderRadius: 3 }}>
               {h.cmd} <span style={{ opacity: 0.6 }}>{h.label}</span>
             </span>
           ))}
+          <button type="button" onClick={() => { setShowStarters(p => !p); setShowIdea(false); }}
+            title="Sentence starters"
+            style={{ background: showStarters ? ACCENT_PULSE : 'none', border: `1px solid ${SURFACE_RAISED}`, borderRadius: 3, color: showStarters ? '#000' : TEXT_FAINT, cursor: 'pointer', fontSize: 9, fontFamily: FONT_SYSTEM, padding: '2px 6px' }}>
+            Starters
+          </button>
+          <button type="button" onClick={() => { setShowIdea(p => !p); setShowStarters(false); }}
+            title="Speak an idea, get a structured sentence"
+            style={{ background: showIdea ? ACCENT_PULSE : 'none', border: `1px solid ${SURFACE_RAISED}`, borderRadius: 3, color: showIdea ? '#000' : TEXT_FAINT, cursor: 'pointer', fontSize: 9, fontFamily: FONT_SYSTEM, padding: '2px 6px' }}>
+            Idea to Sentence
+          </button>
         </div>
         <VoiceInputButton />
       </div>
