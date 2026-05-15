@@ -54,6 +54,14 @@ function applyPrefsToLocalStorage(prefs) {
 // Steps are dynamic based on tier. Secondary tier gets extra steps.
 // Non-secondary: tier -> accessibility -> profiler
 // Secondary:     tier -> secondaryDetails -> accessibility -> painPoints -> profiler
+const STEP_NAMES = {
+  tier: 'Who you are',
+  secondaryDetails: 'Your school details',
+  accessibility: 'How you learn best',
+  painPoints: 'What gets in the way',
+  profiler: 'Your strengths',
+};
+
 function buildSteps(tier) {
   const steps = ['tier'];
   if (tier === 'secondary') steps.push('secondaryDetails');
@@ -118,8 +126,20 @@ export default function OnboardingFlow() {
         ))}
       </div>
       <p style={{ textAlign: 'center', fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_FAINT, letterSpacing: '0.06em', margin: '8px 0 0' }}>
-        Step {stepIndex + 1} of {totalSteps}
+        Step {stepIndex + 1} of {totalSteps}: {STEP_NAMES[currentStep] || ''}
       </p>
+
+      {/* Skip onboarding */}
+      {stepIndex > 0 && (
+        <div style={{ textAlign: 'center', marginTop: 4 }}>
+          <button type="button"
+            onClick={() => finish(prefs)}
+            disabled={saving}
+            style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_FAINT, background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3, padding: '4px 8px' }}>
+            Skip for now (you can update these later in Settings)
+          </button>
+        </div>
+      )}
 
       {/* Save error toast */}
       {saveError && (

@@ -28,6 +28,19 @@ export default function LoginScreen() {
   const [resetEmail, setResetEmail] = useState('');
   const [resetSent, setResetSent] = useState(false);
   const [resetError, setResetError] = useState('');
+  const [rememberMe, setRememberMe] = useState(() => {
+    try { return localStorage.getItem('simplifii_remember_me') !== 'false'; } catch { return true; }
+  });
+
+  // Persist remember-me choice and set up session cleanup if unchecked
+  const applyRememberMe = (checked) => {
+    try { localStorage.setItem('simplifii_remember_me', String(checked)); } catch {}
+    if (!checked) {
+      // Clear auth on tab/browser close so session does not persist
+      const cleanup = () => { supabase.auth.signOut().catch(() => {}); };
+      window.addEventListener('beforeunload', cleanup, { once: true });
+    }
+  };
 
   const handlePasswordLogin = async (e) => {
     e.preventDefault();
@@ -35,6 +48,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await signInWithPassword(email, password);
+      applyRememberMe(rememberMe);
     } catch (err) {
       setError(err.message || 'Could not sign in. Check your email and password.');
     } finally {
@@ -67,6 +81,7 @@ export default function LoginScreen() {
     try {
       await signInWithOtp(email);
       setMagicSent(true);
+      applyRememberMe(rememberMe);
     } catch (err) {
       setError(err.message || 'Could not send the magic link. Try again.');
     } finally {
@@ -109,7 +124,7 @@ export default function LoginScreen() {
             onClick={() => { setActiveTab(TAB_MAGIC); setError(''); }}
             style={activeTab === TAB_MAGIC ? styles.tabActive : styles.tab}
           >
-            Magic link
+            Email sign-in
           </button>
         </div>
 
@@ -143,6 +158,17 @@ export default function LoginScreen() {
               style={styles.input}
               placeholder="Your password"
             />
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginTop: 4 }}>
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                style={{ width: 16, height: 16, accentColor: ACCENT_PULSE, cursor: 'pointer' }}
+              />
+              <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_MUTED }}>
+                Remember me on this device (30 days)
+              </span>
+            </label>
             <button type="submit" disabled={loading} style={styles.button}>
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
@@ -156,9 +182,10 @@ export default function LoginScreen() {
         {activeTab === TAB_MAGIC && (
           <form onSubmit={handleMagicLink} style={styles.form}>
             {magicSent ? (
-              <p style={styles.successMsg}>
-                Check your inbox. We sent a sign-in link to <strong>{email}</strong>.
-              </p>
+              <div style={styles.successMsg}>
+                <p style={{ margin: '0 0 8px' }}>Check your inbox. We sent a sign-in link to <strong>{email}</strong>.</p>
+                <p style={{ margin: 0, fontSize: 12, color: TEXT_MUTED }}>The link arrives in about a minute. Click it to sign in. Check spam if you do not see it. Link expires in 1 hour.</p>
+              </div>
             ) : (
               <>
                 <label htmlFor="magic-email" style={styles.label}>Email</label>
@@ -194,7 +221,9 @@ export default function LoginScreen() {
           onClick={() => setShowForgot(false)}>
           <div role="dialog" aria-modal="true" aria-label="Reset password"
             onClick={e => e.stopPropagation()}
-            style={{ width: '100%', maxWidth: 400, background: SURFACE_CARD, border: `1px solid ${ACCENT_BORDER}`, borderRadius: 12, padding: '28px 24px' }}>
+            style={{ width: '100%', maxWidth: 400, background: SURFACE_CARD, border: `1px solid ${ACCENT_BORDER}`, borderRadius: 12, padding: '28px 24px', position: 'relative' }}>
+            <button type="button" onClick={() => setShowForgot(false)} aria-label="Close"
+              style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', cursor: 'pointer', color: TEXT_MUTED, fontSize: 18, lineHeight: 1, padding: 4 }}>{'\u2715'}</button>
             <h2 style={{ fontFamily: FONT_BODY, fontWeight: 700, fontSize: 18, margin: '0 0 8px' }}>Reset your password</h2>
             {resetSent ? (
               <div>

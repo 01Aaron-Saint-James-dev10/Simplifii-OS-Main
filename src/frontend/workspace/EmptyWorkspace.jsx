@@ -86,7 +86,7 @@ export default function EmptyWorkspace({ tier, onCourseAdded }) {
             disabled={ingesting}
             style={{ padding: '14px 36px', borderRadius: 8, fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 700, background: ACCENT_PULSE, border: 'none', color: '#09090b', cursor: ingesting ? 'wait' : 'pointer', boxShadow: GLOW_EMERALD, minHeight: 44, opacity: ingesting ? 0.7 : 1 }}
           >
-            {ingesting ? 'Reading your files...' : 'Upload an assignment brief or syllabus'}
+            {ingesting ? 'Reading your files...' : 'Upload a PDF'}
           </button>
           <input
             ref={fileRef}
@@ -111,13 +111,17 @@ export default function EmptyWorkspace({ tier, onCourseAdded }) {
             Paste a course outline link
           </button>
 
+          <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_FAINT, margin: '4px 0 0', maxWidth: 320, lineHeight: 1.5 }}>
+            Upload an assignment brief, syllabus, or exam paper. We will extract your tasks and due dates.
+          </p>
+
           {/* Tertiary: manual fallback */}
           <button
             type="button"
             onClick={() => setShowModal(true)}
             style={{ padding: 0, background: 'none', border: 'none', fontFamily: FONT_SYSTEM, fontSize: 11, color: TEXT_FAINT, cursor: 'pointer', letterSpacing: '0.04em', textDecoration: 'underline', textUnderlineOffset: 3, minHeight: 44, display: 'flex', alignItems: 'center' }}
           >
-            {"Don't have a PDF? Set up manually"}
+            Or type your course details manually
           </button>
         </div>
       </div>
