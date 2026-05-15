@@ -39,7 +39,7 @@ export default function ToolPanel({
   toolId, title, description, endpoint, buildPayload, resultKey,
   buttonLabel, briefText, rubricText, draftText, assessmentTitle, courseId,
 }) {
-  const { activeTier } = useSettings();
+  const { activeTier, isLiteralMode, accessibilityProfile } = useSettings();
   const { user } = useAuth();
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
@@ -68,7 +68,11 @@ export default function ToolPanel({
       });
       if (proceed === 'cancel') { setLoading(false); return; }
 
-      const payload = buildPayload(briefText, rubricText, draftText, { tier: activeTier, assessmentTitle });
+      const payload = buildPayload(briefText, rubricText, draftText, {
+        tier: activeTier, assessmentTitle,
+        literalMode: isLiteralMode || false,
+        accessibilityProfile: accessibilityProfile || 'standard',
+      });
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

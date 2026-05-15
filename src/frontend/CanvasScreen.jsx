@@ -374,7 +374,7 @@ export default function CanvasScreen() {
           toolId="brief-simplifier" title="Brief Simplifier" endpoint="/api/simplify-brief" resultKey="plan"
           description="Week-by-week action plan from your uploaded brief."
           buttonLabel="Generate action plan"
-          buildPayload={(brief, rubric, draft, s) => ({ briefText: brief, assessmentTitle: s.assessmentTitle, tier: s.tier, documentType: effectiveDocType || '', literalMode: isLiteralMode })}
+          buildPayload={(brief, rubric, draft, s) => ({ briefText: brief, assessmentTitle: s.assessmentTitle, tier: s.tier, documentType: effectiveDocType || '', literalMode: s.literalMode, accessibilityProfile: s.accessibilityProfile })}
           briefText={briefOrText} rubricText="" draftText="" assessmentTitle={currentTitle} courseId={courseId}
         />
       </div>
@@ -383,7 +383,7 @@ export default function CanvasScreen() {
           toolId="rubric-decoder" title="Rubric Decoder" endpoint="/api/decode-rubric" resultKey="decoded"
           description="Plain language translation of what markers actually want."
           buttonLabel="Decode rubric"
-          buildPayload={(brief, rubric, draft, s) => ({ rubricText: rubric || brief, assessmentTitle: s.assessmentTitle, tier: s.tier })}
+          buildPayload={(brief, rubric, draft, s) => ({ rubricText: rubric || brief, assessmentTitle: s.assessmentTitle, tier: s.tier, literalMode: s.literalMode, accessibilityProfile: s.accessibilityProfile })}
           briefText={briefOrText} rubricText={rubricCriteria?.join('\n') || ''} draftText="" assessmentTitle={currentTitle} courseId={courseId}
         />
       </div>
@@ -392,7 +392,7 @@ export default function CanvasScreen() {
           toolId="essay-scorer" title="Essay Scorer" endpoint="/api/score-essay" resultKey="feedback"
           description="Formative feedback on your draft. Not a grade. Honest improvement suggestions."
           buttonLabel="Score my draft"
-          buildPayload={(brief, rubric, draft, s) => ({ draftText: draft, rubricCriteria: rubric, assessmentTitle: s.assessmentTitle, tier: s.tier })}
+          buildPayload={(brief, rubric, draft, s) => ({ draftText: draft, rubricCriteria: rubric, assessmentTitle: s.assessmentTitle, tier: s.tier, literalMode: s.literalMode, accessibilityProfile: s.accessibilityProfile })}
           briefText="" rubricText={rubricCriteria?.join('\n') || ''} draftText={draftText} assessmentTitle={currentTitle} courseId={courseId}
         />
       </div>
@@ -401,7 +401,7 @@ export default function CanvasScreen() {
           toolId="hidden-decoder" title="Hidden Curriculum" endpoint="/api/decode-hidden" resultKey="decoded"
           description="Decode what markers actually want vs what the brief literally says."
           buttonLabel="Decode hidden curriculum"
-          buildPayload={(brief, rubric, draft, s) => ({ briefText: brief, assessmentTitle: s.assessmentTitle, tier: s.tier })}
+          buildPayload={(brief, rubric, draft, s) => ({ briefText: brief, assessmentTitle: s.assessmentTitle, tier: s.tier, literalMode: s.literalMode, accessibilityProfile: s.accessibilityProfile })}
           briefText={briefOrText} rubricText="" draftText="" assessmentTitle={currentTitle} courseId={courseId}
         />
       </div>

@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useSettings } from '../SettingsContext';
 import SentenceStarters from './SentenceStarters';
 import IdeaToSentence from './IdeaToSentence';
 import { appendEvent } from '../../core/HistoryOfThought';
@@ -40,6 +41,7 @@ const TIER_LABEL_STYLE = {
 };
 
 export default function PreWritePanel({ assessmentTitle, briefText, sectionType, tier, onInsert }) {
+  const { isLiteralMode, accessibilityProfile, sensoryLevel, autismFirstEnabled } = useSettings();
   const [scaffold, setScaffold] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -51,6 +53,9 @@ export default function PreWritePanel({ assessmentTitle, briefText, sectionType,
     setError('');
     setAccepted(false);
     try {
+      const profileNote = accessibilityProfile && accessibilityProfile !== 'standard'
+        ? `\nAdapt for ${accessibilityProfile} profile.` : '';
+      const literalNote = isLiteralMode ? '\nUse plain, literal language. No metaphors or idioms.' : '';
       const res = await fetch('/api/tutor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -62,7 +67,9 @@ export default function PreWritePanel({ assessmentTitle, briefText, sectionType,
           assessmentTitle,
           briefText: briefText?.slice(0, 1000) || '',
           tier: tier || 'tertiary',
-          systemOverride: `You are a pre-write assistant. Generate 3-4 concise starting-point bullet points for the learner's ${sectionType || 'section'}. These are ideas to spark their thinking, NOT a completed answer. Australian English. No full paragraphs. No em-dashes.`,
+          literalMode: isLiteralMode || false,
+          accessibilityProfile: accessibilityProfile || 'standard',
+          systemOverride: `You are a pre-write assistant. Generate 3-4 concise starting-point bullet points for the learner's ${sectionType || 'section'}. These are ideas to spark their thinking, NOT a completed answer. Australian English. No full paragraphs. No em-dashes.${profileNote}${literalNote}`,
         }),
       });
       const data = await res.json();
@@ -77,7 +84,7 @@ export default function PreWritePanel({ assessmentTitle, briefText, sectionType,
     } finally {
       setLoading(false);
     }
-  }, [assessmentTitle, briefText, sectionType, tier]);
+  }, [assessmentTitle, briefText, sectionType, tier, isLiteralMode, accessibilityProfile]);
 
   const handleInsertScaffold = () => {
     if (!scaffold) return;
