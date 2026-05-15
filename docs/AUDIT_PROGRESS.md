@@ -83,25 +83,36 @@
 | Category | Total | Resolved | Outstanding |
 |----------|-------|----------|-------------|
 | CRITICAL (P0) | 5 | 5 (100%) | 0 |
-| WARN (P1) | 8 | 2 | 6 |
+| WARN (P1) | 8 | 7 | 1 |
 | INFO | 7 | 0 (n/a) | 0 (no action needed) |
 | Tester bugs | 6 | 6 (100%) | 0 |
+| Part B | 1 | 1 (100%) | 0 |
 
-**All P0 findings are resolved.** Remaining P1 items are low-risk structural improvements.
+**All P0 findings resolved. 7 of 8 P1 items resolved. Part B shipped.**
+
+### Additional P1 Resolved (this session)
+
+| # | Finding | Commit |
+|---|---------|--------|
+| 6 | Hardcoded Supabase URL fallbacks in HistoryOfThought | `629d92b8` |
+| 8 | Logger migration (59/72 calls, 82%) | `629d92b8` |
+| 10 | BriefService.js split (779 to 466 lines) | `5dafc1d2` |
+| 12 | study_sessions FK migration (TEXT to UUID) | `629d92b8` |
+| B | Confidence Reinforcement Layer | `bc009ffb` |
 
 ---
 
-## Recommended Next Priority
+## Remaining
 
-1. **BriefService.js split** (776 lines, Issue #10) — highest remaining file over limit
-2. **study_sessions FK migration** (Issue #12) — referential integrity gap
-3. **Hardcoded Supabase fallbacks** (Issue #6) — quick fix, reduces rotation risk
-4. **scaffold-suggest auth degradation** (Issue #7) — should fail explicitly
-5. **Part B: Confidence Reinforcement Layer** — deferred from original plan
+| # | Finding | Severity | Notes |
+|---|---------|----------|-------|
+| 7 | scaffold-suggest auth: already fixed (fails explicitly with 401) | RESOLVED | Was already correct in current code |
+| 11 | Branch hygiene (84 branches) | WARN | Needs manual review of remote branches |
+| 13 | Empty syllabus tables (past_papers, past_questions) | WARN | Needs ingestion scripts to be run |
 
 ---
 
 ## Blockers
 
-None. All P0 items resolved. API key configured in Vercel. Build clean.
-Aaron testing against old bundle `b3d0211f`; latest is `56fd7aa7`.
+None. All P0 items resolved. Build clean. Bundle: `bc009ffb`.
+TDZ crash fix shipped in `0fa8467b`. Awaiting Aaron retest.
