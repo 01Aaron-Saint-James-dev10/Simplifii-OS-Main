@@ -156,7 +156,7 @@ export default function PreWritePanel({ assessmentTitle, briefText, sectionType,
         {activeTab === 'scaffold' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <p style={{ margin: 0, fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_MUTED, lineHeight: 1.5 }}>
-              Generate a starting scaffold for this section. AI produces ideas: you decide what to use.
+              Get some starting ideas from AI. Pick what works for you, edit or ignore the rest.
             </p>
 
             {!scaffold && !loading && (
@@ -252,7 +252,7 @@ export default function PreWritePanel({ assessmentTitle, briefText, sectionType,
                     onClick={generateScaffold}
                     style={{ background: 'none', border: 'none', color: TEXT_FAINT, cursor: 'pointer', fontFamily: FONT_SYSTEM, fontSize: 9, padding: '2px 0' }}
                   >
-                    Try again
+                    Generate new ideas
                   </button>
                 )}
               </div>

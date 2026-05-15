@@ -128,7 +128,7 @@ export default function ReentryOverlay({ courseId, assessmentTitle, onDismiss, o
           Welcome back
         </h2>
         <p style={{ fontFamily: FONT_SYSTEM, fontSize: 11, color: TEXT_MUTED, margin: '0 0 16px', letterSpacing: '0.04em' }}>
-          {daysAway} day{daysAway === 1 ? '' : 's'} away from this assessment.
+          Last worked on this {daysAway} day{daysAway === 1 ? '' : 's'} ago. Ready to pick up?
         </p>
         <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_PRIMARY, margin: '0 0 20px', lineHeight: 1.5 }}>
           Where are you stuck?

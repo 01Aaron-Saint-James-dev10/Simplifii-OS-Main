@@ -35,6 +35,7 @@ export default function FirstLookCard({
   const [dismissed, setDismissed] = useState(false);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const dismissKey = `simplifii_firstlook_${courseId}_${assessmentTitle}`;
 
@@ -49,6 +50,10 @@ export default function FirstLookCard({
     if (!briefText || briefText.length < 50) return;
 
     // Build local summary for exam papers (no API call needed)
+    if (isExamPaper && (!examData?.questions?.length)) {
+      setSummary({ whatIs: 'Exam paper detected but questions are still being extracted. Use the tools in the right panel while we process it.' });
+      return;
+    }
     if (isExamPaper && examData?.questions?.length > 0) {
       const sections = {};
       for (const q of examData.questions) {
@@ -99,7 +104,7 @@ export default function FirstLookCard({
           });
         }
       })
-      .catch(() => {})
+      .catch(() => { setError('Could not analyse your document. Use the tools in the right panel to get started.'); })
       .finally(() => setLoading(false));
   }, [dismissed, summary, loading, briefText, isExamPaper, examData, assessmentTitle, learnerContext, documentType]);
 
@@ -108,7 +113,7 @@ export default function FirstLookCard({
     try { sessionStorage.setItem(dismissKey, 'true'); } catch {}
   };
 
-  if (dismissed || (!summary && !loading)) return null;
+  if (dismissed || (!summary && !loading && !error)) return null;
 
   return (
     <div style={{
@@ -118,7 +123,7 @@ export default function FirstLookCard({
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: ACCENT_PULSE }}>
-          {loading ? 'Reading your document...' : 'First look'}
+          {loading ? 'Analysing your document (about 5 seconds)...' : 'First look'}
         </span>
         <button type="button" onClick={handleDismiss} aria-label="Dismiss"
           style={{ background: 'none', border: 'none', color: TEXT_FAINT, cursor: 'pointer', fontSize: 12, padding: 4, minWidth: 28, minHeight: 28 }}>
@@ -126,6 +131,9 @@ export default function FirstLookCard({
         </button>
       </div>
 
+      {error && !summary && (
+        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_MUTED, margin: 0, lineHeight: 1.5 }}>{error}</p>
+      )}
       {summary && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {summary.whatIs && (
