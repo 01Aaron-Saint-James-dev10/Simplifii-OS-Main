@@ -187,15 +187,29 @@ syllabus_outcomes: id, syllabus_id, outcome_code, outcome_text, stage, band_desc
 
 ## SECTION 6: Known Issues and Tech Debt
 
-1. **Sections hardcoded (Intro/Body1-3/Conclusion):** Dynamic sections API built but not deployed. Stashed.
+### Critical (tester-facing)
+1. **Sections hardcoded (Intro/Body1-3/Conclusion):** Dynamic sections API built but not deployed. Stashed. Lab reports get essay sections.
 2. **Export only exports active section, not compiled document.** ExportMenu uses `draftText` (current section) not `compileFnRef.current()`.
-3. **5 raw rgba() warnings:** CanvasNav, CourseCard, ThemeSwitcher, tester-guide.html (non-blocking, cosmetic).
-4. **BriefService extracts 0 structured fields from exam papers.** Fixed with extractedText fallback, but tools get raw text not parsed fields.
-5. **nesa_papers table is legacy.** Should be dropped or migrated to past_papers.
-6. **Tool results not persisted.** Brief Simplifier, Rubric Decoder, Essay Scorer, Hidden Curriculum results exist only in React state. Refreshing loses them. (UDL Representations ARE persisted to assessment_representations table.)
-7. **Study sessions endpoints are stubs (501).**
-8. **Audio overview endpoint is stub (501).**
-9. **Hooks plugin zod/v3 module error** (non-fatal, from Vercel plugin).
+3. **Tool results not persisted.** Brief Simplifier, Rubric Decoder, Essay Scorer, Hidden Curriculum results exist only in React state. Refreshing loses them. (UDL Representations ARE persisted.)
+
+### Visual / copy bugs
+4. **Theme labels "alpha/beta/gamma/delta" are dev-speak.** Testers won't know what these mean. Should be "Obsidian / Vaporwave / Surreal / Minimal".
+5. **Panel rail icons are single unlabelled letters (B, T, P, S, A, C, Q, U, ☆, R, ✔, ?).** No tooltips. 12 tabs is overwhelming without guidance.
+6. **Matrix rain may be too aggressive for studying.** No per-user toggle beyond prefers-reduced-motion. Some students will find it distracting.
+7. **5 raw rgba() warnings:** CanvasNav, CourseCard, ThemeSwitcher, tester-guide.html (non-blocking, cosmetic).
+
+### Data / extraction
+8. **BriefService extracts 0 structured fields from exam papers.** Fixed with extractedText fallback, but tools get raw text not parsed fields. Sprint M needed for proper document classification.
+9. **nesa_papers table is legacy.** Should be dropped or migrated to past_papers.
+
+### Stubs (non-functional)
+10. **Study sessions endpoints are stubs (501).**
+11. **Audio overview endpoint is stub (501).**
+
+### Technical
+12. **Hooks plugin zod/v3 module error** (non-fatal, from Vercel plugin).
+13. **No back button in CanvasScreen for single-assessment courses.** Back arrow exists but only navigates home. For multi-assessment: breadcrumb works. For single: user must use browser back.
+14. **"What should I do next?" on dashboard DecisionButton is a console.info stub.** Clicking does nothing visible. The AI Next Step banner in CanvasScreen works, but the dashboard version does not.
 
 ---
 
