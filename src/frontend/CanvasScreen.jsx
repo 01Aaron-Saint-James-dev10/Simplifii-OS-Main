@@ -145,30 +145,58 @@ export default function CanvasScreen() {
   const [activeSection, setActiveSection] = useState('introduction');
   const compileFnRef = useRef(null);
 
-  // Fetch dynamic sections when brief data is available
+  // Use sections pre-generated during ingestion when available, otherwise
+  // fetch on demand. This eliminates the blank-panel window between upload
+  // and first canvas open.
   useEffect(() => {
-    if (!briefOrText || briefOrText.length < 30 || dynamicSections) return;
-    const cached = sessionStorage.getItem(`simplifii_sections_${courseId}_${currentTitle}`);
-    if (cached) {
-      try { setDynamicSections(JSON.parse(cached)); setActiveSection(JSON.parse(cached)[0]?.type || 'introduction'); return; } catch {}
+    if (dynamicSections) return;
+
+    // 1. Sections already baked into extractionData by the ingestion cloud path.
+    const preSections = course.extractionData?.aiSections;
+    if (Array.isArray(preSections) && preSections.length > 0) {
+      setDynamicSections(preSections);
+      setActiveSection(preSections[0]?.type || 'introduction');
+      return;
     }
+
+    if (!briefOrText || briefOrText.length < 30) return;
+
+    // 2. Session cache (avoids duplicate API calls on re-render).
+    const cacheKey = `simplifii_sections_${courseId}_${currentTitle}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        setDynamicSections(parsed);
+        setActiveSection(parsed[0]?.type || 'introduction');
+        return;
+      } catch { /* ignore corrupt cache */ }
+    }
+
+    // 3. On-demand fetch — brief is available but ingestion cloud path did not run.
     setSectionsLoading(true);
     fetch('/api/generate-sections', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ briefText: briefOrText.slice(0, 3000), assessmentTitle: currentTitle, tier: 'secondary', wordCount: targetWords }),
+      body: JSON.stringify({
+        briefText: briefOrText.slice(0, 4000),
+        assessmentTitle: currentTitle,
+        assessmentType: course.extractionData?.documentType || '',
+        tier: course.extractionData?.detectedLevel || 'tertiary',
+        wordCount: targetWords,
+      }),
     })
       .then(r => r.json())
       .then(data => {
         if (data.success && data.sections?.length > 0) {
           setDynamicSections(data.sections);
           setActiveSection(data.sections[0].type);
-          sessionStorage.setItem(`simplifii_sections_${courseId}_${currentTitle}`, JSON.stringify(data.sections));
+          sessionStorage.setItem(cacheKey, JSON.stringify(data.sections));
         }
       })
       .catch(() => {})
       .finally(() => setSectionsLoading(false));
-  }, [briefOrText, courseId, currentTitle, targetWords, dynamicSections]);
+  }, [briefOrText, course.extractionData, courseId, currentTitle, targetWords, dynamicSections]);
 
   const activeSections = dynamicSections || [
     { type: 'introduction', label: 'Introduction', targetWords: Math.round(targetWords * 0.15), guidance: '' },
@@ -178,9 +206,13 @@ export default function CanvasScreen() {
     { type: 'conclusion', label: 'Conclusion', targetWords: Math.round(targetWords * 0.15), guidance: '' },
   ];
 
-  // Document classification
-  const [docClassification, setDocClassification] = useState(null);
+  // Document classification: use value baked in during ingestion if present.
+  const preClassifiedType = course.extractionData?.documentType || null;
+  const [docClassification, setDocClassification] = useState(
+    preClassifiedType ? { type: preClassifiedType, confidence: 1 } : null
+  );
   useEffect(() => {
+    if (docClassification) return;
     if (!briefOrText || briefOrText.length < 30) return;
     const classKey = `simplifii_classified_${courseId}_${currentTitle}`;
     if (sessionStorage.getItem(classKey)) return;
@@ -197,7 +229,7 @@ export default function CanvasScreen() {
         }
       })
       .catch(() => {});
-  }, [briefOrText, courseId, currentTitle]);
+  }, [briefOrText, courseId, currentTitle, docClassification]);
 
   // Panel rail + collapse state
   const [activePanel, setActivePanel] = useState(null);

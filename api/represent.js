@@ -9,6 +9,7 @@
  */
 
 import { rateLimit, getIdentifier } from './_rateLimit.js';
+import { checkQuota, recordUsage } from './_quota.js';
 
 const PROMPTS = {
   plain_english: `Translate this assessment brief into plain English suitable for a Year 10 student.
@@ -70,6 +71,10 @@ export default async function handler(req, res) {
   const limited = rateLimit(getIdentifier(req), { maxRequests: 20, windowMs: 60000 });
   if (limited) return res.status(429).json({ success: false, error: limited.error });
 
+  const userId = req.body?.user_id || req.body?.userId || null;
+  const quota = await checkQuota(userId);
+  if (quota.exceeded) return res.status(402).json({ success: false, error: quota.error });
+
   const { briefText, type, assessmentTitle, tier } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
@@ -108,6 +113,10 @@ ${PROMPTS[type]}`;
     }
 
     const data = await response.json();
+    await recordUsage(userId, 'represent', {
+      tokensIn: data?.usage?.input_tokens || 0,
+      tokensOut: data?.usage?.output_tokens || 0,
+    });
     const content = data?.content?.[0]?.text || '';
 
     return res.status(200).json({

@@ -7,6 +7,7 @@ import { nameCourse, getProviderName, extractAssessmentBriefs, REASONING_START_E
 import { reconcile as reconcileBriefs } from '../../services/SovereignReconciler';
 import { SOVEREIGN_DATA_READY } from '../../core/Events';
 import { persistCourseToSupabase } from '../../lib/coursePersistence';
+import { useAuth } from '../../contexts/AuthContext';
 
 /**
  * useIngestion
@@ -38,6 +39,7 @@ export function useIngestion({
   setInstitutionalData,
   onCoursesReady
 }) {
+  const { user } = useAuth();
   const [ingesting, setIngesting] = useState(false);
   const [ingestStatus, setIngestStatus] = useState('');
   // Sprint 9.1a: groundingCount includes both baked-in and user-uploaded PDFs.
@@ -303,11 +305,73 @@ export function useIngestion({
         window.dispatchEvent(new CustomEvent(REASONING_END_EVENT));
       }
     } else {
-      // No LLM available: clear the shadow flag so the draft is treated as
-      // final. The learner gets the same regex roadmap without a perpetual
-      // DRAFT badge.
-      upgradeCourseExtraction(courseId, { extractionData: { shadow: false } });
-      window.dispatchEvent(new CustomEvent(SOVEREIGN_DATA_READY, { detail: { courseId } }));
+      // Cloud path: Ollama is not available, but our serverless endpoints are.
+      // Call classify-document and generate-sections in parallel so the panels
+      // get accurate, content-specific data instead of generic scaffolding.
+      // Fire-and-forget pattern: the shadow draft is visible immediately; this
+      // background pass upgrades it in place when both calls resolve.
+      (async () => {
+        const userId = user?.id || null;
+        const bodyText = rawText.slice(0, 4000);
+        const shortText = rawText.slice(0, 1500);
+        const wordCount = data.words || 2000;
+
+        try {
+          const [classifyRes, sectionsRes] = await Promise.allSettled([
+            fetch('/api/classify-document', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ textSnippet: shortText, user_id: userId }),
+            }).then(r => r.json()).catch(() => null),
+
+            fetch('/api/generate-sections', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                briefText: bodyText,
+                assessmentTitle: draftTaskName,
+                assessmentType: data.documentType || '',
+                tier: data.level || 'tertiary',
+                wordCount,
+                user_id: userId,
+              }),
+            }).then(r => r.json()).catch(() => null),
+          ]);
+
+          const documentType = classifyRes.value?.type || null;
+          const aiSections = sectionsRes.value?.sections?.length > 0
+            ? sectionsRes.value.sections
+            : null;
+
+          // Enrich the first brief with a body so the canvas tools (BriefPanel,
+          // TutorPanel, DecodePanel) have real content to work with. Without a
+          // body, briefOrText in CanvasScreen collapses to just the title, and
+          // every tool returns generic output.
+          const enrichedBriefs = draft.reconciledBriefs.map((b, i) => ({
+            ...b,
+            body: i === 0 && !b.body ? rawText.slice(0, 5000) : (b.body || ''),
+          }));
+          // If regex found no briefs at all, synthesise one from the task name
+          // so the canvas always has at least one addressable brief.
+          const finalBriefs = enrichedBriefs.length > 0
+            ? enrichedBriefs
+            : [{ id: 'auto_0', title: draftTaskName, body: rawText.slice(0, 5000), wordCountGoal: wordCount, dueDate: null, weight: '', source: 'inferred' }];
+
+          upgradeCourseExtraction(courseId, {
+            extractionData: {
+              shadow: false,
+              ...(documentType ? { documentType } : {}),
+              ...(aiSections ? { aiSections } : {}),
+              assessmentBriefs: finalBriefs,
+            },
+          });
+        } catch (err) {
+          if (typeof console !== 'undefined') console.warn('[useIngestion] cloud enhancement failed:', err?.message);
+          upgradeCourseExtraction(courseId, { extractionData: { shadow: false } });
+        }
+
+        window.dispatchEvent(new CustomEvent(SOVEREIGN_DATA_READY, { detail: { courseId } }));
+      })();
     }
     return courseId;
   };

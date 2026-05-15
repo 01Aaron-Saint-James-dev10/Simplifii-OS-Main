@@ -8,12 +8,17 @@
  */
 
 import { rateLimit, getIdentifier } from './_rateLimit.js';
+import { checkQuota, recordUsage } from './_quota.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only.' });
 
   const limited = rateLimit(getIdentifier(req), { maxRequests: 15, windowMs: 60000 });
   if (limited) return res.status(429).json({ success: false, error: limited.error });
+
+  const userId = req.body?.user_id || req.body?.userId || null;
+  const quota = await checkQuota(userId);
+  if (quota.exceeded) return res.status(402).json({ success: false, error: quota.error });
 
   const { draftText, rubricCriteria, assessmentTitle, tier } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -62,6 +67,10 @@ ${draftText.slice(0, 6000)}`;
 
     if (!response.ok) return res.status(502).json({ success: false, error: `Claude returned ${response.status}` });
     const data = await response.json();
+    await recordUsage(userId, 'score-essay', {
+      tokensIn: data?.usage?.input_tokens || 0,
+      tokensOut: data?.usage?.output_tokens || 0,
+    });
     return res.status(200).json({ success: true, feedback: data?.content?.[0]?.text || '', disclaimer: 'This is formative feedback from an AI tool, not a mark from your teacher.' });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });

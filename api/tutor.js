@@ -12,6 +12,7 @@
  */
 
 import { rateLimit, getIdentifier } from './_rateLimit.js';
+import { checkQuota, recordUsage } from './_quota.js';
 
 const BASE_PROMPT = `You are a Socratic tutor inside Simplifii-OS, an Australian neuroinclusive education platform.
 
@@ -44,6 +45,10 @@ export default async function handler(req, res) {
 
   const limited = rateLimit(getIdentifier(req), { maxRequests: 30, windowMs: 60000 });
   if (limited) return res.status(429).json({ success: false, error: limited.error });
+
+  const userId = req.body?.user_id || req.body?.userId || null;
+  const quota = await checkQuota(userId);
+  if (quota.exceeded) return res.status(402).json({ success: false, error: quota.error });
 
   const { messages, assessmentTitle, tier, homeLanguage, easyRead } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -99,6 +104,10 @@ export default async function handler(req, res) {
     }
 
     const data = await response.json();
+    await recordUsage(userId, 'tutor', {
+      tokensIn: data?.usage?.input_tokens || 0,
+      tokensOut: data?.usage?.output_tokens || 0,
+    });
     const reply = data?.content?.[0]?.text || '';
 
     if (!reply) {

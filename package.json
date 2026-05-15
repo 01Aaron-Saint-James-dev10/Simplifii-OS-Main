@@ -8,6 +8,7 @@
     "@react-oauth/google": "^0.13.5",
     "@react-three/drei": "^9.105.6",
     "@react-three/fiber": "^8.16.1",
+    "@sentry/react": "^10.53.1",
     "@supabase/supabase-js": "^2.105.4",
     "@tiptap/extension-character-count": "^2.27.2",
     "@tiptap/extension-link": "^2.27.2",
@@ -34,6 +35,8 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "test": "react-scripts test",
+    "test:ci": "react-scripts test --watchAll=false --ci",
     "check-style": "node scripts/check-style.js",
     "copy-pdf-worker": "node scripts/copy-pdf-worker.js",
     "prestart": "node scripts/copy-pdf-worker.js && node scripts/build-grounding-manifest.js",
@@ -42,6 +45,9 @@
     "prepare": "husky || true"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "husky": "^9.1.6"
   },
   "browserslist": {
