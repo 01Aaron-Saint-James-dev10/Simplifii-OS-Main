@@ -14,6 +14,7 @@ import FirstRunModal from './components/disclaimers/FirstRunModal';
 import AiDisclaimerFooter from './components/disclaimers/AiDisclaimerFooter';
 import FeedbackButton from './feedback/FeedbackButton';
 import BetaBanner from './components/BetaBanner';
+import MatrixRain from './components/MatrixRain';
 import { startSession, endSession } from '../core/StudyPatternTracker';
 import {
   SURFACE_BASE, SURFACE_RAISED,
@@ -101,9 +102,12 @@ export default function AppShell() {
       <ProjectProvider>
         <ResearchProjectProvider>
           <RouterProvider>
-            <div style={{ position: 'relative', minHeight: '100vh', background: SURFACE_BASE }}>
-              <BetaBanner />
-              <ViewSwitch />
+            <div style={{ position: 'relative', minHeight: '100vh', background: 'var(--sov-bg, #09090b)' }}>
+              <MatrixRain />
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <BetaBanner />
+                <ViewSwitch />
+              </div>
               <FeedbackButton />
               <div style={{ position: 'fixed', bottom: 0, right: 0, zIndex: 50, borderTop: `1px solid ${SURFACE_RAISED}`, borderLeft: `1px solid ${SURFACE_RAISED}`, background: SURFACE_BASE, borderTopLeftRadius: 4 }}>
                 <AiDisclaimerFooter />

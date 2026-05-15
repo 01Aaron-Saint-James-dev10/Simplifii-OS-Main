@@ -117,3 +117,15 @@ html[data-theme]::selection {
   background: var(--sov-line);
   color: var(--sov-bg);
 }
+
+/* Matrix rain: reduce opacity on light themes */
+html[data-theme="surreal"] .matrix-rain,
+html[data-theme="minimal"] .matrix-rain {
+  opacity: 0.08;
+  mix-blend-mode: multiply;
+}
+
+/* Disable rain entirely with prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .matrix-rain { display: none; }
+}
