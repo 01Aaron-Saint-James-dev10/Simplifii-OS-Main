@@ -454,7 +454,7 @@ export default function CanvasScreen() {
           />
         )}
         {!isExamPaper && (
-          <button type="button" onClick={toggleLeft} title={leftCollapsed ? 'Show Pre-Write (Tier 1)' : 'Hide Pre-Write'}
+          <button type="button" onClick={toggleLeft} title={leftCollapsed ? 'Show Starter Ideas' : 'Hide Starter Ideas'}
             style={{ position: 'absolute', left: leftCollapsed ? 4 : 228, top: 56, zIndex: 20, width: 20, height: 20, borderRadius: 10, background: 'var(--sov-line-dim, rgba(16,185,129,0.18))', border: 'none', color: 'var(--sov-line, #10b981)', cursor: 'pointer', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}> {/* allow-style */}
             {leftCollapsed ? '\u203A' : '\u2039'}
           </button>
@@ -473,8 +473,8 @@ export default function CanvasScreen() {
         <div className="canvas-centre">
           {!isExamPaper && (
             <div style={{ padding: '4px 16px', borderBottom: '1px solid var(--sov-line-dim, rgba(16,185,129,0.12))', display: 'flex', alignItems: 'center', gap: 8 }}> {/* allow-style */}
-              <span style={{ fontFamily: 'var(--font-system, system-ui)', fontSize: 9, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--sov-line, #10b981)', opacity: 0.7 }}>Tier 3: Your Writing</span> {/* allow-style */}
-              <span style={{ fontFamily: 'var(--font-system, system-ui)', fontSize: 9, color: 'var(--text-faint)', opacity: 0.5 }}>Use Tier 1 (left) to start, Tier 2 (right) to develop your thinking</span> {/* allow-style */}
+              <span style={{ fontFamily: 'var(--font-system, system-ui)', fontSize: 9, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--sov-line, #10b981)', opacity: 0.7 }}>Your Writing</span> {/* allow-style */}
+              <span style={{ fontFamily: 'var(--font-system, system-ui)', fontSize: 9, color: 'var(--text-faint)', opacity: 0.5 }}>Use the starter (left) to begin, the tutor (right) to develop your thinking</span> {/* allow-style */}
             </div>
           )}
           {briefs.length === 0 && !extractedText && <NoBriefPrompt courseId={courseId} />}

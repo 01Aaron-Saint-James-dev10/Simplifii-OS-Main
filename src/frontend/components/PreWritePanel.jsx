@@ -93,7 +93,7 @@ export default function PreWritePanel({ assessmentTitle, briefText, sectionType,
 
   return (
     <aside
-      aria-label="Tier 1: Pre-Write"
+      aria-label="Starter Ideas"
       style={{
         width: 220,
         minWidth: 220,
@@ -108,8 +108,8 @@ export default function PreWritePanel({ assessmentTitle, briefText, sectionType,
     >
       {/* Tier label */}
       <div style={TIER_LABEL_STYLE}>
-        <span>Tier 1: Pre-Write</span>
-        <span style={{ fontWeight: 400, opacity: 0.6 }}>AI generates</span>
+        <span>Starter Ideas</span>
+        <span style={{ fontWeight: 400, opacity: 0.6 }}>AI helps you begin</span>
       </div>
 
       {/* Tab strip */}
