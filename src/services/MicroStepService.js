@@ -1,3 +1,7 @@
+import { createLogger } from '../utils/logger';
+
+const log = createLogger('MicroStepService');
+
 /**
  * MicroStepService.js
  *
@@ -172,6 +176,6 @@ export const generateMicroSteps = async (brief, courseContext, rubricCriteria) =
   if (steps.length === 0) {
     throw new Error('Could not parse micro-steps from the model output. Try regenerating.');
   }
-  if (typeof console !== 'undefined') console.info('[MicroStepService] generated', steps.length, 'steps for', brief.title);
+  log.info('generated', steps.length, 'steps for', brief.title);
   return steps;
 };

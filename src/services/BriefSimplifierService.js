@@ -12,6 +12,9 @@
  */
 
 import { appendEvent } from '../core/HistoryOfThought';
+import { createLogger } from '../utils/logger';
+
+const log = createLogger('BriefSimplifier');
 
 function mockBriefSimplifierOutput(brief, rawText) {
   const title = brief?.title || 'Assessment';
@@ -97,7 +100,7 @@ export async function runBriefSimplifier({ assessmentBrief, courseContext }) {
       throw new Error(data.error || 'Invalid response from server');
     }
   } catch (err) {
-    if (typeof console !== 'undefined') console.warn('[BriefSimplifier] API call failed, falling back to mock:', err?.message);
+    log.warn('API call failed, falling back to mock:', err?.message);
     error = err?.message || 'unknown';
     result = mockBriefSimplifierOutput(assessmentBrief, courseContext?.rawText);
     source = 'mock';

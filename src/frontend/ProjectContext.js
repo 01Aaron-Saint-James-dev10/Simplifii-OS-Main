@@ -1,4 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useRef, useMemo, useCallback } from 'react';
+import { createLogger } from '../utils/logger';
+
+const log = createLogger('ProjectContext');
 import { checkTemporalAlignment } from '../services/TemporalFilter';
 import { hydrate as hydrateStream, applyTheme as applyStreamTheme, streamFromLevel } from '../core/SovereignRouter';
 import { startEventBus, stopEventBus } from '../core/EventBus';

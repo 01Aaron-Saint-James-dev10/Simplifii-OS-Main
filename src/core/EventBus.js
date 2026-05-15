@@ -1,3 +1,7 @@
+import { createLogger } from '../utils/logger';
+
+const log = createLogger('EventBus');
+
 /**
  * EventBus
  *
@@ -64,7 +68,7 @@ const safeAppend = async (eventType, payload, streamId, userId) => {
       payload: payload || {}
     });
   } catch (err) {
-    if (typeof console !== 'undefined') console.warn('[EventBus] append failed:', err.message);
+    log.warn('append failed:', err.message);
   }
 };
 
@@ -93,7 +97,7 @@ export const startEventBus = (getContext = () => ({ streamId: 'tertiary', userId
   }
 
   if (typeof console !== 'undefined') {
-    console.info('[EventBus] started; listening for', __listeners.size, 'spine events');
+    log.info('started; listening for', __listeners.size, 'spine events');
   }
 };
 

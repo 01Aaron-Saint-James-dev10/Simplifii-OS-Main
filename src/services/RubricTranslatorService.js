@@ -1,3 +1,7 @@
+import { createLogger } from '../utils/logger';
+
+const log = createLogger('RubricTranslator');
+
 /**
  * RubricTranslatorService.js
  *
@@ -59,7 +63,7 @@ export async function runRubricTranslator({ rubricCriteria, rubricBands }) {
         throw new Error(data.error || 'Invalid response from server');
       }
     } catch (err) {
-      if (typeof console !== 'undefined') console.warn('[RubricTranslator] API call failed, falling back to mock:', err?.message);
+      log.warn('API call failed, falling back to mock:', err?.message);
       error = err?.message || 'unknown';
       result = mockRubricTranslatorOutput(rubricCriteria, rubricBands);
       source = 'mock';

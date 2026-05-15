@@ -1,5 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from './supabaseClient';
+import { createLogger } from '../utils/logger';
+
+const log = createLogger('coursePersistence');
 
 /**
  * Persist a course and its assessments to Supabase.
@@ -39,7 +42,7 @@ export async function persistCourseToSupabase({ name, code, tier, term, assessme
       status: 'draft',
     });
     if (assessErr && typeof console !== 'undefined') {
-      console.warn('[coursePersistence] assessment insert failed:', assessErr.message);
+      log.warn('assessment insert failed:', assessErr.message);
     } else {
       assessmentIds.push(assessId);
     }

@@ -1,3 +1,7 @@
+import { createLogger } from '../utils/logger';
+
+const log = createLogger('StudyPatternTracker');
+
 /**
  * StudyPatternTracker
  *
@@ -101,7 +105,7 @@ export function startSession() {
   listeners = handlers;
 
   if (typeof console !== 'undefined') {
-    console.info('[StudyPatternTracker] session started at', new Date(sessionStart).toLocaleTimeString());
+    log.info('session started at', new Date(sessionStart).toLocaleTimeString());
   }
 }
 
@@ -126,7 +130,7 @@ export function endSession() {
   savePatterns(patterns);
 
   if (typeof console !== 'undefined') {
-    console.info('[StudyPatternTracker] session ended:', durationSecs, 'secs,', taskSwitchCount, 'task switches,', idleCount, 'idle events');
+    log.info('session ended:', durationSecs, 'secs,', taskSwitchCount, 'task switches,', idleCount, 'idle events');
   }
 
   // Cleanup

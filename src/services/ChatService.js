@@ -1,3 +1,7 @@
+import { createLogger } from '../utils/logger';
+
+const log = createLogger('ChatService');
+
 /**
  * ChatService.js
  *
@@ -146,7 +150,7 @@ const cleanModelOutput = (raw) => {
     out = out.slice(1, -1).trim();
   }
   if (/[\u2014\u2013]/.test(out)) {
-    if (typeof console !== 'undefined') console.warn('[ChatService] AURA returned dash characters. Replacing.');
+    log.warn('AURA returned dash characters. Replacing.');
     out = out.replace(/\s*[\u2014\u2013]\s*/g, ', ');
   }
   return out;
@@ -212,7 +216,7 @@ export const askAura = async (message, course, history = []) => {
     const cleaned = cleanModelOutput(data?.message?.content || '');
     if (!cleaned) throw new Error('AURA returned empty content. Try rephrasing.');
     if (typeof console !== 'undefined') {
-      console.info('[ChatService] response in', Date.now() - start, 'ms');
+      log.info('response in', Date.now() - start, 'ms');
     }
     return cleaned;
   } finally {

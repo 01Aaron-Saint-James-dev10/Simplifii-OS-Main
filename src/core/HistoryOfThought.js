@@ -252,22 +252,11 @@ const getLocalUserId = () => __cloudUserId || 'local';
 const pushToCloud = async (event) => {
   if (!__cloudSyncEnabled || !__cloudUserId) return;
   try {
-    const { createClient } = await import(/* webpackChunkName: "supabase" */ '@supabase/supabase-js');
-    const supabaseUrl = typeof process !== 'undefined' && process.env.REACT_APP_SUPABASE_URL
-      ? process.env.REACT_APP_SUPABASE_URL
-      : 'https://aqcreatryuvuuynwvnqy.supabase.co';
-    const supabaseAnonKey = typeof process !== 'undefined' && process.env.REACT_APP_SUPABASE_ANON_KEY
-      ? process.env.REACT_APP_SUPABASE_ANON_KEY
-      : '';
-    // Sprint 8.3: guard against empty anon key. Without a valid key, every
-    // Supabase request returns 401 and floods the console with errors.
-    if (!supabaseAnonKey) {
-      log.debug('REACT_APP_SUPABASE_ANON_KEY not set, skipping cloud sync');
+    const { supabase: sb } = await import(/* webpackChunkName: "supabase" */ '../lib/supabaseClient');
+    if (!sb) {
+      log.debug('Supabase client not available, skipping cloud sync');
       return;
     }
-    const sb = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
-    });
     const { error } = await sb.from('history_of_thought_events').insert({
       user_id: __cloudUserId,
       event_id: event.event_id,
@@ -378,17 +367,8 @@ export const listEvents = async ({ user_id = 'local', limit = 500 } = {}) => {
 export const listCloudEvents = async ({ limit = 500 } = {}) => {
   if (!__cloudSyncEnabled || !__cloudUserId) return [];
   try {
-    const { createClient } = await import(/* webpackChunkName: "supabase" */ '@supabase/supabase-js');
-    const supabaseUrl = typeof process !== 'undefined' && process.env.REACT_APP_SUPABASE_URL
-      ? process.env.REACT_APP_SUPABASE_URL
-      : 'https://aqcreatryuvuuynwvnqy.supabase.co';
-    const supabaseAnonKey = typeof process !== 'undefined' && process.env.REACT_APP_SUPABASE_ANON_KEY
-      ? process.env.REACT_APP_SUPABASE_ANON_KEY
-      : '';
-    if (!supabaseAnonKey) return [];
-    const sb = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
-    });
+    const { supabase: sb } = await import(/* webpackChunkName: "supabase" */ '../lib/supabaseClient');
+    if (!sb) return [];
     const { data, error } = await sb
       .from('history_of_thought_events')
       .select('*')

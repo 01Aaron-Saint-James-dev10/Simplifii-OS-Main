@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { createLogger } from '../utils/logger';
+
+const log = createLogger('AuthContext');
 
 const AuthContext = createContext();
 
@@ -18,7 +21,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const handleFailure = (err, isRetry) => {
-      console.error('[AuthContext] Supabase session check failed:', err);
+      log.error('Supabase session check failed:', err);
       if (!isRetry) {
         setAuthError('RETRYING');
         setTimeout(() => {

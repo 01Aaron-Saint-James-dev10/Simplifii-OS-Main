@@ -1,3 +1,7 @@
+import { createLogger } from './logger';
+
+const log = createLogger('GroundingLoader');
+
 /**
  * GroundingLoader
  *
@@ -32,7 +36,7 @@ const loadModules = () => {
     }));
   } catch (err) {
     if (typeof console !== 'undefined') {
-      console.warn('[GroundingLoader] require.context unavailable; the loader will return zero PDFs. Build under CRA or webpack.', err && err.message);
+      log.warn('require.context unavailable; the loader will return zero PDFs. Build under CRA or webpack.', err && err.message);
     }
   }
   __pdfModules = modules;
@@ -58,7 +62,7 @@ const fetchBakedPdfs = async () => {
         : Object.assign(blob, { name: m.name });
       out.push(file);
     } catch (err) {
-      if (typeof console !== 'undefined') console.warn('[GroundingLoader] failed to load', m.name, err && err.message);
+      log.warn(' failed to load', m.name, err && err.message);
     }
   }
   return out;
@@ -77,7 +81,7 @@ const fetchUploadedPdfs = async () => {
           : Object.assign(r.blob, { name: r.name });
       });
   } catch (err) {
-    if (typeof console !== 'undefined') console.warn('[GroundingLoader] IndexedDB upload read failed:', err && err.message);
+    log.warn(' IndexedDB upload read failed:', err && err.message);
     return [];
   }
 };

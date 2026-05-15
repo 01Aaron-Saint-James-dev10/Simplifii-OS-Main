@@ -1,5 +1,8 @@
 import { useState } from 'react';
+import { createLogger } from '../../utils/logger';
 import { mapToWorkspace, deriveRoadmapFromAssessments, extractDeepCourseData, mergeExtractionData } from '../../services/BriefService';
+
+const log = createLogger('useIngestion');
 import { processDocumentWithGCP } from '../../services/DocumentAIService';
 import { fetchGroundingPdfs, listGroundingPdfs } from '../../utils/GroundingLoader';
 import { listUploadedPdfs } from '../../services/IndexedDBService';
@@ -219,7 +222,7 @@ export function useIngestion({
       term: data.term?.label || data.term?.code || null,
       assessments: draft.reconciledBriefs,
     }).catch(err => {
-      if (typeof console !== 'undefined') console.warn('[useIngestion] Supabase persist failed:', err?.message);
+      log.warn(' Supabase persist failed:', err?.message);
     });
 
     // Background: run Ollama extraction and nameCourse in parallel, then
@@ -239,9 +242,9 @@ export function useIngestion({
       // assessment table. Secondary text still reaches workspace block generation
       // via data.rawText below.
       const briefsPromise = extractAssessmentBriefs(extractionFocus + (data.primaryRawText || data.rawText))
-        .catch(err => { if (typeof console !== 'undefined') console.warn('[handleSprintCreation] Ollama extraction error:', err.message); return []; });
+        .catch(err => { log.warn(' Ollama extraction error:', err.message); return []; });
       const namePromise = nameCourse(data.rawText)
-        .catch(err => { if (typeof console !== 'undefined') console.warn('[handleSprintCreation] nameCourse failed:', err.message); return null; });
+        .catch(err => { log.warn(' nameCourse failed:', err.message); return null; });
 
       try {
         const [llmBriefs, derivedName] = await Promise.all([briefsPromise, namePromise]);
@@ -253,7 +256,7 @@ export function useIngestion({
         const confirmed = buildDerived(datedCandidates);
         const conflictCount = confirmed.reconciledBriefs.reduce((n, b) => n + ((b.reconciled?.conflicts?.length) || 0), 0);
         if (typeof console !== 'undefined') {
-          console.info('[handleSprintCreation] confirmed extraction:', confirmed.reconciledBriefs.length, 'canonical assessments (', conflictCount, 'conflicts resolved)');
+          log.info('confirmed extraction:', confirmed.reconciledBriefs.length, 'canonical assessments (', conflictCount, 'conflicts resolved)');
         }
         const confirmedFirst = confirmed.assessmentTitles[0];
         const confirmedTask = { course: data.unitCode || 'Extracted', task: confirmedFirst || draftTaskName, level: data.level, rawText: data.rawText };
@@ -366,7 +369,7 @@ export function useIngestion({
             },
           });
         } catch (err) {
-          if (typeof console !== 'undefined') console.warn('[useIngestion] cloud enhancement failed:', err?.message);
+          log.warn(' cloud enhancement failed:', err?.message);
           upgradeCourseExtraction(courseId, { extractionData: { shadow: false } });
         }
 
@@ -457,7 +460,7 @@ export function useIngestion({
       const files = (await fetchGroundingPdfs()).sort((a, b) => classifyGroundingFile(a) - classifyGroundingFile(b));
       if (files.length === 0) {
         setIngestStatus('Nothing in /src/grounding/active/.');
-        if (typeof console !== 'undefined') console.warn('[handleIngestGrounding] no PDFs returned by GroundingLoader');
+        log.warn(' no PDFs returned by GroundingLoader');
         return;
       }
 
@@ -474,7 +477,7 @@ export function useIngestion({
       // deterministic and the last-processed code becomes the active course.
       const codes = Object.keys(fileGroups).sort((a, b) => a.localeCompare(b));
 
-      if (typeof console !== 'undefined') console.info('[handleIngestGrounding] detected', codes.length, 'unit groups:', codes.join(', '));
+      log.info(' detected', codes.length, 'unit groups:', codes.join(', '));
 
       for (const code of codes) {
         const groupFiles = fileGroups[code];
@@ -493,7 +496,7 @@ export function useIngestion({
         for (let i = 0; i < groupFiles.length; i++) {
           const file = groupFiles[i];
           setIngestStatus(`Scanning ${code}: ${file.name}`);
-          if (typeof console !== 'undefined') console.info('[handleIngestGrounding] processing', file.name, 'group=', code, 'class=', classifyGroundingFile(file));
+          log.info(' processing', file.name, 'group=', code, 'class=', classifyGroundingFile(file));
           try {
             // PDF bridge: swap mock_jwt_token_xyz123 for a real Supabase
             // session token once src/lib/supabaseClient.js auth is complete.
@@ -502,7 +505,7 @@ export function useIngestion({
             aggregated = mergeExtractionData(aggregated, { ...deepData, rawText: text });
             if (primaryRawText === null) primaryRawText = text;
           } catch (err) {
-            if (typeof console !== 'undefined') console.warn('[handleIngestGrounding] skipped', file.name, err && err.message);
+            log.warn(' skipped', file.name, err && err.message);
           }
         }
         if (primaryRawText) aggregated.primaryRawText = primaryRawText;
@@ -512,7 +515,7 @@ export function useIngestion({
 
       setIngestStatus(`Ingested ${files.length} file${files.length === 1 ? '' : 's'} across ${codes.length} course${codes.length === 1 ? '' : 's'}.`);
     } catch (err) {
-      if (typeof console !== 'undefined') console.error('[handleIngestGrounding] failed', err);
+      log.error(' failed', err);
       setIngestStatus(`Ingestion failed: ${err && err.message ? err.message : 'unknown error'}`);
     } finally {
       window.dispatchEvent(new CustomEvent(REASONING_END_EVENT));
@@ -564,7 +567,7 @@ export function useIngestion({
             aggregated = mergeExtractionData(aggregated, { ...deepData, rawText: text });
             if (primaryRawText === null) primaryRawText = text;
           } catch (err) {
-            if (typeof console !== 'undefined') console.warn('[handleUploadedFiles] skipped', file.name, err && err.message);
+            log.warn(' skipped', file.name, err && err.message);
           }
         }
         if (primaryRawText) aggregated.primaryRawText = primaryRawText;
@@ -575,7 +578,7 @@ export function useIngestion({
       setIngestStatus(`Ingested ${sorted.length} file${sorted.length === 1 ? '' : 's'} across ${codes.length} course${codes.length === 1 ? '' : 's'}.`);
       if (onCoursesReady) onCoursesReady(lastCourseId);
     } catch (err) {
-      if (typeof console !== 'undefined') console.error('[handleUploadedFiles] failed', err);
+      log.error(' failed', err);
       setIngestStatus(`Upload failed: ${err && err.message ? err.message : 'unknown error'}`);
     } finally {
       window.dispatchEvent(new CustomEvent(REASONING_END_EVENT));

@@ -1,3 +1,7 @@
+import { createLogger } from '../utils/logger';
+
+const log = createLogger('IndexedDB');
+
 const DB_NAME = 'SimplifiiOS_Vault';
 const DB_VERSION = 8; // v8: sync with HistoryOfThought to prevent VersionError
 
@@ -18,7 +22,7 @@ export const initDB = () => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onblocked = () => {
-      console.warn('[IndexedDBService] upgrade blocked by another tab. Reloading.');
+      log.warn(' upgrade blocked by another tab. Reloading.');
       window.location.reload();
     };
 
@@ -26,7 +30,7 @@ export const initDB = () => {
       const err = request.error;
       // Version downgrade attempt: clear and recover automatically.
       if (err && err.name === 'VersionError') {
-        console.warn('[IndexedDBService] version conflict: resetting vault and reloading.');
+        log.warn(' version conflict: resetting vault and reloading.');
         resetLocalSovereignVault();
         return;
       }
