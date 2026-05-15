@@ -91,6 +91,11 @@ export default function CanvasScreen() {
   const rubricDetected = course.extractionData?.rubricDetected || false;
   const sourceFiles = course.extractionData?.sourceFiles || [];
 
+  // Raw extracted text: fallback for tools when structured brief is empty.
+  // This ensures tools work even for non-brief PDFs (exam papers, notes, etc).
+  const extractedText = course.extractionData?.rawText || course.sourceContent || '';
+  const briefOrText = brief?.body || brief?.title || extractedText;
+
   // Save status
   const [saveStatus, setSaveStatus] = useState('unsaved');
   const [lastSavedAgo, setLastSavedAgo] = useState('');
@@ -183,14 +188,14 @@ export default function CanvasScreen() {
       <div style={{ display: activePanel === 'pastqs' ? 'contents' : 'none' }}>
         <PastQuestionsPanel
           assessmentTitle={currentTitle}
-          briefText={brief?.body || brief?.title || ''}
+          briefText={briefOrText}
           courseId={courseId}
         />
       </div>
       <div style={{ display: activePanel === 'udl' ? 'contents' : 'none' }}>
         <RepresentationsPanel
           assessmentTitle={currentTitle}
-          briefText={brief?.body || brief?.title || ''}
+          briefText={briefOrText}
           courseId={courseId}
         />
       </div>
@@ -200,7 +205,7 @@ export default function CanvasScreen() {
           description="Week-by-week action plan from your uploaded brief."
           buttonLabel="Generate action plan"
           buildPayload={(brief, rubric, draft, s) => ({ briefText: brief, assessmentTitle: s.assessmentTitle, tier: s.tier })}
-          briefText={brief?.body || brief?.title || ''} rubricText="" draftText="" assessmentTitle={currentTitle} courseId={courseId}
+          briefText={briefOrText} rubricText="" draftText="" assessmentTitle={currentTitle} courseId={courseId}
         />
       </div>
       <div style={{ display: activePanel === 'rubric' ? 'contents' : 'none' }}>
@@ -209,7 +214,7 @@ export default function CanvasScreen() {
           description="Plain language translation of what markers actually want."
           buttonLabel="Decode rubric"
           buildPayload={(brief, rubric, draft, s) => ({ rubricText: rubric || brief, assessmentTitle: s.assessmentTitle, tier: s.tier })}
-          briefText={brief?.body || brief?.title || ''} rubricText={rubricCriteria?.join('\n') || ''} draftText="" assessmentTitle={currentTitle} courseId={courseId}
+          briefText={briefOrText} rubricText={rubricCriteria?.join('\n') || ''} draftText="" assessmentTitle={currentTitle} courseId={courseId}
         />
       </div>
       <div style={{ display: activePanel === 'scorer' ? 'contents' : 'none' }}>
@@ -227,7 +232,7 @@ export default function CanvasScreen() {
           description="Decode what markers actually want vs what the brief literally says."
           buttonLabel="Decode hidden curriculum"
           buildPayload={(brief, rubric, draft, s) => ({ briefText: brief, assessmentTitle: s.assessmentTitle, tier: s.tier })}
-          briefText={brief?.body || brief?.title || ''} rubricText="" draftText="" assessmentTitle={currentTitle} courseId={courseId}
+          briefText={briefOrText} rubricText="" draftText="" assessmentTitle={currentTitle} courseId={courseId}
         />
       </div>
     </>
@@ -248,7 +253,7 @@ export default function CanvasScreen() {
       />
 
       <NextStepBanner
-        briefText={brief?.body || brief?.title || ''}
+        briefText={briefOrText}
         rubricText={rubricCriteria?.join('\n') || ''}
         draftText={draftText}
         wordCount={wordCount}
@@ -268,7 +273,7 @@ export default function CanvasScreen() {
         />
 
         <div className="canvas-centre">
-          {briefs.length === 0 && <NoBriefPrompt courseId={courseId} />}
+          {briefs.length === 0 && !extractedText && <NoBriefPrompt courseId={courseId} />}
           <CanvasEditor
             courseId={courseId}
             assessmentTitle={currentTitle}

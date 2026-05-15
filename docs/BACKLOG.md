@@ -2,6 +2,18 @@
 
 ---
 
+## Sprint M: Universal Document Type Detection and Routing
+
+**Goal:** User uploads any document. System detects type, routes to correct parser, surfaces output in matching UI.
+
+**Document types:** Assignment brief, exam paper, rubric, lecture notes/slides, reading list, research paper, study notes, generic text.
+
+**Architecture:** DocumentClassifier.js (Anthropic classification) > DocumentRouter.js (picks parser) > per-type parsers returning normalised output > UI shows detected type with override option.
+
+**Effort:** 24-40 hours. Priority: Sprint M post-tester week 1. Driven by which types testers actually upload.
+
+---
+
 ## Sovereign-OS v3 Visual Overhaul (from Claude Design handoff)
 
 Source: `/Users/adonis666/Downloads/Simplifii-OS_Master-handoff.zip` and `Sovereign-OS v3.html`
