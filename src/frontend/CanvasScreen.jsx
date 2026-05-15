@@ -27,6 +27,7 @@ import BottomStrip from './components/BottomStrip';
 import ReentryOverlay from './components/ReentryOverlay';
 import CanvasSettingsOverlay from './components/CanvasSettingsOverlay';
 import NoBriefPrompt from './components/NoBriefPrompt';
+import AffirmationBanner from './components/AffirmationBanner';
 import './CanvasScreen.css';
 
 /**
@@ -102,12 +103,21 @@ export default function CanvasScreen() {
   const extractedText = course.extractionData?.rawText || course.sourceContent || '';
   const briefOrText = brief?.body || brief?.title || extractedText;
 
-  // Save status
+  // Save status + save-event affirmation (fires every 5th save)
   const [saveStatus, setSaveStatus] = useState('unsaved');
   const [lastSavedAgo, setLastSavedAgo] = useState('');
+  const [showSaveAffirmation, setShowSaveAffirmation] = useState(false);
+  const saveCountRef = useRef(0);
   const handleSaveStatus = useCallback((status, ago) => {
     setSaveStatus(status);
     setLastSavedAgo(ago || '');
+    if (status === 'saved') {
+      saveCountRef.current += 1;
+      if (saveCountRef.current % 5 === 0) {
+        setShowSaveAffirmation(true);
+        setTimeout(() => setShowSaveAffirmation(false), 6000);
+      }
+    }
   }, []);
 
   // Word count + draft text + TipTap JSON (for panels and export)
@@ -404,6 +414,7 @@ export default function CanvasScreen() {
         />
       </div>
 
+      {showSaveAffirmation && <AffirmationBanner trigger="save_event" visible={true} />}
       <BottomStrip wordCount={wordCount} targetWords={targetWords} />
 
       <ReentryOverlay

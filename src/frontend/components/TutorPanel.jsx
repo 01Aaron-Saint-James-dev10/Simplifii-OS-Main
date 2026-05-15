@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSettings } from '../SettingsContext';
+import useConfidenceDetector from '../hooks/useConfidenceDetector';
+import AffirmationBanner from './AffirmationBanner';
 import ResponseFeedback from './ResponseFeedback';
 import {
   SURFACE_RAISED,
@@ -36,6 +38,7 @@ const QUICK_PROMPTS = [
 
 export default function TutorPanel({ assessmentTitle, briefText, documentType }) {
   const { activeTier, homeLanguage, easyRead } = useSettings();
+  const { activeTrigger, checkMessage, clearTrigger } = useConfidenceDetector();
   const [messages, setMessages] = useState([
     { role: 'tutor', text: `Working on "${assessmentTitle || 'your assessment'}". What are you stuck on?` },
   ]);
@@ -54,6 +57,7 @@ export default function TutorPanel({ assessmentTitle, briefText, documentType })
   const send = async (text) => {
     if (!text.trim() || loading) return;
     const userMsg = { role: 'user', text: text.trim() };
+    checkMessage(text.trim());
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
     setInput('');
@@ -157,6 +161,11 @@ export default function TutorPanel({ assessmentTitle, briefText, documentType })
           </button>
         ))}
       </div>
+
+      {/* Confidence reinforcement */}
+      {activeTrigger && (
+        <AffirmationBanner trigger={activeTrigger} visible={true} />
+      )}
 
       {/* Input */}
       <div style={{ padding: '8px 16px 12px', borderTop: `1px solid ${SURFACE_RAISED}`, display: 'flex', gap: 6 }}>

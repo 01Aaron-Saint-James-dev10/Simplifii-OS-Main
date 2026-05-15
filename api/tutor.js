@@ -82,6 +82,10 @@ export default async function handler(req, res) {
     systemPrompt += `\n\nThe learner is currently working on: "${assessmentTitle}".`;
   }
 
+  // Confidence reinforcement: if user asks "is this right" repeatedly,
+  // redirect to self-assessment rather than providing validation
+  systemPrompt += `\n\nCONFIDENCE REINFORCEMENT: If the learner asks "is this right?" or "am I on track?" more than twice in a session, respond with: "Show me what you think. Then we will check it together." Do not validate or invalidate their work directly. Instead, ask them to state their position first, then help them evaluate it themselves. If the learner asks "what should I do next?", respond with: "You already know what matters. Want me to confirm or surprise you?"`;
+
   // Inject document content so the tutor can reference the actual material
   if (briefText && briefText.length > 30) {
     const typeLabel = documentType === 'exam_paper' ? 'an exam paper'

@@ -16,9 +16,15 @@ import {
  * - After section auto-save with substantial content
  * - On re-entry after >24hr break
  * - After 3+ sections completed in a row
+ * - decision_moment: when user clicks "What should I do next?"
+ * - self_doubt_detected: when user asks "is this right?" 2+ times
+ * - save_event: on auto-save with substantial content
+ * - external_validation_seeking: when user seeks external approval
  *
  * Props:
- *   trigger  - 'dashboard' | 'section_complete' | 'reentry' | 'streak'
+ *   trigger  - 'dashboard' | 'section_complete' | 'reentry' | 'streak' |
+ *              'decision_moment' | 'self_doubt_detected' | 'save_event' |
+ *              'external_validation_seeking'
  *   visible  - boolean (parent controls when to show)
  */
 export default function AffirmationBanner({ trigger = 'dashboard', visible = true }) {
