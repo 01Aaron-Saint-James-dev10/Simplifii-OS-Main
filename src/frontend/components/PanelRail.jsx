@@ -34,6 +34,10 @@ const PANELS = [
   { id: 'check',      icon: 'C', label: 'Check' },
   { id: 'pastqs',     icon: 'Q', label: "Past Q's" },
   { id: 'udl',        icon: 'U', label: 'UDL 3.0' },
+  { id: 'simplify',   icon: '\u2606', label: 'Simplify' },
+  { id: 'rubric',     icon: 'R', label: 'Rubric' },
+  { id: 'scorer',     icon: '\u2714', label: 'Scorer' },
+  { id: 'hidden',     icon: '?', label: 'Hidden' },
 ];
 
 export default function PanelRail({ activePanel, onSelectPanel, panelContent }) {

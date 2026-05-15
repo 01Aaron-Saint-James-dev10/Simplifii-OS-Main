@@ -15,6 +15,7 @@ import PreviewPanel from './components/PreviewPanel';
 import SourcesPanel from './components/SourcesPanel';
 import PastQuestionsPanel from './components/PastQuestionsPanel';
 import RepresentationsPanel from './components/RepresentationsPanel';
+import ToolPanel from './components/ToolPanel';
 import CheckPanel from './components/CheckPanel';
 import ProvenancePanel from './components/ProvenancePanel';
 import BibliographyView from './components/BibliographyView';
@@ -190,6 +191,42 @@ export default function CanvasScreen() {
           assessmentTitle={currentTitle}
           briefText={brief?.body || brief?.title || ''}
           courseId={courseId}
+        />
+      </div>
+      <div style={{ display: activePanel === 'simplify' ? 'contents' : 'none' }}>
+        <ToolPanel
+          toolId="brief-simplifier" title="Brief Simplifier" endpoint="/api/simplify-brief" resultKey="plan"
+          description="Week-by-week action plan from your uploaded brief."
+          buttonLabel="Generate action plan"
+          buildPayload={(brief, rubric, draft, s) => ({ briefText: brief, assessmentTitle: s.assessmentTitle, tier: s.tier })}
+          briefText={brief?.body || brief?.title || ''} rubricText="" draftText="" assessmentTitle={currentTitle} courseId={courseId}
+        />
+      </div>
+      <div style={{ display: activePanel === 'rubric' ? 'contents' : 'none' }}>
+        <ToolPanel
+          toolId="rubric-decoder" title="Rubric Decoder" endpoint="/api/decode-rubric" resultKey="decoded"
+          description="Plain language translation of what markers actually want."
+          buttonLabel="Decode rubric"
+          buildPayload={(brief, rubric, draft, s) => ({ rubricText: rubric || brief, assessmentTitle: s.assessmentTitle, tier: s.tier })}
+          briefText={brief?.body || brief?.title || ''} rubricText={rubricCriteria?.join('\n') || ''} draftText="" assessmentTitle={currentTitle} courseId={courseId}
+        />
+      </div>
+      <div style={{ display: activePanel === 'scorer' ? 'contents' : 'none' }}>
+        <ToolPanel
+          toolId="essay-scorer" title="Essay Scorer" endpoint="/api/score-essay" resultKey="feedback"
+          description="Formative feedback on your draft. Not a grade. Honest improvement suggestions."
+          buttonLabel="Score my draft"
+          buildPayload={(brief, rubric, draft, s) => ({ draftText: draft, rubricCriteria: rubric, assessmentTitle: s.assessmentTitle, tier: s.tier })}
+          briefText="" rubricText={rubricCriteria?.join('\n') || ''} draftText={draftText} assessmentTitle={currentTitle} courseId={courseId}
+        />
+      </div>
+      <div style={{ display: activePanel === 'hidden' ? 'contents' : 'none' }}>
+        <ToolPanel
+          toolId="hidden-decoder" title="Hidden Curriculum" endpoint="/api/decode-hidden" resultKey="decoded"
+          description="Decode what markers actually want vs what the brief literally says."
+          buttonLabel="Decode hidden curriculum"
+          buildPayload={(brief, rubric, draft, s) => ({ briefText: brief, assessmentTitle: s.assessmentTitle, tier: s.tier })}
+          briefText={brief?.body || brief?.title || ''} rubricText="" draftText="" assessmentTitle={currentTitle} courseId={courseId}
         />
       </div>
     </>
