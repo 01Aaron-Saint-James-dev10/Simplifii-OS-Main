@@ -364,3 +364,47 @@ Priority: Sprint M/M+ post-tester, informed by Y10-12 feedback on voice features
 - All optional, all dismissible, never patronising
 
 **Estimated effort:** 2 hours.
+
+---
+
+## Sprint Y — Dragon Ball Energy Tracking (Spoon Theory remixed)
+
+Goal: ND-affirming energy capacity tracking. Reframes Spoon Theory through
+Dragon Ball metaphor — gathering balls equals building capacity, losing
+balls equals depletion, recovery equals finding them again.
+
+Phase 1 — Daily check-in (3 hours)
+- Session-start modal: "How many dragon balls today?"
+- 7-point visual scale with descriptions:
+  1 ball: surviving, low capacity
+  2-3 balls: limited but okay
+  4-5 balls: standard day
+  6-7 balls: high capacity, ready for challenge
+- Skip-able, never forced, dismissable
+- Schema:
+  ALTER TABLE profiles ADD COLUMN daily_energy_check JSONB DEFAULT '[]';
+  Stored as array of { date, balls_morning, balls_evening, notes }
+
+Phase 2 — Per-task estimation (4 hours)
+- Each scaffold step shows estimated cost: "approximately 1 dragon ball"
+- Calibrated per tier
+- User can adjust: "this is taking more than expected"
+
+Phase 3 — Tutor empathy integration (3 hours)
+- Tutor system prompt receives current dragon ball count
+- Low (1-3): gentle tone, simplified responses, suggests breaks
+- Medium (4-5): standard tone
+- High (6-7): can offer complex challenges
+- Crisis low (1 ball + concerning content): surface crisis resources gently
+
+Phase 4 — Pattern recognition (8 hours, post-tester data needed)
+- After 14 days of data, surface patterns
+- "Your best days are Tuesdays. Your worst are after sport."
+- Optional, dismissable, exportable
+
+Effort: 18-20 hours staged across 4 sprints
+Priority: Sprint Y, post-tester window
+Critical: Consult with disability advocates before final copy. Must not
+trivialise chronic illness or imply users should push through low-energy days.
+References: Christine Miserandino Spoon Theory (2003), Australian Disability
+Discrimination Act compliance.
