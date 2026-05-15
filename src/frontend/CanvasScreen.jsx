@@ -38,6 +38,7 @@ import ReadingRuler from './components/ReadingRuler';
 import WritingAnalysis from './components/WritingAnalysis';
 import ComprehensionBreak from './components/ComprehensionBreak';
 import PreWritePanel from './components/PreWritePanel';
+import FirstLookCard from './components/FirstLookCard';
 import { appendEvent } from '../core/HistoryOfThought';
 import './CanvasScreen.css';
 
@@ -478,6 +479,20 @@ export default function CanvasScreen() {
             </div>
           )}
           {briefs.length === 0 && !extractedText && <NoBriefPrompt courseId={courseId} />}
+
+          {/* First Look: auto-generated document summary on first visit */}
+          {(briefOrText && briefOrText.length > 50) && (
+            <FirstLookCard
+              courseId={courseId}
+              assessmentTitle={currentTitle}
+              briefText={briefOrText}
+              documentType={effectiveDocType}
+              isExamPaper={isExamPaper}
+              examData={examData}
+              rubricDetected={rubricDetected}
+              targetWords={targetWords}
+            />
+          )}
 
           {/* Exam paper: multimodal canvas per question. SectionEditor NEVER renders on exam papers. */}
           {isExamPaper ? (
