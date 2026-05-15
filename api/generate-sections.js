@@ -22,12 +22,12 @@ export default async function handler(req, res) {
   const quota = await checkQuota(userId);
   if (quota.exceeded) return res.status(402).json({ success: false, error: quota.error });
 
-  const { briefText, assessmentTitle, assessmentType, tier, wordCount } = req.body || {};
+  const { briefText, assessmentTitle, assessmentType, tier, wordCount, literalMode, accessibilityProfile } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ success: false, error: 'API key not configured.' });
   if (!briefText || briefText.length < 20) return res.status(400).json({ success: false, error: 'briefText required.' });
 
-  const systemPrompt = `You are a section structure generator inside Simplifii-OS. Australian English. No em-dashes.
+  let systemPrompt = `You are a section structure generator inside Simplifii-OS. Australian English. No em-dashes.
 
 Analyse this assessment brief and generate the OPTIMAL section structure for this specific assessment type.
 
@@ -57,6 +57,9 @@ RULES:
 - guidance must be specific to THIS assessment, not generic
 - 3-8 sections (fewer for short tasks, more for complex ones)
 - ${tier === 'secondary' ? 'Student is Year 10-12. Keep guidance in plain language.' : ''}`;
+
+  if (literalMode) systemPrompt += '\n\nLITERAL MODE: No metaphors, no idioms. Use concrete language in guidance fields.';
+  if (accessibilityProfile && accessibilityProfile !== 'standard') systemPrompt += `\n\nAdapt guidance text for ${accessibilityProfile} accessibility profile.`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {

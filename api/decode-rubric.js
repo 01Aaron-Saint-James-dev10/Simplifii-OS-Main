@@ -20,12 +20,12 @@ export default async function handler(req, res) {
   const quota = await checkQuota(userId);
   if (quota.exceeded) return res.status(402).json({ success: false, error: quota.error });
 
-  const { rubricText, assessmentTitle, tier } = req.body || {};
+  const { rubricText, assessmentTitle, tier, literalMode, accessibilityProfile } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ success: false, error: 'API key not configured.' });
   if (!rubricText || rubricText.length < 10) return res.status(400).json({ success: false, error: 'rubricText required.' });
 
-  const systemPrompt = `You are a rubric decoder inside Simplifii-OS. Australian English. No em-dashes.
+  let systemPrompt = `You are a rubric decoder inside Simplifii-OS. Australian English. No em-dashes.
 
 Take each rubric criterion and translate it into THREE things:
 
@@ -52,6 +52,9 @@ RULES:
 - Be specific. "Analyse effectively" means nothing. "Use 2-3 quotes per paragraph and explain how the language technique creates meaning" is useful.
 - If a criterion says "demonstrates understanding", explain WHAT understanding looks like in practice
 - Honest. If a criterion is genuinely vague, say so: "This criterion is broad. Focus on..."`;
+
+  if (literalMode) systemPrompt += '\n\nLITERAL MODE: No metaphors, no idioms, no ambiguity. Use concrete, specific language only.';
+  if (accessibilityProfile && accessibilityProfile !== 'standard') systemPrompt += `\n\nAdapt output for ${accessibilityProfile} accessibility profile.`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {

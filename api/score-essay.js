@@ -20,12 +20,12 @@ export default async function handler(req, res) {
   const quota = await checkQuota(userId);
   if (quota.exceeded) return res.status(402).json({ success: false, error: quota.error });
 
-  const { draftText, rubricCriteria, assessmentTitle, tier } = req.body || {};
+  const { draftText, rubricCriteria, assessmentTitle, tier, literalMode, accessibilityProfile } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ success: false, error: 'API key not configured.' });
   if (!draftText || draftText.length < 50) return res.status(400).json({ success: false, error: 'draftText required (min 50 chars).' });
 
-  const systemPrompt = `You are a formative feedback tool inside Simplifii-OS. Australian English. No em-dashes.
+  let systemPrompt = `You are a formative feedback tool inside Simplifii-OS. Australian English. No em-dashes.
 
 IMPORTANT: You are NOT predicting a grade. You are giving formative feedback to help the student improve BEFORE submission. Be honest but kind.
 
@@ -51,6 +51,9 @@ RULES:
 - Never say "good job" without specifics
 - Never be vague. "Improve your analysis" is useless. "In paragraph 3, explain WHY the metaphor creates tension, not just THAT it does" is useful.
 - Disclaimer: "This is formative feedback from an AI tool, not a mark from your teacher."`;
+
+  if (literalMode) systemPrompt += '\n\nLITERAL MODE: No metaphors, no idioms, no ambiguity. Use concrete, specific language only.';
+  if (accessibilityProfile && accessibilityProfile !== 'standard') systemPrompt += `\n\nAdapt feedback tone and length for ${accessibilityProfile} accessibility profile.`;
 
   try {
     const userMsg = `Assessment: "${assessmentTitle || 'Untitled'}"

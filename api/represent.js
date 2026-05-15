@@ -75,7 +75,7 @@ export default async function handler(req, res) {
   const quota = await checkQuota(userId);
   if (quota.exceeded) return res.status(402).json({ success: false, error: quota.error });
 
-  const { briefText, type, assessmentTitle, tier } = req.body || {};
+  const { briefText, type, assessmentTitle, tier, literalMode, accessibilityProfile } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
   if (!apiKey) return res.status(500).json({ success: false, error: 'Anthropic API key not configured.' });
@@ -87,9 +87,12 @@ export default async function handler(req, res) {
     : tier === 'tafe' ? 'The student is in TAFE/vocational education.'
     : 'The student is at university.';
 
-  const systemPrompt = `You are a UDL 3.0 representation generator inside Simplifii-OS.
+  let systemPrompt = `You are a UDL 3.0 representation generator inside Simplifii-OS.
 ${tierContext}
 ${PROMPTS[type]}`;
+
+  if (literalMode) systemPrompt += '\n\nLITERAL MODE: No metaphors, no idioms, no ambiguity. Use concrete, specific language only.';
+  if (accessibilityProfile && accessibilityProfile !== 'standard') systemPrompt += `\n\nAdapt output for ${accessibilityProfile} accessibility profile.`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
