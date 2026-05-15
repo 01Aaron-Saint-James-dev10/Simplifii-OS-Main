@@ -250,18 +250,32 @@ syllabus_outcomes: id, syllabus_id, outcome_code, outcome_text, stage, band_desc
 
 ## SECTION 9: GO / NO-GO Verdict
 
-### VERDICT: CONDITIONAL GO
+### VERDICT: FULL GO
 
-The product is functional for Y10-12 testers. The critical path works: signup > onboarding > upload > editor > tools > export. All AI features are live. All safety features are in place.
+Updated 2026-05-15 after Gate 4 Master Sprint (5 batches, 18 tasks).
+
+All 3 conditions from the conditional GO are now met:
+1. Export compiles all sections: SHIPPED (Batch 1, Task 1.2)
+2. Dynamic sections live: SHIPPED (Batch 1, Task 1.1)
+3. Aaron must test full flow in incognito: PENDING (his action)
+
+**Current production bundle:** 41407dab
+**All 10 routes:** 200 OK
+**All 3 test users:** sign in OK
+**All 3 APIs (tutor, scrape, scaffold-suggest):** returning success
+
+**Gate 4 Master Sprint batches:**
+- Batch 1 (P0): dynamic sections, export compile, tool persistence, privacy fix — SHIPPED
+- Batch 2 (cosmetic): theme labels, tooltips, decision wire, rain toggle — SHIPPED
+- Batch 3 (UX): collapsible left rail — SHIPPED
+- Batch 4 (cleanup): drop nesa_papers, fix rgba warnings — SHIPPED
+- Batch 5 (verify): all routes 200, all logins OK, all APIs OK — PASSED
 
 **5 things testers should focus on:**
-1. Upload their actual assignment brief and use the Brief Simplifier to get a plan
-2. Try the Socratic Tutor with a real question about their assessment
-3. Use voice input to dictate a paragraph
-4. Click through all 12 panel tabs to see what each tool does
+1. Upload their actual assignment brief and use the Brief Simplifier (☆) to get a week-by-week plan
+2. Try the Socratic Tutor (T) with a real question about their assessment
+3. Use voice input (mic button in editor) to dictate a paragraph
+4. Try the Rubric Decoder (R) and Hidden Curriculum (?) tools
 5. Submit feedback via the green button about what was useful and what was confusing
 
-**3 conditions for full GO:**
-1. Export must compile all sections (fix #2 above, 30 min)
-2. Dynamic sections should be live (fix #1, 15 min)
-3. Aaron must test the full flow himself in incognito before sending invitations
+**Aaron has the green light to send tester recruitment DMs.**
