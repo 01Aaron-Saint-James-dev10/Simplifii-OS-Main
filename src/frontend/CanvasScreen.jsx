@@ -175,8 +175,12 @@ export default function CanvasScreen() {
     { type: 'conclusion', label: 'Conclusion', targetWords: Math.round(targetWords * 0.15), guidance: '' },
   ];
 
-  // Panel rail
+  // Panel rail + collapse state
   const [activePanel, setActivePanel] = useState(null);
+  const [leftCollapsed, setLeftCollapsed] = useState(() => localStorage.getItem('simplifii_left_collapsed') === 'true');
+  const [rightCollapsed, setRightCollapsed] = useState(false);
+  const toggleLeft = () => { const next = !leftCollapsed; setLeftCollapsed(next); localStorage.setItem('simplifii_left_collapsed', String(next)); };
+  const toggleRight = () => setRightCollapsed(!rightCollapsed);
 
   // Each panel is always mounted (preserves local state like chat messages
   // and check results) but hidden via display:none when not active. Only
@@ -301,6 +305,12 @@ export default function CanvasScreen() {
       />
 
       <div className="canvas-body">
+        {/* Collapse toggle for left rail */}
+        <button type="button" onClick={toggleLeft} title={leftCollapsed ? 'Show sections' : 'Hide sections'}
+          style={{ position: 'absolute', left: leftCollapsed ? 4 : 130, top: 56, zIndex: 20, width: 20, height: 20, borderRadius: 10, background: 'rgba(16,185,129,0.15)', border: 'none', color: '#10b981', cursor: 'pointer', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {leftCollapsed ? '\u203A' : '\u2039'}
+        </button>
+        {!leftCollapsed && (
         <SectionRail
           activeSection={activeSection}
           onSelectSection={setActiveSection}
@@ -308,6 +318,7 @@ export default function CanvasScreen() {
           assessmentTitle={currentTitle}
           brief={brief}
         />
+        )}
 
         <div className="canvas-centre">
           {briefs.length === 0 && !extractedText && <NoBriefPrompt courseId={courseId} />}
