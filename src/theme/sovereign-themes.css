@@ -1,0 +1,119 @@
+/* ================================================================
+   Sovereign-OS Theme System
+   4 themes from the Claude Design prototype.
+   Applied via html[data-theme] attribute.
+   Default (no attribute): Obsidian (matrix).
+   ================================================================ */
+
+/* Obsidian (default, matrix) */
+:root,
+html[data-theme="obsidian"] {
+  --sov-bg: #09090b;
+  --sov-bg-1: #0c0c0f;
+  --sov-bg-2: #111114;
+  --sov-grid: rgba(16, 185, 129, 0.06);
+  --sov-line: #10b981;
+  --sov-line-soft: rgba(16, 185, 129, 0.45);
+  --sov-line-dim: rgba(16, 185, 129, 0.18);
+  --sov-accent: #2dd4bf;
+  --sov-ink: #e4e4e7;
+  --sov-ink-dim: rgba(228, 228, 231, 0.55);
+  --sov-ink-faint: rgba(228, 228, 231, 0.25);
+  --sov-hairline: rgba(16, 185, 129, 0.18);
+  --sov-glow: 0 0 12px rgba(16, 185, 129, 0.5), 0 0 32px rgba(16, 185, 129, 0.18);
+  --sov-stroke: 1px;
+}
+
+/* Vaporwave */
+html[data-theme="vaporwave"] {
+  --sov-bg: #0f0521;
+  --sov-bg-1: #150832;
+  --sov-bg-2: #1d0a44;
+  --sov-grid: rgba(255, 0, 229, 0.07);
+  --sov-line: #ff5ae0;
+  --sov-line-soft: rgba(255, 90, 224, 0.5);
+  --sov-line-dim: rgba(255, 90, 224, 0.18);
+  --sov-accent: #5ef0ff;
+  --sov-ink: #ffd1ff;
+  --sov-ink-dim: rgba(255, 209, 255, 0.6);
+  --sov-ink-faint: rgba(255, 209, 255, 0.28);
+  --sov-hairline: rgba(94, 240, 255, 0.22);
+  --sov-glow: 0 0 14px rgba(255, 90, 224, 0.6), 0 0 38px rgba(94, 240, 255, 0.25);
+  --sov-stroke: 1px;
+}
+
+/* Surreal (hand-drawn on cream) */
+html[data-theme="surreal"] {
+  --sov-bg: #efe7d3;
+  --sov-bg-1: #ece2c5;
+  --sov-bg-2: #e6dab7;
+  --sov-grid: rgba(40, 30, 18, 0.05);
+  --sov-line: #1f1a14;
+  --sov-line-soft: rgba(31, 26, 20, 0.7);
+  --sov-line-dim: rgba(31, 26, 20, 0.35);
+  --sov-accent: #b04a2f;
+  --sov-ink: #1f1a14;
+  --sov-ink-dim: rgba(31, 26, 20, 0.7);
+  --sov-ink-faint: rgba(31, 26, 20, 0.4);
+  --sov-hairline: rgba(31, 26, 20, 0.28);
+  --sov-glow: none;
+  --sov-stroke: 1.4px;
+}
+
+/* Minimal (clean white) */
+html[data-theme="minimal"] {
+  --sov-bg: #fafaf9;
+  --sov-bg-1: #f5f5f4;
+  --sov-bg-2: #ececea;
+  --sov-grid: rgba(20, 20, 20, 0.04);
+  --sov-line: #18181b;
+  --sov-line-soft: rgba(24, 24, 27, 0.6);
+  --sov-line-dim: rgba(24, 24, 27, 0.2);
+  --sov-accent: #0d9488;
+  --sov-ink: #18181b;
+  --sov-ink-dim: rgba(24, 24, 27, 0.6);
+  --sov-ink-faint: rgba(24, 24, 27, 0.35);
+  --sov-hairline: rgba(24, 24, 27, 0.12);
+  --sov-glow: none;
+  --sov-stroke: 1px;
+}
+
+/* ================================================================
+   Apply theme variables to core surfaces
+   These override the existing token values when a theme is active.
+   ================================================================ */
+
+html[data-theme="vaporwave"] body,
+html[data-theme="surreal"] body,
+html[data-theme="minimal"] body {
+  background-color: var(--sov-bg);
+  color: var(--sov-ink);
+}
+
+/* Grid paper background (all themes) */
+html[data-theme] body {
+  background:
+    radial-gradient(ellipse at 50% -10%, var(--sov-bg-2) 0%, var(--sov-bg) 60%),
+    linear-gradient(var(--sov-grid) 1px, transparent 1px) 0 0 / 32px 32px,
+    linear-gradient(90deg, var(--sov-grid) 1px, transparent 1px) 0 0 / 32px 32px,
+    var(--sov-bg);
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+/* Override HomeScreen root background */
+html[data-theme] .home-root {
+  background: var(--sov-bg);
+  color: var(--sov-ink);
+}
+
+/* Override HomeScreen nav */
+html[data-theme] .home-nav {
+  background: var(--sov-bg);
+  border-bottom-color: var(--sov-hairline);
+}
+
+/* Override selection colour */
+html[data-theme]::selection {
+  background: var(--sov-line);
+  color: var(--sov-bg);
+}

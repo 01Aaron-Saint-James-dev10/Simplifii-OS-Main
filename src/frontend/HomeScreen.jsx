@@ -16,6 +16,7 @@ import AddCourseButton from './components/AddCourseButton';
 import LogoutButton from './auth/LogoutButton';
 import EmptyWorkspace from './workspace/EmptyWorkspace';
 import TesterWelcomeModal from './components/TesterWelcomeModal';
+import ThemeSwitcher from './components/ThemeSwitcher';
 import { ACCENT_BORDER, ACCENT_PULSE, TEXT_MUTED, FONT_DISPLAY } from '../theme/tokens';
 import './HomeScreen.css';
 
@@ -158,6 +159,7 @@ export default function HomeScreen() {
               {overdueCount}
             </span>
           )}
+          <ThemeSwitcher />
           <TalkToSomeoneLink />
           <LogoutButton />
         </div>

@@ -2,10 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@import './theme/sovereign-themes.css';
+
 @layer base {
   body {
     margin: 0;
-    background-color: #09090b;
-    color: white;
+    background-color: var(--sov-bg, #09090b);
+    color: var(--sov-ink, white);
   }
 }
