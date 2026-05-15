@@ -341,10 +341,23 @@ export function useIngestion({
             }).then(r => r.json()).catch(() => null),
           ]);
 
-          const documentType = classifyRes.value?.type || null;
+          const classifyData = classifyRes.value || {};
+          const documentType = classifyData.type || null;
           const aiSections = sectionsRes.value?.sections?.length > 0
             ? sectionsRes.value.sections
             : null;
+
+          // Notify HomeScreen so it can show the classification modal immediately
+          if (documentType && documentType !== 'unknown') {
+            window.dispatchEvent(new CustomEvent('simplifii:document-classified', {
+              detail: {
+                courseId,
+                type: documentType,
+                confidence: classifyData.confidence || 0.5,
+                suggested_actions: classifyData.suggested_actions || [],
+              },
+            }));
+          }
 
           // Enrich the first brief with a body so the canvas tools (BriefPanel,
           // TutorPanel, DecodePanel) have real content to work with. Without a

@@ -16,6 +16,7 @@ import AddCourseButton from './components/AddCourseButton';
 import LogoutButton from './auth/LogoutButton';
 import EmptyWorkspace from './workspace/EmptyWorkspace';
 import TesterWelcomeModal from './components/TesterWelcomeModal';
+import DocumentClassifiedModal from './components/DocumentClassifiedModal';
 import ThemeSwitcher from './components/ThemeSwitcher';
 import { useRealtimeClock } from './hooks/useRealtimeClock';
 import AffirmationBanner from './components/AffirmationBanner';
@@ -81,14 +82,22 @@ function matchesTerm(course, term) {
 const AARON_EMAIL = 'aaronbugge@gmail.com';
 
 export default function HomeScreen() {
-  const { courses, terms, activeTerm, setActiveTerm, addCourseWithData } = useProject();
+  const { courses, terms, activeTerm, setActiveTerm, addCourseWithData, upgradeCourseExtraction } = useProject();
   const { display, reducedMotion, activeTier } = useSettings();
   const { user } = useAuth();
   const { navigateToCanvas, navigateToAssessments, navigateToResearch } = useRouter();
   const [profileTier, setProfileTier] = useState(null);
   const [displayName, setDisplayName] = useState(null);
   const [showTesterWelcome, setShowTesterWelcome] = useState(false);
+  const [classifiedDoc, setClassifiedDoc] = useState(null);
   const isAaron = user?.email === AARON_EMAIL;
+
+  // Listen for document classification events from useIngestion
+  useEffect(() => {
+    const handler = (e) => setClassifiedDoc(e.detail);
+    window.addEventListener('simplifii:document-classified', handler);
+    return () => window.removeEventListener('simplifii:document-classified', handler);
+  }, []);
   const clock = useRealtimeClock();
 
   const isFirstSession = !sessionStorage.getItem('simplifii_greeted');
@@ -387,6 +396,28 @@ export default function HomeScreen() {
 
       {showTesterWelcome && (
         <TesterWelcomeModal onDismiss={() => setShowTesterWelcome(false)} />
+      )}
+
+      {classifiedDoc && (
+        <DocumentClassifiedModal
+          type={classifiedDoc.type}
+          confidence={classifiedDoc.confidence}
+          suggestedActions={classifiedDoc.suggested_actions}
+          onAction={() => {
+            navigateToCanvas(classifiedDoc.courseId);
+            setClassifiedDoc(null);
+          }}
+          onOverride={(newType) => {
+            // Update the course extractionData with the user's override
+            if (classifiedDoc.courseId && courses[classifiedDoc.courseId]) {
+              upgradeCourseExtraction(classifiedDoc.courseId, {
+                extractionData: { documentType: newType },
+              });
+            }
+            setClassifiedDoc(null);
+          }}
+          onDismiss={() => setClassifiedDoc(null)}
+        />
       )}
     </div>
   );

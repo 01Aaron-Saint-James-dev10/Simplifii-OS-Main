@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   SURFACE_CARD, SURFACE_RAISED,
@@ -33,8 +33,11 @@ const TYPE_LABELS = {
  *   onOverride       - callback(newType)
  *   onDismiss        - callback()
  */
+const OVERRIDE_TYPES = ['brief', 'exam_paper', 'rubric', 'reading', 'notes'];
+
 export default function DocumentClassifiedModal({ type, confidence, suggestedActions, onAction, onOverride, onDismiss }) {
   const info = TYPE_LABELS[type] || TYPE_LABELS.unknown;
+  const [showOverride, setShowOverride] = useState(false);
 
   return createPortal(
     <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: OVERLAY_BACKDROP, padding: 24, overflowY: 'auto' }}
@@ -47,38 +50,71 @@ export default function DocumentClassifiedModal({ type, confidence, suggestedAct
           Document detected
         </p>
 
-        <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 20, color: TEXT_PRIMARY, margin: '0 0 4px' }}>
-          {info.icon} This looks like a {info.label.toLowerCase()}
-        </h2>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: TEXT_MUTED, margin: '0 0 20px' }}>
-          {info.desc}
-        </p>
+        {!showOverride ? (
+          <>
+            <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 20, color: TEXT_PRIMARY, margin: '0 0 4px' }}>
+              {info.icon} This looks like a {info.label.toLowerCase()}
+            </h2>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: TEXT_MUTED, margin: '0 0 20px' }}>
+              {info.desc}
+            </p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-          {(suggestedActions || []).map((action, i) => (
-            <button key={i} type="button" onClick={() => onAction(i)}
-              style={{
-                padding: '10px 14px', textAlign: 'left',
-                background: i === 0 ? ACCENT_GLASS : 'transparent',
-                border: `1px solid ${i === 0 ? ACCENT_BORDER : SURFACE_RAISED}`,
-                borderRadius: BORDER_RADIUS + 4, cursor: 'pointer',
-                fontFamily: FONT_BODY, fontSize: 13,
-                color: i === 0 ? ACCENT_PULSE : TEXT_MUTED,
-                fontWeight: i === 0 ? 600 : 400,
-                minHeight: 44, outline: 'none',
-              }}
-              onFocus={e => { e.currentTarget.style.boxShadow = `0 0 0 2px ${FOCUS_RING}`; }}
-              onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
-            >
-              {action}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+              {(suggestedActions || []).map((action, i) => (
+                <button key={i} type="button" onClick={() => onAction(i)}
+                  style={{
+                    padding: '10px 14px', textAlign: 'left',
+                    background: i === 0 ? ACCENT_GLASS : 'transparent',
+                    border: `1px solid ${i === 0 ? ACCENT_BORDER : SURFACE_RAISED}`,
+                    borderRadius: BORDER_RADIUS + 4, cursor: 'pointer',
+                    fontFamily: FONT_BODY, fontSize: 13,
+                    color: i === 0 ? ACCENT_PULSE : TEXT_MUTED,
+                    fontWeight: i === 0 ? 600 : 400,
+                    minHeight: 44, outline: 'none',
+                  }}
+                  onFocus={e => { e.currentTarget.style.boxShadow = `0 0 0 2px ${FOCUS_RING}`; }}
+                  onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
+                >
+                  {action}
+                </button>
+              ))}
+            </div>
+
+            <button type="button" onClick={() => setShowOverride(true)}
+              style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_FAINT, background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3, padding: 0 }}>
+              {"Actually it's something else"}
             </button>
-          ))}
-        </div>
-
-        <button type="button" onClick={onDismiss}
-          style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_FAINT, background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3, padding: 0 }}>
-          {"Actually it's something else"}
-        </button>
+          </>
+        ) : (
+          <>
+            <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 18, color: TEXT_PRIMARY, margin: '0 0 12px' }}>
+              What type of document is this?
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {OVERRIDE_TYPES.map((t) => {
+                const tInfo = TYPE_LABELS[t];
+                return (
+                  <button key={t} type="button" onClick={() => onOverride(t)}
+                    style={{
+                      padding: '10px 14px', textAlign: 'left',
+                      background: t === type ? ACCENT_GLASS : 'transparent',
+                      border: `1px solid ${t === type ? ACCENT_BORDER : SURFACE_RAISED}`,
+                      borderRadius: BORDER_RADIUS + 4, cursor: 'pointer',
+                      fontFamily: FONT_BODY, fontSize: 13,
+                      color: t === type ? ACCENT_PULSE : TEXT_MUTED,
+                      fontWeight: t === type ? 600 : 400,
+                      minHeight: 44, outline: 'none',
+                    }}
+                    onFocus={e => { e.currentTarget.style.boxShadow = `0 0 0 2px ${FOCUS_RING}`; }}
+                    onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
+                  >
+                    {tInfo.icon} {tInfo.label}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
     </div>,
     document.body
