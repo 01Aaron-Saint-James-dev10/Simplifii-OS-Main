@@ -33,6 +33,7 @@ const PANELS = [
   { id: 'provenance', icon: 'A', label: 'Authenticity' },
   { id: 'check',      icon: 'C', label: 'Check' },
   { id: 'pastqs',     icon: 'Q', label: "Past Q's" },
+  { id: 'udl',        icon: 'U', label: 'UDL 3.0' },
 ];
 
 export default function PanelRail({ activePanel, onSelectPanel, panelContent }) {
