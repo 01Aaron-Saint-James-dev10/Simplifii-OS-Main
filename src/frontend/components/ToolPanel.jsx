@@ -116,7 +116,7 @@ export default function ToolPanel({
 
       {!hasInput && (
         <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_FAINT, margin: 0 }}>
-          Upload a brief to use this tool.
+          Upload your assessment to unlock this tool.
         </p>
       )}
 

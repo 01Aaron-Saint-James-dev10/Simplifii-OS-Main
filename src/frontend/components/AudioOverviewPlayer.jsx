@@ -39,7 +39,7 @@ export default function AudioOverviewPlayer({ briefText, assessmentTitle }) {
 
   const generate = async () => {
     if (!briefText || briefText.length < 20) {
-      setError('Upload a brief first.');
+      setError('Add a document to generate a listening version.');
       return;
     }
     setLoading(true);
@@ -167,7 +167,7 @@ export default function AudioOverviewPlayer({ briefText, assessmentTitle }) {
 
       {!briefText && (
         <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_FAINT, margin: 0 }}>
-          Upload a brief to generate an audio overview.
+          Upload your assessment to generate a listening version.
         </p>
       )}
     </div>

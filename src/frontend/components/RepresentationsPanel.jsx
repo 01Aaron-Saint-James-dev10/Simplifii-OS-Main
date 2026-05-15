@@ -57,7 +57,7 @@ export default function RepresentationsPanel({ briefText, assessmentTitle, cours
 
   const generate = async (type) => {
     if (!briefText || briefText.length < 20) {
-      setError('Upload a brief first. The AI needs content to work with.');
+      setError('Upload your assessment first. The AI needs content to work with.');
       return;
     }
     setActiveType(type);
@@ -172,7 +172,7 @@ export default function RepresentationsPanel({ briefText, assessmentTitle, cours
       {/* No brief hint */}
       {!briefText && (
         <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_FAINT, margin: 0 }}>
-          Upload a brief to generate representations.
+          Upload your assessment to generate representations.
         </p>
       )}
     </div>
