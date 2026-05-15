@@ -50,7 +50,7 @@ export default async function handler(req, res) {
   const quota = await checkQuota(userId);
   if (quota.exceeded) return res.status(402).json({ success: false, error: quota.error });
 
-  const { messages, assessmentTitle, tier, homeLanguage, easyRead } = req.body || {};
+  const { messages, assessmentTitle, tier, homeLanguage, easyRead, briefText, documentType } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
   if (!apiKey) {
@@ -80,6 +80,19 @@ export default async function handler(req, res) {
 
   if (assessmentTitle) {
     systemPrompt += `\n\nThe learner is currently working on: "${assessmentTitle}".`;
+  }
+
+  // Inject document content so the tutor can reference the actual material
+  if (briefText && briefText.length > 30) {
+    const typeLabel = documentType === 'exam_paper' ? 'an exam paper'
+      : documentType === 'rubric' ? 'a marking rubric'
+      : documentType === 'reading' ? 'a reading/article'
+      : 'an assessment brief';
+    systemPrompt += `\n\nDOCUMENT CONTEXT: The learner has uploaded ${typeLabel}. Here is its content (use this to give specific, contextual help):
+---
+${briefText.slice(0, 3000)}
+---
+CRITICAL: Reference the ACTUAL content above when answering. If the learner asks about a specific question, section, or criterion, find it in the text and help them with THAT specific item. Never give generic advice when you have the actual document.`;
   }
 
   try {

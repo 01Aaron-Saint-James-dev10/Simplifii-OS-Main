@@ -256,7 +256,7 @@ export default function CanvasScreen() {
         />
       </div>
       <div style={{ display: activePanel === 'tutor' ? 'contents' : 'none' }}>
-        <TutorPanel assessmentTitle={currentTitle} />
+        <TutorPanel assessmentTitle={currentTitle} briefText={briefOrText} documentType={preClassifiedType} />
       </div>
       <div style={{ display: activePanel === 'preview' ? 'contents' : 'none' }}>
         <PreviewPanel draftText={compileFnRef.current ? compileFnRef.current() : draftText} wordCount={wordCount} />
