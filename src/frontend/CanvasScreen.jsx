@@ -136,10 +136,44 @@ export default function CanvasScreen() {
     return () => clearTimeout(scanTimerRef.current);
   }, [draftText, projectSources]);
 
-  // Section rail
+  // Dynamic sections: AI-generated based on uploaded brief
+  const [dynamicSections, setDynamicSections] = useState(null);
+  const [sectionsLoading, setSectionsLoading] = useState(false);
   const [activeSection, setActiveSection] = useState('introduction');
   const compileFnRef = useRef(null);
-  const useSections = briefs.length > 0 || extractedText;
+
+  // Fetch dynamic sections when brief data is available
+  useEffect(() => {
+    if (!briefOrText || briefOrText.length < 30 || dynamicSections) return;
+    const cached = sessionStorage.getItem(`simplifii_sections_${courseId}_${currentTitle}`);
+    if (cached) {
+      try { setDynamicSections(JSON.parse(cached)); setActiveSection(JSON.parse(cached)[0]?.type || 'introduction'); return; } catch {}
+    }
+    setSectionsLoading(true);
+    fetch('/api/generate-sections', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ briefText: briefOrText.slice(0, 3000), assessmentTitle: currentTitle, tier: 'secondary', wordCount: targetWords }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.sections?.length > 0) {
+          setDynamicSections(data.sections);
+          setActiveSection(data.sections[0].type);
+          sessionStorage.setItem(`simplifii_sections_${courseId}_${currentTitle}`, JSON.stringify(data.sections));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setSectionsLoading(false));
+  }, [briefOrText, courseId, currentTitle, targetWords, dynamicSections]);
+
+  const activeSections = dynamicSections || [
+    { type: 'introduction', label: 'Introduction', targetWords: Math.round(targetWords * 0.15), guidance: '' },
+    { type: 'body_1', label: 'Body Section 1', targetWords: Math.round(targetWords * 0.25), guidance: '' },
+    { type: 'body_2', label: 'Body Section 2', targetWords: Math.round(targetWords * 0.25), guidance: '' },
+    { type: 'body_3', label: 'Body Section 3', targetWords: Math.round(targetWords * 0.20), guidance: '' },
+    { type: 'conclusion', label: 'Conclusion', targetWords: Math.round(targetWords * 0.15), guidance: '' },
+  ];
 
   // Panel rail
   const [activePanel, setActivePanel] = useState(null);
@@ -278,13 +312,7 @@ export default function CanvasScreen() {
         <div className="canvas-centre">
           {briefs.length === 0 && !extractedText && <NoBriefPrompt courseId={courseId} />}
           <SectionEditor
-            sections={[
-              { type: 'introduction', label: 'Introduction' },
-              { type: 'body1', label: 'Body Section 1' },
-              { type: 'body2', label: 'Body Section 2' },
-              { type: 'body3', label: 'Body Section 3' },
-              { type: 'conclusion', label: 'Conclusion' },
-            ]}
+            sections={activeSections}
             activeSection={activeSection}
             courseId={courseId}
             assessmentTitle={currentTitle}
