@@ -38,6 +38,8 @@ import { startAmbient, stopAmbient } from './services/AmbientSound';
 import ReadingRuler from './components/ReadingRuler';
 import WritingAnalysis from './components/WritingAnalysis';
 import ComprehensionBreak from './components/ComprehensionBreak';
+import PreWritePanel from './components/PreWritePanel';
+import { appendEvent } from '../core/HistoryOfThought';
 import './CanvasScreen.css';
 
 /**
@@ -289,8 +291,17 @@ export default function CanvasScreen() {
       .catch(() => {});
   }, [briefOrText, courseId, currentTitle, docClassification]);
 
-  // Panel rail + collapse state
-  const [activePanel, setActivePanel] = useState(null);
+  // Panel rail + collapse state.
+  // Default to tutor (Tier 2 Socratic) so the three-tier layout is visible on load.
+  const [activePanel, setActivePanel] = useState('tutor');
+
+  // Log tier transitions to HistoryOfThought for the Authenticity Report
+  const setActivePanelWithLog = useCallback((panel) => {
+    setActivePanel(panel);
+    if (panel === 'tutor') {
+      appendEvent({ event_type: 'tier_transition', payload: { to: 2, panel: 'tutor' } }).catch(() => {});
+    }
+  }, []);
   const [leftCollapsed, setLeftCollapsed] = useState(() => localStorage.getItem('simplifii_left_collapsed') === 'true');
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const toggleLeft = () => { const next = !leftCollapsed; setLeftCollapsed(next); localStorage.setItem('simplifii_left_collapsed', String(next)); };
@@ -423,25 +434,28 @@ export default function CanvasScreen() {
         targetWords={targetWords}
         assessmentTitle={currentTitle}
         activePanel={activePanel}
-        onSelectPanel={setActivePanel}
+        onSelectPanel={setActivePanelWithLog}
       />
 
       <div className="canvas-body">
-        {/* Collapse toggle for left rail: hidden on exam papers (QuestionNav replaces it) */}
+        {/* Left rail: Tier 1 Pre-Write (essay) or nothing (exam: QuestionNav handles it) */}
+        {!isExamPaper && !leftCollapsed && (
+          <PreWritePanel
+            assessmentTitle={currentTitle}
+            briefText={briefOrText}
+            sectionType={activeSection}
+            tier={course.extractionData?.detectedLevel || 'tertiary'}
+            onInsert={(text) => {
+              window.dispatchEvent(new CustomEvent('simplifii:voice-transcript', { detail: { text: ' ' + text } }));
+              appendEvent({ event_type: 'tier_transition', payload: { from: 1, to: 3, trigger: 'pre_write_insert' } }).catch(() => {});
+            }}
+          />
+        )}
         {!isExamPaper && (
-          <button type="button" onClick={toggleLeft} title={leftCollapsed ? 'Show sections' : 'Hide sections'}
-            style={{ position: 'absolute', left: leftCollapsed ? 4 : 130, top: 56, zIndex: 20, width: 20, height: 20, borderRadius: 10, background: 'var(--sov-line-dim, rgba(16,185,129,0.18))', border: 'none', color: 'var(--sov-line, #10b981)', cursor: 'pointer', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}> {/* allow-style */}
+          <button type="button" onClick={toggleLeft} title={leftCollapsed ? 'Show Pre-Write (Tier 1)' : 'Hide Pre-Write'}
+            style={{ position: 'absolute', left: leftCollapsed ? 4 : 228, top: 56, zIndex: 20, width: 20, height: 20, borderRadius: 10, background: 'var(--sov-line-dim, rgba(16,185,129,0.18))', border: 'none', color: 'var(--sov-line, #10b981)', cursor: 'pointer', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}> {/* allow-style */}
             {leftCollapsed ? '\u203A' : '\u2039'}
           </button>
-        )}
-        {!leftCollapsed && !isExamPaper && (
-        <SectionRail
-          activeSection={activeSection}
-          onSelectSection={setActiveSection}
-          courseId={courseId}
-          assessmentTitle={currentTitle}
-          brief={brief}
-        />
         )}
 
         {/* Exam paper: show question nav instead of section rail */}
@@ -455,6 +469,12 @@ export default function CanvasScreen() {
         )}
 
         <div className="canvas-centre">
+          {!isExamPaper && (
+            <div style={{ padding: '4px 16px', borderBottom: '1px solid var(--sov-line-dim, rgba(16,185,129,0.12))', display: 'flex', alignItems: 'center', gap: 8 }}> {/* allow-style */}
+              <span style={{ fontFamily: 'var(--font-system, system-ui)', fontSize: 9, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--sov-line, #10b981)', opacity: 0.7 }}>Tier 3: Your Writing</span> {/* allow-style */}
+              <span style={{ fontFamily: 'var(--font-system, system-ui)', fontSize: 9, color: 'var(--text-faint)', opacity: 0.5 }}>Use Tier 1 (left) to start, Tier 2 (right) to develop your thinking</span> {/* allow-style */}
+            </div>
+          )}
           {briefs.length === 0 && !extractedText && <NoBriefPrompt courseId={courseId} />}
 
           {/* Exam paper: multimodal canvas per question */}
@@ -486,7 +506,7 @@ export default function CanvasScreen() {
 
         <PanelRail
           activePanel={activePanel}
-          onSelectPanel={setActivePanel}
+          onSelectPanel={setActivePanelWithLog}
           panelContent={panelContent}
         />
       </div>
@@ -505,10 +525,9 @@ export default function CanvasScreen() {
         assessmentTitle={currentTitle}
         onDismiss={() => {}}
         onChoice={(choiceId) => {
-          // TODO: route to appropriate panel based on choice
-          if (choiceId === 'lost-flow') setActivePanel('tutor');
-          else if (choiceId === 'overwhelmed') setActivePanel('check');
-          else if (choiceId === 'forgot') setActivePanel('brief');
+          if (choiceId === 'lost-flow') setActivePanelWithLog('tutor');
+          else if (choiceId === 'overwhelmed') setActivePanelWithLog('check');
+          else if (choiceId === 'forgot') setActivePanelWithLog('brief');
         }}
       />
 
@@ -528,7 +547,7 @@ export default function CanvasScreen() {
             if (docClassification.type === 'exam_paper') toolMap[0] = 'pastqs';
             if (docClassification.type === 'rubric') toolMap[0] = 'rubric';
             const panel = toolMap[i];
-            if (panel) setActivePanel(panel);
+            if (panel) setActivePanelWithLog(panel);
             setDocClassification(null);
           }}
           onOverride={() => setDocClassification(null)}

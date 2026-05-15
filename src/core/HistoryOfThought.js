@@ -293,7 +293,10 @@ export const EVENT_TYPES = Object.freeze([
   'section_health_change',
   'playtime_granted',
   'playtime_expired',
-  'steering_adjusted'
+  'steering_adjusted',
+  'tier_transition',
+  'pre_write_generated',
+  'pre_write_accepted',
 ]);
 
 // ============================================================

@@ -31,8 +31,8 @@ import {
 const PANELS = [
   { id: 'brief',      icon: 'B', label: 'Brief', tip: 'Brief: extracted assessment criteria',
     info: 'Shows the criteria, due dates, and key requirements extracted from your uploaded assessment brief. This is your reference point for what the marker expects.' },
-  { id: 'tutor',      icon: 'T', label: 'Tutor', tip: 'Tutor: Socratic AI, asks questions',
-    info: 'A Socratic AI tutor powered by Claude. It asks you questions to sharpen your thinking. It will never write content for you. Adapts to your year level and accessibility settings.' },
+  { id: 'tutor',      icon: 'T', label: 'Tier 2', tip: 'Tier 2: Socratic AI, asks questions to develop your thinking',
+    info: 'Tier 2 of the Three-Tier Canvas. A Socratic AI tutor powered by Claude. It asks you questions to sharpen your thinking. It will never write content for you. Adapts to your year level and accessibility settings.' },
   { id: 'preview',    icon: 'P', label: 'Preview', tip: 'Preview: compile all sections',
     info: 'Compiles all your sections into one document preview. See exactly what your submission will look like before you export it.' },
   { id: 'sources',    icon: 'S', label: 'Sources', tip: 'Sources: uploaded documents',
