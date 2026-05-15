@@ -301,6 +301,9 @@ export default function CanvasScreen() {
       appendEvent({ event_type: 'tier_transition', payload: { to: 2, panel: 'tutor' } }).catch(() => {});
     }
   }, []);
+  // Pending message to inject into TutorPanel (from MultimodalCanvas "Check my answer" etc)
+  const [pendingTutorMessage, setPendingTutorMessage] = useState(null);
+
   const [leftCollapsed, setLeftCollapsed] = useState(() => localStorage.getItem('simplifii_left_collapsed') === 'true');
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const toggleLeft = () => { const next = !leftCollapsed; setLeftCollapsed(next); localStorage.setItem('simplifii_left_collapsed', String(next)); };
@@ -325,7 +328,7 @@ export default function CanvasScreen() {
         />
       </div>
       <div style={{ display: activePanel === 'tutor' ? 'contents' : 'none' }}>
-        <TutorPanel assessmentTitle={currentTitle} briefText={briefOrText} documentType={effectiveDocType} />
+        <TutorPanel assessmentTitle={currentTitle} briefText={briefOrText} documentType={effectiveDocType} pendingMessage={pendingTutorMessage} onPendingConsumed={() => setPendingTutorMessage(null)} />
       </div>
       <div style={{ display: activePanel === 'preview' ? 'contents' : 'none' }}>
         <PreviewPanel draftText={compileFnRef.current ? compileFnRef.current() : draftText} wordCount={wordCount} />
@@ -482,7 +485,7 @@ export default function CanvasScreen() {
               <MultimodalCanvas
                 question={examData.questions.find(q => q.number === activeQuestionNum) || examData.questions[0]}
                 documentId={courseId}
-                onAskTutor={() => { setActivePanelWithLog('tutor'); }}
+                onAskTutor={(text) => { setPendingTutorMessage(text); setActivePanelWithLog('tutor'); }}
               />
             ) : (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', fontFamily: 'var(--font-system, system-ui)', fontSize: 12 }}> {/* allow-style */}

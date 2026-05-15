@@ -6,7 +6,6 @@ import ResponseFeedback from './ResponseFeedback';
 import { announceAction } from '../services/PredictabilityService';
 import ComprehensionCheck from './ComprehensionCheck';
 import { getProfilePromptAddition } from '../../services/AccessibilityProfileService';
-import { literalise } from '../../core/LiteralMode';
 import {
   SURFACE_RAISED,
   TEXT_PRIMARY,
@@ -48,9 +47,9 @@ const DOC_TYPE_LABELS = {
   notes: 'notes',
 };
 
-export default function TutorPanel({ assessmentTitle, briefText, documentType }) {
+export default function TutorPanel({ assessmentTitle, briefText, documentType, pendingMessage, onPendingConsumed }) {
   const { activeTier, homeLanguage, easyRead, autismFirstEnabled, sensoryLevel, specialInterests, isLiteralMode, accessibilityProfile } = useSettings();
-  const { activeTrigger, checkMessage, clearTrigger } = useConfidenceDetector();
+  const { activeTrigger, checkMessage } = useConfidenceDetector();
   const [messages, setMessages] = useState([
     { role: 'tutor', text: documentType && DOC_TYPE_LABELS[documentType]
       ? `Working on your ${DOC_TYPE_LABELS[documentType]}. What are you stuck on?`
@@ -67,6 +66,16 @@ export default function TutorPanel({ assessmentTitle, briefText, documentType })
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Auto-send pending message injected from MultimodalCanvas ("Check my answer", "Ask tutor")
+  const pendingHandledRef = useRef(null);
+  useEffect(() => {
+    if (pendingMessage && pendingMessage !== pendingHandledRef.current && !loading) {
+      pendingHandledRef.current = pendingMessage;
+      send(pendingMessage);
+      onPendingConsumed?.();
+    }
+  }, [pendingMessage, loading]); // send and onPendingConsumed are stable callbacks
 
   const send = async (text) => {
     if (!text.trim() || loading) return;
