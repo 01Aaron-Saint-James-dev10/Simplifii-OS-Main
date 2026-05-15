@@ -4,6 +4,7 @@ import useConfidenceDetector from '../hooks/useConfidenceDetector';
 import AffirmationBanner from './AffirmationBanner';
 import ResponseFeedback from './ResponseFeedback';
 import { announceAction } from '../services/PredictabilityService';
+import ComprehensionCheck from './ComprehensionCheck';
 import {
   SURFACE_RAISED,
   TEXT_PRIMARY,
@@ -144,6 +145,13 @@ export default function TutorPanel({ assessmentTitle, briefText, documentType })
             <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_PRIMARY, margin: 0, lineHeight: 1.5 }}>
               {m.text}
             </p>
+            {m.role === 'tutor' && i > 0 && autismFirstEnabled && (
+              <ComprehensionCheck
+                messageIndex={i}
+                onConfused={() => send('I did not understand that. Can you explain it a different way?')}
+                onSortOf={() => send('I sort of get it. Can you give me an example?')}
+              />
+            )}
             {m.role === 'tutor' && i > 0 && <ResponseFeedback toolName="tutor" context={{ messageIndex: i }} />}
           </div>
         ))}
