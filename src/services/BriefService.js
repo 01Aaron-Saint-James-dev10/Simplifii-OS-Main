@@ -1,4 +1,7 @@
 import { TierParameters } from './TierParameters';
+import { createLogger } from '../utils/logger';
+
+const log = createLogger('BriefService');
 
 export const mapToWorkspace = (text, level = 'Tertiary') => {
   const lowerText = (text || '').toLowerCase();
@@ -251,7 +254,7 @@ export const extractDeepCourseData = (text) => {
       if (dateSet.has(raw.toLowerCase())) continue;
       dateSet.add(raw.toLowerCase());
       const parsed = parseExtractedDate(raw);
-      if (typeof console !== 'undefined') console.info('[BriefService] date detected:', raw, '| type:', type, '| parsed:', parsed);
+      log.info(' date detected:', raw, '| type:', type, '| parsed:', parsed);
       assessmentDates.push({ raw, parsed, type });
     }
   }
@@ -365,7 +368,7 @@ export const extractDeepCourseData = (text) => {
     const key = display.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
-    if (typeof console !== 'undefined') console.info('[BriefService] assessment detected:', title, '| weight:', weightLabel || 'none');
+    log.info(' assessment detected:', title, '| weight:', weightLabel || 'none');
     assessmentTitles.push(display);
   }
 
@@ -384,7 +387,7 @@ export const extractDeepCourseData = (text) => {
 
   // Cap at 8 assessments. More than 8 is almost certainly false positives.
   if (assessmentTitles.length > 8) {
-    if (typeof console !== 'undefined') console.warn('[BriefService] capped assessments from', assessmentTitles.length, 'to 8');
+    log.warn(' capped assessments from', assessmentTitles.length, 'to 8');
     assessmentTitles.length = 8;
   }
 
@@ -421,7 +424,7 @@ export const extractDeepCourseData = (text) => {
   // exactly what the syllabus surfaced so we can iterate on the regex
   // rather than guessing in the dark.
   if (typeof console !== 'undefined') {
-    console.info('[BriefService] extraction summary', {
+    log.info('extraction summary', {
       detectedLevel,
       learningOutcomes: learningOutcomes.length,
       assessmentTitles: assessmentTitles.length,

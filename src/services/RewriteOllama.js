@@ -5,6 +5,10 @@
  * synthesise, applyLogicMode, and nameCourse. Extracted from RewriteService.js.
  */
 
+import { createLogger } from '../utils/logger';
+
+const log = createLogger('RewriteService');
+
 import {
   SYSTEM_PROMPT,
   LOGIC_LENSES,
@@ -308,7 +312,7 @@ export const nameCourse = async (text) => {
     const oneLine = cleaned.split(/\n/)[0].trim().slice(0, 80);
     return oneLine || fallback;
   } catch (err) {
-    if (typeof console !== 'undefined') console.warn('[RewriteService] nameCourse falling back:', err.message);
+    log.warn(' nameCourse falling back:', err.message);
     return fallback;
   }
 };

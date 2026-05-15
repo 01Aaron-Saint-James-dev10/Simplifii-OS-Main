@@ -133,6 +133,10 @@ export const unlockWithUserId = async (userId) => {
   return unlockWithPassphrase(`simplifii_${userId}`);
 };
 
+import { createLogger } from '../utils/logger';
+
+const log = createLogger('HistoryOfThought');
+
 // ============================================================
 // IndexedDB store
 // ============================================================
@@ -147,7 +151,7 @@ const openDB = () => new Promise((resolve, reject) => {
   const req = indexedDB.open(DB_NAME, DB_VERSION);
 
   req.onblocked = () => {
-    if (typeof console !== 'undefined') console.warn('[HistoryOfThought] upgrade blocked by another tab. Close other tabs and reload.');
+    log.warn(' upgrade blocked by another tab. Close other tabs and reload.');
   };
 
   req.onupgradeneeded = (e) => {
@@ -177,7 +181,7 @@ const openDB = () => new Promise((resolve, reject) => {
 
   req.onerror = () => {
     const err = req.error;
-    if (typeof console !== 'undefined') console.error('[HistoryOfThought] DB open failed:', err?.name, err?.message);
+    log.error(' DB open failed:', err?.name, err?.message);
     reject(err);
   };
 });
@@ -258,7 +262,7 @@ const pushToCloud = async (event) => {
     // Sprint 8.3: guard against empty anon key. Without a valid key, every
     // Supabase request returns 401 and floods the console with errors.
     if (!supabaseAnonKey) {
-      if (typeof console !== 'undefined') console.debug('[pushToCloud] REACT_APP_SUPABASE_ANON_KEY not set, skipping cloud sync');
+      log.debug('REACT_APP_SUPABASE_ANON_KEY not set, skipping cloud sync');
       return;
     }
     const sb = createClient(supabaseUrl, supabaseAnonKey, {
@@ -276,11 +280,11 @@ const pushToCloud = async (event) => {
       timestamp_iso: event.timestamp_iso
     });
     if (error && typeof console !== 'undefined') {
-      console.warn('[HistoryOfThought] cloud sync insert failed:', error.message);
+      log.warn(' cloud sync insert failed:', error.message);
     }
   } catch (err) {
     if (typeof console !== 'undefined') {
-      console.warn('[HistoryOfThought] cloud sync error:', err.message);
+      log.warn(' cloud sync error:', err.message);
     }
   }
 };
@@ -312,7 +316,7 @@ export const appendEvent = async ({ user_id = 'local', stream_id = 'tertiary', e
     throw new Error(`Unknown event_type: ${event_type}`);
   }
   if (!__derivedKey) {
-    if (typeof console !== 'undefined') console.info('[HistoryOfThought] dropped event; vault locked', event_type);
+    log.info(' dropped event; vault locked', event_type);
     return null;
   }
   const envelope = await encryptPayload(payload);
@@ -394,7 +398,7 @@ export const listCloudEvents = async ({ limit = 500 } = {}) => {
     if (error) throw error;
     return data || [];
   } catch (err) {
-    if (typeof console !== 'undefined') console.warn('[HistoryOfThought] cloud list failed:', err.message);
+    log.warn(' cloud list failed:', err.message);
     return [];
   }
 };

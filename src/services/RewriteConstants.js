@@ -6,6 +6,10 @@
  * subsystem. Extracted from RewriteService.js to keep each file under 500 lines.
  */
 
+import { createLogger } from '../utils/logger';
+
+const log = createLogger('RewriteService');
+
 export const PROVIDER_KEY = 'simplifii_rewrite_provider';
 export const OLLAMA_ENDPOINT_KEY = 'simplifii_ollama_endpoint';
 export const OLLAMA_MODEL_KEY = 'simplifii_ollama_model';
@@ -167,7 +171,7 @@ export const cleanModelOutput = (raw) => {
     out = out.slice(1, -1).trim();
   }
   if (/[\u2014\u2013]/.test(out)) {
-    if (typeof console !== 'undefined') console.warn('[RewriteService] Ollama returned dash characters. Replacing.');
+    log.warn(' Ollama returned dash characters. Replacing.');
     out = out.replace(/\s*[\u2014\u2013]\s*/g, ', ');
   }
   return out;
@@ -212,7 +216,7 @@ export const buildRewriteSteeringBlock = ({ isLiteralMode, scaffoldingLevel, gri
 
 export const getProviderName = () => {
   if (process.env.NODE_ENV === 'production') {
-    if (typeof console !== 'undefined') console.info('[RewriteService] Ollama disabled in production, using rule-based extraction');
+    log.info(' Ollama disabled in production, using rule-based extraction');
     return 'local-mock';
   }
   return safeReadLocalStorage(PROVIDER_KEY, DEFAULT_PROVIDER) || DEFAULT_PROVIDER;

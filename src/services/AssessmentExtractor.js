@@ -12,6 +12,9 @@ import {
   getOllamaEndpoint,
   getOllamaModel,
 } from './RewriteConstants';
+import { createLogger } from '../utils/logger';
+
+const log = createLogger('AssessmentExtractor');
 
 const ASSESSMENT_SYSTEM_PROMPT = [
   'You are an extraction tool. Read course syllabus material and return ONLY the graded assessments.',
@@ -79,11 +82,11 @@ const pickDueDate = (item) => String(
  */
 const __callAssessmentExtractor = async (rawText) => {
   if (!rawText || rawText.trim().length < 200) {
-    if (typeof console !== 'undefined') console.info('[AssessmentExtractor] skipped: rawText too short');
+    log.info(' skipped: rawText too short');
     return [];
   }
   if (getProviderName() !== 'ollama') {
-    if (typeof console !== 'undefined') console.info('[AssessmentExtractor] skipped: provider is', getProviderName());
+    log.info(' skipped: provider is', getProviderName());
     return [];
   }
   const endpoint = getOllamaEndpoint().replace(/\/$/, '');
@@ -108,13 +111,13 @@ const __callAssessmentExtractor = async (rawText) => {
     });
   } catch (networkErr) {
     clearTimeout(timer);
-    if (typeof console !== 'undefined') console.warn('[AssessmentExtractor] network error:', networkErr?.name, networkErr?.message);
+    log.warn(' network error:', networkErr?.name, networkErr?.message);
     throw new Error('extractor: ollama unreachable');
   }
   clearTimeout(timer);
   if (!response.ok) {
     const body = await response.text().catch(() => '');
-    if (typeof console !== 'undefined') console.warn('[AssessmentExtractor] HTTP', response.status, body.slice(0, 160));
+    log.warn(' HTTP', response.status, body.slice(0, 160));
     throw new Error(`extractor: HTTP ${response.status}`);
   }
   try {
@@ -123,7 +126,7 @@ const __callAssessmentExtractor = async (rawText) => {
     const debug = (() => {
       try { return localStorage.getItem('simplifii_extract_debug') === 'true'; } catch { return false; }
     })();
-    if (debug && typeof console !== 'undefined') console.info('[AssessmentExtractor] raw model output:', raw);
+    if (debug) log.debug('raw model output:', raw);
 
     let parsed = null;
     try { parsed = JSON.parse(raw); } catch { /* try fallbacks */ }
@@ -143,7 +146,7 @@ const __callAssessmentExtractor = async (rawText) => {
         const recovered = head.slice(0, lastClose + 1) + ']';
         try {
           parsed = JSON.parse(recovered);
-          if (typeof console !== 'undefined') console.info('[AssessmentExtractor] recovered truncated array, kept', Array.isArray(parsed) ? parsed.length : 0, 'objects');
+          log.info(' recovered truncated array, kept', Array.isArray(parsed) ? parsed.length : 0, 'objects');
         } catch { /* genuinely unsalvageable */ }
       }
     }
@@ -152,16 +155,16 @@ const __callAssessmentExtractor = async (rawText) => {
     if (parsed && !Array.isArray(parsed) && typeof parsed === 'object') {
       const arrayKey = Object.keys(parsed).find(k => Array.isArray(parsed[k]));
       if (arrayKey) {
-        if (typeof console !== 'undefined') console.info('[AssessmentExtractor] unwrapping object key', arrayKey);
+        log.info(' unwrapping object key', arrayKey);
         parsed = parsed[arrayKey];
       } else if (parsed.title || parsed.name || parsed.assessment) {
-        if (typeof console !== 'undefined') console.info('[AssessmentExtractor] wrapping single assessment object in array');
+        log.info(' wrapping single assessment object in array');
         parsed = [parsed];
       }
     }
 
     if (!Array.isArray(parsed)) {
-      if (typeof console !== 'undefined') console.warn('[AssessmentExtractor] model returned non-array. Raw head:', String(raw).slice(0, 200));
+      log.warn(' model returned non-array. Raw head:', String(raw).slice(0, 200));
       return [];
     }
 
@@ -197,12 +200,10 @@ const __callAssessmentExtractor = async (rawText) => {
         : [];
       briefs.push({ title, weight, wordCountGoal, dueDate, availableTopics, hdCriteria });
     }
-    if (typeof console !== 'undefined') {
-      console.info(
-        `[AssessmentExtractor] Ollama extracted ${briefs.length} assessment briefs` +
-        ` (dropped short=${droppedShort} noLetter=${droppedNoLetter} noise=${droppedNoise} dup=${droppedDup})`
-      );
-    }
+    log.info(
+      `Ollama extracted ${briefs.length} assessment briefs` +
+      ` (dropped short=${droppedShort} noLetter=${droppedNoLetter} noise=${droppedNoise} dup=${droppedDup})`
+    );
 
     // Text-level rescue for when JSON parse succeeded but quality filter
     // dropped every item
@@ -219,14 +220,14 @@ const __callAssessmentExtractor = async (rawText) => {
         seen2.add(key);
         briefs.push({ title, weight: `${m[2]}%`, wordCountGoal: 0, dueDate: '' });
       }
-      if (briefs.length > 0 && typeof console !== 'undefined') {
-        console.info(`[AssessmentExtractor] text-level rescue recovered ${briefs.length} briefs from raw model output`);
+      if (briefs.length > 0) {
+        log.info(`text-level rescue recovered ${briefs.length} briefs from raw model output`);
       }
     }
 
     return briefs.slice(0, 12);
   } catch (err) {
-    if (typeof console !== 'undefined') console.warn('[AssessmentExtractor] extraction failed:', err?.name, err?.message);
+    log.warn(' extraction failed:', err?.name, err?.message);
     return [];
   }
 };

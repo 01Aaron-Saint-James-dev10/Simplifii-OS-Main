@@ -7,7 +7,10 @@
  *   3. Canned mock (only if both above paths fail; keeps UI alive in dev).
  */
 
+import { createLogger } from '../utils/logger';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf';
+
+const log = createLogger('DocumentAI');
 import { auditCurriculum } from './UDLAuditService';
 
 const PROJECT_ID = process.env.REACT_APP_GCP_PROJECT_ID || 'simplifii-os-production';
@@ -32,7 +35,7 @@ const initWorker = async () => {
       const r = await fetch(url, { method: 'HEAD' });
       if (r.ok) {
         pdfjsLib.GlobalWorkerOptions.workerSrc = url;
-        console.info('[DocumentAI] PDF worker resolved at', url);
+        log.info(' PDF worker resolved at', url);
         return;
       }
     } catch { /* try next */ }
@@ -41,7 +44,7 @@ const initWorker = async () => {
 };
 if (typeof window !== 'undefined') {
   workerInitPromise = initWorker().catch(err => {
-    console.error('[DocumentAI]', err.message);
+    log.error('', err.message);
     return Promise.reject(err);
   });
 }
@@ -165,10 +168,10 @@ export const processDocumentWithGCP = async (fileBlob, authToken) => {
   // Tier 1: GCP Document AI when authenticated.
   if (liveToken) {
     try {
-      console.info('[DocumentAI] Using live GCP OAuth token.');
+      log.info(' Using live GCP OAuth token.');
       return await callGcpDocumentAi(fileBlob, liveToken);
     } catch (gcpErr) {
-      console.warn('[DocumentAI] GCP path failed, falling back to local pdfjs:', gcpErr);
+      log.warn(' GCP path failed, falling back to local pdfjs:', gcpErr);
       // fall through to pdfjs
     }
   }
@@ -180,7 +183,7 @@ export const processDocumentWithGCP = async (fileBlob, authToken) => {
   // when the surface message is too generic; the worker version mismatch
   // and 'PasswordException' both surface as distinct console traces.
   try {
-    console.info('[DocumentAI] Sovereign mode: parsing PDF locally with pdfjs-dist.');
+    log.info(' Sovereign mode: parsing PDF locally with pdfjs-dist.');
     const text = await extractWithPdfJs(fileBlob);
     if (!text || text.trim().length === 0) {
       throw new PdfExtractionError(
@@ -190,7 +193,7 @@ export const processDocumentWithGCP = async (fileBlob, authToken) => {
     return text;
   } catch (pdfErr) {
     if (pdfErr instanceof PdfExtractionError) throw pdfErr;
-    console.error('[DocumentAI] pdfjs-dist parse failed:', pdfErr);
+    log.error(' pdfjs-dist parse failed:', pdfErr);
     const name = pdfErr?.name || '';
     const msg = pdfErr?.message || '';
     if (/PasswordException|password/i.test(name + ' ' + msg)) {
