@@ -35,11 +35,7 @@ const PILLARS = [
   { icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', title: 'Follow through', body: 'Every claim verified. Every citation real. Submission-ready, in your own words.' },
 ];
 
-const AWARDS = [
-  { name: 'NDRP Research Leadership Award', year: '2026' },
-  { name: 'ADCET Accessibility in Action', year: '2023' },
-  { name: 'UN SDG Global Citizenship Award', year: '2025' },
-];
+// Awards removed: belong to Aaron personally, not the app. See Sprint V backlog.
 
 const SHOWCASE = [
   { id: 'upload', label: '1. Upload', desc: 'Drop a PDF or paste a URL. We extract your assessments, due dates, rubric criteria, and build your workspace automatically.' },
@@ -131,8 +127,8 @@ export default function LandingPage() {
             </h1>
 
             <p className="lp-fade-2" style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(1rem, 2.4vw, 1.25rem)', lineHeight: 1.7, maxWidth: 520, margin: '24px 0 36px', color: TEXT_MUTED }}>
-              The neuroinclusive thinking layer between you and the work that matters.<br />
-              Prepare, organise, decide, follow through: in your own voice.
+              The neuroinclusive thinking layer for every kind of mind.<br />
+              Prepare. Organise. Decide. In your own voice.
             </p>
 
             <div className="lp-fade-3" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
@@ -145,7 +141,7 @@ export default function LandingPage() {
             </div>
 
             <p className="lp-fade-4" style={{ fontFamily: FONT_SYSTEM, fontSize: 12, letterSpacing: '0.04em', color: TEXT_FAINT }}>
-              No credit card. No ads. Your data stays yours.
+              No credit card. No ads. Your data, never sold.
             </p>
           </div>
 
@@ -197,19 +193,11 @@ export default function LandingPage() {
 
       <main id="main-content">
 
-      {/* ── AWARDS BAR ────────────────────────────────────────── */}
-      <section ref={r1.ref} className={r1.cls} style={{ padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_FAINT, textAlign: 'center', margin: 0 }}>
+      {/* Awards removed: belong to Aaron personally. See Sprint V backlog. */}
+      <section ref={r1.ref} className={r1.cls} style={{ padding: '32px 24px', textAlign: 'center' }}>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_FAINT, margin: 0 }}>
           Built by a neurodivergent UNSW researcher. Accessibility-first by design, not by deadline.
         </p>
-        <div className="lp-awards">
-          {AWARDS.map(a => (
-            <span key={a.name} className="lp-award-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', background: GLASS_SURFACE, border: `1px solid ${GLASS_BORDER}`, borderRadius: 20, fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: TEXT_MUTED, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: ACCENT_PULSE, flexShrink: 0 }} />
-              {a.name} <span style={{ color: TEXT_FAINT }}>{a.year}</span>
-            </span>
-          ))}
-        </div>
       </section>
 
       {/* ── PILLARS ───────────────────────────────────────────── */}
@@ -248,7 +236,7 @@ export default function LandingPage() {
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={ACCENT_PULSE} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 14 }} aria-hidden="true">
                 <path d={f.icon} />
               </svg>
-              <h3 style={{ fontFamily: FONT_SYSTEM, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: TEXT_PRIMARY, margin: '0 0 8px' }}>{f.title}</h3>
+              <h3 style={{ fontFamily: FONT_SYSTEM, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: ACCENT_PULSE, margin: '0 0 10px' }}>{f.title}</h3>
               <p style={{ fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.6, color: TEXT_MUTED, margin: 0 }}>{f.body}</p>
             </div>
           ))}
@@ -342,10 +330,58 @@ export default function LandingPage() {
         </div>
         <div style={{ borderLeft: `2px solid ${ACCENT_BORDER}`, paddingLeft: 24, textAlign: 'left', maxWidth: 520, margin: '0 auto' }}>
           <blockquote style={{ fontFamily: FONT_BODY, fontSize: 'clamp(1rem, 2.5vw, 1.2rem)', fontStyle: 'italic', lineHeight: 1.75, margin: '0 0 20px', padding: 0, border: 'none', color: TEXT_PRIMARY }}>
-            "I built Simplifii-OS because I am dyslexic, ADHD, and tired of academic tools that pretend everyone thinks the same way. This is the tool I needed at 17. And the one I still need at 36."
+            {"I built Simplifii-OS because I'm dyslexic, ADHD, and tired of academic tools that pretend everyone thinks the same way. This is the tool I needed at 17 and still need at 36."}
           </blockquote>
-          <p style={{ fontFamily: FONT_BODY, fontSize: 15, fontWeight: 600, color: TEXT_PRIMARY, margin: '0 0 2px' }}>Aaron Saint-James</p>
-          <p style={{ fontFamily: FONT_SYSTEM, fontSize: 11, letterSpacing: '0.04em', color: TEXT_FAINT, margin: 0 }}>Founder and MRes Candidate, UNSW Sydney</p>
+          <p style={{ fontFamily: FONT_SYSTEM, fontSize: 12, letterSpacing: '0.04em', color: TEXT_FAINT, margin: 0 }}>Aaron Saint-James, Founder + MRes, UNSW</p>
+        </div>
+      </section>
+
+      {/* ── PRICING ──────────────────────────────────────────── */}
+      <section ref={r6.ref} className={r6.cls} style={{ maxWidth: 1120, margin: '0 auto', padding: '80px 24px' }}>
+        <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 'clamp(1.5rem, 4vw, 2.25rem)', textAlign: 'center', margin: '0 0 12px', color: TEXT_PRIMARY }}>Pricing</h2>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 16, color: TEXT_MUTED, textAlign: 'center', margin: '0 auto 48px', maxWidth: 480 }}>Free for learners. Sustainable for the platform.</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
+          {/* Learner */}
+          <div style={{ background: GLASS_SURFACE, border: `2px solid ${ACCENT_PULSE}`, borderRadius: 10, padding: '28px 24px', backdropFilter: 'blur(8px)' }}>
+            <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: ACCENT_PULSE, margin: '0 0 8px' }}>Learner</p>
+            <p style={{ fontFamily: FONT_DISPLAY, fontSize: 28, fontWeight: 700, color: TEXT_PRIMARY, margin: '0 0 16px' }}>Free forever</p>
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {['Every feature', 'No credit card', 'No ads', 'Your data, never sold'].map(b => (
+                <li key={b} style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_MUTED, display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ color: ACCENT_PULSE, fontSize: 12 }}>{'\u2713'}</span> {b}
+                </li>
+              ))}
+            </ul>
+            <Link to="/signup" style={{ display: 'block', textAlign: 'center', padding: '12px 0', background: ACCENT_PULSE, borderRadius: 8, fontFamily: FONT_DISPLAY, fontSize: 15, fontWeight: 700, textDecoration: 'none', color: SURFACE_BASE }}>Start free</Link>
+          </div>
+          {/* Plus */}
+          <div style={{ background: GLASS_SURFACE, border: `1px solid ${GLASS_BORDER}`, borderRadius: 10, padding: '28px 24px', backdropFilter: 'blur(8px)' }}>
+            <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: TEXT_MUTED, margin: '0 0 8px' }}>Plus</p>
+            <p style={{ fontFamily: FONT_DISPLAY, fontSize: 28, fontWeight: 700, color: TEXT_PRIMARY, margin: '0 0 4px' }}>$9.99/mo</p>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_FAINT, margin: '0 0 16px' }}>or $89/year AUD. Same product. Supporting the mission.</p>
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {['Everything in Learner', 'Unlimited course history', 'Priority AI response', 'Custom themes', 'Early access to new features'].map(b => (
+                <li key={b} style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_MUTED, display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ color: ACCENT_PULSE, fontSize: 12 }}>{'\u2713'}</span> {b}
+                </li>
+              ))}
+            </ul>
+            <Link to="/signup?tier=plus" style={{ display: 'block', textAlign: 'center', padding: '12px 0', background: 'transparent', border: `1px solid ${GLASS_BORDER}`, borderRadius: 8, fontFamily: FONT_DISPLAY, fontSize: 15, fontWeight: 600, textDecoration: 'none', color: TEXT_MUTED }}>Choose Plus</Link>
+          </div>
+          {/* Institutional */}
+          <div style={{ background: GLASS_SURFACE, border: `1px solid ${GLASS_BORDER}`, borderRadius: 10, padding: '28px 24px', backdropFilter: 'blur(8px)' }}>
+            <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: TEXT_MUTED, margin: '0 0 8px' }}>Institutional</p>
+            <p style={{ fontFamily: FONT_DISPLAY, fontSize: 28, fontWeight: 700, color: TEXT_PRIMARY, margin: '0 0 4px' }}>Custom</p>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_FAINT, margin: '0 0 16px' }}>For universities, schools, and providers.</p>
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {['Multi-user deployment', 'Accessibility compliance reporting', 'UDL alignment evidence', 'Anonymised cohort analytics', 'SSO + admin dashboard'].map(b => (
+                <li key={b} style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_MUTED, display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ color: ACCENT_PULSE, fontSize: 12 }}>{'\u2713'}</span> {b}
+                </li>
+              ))}
+            </ul>
+            <a href="mailto:aaron@simplifii.com.au?subject=Institutional%20pilot" style={{ display: 'block', textAlign: 'center', padding: '12px 0', background: 'transparent', border: `1px solid ${GLASS_BORDER}`, borderRadius: 8, fontFamily: FONT_DISPLAY, fontSize: 15, fontWeight: 600, textDecoration: 'none', color: TEXT_MUTED }}>Talk to us about pilots</a>
+          </div>
         </div>
       </section>
 
@@ -364,7 +400,7 @@ export default function LandingPage() {
           Already have an account? <Link to="/login" style={{ color: ACCENT_PULSE, textDecoration: 'underline' }}>Sign in</Link>
         </p>
         <p style={{ fontFamily: FONT_SYSTEM, fontSize: 11, color: TEXT_FAINT, letterSpacing: '0.04em', marginTop: 8 }}>
-          No credit card. No ads. Your data stays yours.
+          No credit card. No ads. Your data, never sold.
         </p>
       </section>
 
@@ -402,8 +438,10 @@ export default function LandingPage() {
           </div>
         </div>
         <div style={{ maxWidth: 960, margin: '32px auto 0', paddingTop: 20, borderTop: `1px solid ${GLASS_BORDER}`, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-          <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_LABEL, letterSpacing: '0.04em', margin: 0 }}>&copy; 2026 Simplifii Pty Ltd</p>
-          <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_LABEL, letterSpacing: '0.04em', margin: 0 }}>Made with care for every kind of mind</p>
+          <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_LABEL, letterSpacing: '0.04em', margin: 0 }}>&copy; 2026 Simplifii Pty Ltd, ABN [Aaron will provide]. Patent pending.</p>
+          <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_LABEL, letterSpacing: '0.04em', margin: 0 }}>
+            Made with care for every kind of mind | <a href="https://buymeacoffee.com/simplifii" target="_blank" rel="noopener noreferrer" style={{ color: ACCENT_PULSE, textDecoration: 'none' }}>Buy us a coffee</a>
+          </p>
         </div>
       </footer>
       </div>
