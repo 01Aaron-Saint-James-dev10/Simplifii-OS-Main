@@ -34,7 +34,7 @@ import {
  *   assessmentTitle - string
  */
 
-export default function BriefPanel({ brief, rubricCriteria, rubricBands, rubricDetected, courseId, assessmentTitle, extractedText }) {
+export default function BriefPanel({ brief, rubricCriteria, rubricBands, rubricDetected, courseId, assessmentTitle, extractedText, documentType }) {
   const [selfAssessment, setSelfAssessment] = useState({});
   const [showSimplifier, setShowSimplifier] = useState(false);
   const [simplifierResult, setSimplifierResult] = useState(null);

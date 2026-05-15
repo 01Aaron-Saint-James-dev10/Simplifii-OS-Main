@@ -253,6 +253,7 @@ export default function CanvasScreen() {
           courseId={courseId}
           assessmentTitle={currentTitle}
           extractedText={extractedText}
+          documentType={preClassifiedType}
         />
       </div>
       <div style={{ display: activePanel === 'tutor' ? 'contents' : 'none' }}>
@@ -302,7 +303,7 @@ export default function CanvasScreen() {
           toolId="brief-simplifier" title="Brief Simplifier" endpoint="/api/simplify-brief" resultKey="plan"
           description="Week-by-week action plan from your uploaded brief."
           buttonLabel="Generate action plan"
-          buildPayload={(brief, rubric, draft, s) => ({ briefText: brief, assessmentTitle: s.assessmentTitle, tier: s.tier })}
+          buildPayload={(brief, rubric, draft, s) => ({ briefText: brief, assessmentTitle: s.assessmentTitle, tier: s.tier, documentType: preClassifiedType || '' })}
           briefText={briefOrText} rubricText="" draftText="" assessmentTitle={currentTitle} courseId={courseId}
         />
       </div>
