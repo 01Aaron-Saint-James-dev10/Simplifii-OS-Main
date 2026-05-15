@@ -151,14 +151,42 @@ export default function LandingPage() {
             animate={MQ_REDUCE ? {} : { y: [0, -8, 0] }}
             transition={MQ_REDUCE ? {} : { duration: 6, repeat: Infinity, ease: 'easeInOut' }}
           >
-            <div style={{ background: GLASS_SURFACE, border: `1px solid ${GLASS_BORDER}`, borderRadius: 16, padding: 32, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: GLOW_EMERALD }}>
-              <motion.div
-                animate={MQ_REDUCE ? {} : { scale: [1, 1.02, 1] }}
-                transition={MQ_REDUCE ? {} : { duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-              >
-                <NeuralAvatar persona="browser" size={160} />
-              </motion.div>
-              <p style={{ fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 'clamp(1.25rem, 2vw, 1.5rem)', color: TEXT_PRIMARY, letterSpacing: '-0.02em', textAlign: 'center', margin: '16px 0 0' }}>Simplifii-OS</p>
+            <div style={{ position: 'relative', background: GLASS_SURFACE, border: `1px solid ${GLASS_BORDER}`, borderRadius: 16, padding: '40px 40px 32px', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: GLOW_EMERALD, overflow: 'visible' }}>
+              {/* Typewriter name above avatar */}
+              <div className="lp-typewriter" style={{ textAlign: 'center', marginBottom: 20, height: 24 }}>
+                <span style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 14, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: ACCENT_PULSE, textShadow: `0 0 12px ${ACCENT_GLOW_50}, 0 0 24px ${ACCENT_BORDER_FAINT}` }}>
+                  Simplifii-OS
+                </span>
+                <span className="lp-cursor" style={{ display: 'inline-block', width: 2, height: 16, background: ACCENT_PULSE, marginLeft: 2, verticalAlign: 'middle', boxShadow: `0 0 8px ${ACCENT_PULSE}` }} />
+              </div>
+
+              {/* Pulse rings behind avatar */}
+              <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <motion.div
+                  animate={MQ_REDUCE ? {} : { scale: [1, 1.6, 1], opacity: [0.3, 0, 0.3] }}
+                  transition={MQ_REDUCE ? {} : { duration: 3, repeat: Infinity, ease: 'easeOut' }}
+                  style={{ position: 'absolute', width: 200, height: 200, borderRadius: '50%', border: `1px solid ${ACCENT_PULSE}`, opacity: 0.3 }}
+                />
+                <motion.div
+                  animate={MQ_REDUCE ? {} : { scale: [1, 1.8, 1], opacity: [0.2, 0, 0.2] }}
+                  transition={MQ_REDUCE ? {} : { duration: 3, repeat: Infinity, ease: 'easeOut', delay: 0.5 }}
+                  style={{ position: 'absolute', width: 200, height: 200, borderRadius: '50%', border: `1px solid ${ACCENT_PULSE}`, opacity: 0.2 }}
+                />
+                <motion.div
+                  animate={MQ_REDUCE ? {} : { scale: [1, 1.02, 1] }}
+                  transition={MQ_REDUCE ? {} : { duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <NeuralAvatar persona="browser" size={180} state="listening" />
+                </motion.div>
+              </div>
+
+              {/* Status line below avatar */}
+              <div style={{ textAlign: 'center', marginTop: 16 }}>
+                <span style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: TEXT_FAINT }}>
+                  <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: ACCENT_PULSE, marginRight: 6, boxShadow: `0 0 8px ${ACCENT_PULSE}`, verticalAlign: 'middle' }} />
+                  sovereign runtime active
+                </span>
+              </div>
             </div>
           </motion.div>
         </div>
