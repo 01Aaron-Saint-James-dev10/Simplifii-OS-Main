@@ -408,3 +408,21 @@ Critical: Consult with disability advocates before final copy. Must not
 trivialise chronic illness or imply users should push through low-energy days.
 References: Christine Miserandino Spoon Theory (2003), Australian Disability
 Discrimination Act compliance.
+
+---
+
+## Sprint AA — Affiliate Revenue Stream
+
+Non-cheesy, evidence-based affiliate categories: stim toys (Stimtastic, Spiffing AU), ND-friendly stationery (Passion Planner), noise-cancelling (Loop Earplugs, Flare Audio), books (Bookshop.org not Amazon), therapy directories (Headway, Headspace), assistive tech (ReadAlong, OrCam). Always disclosed, personally used, curated not algorithmic. Sits in Resources section, never in workflow. User can hide entirely. Revenue split: 50% infrastructure, 50% pays testers. Effort: 6-8 hours. Priority: post-tester.
+
+---
+
+## Sprint BB — Accessibility Features Audit
+
+Check against current build, add missing only: high contrast mode, reading ruler, colour overlays (Irlen syndrome), word-by-word reveal, adjustable letter spacing, reading speed estimator, comprehension break reminders, focus mode (current paragraph only), switch control compatibility, eye-tracking gaze input. Audit first, research second, build third. Effort: 20-40 hours. Priority: post-tester.
+
+---
+
+## Sprint CC — Features from Prior Builds to Restore
+
+Review docs/PRIOR_BUILD_AUDIT.md. Top candidates from prior builds: AI risk scoring algorithm (10-dimension text authenticity), hidden curriculum decoder structured JSON schema, V1/V2/V3 depth levels for brief simplifier, key terms extraction prompt, heuristic outline bucketing. Aaron to pick 3-5 features. Effort: TBD. Priority: post-tester.
