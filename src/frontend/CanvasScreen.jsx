@@ -30,6 +30,8 @@ import NoBriefPrompt from './components/NoBriefPrompt';
 import AffirmationBanner from './components/AffirmationBanner';
 import AnnouncementBanner from './components/AnnouncementBanner';
 import { getSensoryCSSVars, getSensoryProfile } from '../theme/sensoryProfiles';
+import FidgetZone from './components/FidgetZone';
+import { startAmbient, stopAmbient } from './services/AmbientSound';
 import './CanvasScreen.css';
 
 /**
@@ -45,7 +47,17 @@ import './CanvasScreen.css';
 export default function CanvasScreen() {
   const { courseId, assessmentTitle, navigateToAssessments } = useRouter();
   const { courses, activeCourse, projectSources } = useProject();
-  const { reducedMotion, isZenMode, theme, autismFirstEnabled, sensoryLevel, isLiteralMode } = useSettings();
+  const { reducedMotion, isZenMode, theme, autismFirstEnabled, sensoryLevel, isLiteralMode, ambientPreference } = useSettings();
+
+  // Ambient sound: start/stop when preference changes
+  useEffect(() => {
+    if (autismFirstEnabled && ambientPreference && ambientPreference !== 'none') {
+      startAmbient(ambientPreference);
+    } else {
+      stopAmbient();
+    }
+    return () => stopAmbient();
+  }, [autismFirstEnabled, ambientPreference]);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Supabase fallback: if localStorage has no course for this courseId,
@@ -433,6 +445,7 @@ export default function CanvasScreen() {
       </div>
 
       <AnnouncementBanner />
+      <FidgetZone />
       {showSaveAffirmation && <AffirmationBanner trigger="save_event" visible={true} />}
       <BottomStrip wordCount={wordCount} targetWords={targetWords} />
 

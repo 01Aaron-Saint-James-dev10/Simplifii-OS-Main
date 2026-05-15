@@ -106,6 +106,7 @@ export default function CanvasSettingsOverlay({ onClose }) {
     predictabilityAnnouncements, setPredictabilityAnnouncements,
     isLiteralMode, setIsLiteralMode,
     specialInterests, setSpecialInterests,
+    ambientPreference, setAmbientPreference,
   } = useSettings();
 
   // Font family stored in localStorage directly (not in SettingsContext to avoid
@@ -276,6 +277,18 @@ export default function CanvasSettingsOverlay({ onClose }) {
                 <span style={{ fontFamily: FONT_SYSTEM, fontSize: 11, fontWeight: 700, color: ACCENT_PULSE, minWidth: 20, textAlign: 'center' }}>{sensoryLevel}</span>
               </div>
             </div>
+            <RadioGroup
+              label="Ambient sound"
+              options={[
+                { value: 'none', label: 'None' },
+                { value: 'brown_noise', label: 'Brown noise' },
+                { value: 'pink_noise', label: 'Pink noise' },
+                { value: 'rain', label: 'Rain' },
+                { value: 'ocean', label: 'Ocean' },
+              ]}
+              value={ambientPreference}
+              onChange={setAmbientPreference}
+            />
           </>
         )}
 
