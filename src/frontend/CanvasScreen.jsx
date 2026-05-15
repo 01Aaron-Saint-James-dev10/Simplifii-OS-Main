@@ -173,7 +173,7 @@ export default function CanvasScreen() {
       } catch { /* ignore corrupt cache */ }
     }
 
-    // 3. On-demand fetch — brief is available but ingestion cloud path did not run.
+    // 3. On-demand fetch: brief is available but ingestion cloud path did not run.
     setSectionsLoading(true);
     fetch('/api/generate-sections', {
       method: 'POST',

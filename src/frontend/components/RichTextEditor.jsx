@@ -15,7 +15,7 @@ import './RichTextEditor.css';
  * RichTextEditor
  *
  * TipTap-powered rich text editor replacing the legacy textarea.
- * Preserves the same external API as CanvasEditor.legacy.jsx:
+ * Preserves the same external API as the original textarea editor:
  *   - onTextChange(htmlString)
  *   - onWordCountChange(count)
  *   - onSave(jsonDoc) called by parent's autosave timer

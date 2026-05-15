@@ -12,7 +12,7 @@ import {
  *
  * Wraps RichTextEditor with autosave (2s debounced) to IndexedDB
  * and HistoryOfThought text_edit event logging. Same external API
- * as CanvasEditor.legacy.jsx.
+ * as the original textarea editor.
  *
  * Props:
  *   courseId          - string
