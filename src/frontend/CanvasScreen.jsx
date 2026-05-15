@@ -90,8 +90,7 @@ export default function CanvasScreen() {
 
   // Document classification: use value baked in during ingestion if present.
   const preClassifiedType = course.extractionData?.documentType || null;
-  const isExamPaper = preClassifiedType === 'exam_paper';
-  const targetWords = isExamPaper ? 0 : (brief?.wordCountGoal || 1500);
+  // targetWords is computed below after docClassification is available
   const currentTitle = brief?.title || assessmentTitle || 'Assessment';
   const rubricCriteria = course.extractionData?.rubricCriteria || [];
   const rubricBands = course.extractionData?.rubricBands || [];
@@ -101,7 +100,12 @@ export default function CanvasScreen() {
   // Raw extracted text: fallback for tools when structured brief is empty.
   // This ensures tools work even for non-brief PDFs (exam papers, notes, etc).
   const extractedText = course.extractionData?.rawText || course.sourceContent || '';
-  const briefOrText = brief?.body || brief?.title || extractedText;
+  // Prefer actual content (body or extractedText) over the assessment title.
+  // brief.body may be empty if cloud enhancement hasn't completed yet;
+  // extractedText always has the raw PDF output from pdfjs.
+  const briefOrText = (brief?.body && brief.body.length > 50 ? brief.body : null)
+    || (extractedText && extractedText.length > 50 ? extractedText : null)
+    || brief?.title || '';
 
   // Save status + save-event affirmation (fires every 5th save)
   const [saveStatus, setSaveStatus] = useState('unsaved');
@@ -221,6 +225,11 @@ export default function CanvasScreen() {
   const [docClassification, setDocClassification] = useState(
     preClassifiedType ? { type: preClassifiedType, confidence: 1 } : null
   );
+
+  // Reactive document type: updates when classification completes
+  const effectiveDocType = docClassification?.type || preClassifiedType || null;
+  const isExamPaper = effectiveDocType === 'exam_paper';
+  const targetWords = isExamPaper ? 0 : (brief?.wordCountGoal || 1500);
   useEffect(() => {
     if (docClassification) return;
     if (!briefOrText || briefOrText.length < 30) return;
@@ -263,11 +272,11 @@ export default function CanvasScreen() {
           courseId={courseId}
           assessmentTitle={currentTitle}
           extractedText={extractedText}
-          documentType={preClassifiedType}
+          documentType={effectiveDocType}
         />
       </div>
       <div style={{ display: activePanel === 'tutor' ? 'contents' : 'none' }}>
-        <TutorPanel assessmentTitle={currentTitle} briefText={briefOrText} documentType={preClassifiedType} />
+        <TutorPanel assessmentTitle={currentTitle} briefText={briefOrText} documentType={effectiveDocType} />
       </div>
       <div style={{ display: activePanel === 'preview' ? 'contents' : 'none' }}>
         <PreviewPanel draftText={compileFnRef.current ? compileFnRef.current() : draftText} wordCount={wordCount} />
@@ -313,7 +322,7 @@ export default function CanvasScreen() {
           toolId="brief-simplifier" title="Brief Simplifier" endpoint="/api/simplify-brief" resultKey="plan"
           description="Week-by-week action plan from your uploaded brief."
           buttonLabel="Generate action plan"
-          buildPayload={(brief, rubric, draft, s) => ({ briefText: brief, assessmentTitle: s.assessmentTitle, tier: s.tier, documentType: preClassifiedType || '' })}
+          buildPayload={(brief, rubric, draft, s) => ({ briefText: brief, assessmentTitle: s.assessmentTitle, tier: s.tier, documentType: effectiveDocType || '' })}
           briefText={briefOrText} rubricText="" draftText="" assessmentTitle={currentTitle} courseId={courseId}
         />
       </div>

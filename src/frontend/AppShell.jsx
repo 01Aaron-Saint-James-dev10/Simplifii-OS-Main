@@ -28,6 +28,17 @@ import {
  */
 const VIEW_LABELS = { home: 'Dashboard', canvas: 'Editor', assessments: 'Assessment list', research: 'Research workspace' };
 
+// Hide the AI disclaimer footer on the canvas (it has its own BottomStrip)
+function AiDisclaimerFixed() {
+  const { view } = useRouter();
+  if (view === 'canvas') return null;
+  return (
+    <div style={{ position: 'fixed', bottom: 0, right: 0, zIndex: 50, borderTop: `1px solid ${SURFACE_RAISED}`, borderLeft: `1px solid ${SURFACE_RAISED}`, background: SURFACE_BASE, borderTopLeftRadius: 4 }}>
+      <AiDisclaimerFooter />
+    </div>
+  );
+}
+
 function ViewSwitch() {
   const { view } = useRouter();
   // Admin views: check URL params for Aaron-only routes
@@ -109,9 +120,7 @@ export default function AppShell() {
                 <ViewSwitch />
               </div>
               <FeedbackButton />
-              <div style={{ position: 'fixed', bottom: 0, right: 0, zIndex: 50, borderTop: `1px solid ${SURFACE_RAISED}`, borderLeft: `1px solid ${SURFACE_RAISED}`, background: SURFACE_BASE, borderTopLeftRadius: 4 }}>
-                <AiDisclaimerFooter />
-              </div>
+              <AiDisclaimerFixed />
             </div>
           </RouterProvider>
         </ResearchProjectProvider>
