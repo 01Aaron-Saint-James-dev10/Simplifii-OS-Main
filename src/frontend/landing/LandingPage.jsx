@@ -44,6 +44,7 @@ const SHOWCASE = [
   { id: 'voice', label: '4. Speak', desc: 'Voice-to-text input. Speak your thoughts, text appears at cursor. Free, browser-native, no recordings stored.' },
   { id: 'hsc', label: '5. Practice', desc: '26 years of HSC past papers across NSW, VIC, QLD, WA. Matched to your assessment. Marker feedback included.' },
   { id: 'reset', label: '6. Reset', desc: 'Built-in breaks designed for sustainable thinking. No guilt. No streaks. No shame. Just good work habits.' },
+  { id: 'joke', label: '7. Joy', desc: 'Type /joke or say "tell me a joke" to get a clean, ND-friendly joke when you need a brain break. Stays until you dismiss it.' },
 ];
 
 const COMPARISON = [

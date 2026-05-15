@@ -171,8 +171,26 @@ function ResetPreview() {
   );
 }
 
+function JokePreview() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, height: '100%', padding: 24, background: `radial-gradient(ellipse at center, ${ACCENT_GLASS_SUBTLE} 0%, transparent 70%)` }}>
+      <div style={{ ...f, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: ACCENT_PULSE }}>Joy Moments</div>
+      <div style={{ padding: '16px 20px', background: SURFACE_CARD, border: `1px solid ${GLASS_BORDER}`, borderRadius: 8, maxWidth: 340, textAlign: 'center' }}>
+        <p style={{ ...fb, fontSize: 13, color: TEXT_PRIMARY, margin: 0, lineHeight: 1.6 }}>Why did the neuron break up with the synapse?</p>
+        <p style={{ ...fb, fontSize: 13, color: ACCENT_PULSE, margin: '8px 0 0', lineHeight: 1.6, fontWeight: 600 }}>There was no connection.</p>
+      </div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <span style={{ ...f, fontSize: 8, color: TEXT_FAINT, padding: '3px 8px', border: `1px solid ${GLASS_BORDER}`, borderRadius: 4 }}>/joke</span>
+        <span style={{ ...f, fontSize: 8, color: TEXT_FAINT }}>or</span>
+        <span style={{ ...f, fontSize: 8, color: TEXT_FAINT, padding: '3px 8px', border: `1px solid ${GLASS_BORDER}`, borderRadius: 4 }}>"tell me a joke"</span>
+      </div>
+      <p style={{ ...f, fontSize: 9, color: TEXT_FAINT, textAlign: 'center', maxWidth: 260 }}>Clean puns, wordplay, dad jokes. ND-friendly. Stays on screen until you click away.</p>
+    </div>
+  );
+}
+
 export default function ShowcasePreview({ activeTab }) {
-  const views = { upload: UploadPreview, editor: EditorPreview, tutor: TutorPreview, voice: VoicePreview, hsc: HSCPreview, reset: ResetPreview };
+  const views = { upload: UploadPreview, editor: EditorPreview, tutor: TutorPreview, voice: VoicePreview, hsc: HSCPreview, reset: ResetPreview, joke: JokePreview };
   const View = views[activeTab] || views.upload;
   return (
     <div style={{ aspectRatio: '16/9', minHeight: 320, background: SURFACE_BASE, overflow: 'hidden' }}>
