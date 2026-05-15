@@ -83,11 +83,30 @@ export default function RichTextEditor({ initialContent, onTextChange, onWordCou
     const handler = (e) => {
       const text = e.detail?.text;
       if (!text || !editorRef.current) return;
+      // Detect voice joke command
+      if (text.toLowerCase().includes('tell me a joke') || text.toLowerCase().includes('make me laugh')) {
+        window.dispatchEvent(new CustomEvent('simplifii:joke-request'));
+        return;
+      }
       editorRef.current.chain().focus().insertContent(text).run();
     };
     window.addEventListener('simplifii:voice-transcript', handler);
     return () => window.removeEventListener('simplifii:voice-transcript', handler);
   }, []);
+
+  // Slash command detection: /joke triggers joke overlay
+  useEffect(() => {
+    if (!editor) return;
+    const checkSlash = () => {
+      const text = editor.getText();
+      if (text.endsWith('/joke')) {
+        editor.commands.deleteRange({ from: editor.state.selection.from - 5, to: editor.state.selection.from });
+        window.dispatchEvent(new CustomEvent('simplifii:joke-request'));
+      }
+    };
+    editor.on('update', checkSlash);
+    return () => editor.off('update', checkSlash);
+  }, [editor]);
 
   // Toggle Bionic Reading decorations when setting changes
   useEffect(() => {

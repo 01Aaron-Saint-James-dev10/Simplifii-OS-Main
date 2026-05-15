@@ -9,6 +9,7 @@ import CanvasNav from './components/CanvasNav';
 import CanvasEditor from './components/CanvasEditor';
 import SectionEditor from './components/SectionEditor';
 import SectionRail from './components/SectionRail';
+import JokeOverlay from './components/JokeOverlay';
 import PanelRail from './components/PanelRail';
 import BriefPanel from './components/BriefPanel';
 import TutorPanel from './components/TutorPanel';
@@ -362,6 +363,8 @@ export default function CanvasScreen() {
       {settingsOpen && (
         <CanvasSettingsOverlay onClose={() => setSettingsOpen(false)} />
       )}
+
+      <JokeOverlay />
     </div>
   );
 }
