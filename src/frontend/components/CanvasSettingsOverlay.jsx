@@ -105,6 +105,7 @@ export default function CanvasSettingsOverlay({ onClose }) {
     sensoryLevel, setSensoryLevel,
     predictabilityAnnouncements, setPredictabilityAnnouncements,
     isLiteralMode, setIsLiteralMode,
+    specialInterests, setSpecialInterests,
   } = useSettings();
 
   // Font family stored in localStorage directly (not in SettingsContext to avoid
@@ -223,6 +224,41 @@ export default function CanvasSettingsOverlay({ onClose }) {
           <>
             <Toggle label="Predictability announcements" description="Announces every AI action before it happens" value={predictabilityAnnouncements} onChange={setPredictabilityAnnouncements} />
             <Toggle label="Literal mode" description="Removes metaphors, idioms, and ambiguous language from AI" value={isLiteralMode} onChange={setIsLiteralMode} />
+            <div style={{ padding: '8px 0' }}>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600, color: TEXT_PRIMARY, marginBottom: 6 }}>My special interests</div>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_FAINT, margin: '0 0 6px' }}>
+                The tutor will use these to explain concepts. Up to 5.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {(specialInterests.length > 0 ? specialInterests : ['']).map((interest, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 4 }}>
+                    <input
+                      type="text"
+                      value={interest}
+                      maxLength={50}
+                      placeholder={`Interest ${i + 1}`}
+                      onChange={e => {
+                        const updated = [...specialInterests];
+                        updated[i] = e.target.value;
+                        setSpecialInterests(updated.filter((v, idx) => v.trim() || idx === updated.length - 1));
+                      }}
+                      style={{
+                        flex: 1, fontFamily: FONT_BODY, fontSize: 12, color: TEXT_PRIMARY,
+                        background: 'transparent', border: `1px solid ${SURFACE_RAISED}`,
+                        borderRadius: BORDER_RADIUS, padding: '6px 8px', outline: 'none',
+                      }}
+                    />
+                  </div>
+                ))}
+                {specialInterests.length < 5 && specialInterests.every(i => i.trim()) && (
+                  <button type="button" onClick={() => setSpecialInterests([...specialInterests, ''])}
+                    style={{ fontFamily: FONT_SYSTEM, fontSize: 9, color: TEXT_FAINT, background: 'none', border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS, padding: '4px 8px', cursor: 'pointer', alignSelf: 'flex-start' }}>
+                    + Add another
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div style={{ padding: '8px 0' }}>
               <div style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600, color: TEXT_PRIMARY, marginBottom: 6 }}>Sensory level</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
