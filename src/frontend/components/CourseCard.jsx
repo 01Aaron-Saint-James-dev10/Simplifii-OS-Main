@@ -88,7 +88,8 @@ export default function CourseCard({ course, courseId, density = 'standard', onO
   return (
     <div
       style={{
-        background: SURFACE_CARD,
+        background: 'rgba(24, 24, 27, 0.75)',
+        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
         border: `1px solid ${SURFACE_RAISED}`,
         borderRadius: BORDER_RADIUS,
         padding: isCompact ? '12px 14px' : '16px 18px',

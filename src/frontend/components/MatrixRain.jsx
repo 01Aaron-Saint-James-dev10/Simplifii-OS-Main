@@ -124,7 +124,7 @@ export default function MatrixRain() {
         inset: 0,
         zIndex: 0,
         pointerEvents: 'none',
-        opacity: 0.32,
+        opacity: 0.45,
         mixBlendMode: 'screen',
       }}
     >

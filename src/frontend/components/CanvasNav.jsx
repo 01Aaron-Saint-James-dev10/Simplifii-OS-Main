@@ -44,7 +44,8 @@ export default function CanvasNav({ courseName, assessmentTitle, saveStatus, las
         justifyContent: 'space-between',
         height: 48,
         padding: '0 20px',
-        background: SURFACE_BASE,
+        background: 'rgba(9, 9, 11, 0.85)',
+        backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
         borderBottom: `1px solid ${SURFACE_RAISED}`,
         backdropFilter: 'blur(8px)',
       }}

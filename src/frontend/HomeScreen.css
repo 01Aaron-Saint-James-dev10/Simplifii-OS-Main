@@ -14,8 +14,8 @@
 
 .home-root {
   min-height: 100vh;
-  background: var(--bg, #09090b); /* SURFACE_BASE */
-  color: #e4e4e7; /* TEXT_PRIMARY */
+  background: transparent; /* let matrix rain show through */
+  color: var(--sov-ink, #e4e4e7);
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -41,7 +41,9 @@
   justify-content: space-between;
   padding: 0 24px;
   height: 56px;
-  background: var(--bg, #09090b); /* SURFACE_BASE, solid for sticky */
+  background: rgba(9, 9, 11, 0.85); /* semi-transparent nav so rain peeks through */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid #27272a; /* SURFACE_RAISED */
   backdrop-filter: blur(8px);
 }

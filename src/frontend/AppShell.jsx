@@ -102,7 +102,7 @@ export default function AppShell() {
       <ProjectProvider>
         <ResearchProjectProvider>
           <RouterProvider>
-            <div style={{ position: 'relative', minHeight: '100vh', background: 'var(--sov-bg, #09090b)' }}>
+            <div style={{ position: 'relative', minHeight: '100vh' }}>
               <MatrixRain />
               <div style={{ position: 'relative', zIndex: 1 }}>
                 <BetaBanner />

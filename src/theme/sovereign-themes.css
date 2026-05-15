@@ -121,7 +121,7 @@ html[data-theme]::selection {
 /* Matrix rain: reduce opacity on light themes */
 html[data-theme="surreal"] .matrix-rain,
 html[data-theme="minimal"] .matrix-rain {
-  opacity: 0.08;
+  opacity: 0.12;
   mix-blend-mode: multiply;
 }
 
