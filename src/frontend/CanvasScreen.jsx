@@ -11,6 +11,7 @@ import SectionEditor from './components/SectionEditor';
 import SectionRail from './components/SectionRail';
 import JokeOverlay from './components/JokeOverlay';
 import DocumentClassifiedModal from './components/DocumentClassifiedModal';
+import BreathBubble from './components/BreathBubble';
 import PanelRail from './components/PanelRail';
 import BriefPanel from './components/BriefPanel';
 import TutorPanel from './components/TutorPanel';
@@ -298,6 +299,9 @@ export default function CanvasScreen() {
           buildPayload={(brief, rubric, draft, s) => ({ briefText: brief, assessmentTitle: s.assessmentTitle, tier: s.tier })}
           briefText={briefOrText} rubricText="" draftText="" assessmentTitle={currentTitle} courseId={courseId}
         />
+      </div>
+      <div style={{ display: activePanel === 'break' ? 'contents' : 'none' }}>
+        <BreathBubble />
       </div>
     </>
   ) : null;

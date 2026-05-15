@@ -38,6 +38,7 @@ const PANELS = [
   { id: 'rubric',     icon: 'R', label: 'Rubric', tip: 'Rubric: plain language translation' },
   { id: 'scorer',     icon: '\u2714', label: 'Scorer', tip: 'Scorer: formative feedback on draft' },
   { id: 'hidden',     icon: '?', label: 'Hidden', tip: 'Hidden: decode what markers want' },
+  { id: 'break',      icon: '\u25CB', label: 'Break', tip: 'Break: 4-7-8 breathing exercise' },
 ];
 
 export default function PanelRail({ activePanel, onSelectPanel, panelContent }) {
