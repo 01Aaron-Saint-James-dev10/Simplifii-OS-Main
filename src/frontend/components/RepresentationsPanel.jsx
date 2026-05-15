@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSettings } from '../SettingsContext';
+import useLearnerContext from '../hooks/useLearnerContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import AsciiLoader from './AsciiLoader';
@@ -33,7 +34,8 @@ const TYPES = [
  *   courseId         - string
  */
 export default function RepresentationsPanel({ briefText, assessmentTitle, courseId }) {
-  const { activeTier } = useSettings();
+  const { activeTier, isLiteralMode, accessibilityProfile } = useSettings();
+  const { learnerContext } = useLearnerContext();
   const { user } = useAuth();
   const [activeType, setActiveType] = useState(null);
   const [content, setContent] = useState({});
@@ -81,6 +83,9 @@ export default function RepresentationsPanel({ briefText, assessmentTitle, cours
           type,
           assessmentTitle,
           tier: activeTier || 'tertiary',
+          literalMode: isLiteralMode || false,
+          accessibilityProfile: accessibilityProfile || 'standard',
+          learnerContext: learnerContext || undefined,
         }),
       });
       const data = await response.json();
@@ -111,7 +116,7 @@ export default function RepresentationsPanel({ briefText, assessmentTitle, cours
     <div style={{ padding: '16px 16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div>
         <h3 style={{ fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: ACCENT_PULSE, margin: '0 0 4px' }}>
-          UDL 3.0 Representations
+          4 Ways to Understand
         </h3>
         <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_MUTED, margin: 0 }}>
           Same brief, four ways to understand it. Pick what works for you.

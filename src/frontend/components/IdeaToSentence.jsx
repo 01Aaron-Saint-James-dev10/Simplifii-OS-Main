@@ -1,4 +1,6 @@
 import React, { useState, useRef } from 'react';
+import { useSettings } from '../SettingsContext';
+import useLearnerContext from '../hooks/useLearnerContext';
 import { announceAction } from '../services/PredictabilityService';
 import {
   SURFACE_RAISED,
@@ -22,6 +24,8 @@ import {
  *   tier           - string
  */
 export default function IdeaToSentence({ onInsert, assessmentTitle, tier }) {
+  const { isLiteralMode, accessibilityProfile } = useSettings();
+  const { learnerContext } = useLearnerContext();
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [structured, setStructured] = useState('');
@@ -86,6 +90,9 @@ export default function IdeaToSentence({ onInsert, assessmentTitle, tier }) {
           messages: [{ role: 'user', text: `Structure this messy spoken idea into 1-2 clear academic sentences. Keep my meaning. Do not add new ideas. Just make it clearer.\n\nMy idea: "${transcript}"` }],
           assessmentTitle: assessmentTitle || '',
           tier: tier || 'tertiary',
+          literalMode: isLiteralMode || false,
+          accessibilityProfile: accessibilityProfile || 'standard',
+          learnerContext: learnerContext || undefined,
         }),
       });
 

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSettings } from '../SettingsContext';
+import useLearnerContext from '../hooks/useLearnerContext';
 import AsciiLoader from './AsciiLoader';
 import { announceAction } from '../services/PredictabilityService';
 import {
@@ -30,7 +31,8 @@ const SPEEDS = [
  *   assessmentTitle - string
  */
 export default function AudioOverviewPlayer({ briefText, assessmentTitle }) {
-  const { activeTier } = useSettings();
+  const { activeTier, isLiteralMode, accessibilityProfile } = useSettings();
+  const { learnerContext } = useLearnerContext();
   const [script, setScript] = useState('');
   const [loading, setLoading] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -56,7 +58,7 @@ export default function AudioOverviewPlayer({ briefText, assessmentTitle }) {
       const res = await fetch('/api/audio-overview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ briefText, assessmentTitle, tier: activeTier }),
+        body: JSON.stringify({ briefText, assessmentTitle, tier: activeTier, literalMode: isLiteralMode || false, accessibilityProfile: accessibilityProfile || 'standard', learnerContext: learnerContext || undefined }),
       });
       const data = await res.json();
       if (data.success) setScript(data.script);
