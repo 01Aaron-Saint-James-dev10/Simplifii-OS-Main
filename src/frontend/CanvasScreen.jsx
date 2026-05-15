@@ -16,6 +16,7 @@ import SourcesPanel from './components/SourcesPanel';
 import PastQuestionsPanel from './components/PastQuestionsPanel';
 import RepresentationsPanel from './components/RepresentationsPanel';
 import ToolPanel from './components/ToolPanel';
+import NextStepBanner from './components/NextStepBanner';
 import CheckPanel from './components/CheckPanel';
 import ProvenancePanel from './components/ProvenancePanel';
 import BibliographyView from './components/BibliographyView';
@@ -244,6 +245,17 @@ export default function CanvasScreen() {
         courseId={courseId}
         onOpenSettings={() => setSettingsOpen(true)}
         onCourseName={briefs.length > 1 ? () => navigateToAssessments(courseId) : undefined}
+      />
+
+      <NextStepBanner
+        briefText={brief?.body || brief?.title || ''}
+        rubricText={rubricCriteria?.join('\n') || ''}
+        draftText={draftText}
+        wordCount={wordCount}
+        targetWords={targetWords}
+        assessmentTitle={currentTitle}
+        activePanel={activePanel}
+        onSelectPanel={setActivePanel}
       />
 
       <div className="canvas-body">
