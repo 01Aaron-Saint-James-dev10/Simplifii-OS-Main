@@ -31,6 +31,9 @@ import AffirmationBanner from './components/AffirmationBanner';
 import AnnouncementBanner from './components/AnnouncementBanner';
 import { getSensoryCSSVars, getSensoryProfile } from '../theme/sensoryProfiles';
 import FidgetZone from './components/FidgetZone';
+import MultimodalCanvas from './components/MultimodalCanvas';
+import QuestionNav from './components/QuestionNav';
+import { parseExamPaper } from '../services/ExamPaperParser';
 import { startAmbient, stopAmbient } from './services/AmbientSound';
 import './CanvasScreen.css';
 
@@ -119,6 +122,13 @@ export default function CanvasScreen() {
   // Raw extracted text: fallback for tools when structured brief is empty.
   // This ensures tools work even for non-brief PDFs (exam papers, notes, etc).
   const extractedText = course.extractionData?.rawText || course.sourceContent || '';
+
+  // Exam paper: parse questions from raw text for multimodal canvas
+  const examData = useMemo(() => {
+    if (!isExamPaper || !extractedText) return null;
+    return parseExamPaper(extractedText);
+  }, [isExamPaper, extractedText]);
+  const [activeQuestionNum, setActiveQuestionNum] = useState(1);
   // Prefer actual content (body or extractedText) over the assessment title.
   // brief.body may be empty if cloud enhancement hasn't completed yet;
   // extractedText always has the raw PDF output from pdfjs.
@@ -426,8 +436,29 @@ export default function CanvasScreen() {
         />
         )}
 
+        {/* Exam paper: show question nav instead of section rail */}
+        {isExamPaper && examData?.questions?.length > 0 && (
+          <QuestionNav
+            questions={examData.questions}
+            activeQuestion={activeQuestionNum}
+            onSelect={setActiveQuestionNum}
+            progress={{}}
+          />
+        )}
+
         <div className="canvas-centre">
           {briefs.length === 0 && !extractedText && <NoBriefPrompt courseId={courseId} />}
+
+          {/* Exam paper: multimodal canvas per question */}
+          {isExamPaper && examData?.questions?.length > 0 ? (
+            <MultimodalCanvas
+              question={examData.questions.find(q => q.number === activeQuestionNum) || examData.questions[0]}
+              documentId={courseId}
+              onAskTutor={(qText) => {
+                setActivePanel('tutor');
+              }}
+            />
+          ) : (
           <SectionEditor
             sections={activeSections}
             activeSection={activeSection}
@@ -441,6 +472,7 @@ export default function CanvasScreen() {
             onCompileReady={(fn) => { compileFnRef.current = fn; }}
             citationFlags={unverifiedMatches}
           />
+          )}
           <BibliographyView />
         </div>
 
