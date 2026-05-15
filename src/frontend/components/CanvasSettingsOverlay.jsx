@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSettings } from '../SettingsContext';
+import BreathBubble from './BreathBubble';
 import {
   SURFACE_CARD,
   SURFACE_RAISED,
@@ -210,6 +211,10 @@ export default function CanvasSettingsOverlay({ onClose }) {
         <div style={{ borderTop: `1px solid ${SURFACE_RAISED}`, margin: '12px 0' }} />
         <SectionLabel>Focus</SectionLabel>
         <Toggle label="Distraction-free mode" description="Hide rails and bottom strip. Press Escape to exit." value={isZenMode} onChange={setIsZenMode} />
+
+        <div style={{ borderTop: `1px solid ${SURFACE_RAISED}`, margin: '12px 0' }} />
+        <SectionLabel>Wellbeing</SectionLabel>
+        <BreathBubble />
       </div>
     </div>
   );

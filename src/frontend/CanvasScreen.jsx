@@ -11,7 +11,6 @@ import SectionEditor from './components/SectionEditor';
 import SectionRail from './components/SectionRail';
 import JokeOverlay from './components/JokeOverlay';
 import DocumentClassifiedModal from './components/DocumentClassifiedModal';
-import BreathBubble from './components/BreathBubble';
 import PanelRail from './components/PanelRail';
 import BriefPanel from './components/BriefPanel';
 import TutorPanel from './components/TutorPanel';
@@ -334,9 +333,7 @@ export default function CanvasScreen() {
           briefText={briefOrText} rubricText="" draftText="" assessmentTitle={currentTitle} courseId={courseId}
         />
       </div>
-      <div style={{ display: activePanel === 'break' ? 'contents' : 'none' }}>
-        <BreathBubble />
-      </div>
+      {/* BreathBubble relocated to CanvasSettingsOverlay > Wellbeing */}
     </>
   ) : null;
 

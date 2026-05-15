@@ -13,12 +13,26 @@
 
 import { appendEvent } from '../core/HistoryOfThought';
 
-function mockBriefSimplifierOutput(brief) {
+function mockBriefSimplifierOutput(brief, rawText) {
   const title = brief?.title || 'Assessment';
+  const text = rawText || brief?.body || '';
+
+  // Extract key phrases from the actual document to make the mock
+  // content-specific rather than a generic template.
+  const sentences = text.replace(/\n+/g, ' ').split(/(?<=[.!?])\s+/).filter(s => s.length > 20);
+  const topicHint = sentences.length > 0
+    ? sentences[0].slice(0, 120)
+    : title;
+  const keyTerms = text.match(/\b[A-Z][a-z]{4,}\b/g) || [];
+  const uniqueTerms = [...new Set(keyTerms)].slice(0, 3);
+  const termSummary = uniqueTerms.length > 0
+    ? uniqueTerms.join(', ')
+    : 'the key concepts';
+
   return {
     weeklyTasks: [
-      { week: 1, tasks: ['Read the brief twice. Highlight the action verbs.', `Identify the ${title} topic from the provided list.`] },
-      { week: 2, tasks: ['Find 3 sources from the reading list.', 'Write one sentence summarising each source.'] },
+      { week: 1, tasks: [`Read the brief twice. This document covers: ${topicHint}`, `Identify the key terms: ${termSummary}. Look up any you do not understand.`] },
+      { week: 2, tasks: ['Find 3 sources from the reading list that relate to the topics above.', 'Write one sentence summarising each source.'] },
       { week: 3, tasks: ['Draft the introduction (plain English first).', 'Map your sources to each rubric criterion.'] },
       { week: 4, tasks: ['Write the main body. One paragraph per criterion.', 'Check word count against target.'] },
       { week: 5, tasks: ['Revise: read aloud, fix flow.', 'Format references. Export and submit.'] },
@@ -36,9 +50,10 @@ function mockBriefSimplifierOutput(brief) {
       { term: 'Evaluate', plainLanguage: 'Weigh up the strengths and weaknesses.' },
     ],
     hiddenCurriculum: [
-      { unstatedExpectation: 'The marker expects you to use the readings from weeks 1-5, not just any source.', evidence: 'Reading list is referenced in the rubric under "use of course materials".' },
+      { unstatedExpectation: 'The marker expects you to use the readings from the course, not just any source.', evidence: 'Reading list is referenced in the rubric under "use of course materials".' },
       { unstatedExpectation: 'A "literature review" means you compare sources, not just summarise them one by one.', evidence: 'The rubric criterion "synthesis" implies comparative analysis.' },
     ],
+    _source: 'mock',
   };
 }
 
@@ -84,7 +99,7 @@ export async function runBriefSimplifier({ assessmentBrief, courseContext }) {
   } catch (err) {
     if (typeof console !== 'undefined') console.warn('[BriefSimplifier] API call failed, falling back to mock:', err?.message);
     error = err?.message || 'unknown';
-    result = mockBriefSimplifierOutput(assessmentBrief);
+    result = mockBriefSimplifierOutput(assessmentBrief, courseContext?.rawText);
     source = 'mock';
   }
 

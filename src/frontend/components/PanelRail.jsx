@@ -52,8 +52,8 @@ const PANELS = [
     info: 'Gives formative feedback on your draft against each rubric criterion. Not a grade predictor: it highlights what is strong and what needs more work, with specific suggestions.' },
   { id: 'hidden',     icon: '?', label: 'Hidden', tip: 'Hidden: decode what markers want',
     info: 'Decodes the hidden curriculum: the unstated expectations that markers have but the brief does not spell out. What "critical analysis" actually means in practice, what register to use, etc.' },
-  { id: 'break',      icon: '\u25CB', label: 'Break', tip: 'Break: 4-7-8 breathing exercise',
-    info: 'A 4-7-8 breathing exercise to help you reset. Breathe in for 4 seconds, hold for 7, breathe out for 8. Two-minute preset. No streaks, no guilt.' },
+  // BreathBubble removed from panel rail per tester feedback.
+  // Relocated to CanvasSettingsOverlay > Wellbeing section.
 ];
 
 export default function PanelRail({ activePanel, onSelectPanel, panelContent }) {

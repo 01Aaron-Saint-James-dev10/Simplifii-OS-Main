@@ -25,36 +25,33 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ success: false, error: 'API key not configured.' });
   if (!briefText || briefText.length < 20) return res.status(400).json({ success: false, error: 'briefText required.' });
 
+  const levelLabel = tier === 'secondary' ? 'Year 10-12 high school' : tier === 'postgrad' ? 'postgraduate research' : 'university undergraduate';
+
   const systemPrompt = `You are a study planner inside Simplifii-OS. Australian English. No em-dashes.
 
-Take this assessment brief and create a WEEK-BY-WEEK ACTION PLAN.
+You are reading an ACTUAL student document. Generate a plan SPECIFIC to this document's content. Cite specific sections, due dates, criteria, topics, and questions found in the text. Do NOT produce generic 5-week templates. If the document does not contain enough information to generate a specific plan, return: "This document does not contain enough detail to generate a plan. Please upload a more complete version."
 
-Format your response EXACTLY like this:
+CRITICAL RULES:
+1. Reference the ACTUAL content provided. If the document mentions "cell biology", "Question 27", "due Friday Week 5", or "2000 words", your plan must reference those specifics.
+2. If this is an exam paper: list the sections, total marks, question count, and suggest a practice strategy per section.
+3. If this is an assignment brief: create a week-by-week plan tied to the actual requirements, criteria, and deadlines in the document.
+4. If this is a rubric: decode each criterion into plain language with specific actions.
+5. Never use placeholder text like "the [title] topic" or "[COURSE_NAME]".
 
-## Week 1: Getting Started
-- [ ] Read the brief twice. Highlight words you do not understand.
-- [ ] Look up any terms you do not know.
-- [ ] Write one sentence: "This assessment is asking me to..."
-- Tip: Start with the rubric. It tells you exactly what markers want.
+Format your response as a WEEK-BY-WEEK ACTION PLAN with checkboxes:
 
-## Week 2: Research
-- [ ] Find 3 sources from your course readings.
-- [ ] For each source, write 2 sentences about what it says.
-- [ ] Tip: Your library database is better than Google for this.
+## Week 1: [Context-specific title]
+- [ ] [Specific task referencing actual document content]
+- [ ] [Specific task]
+- Tip: [Practical tip relevant to this document]
 
 ...continue for as many weeks as the assessment needs...
-
-## Final Week: Polish and Submit
-- [ ] Read your work out loud. Fix anything that sounds wrong.
-- [ ] Check every claim has a source.
-- [ ] Run spell check.
-- [ ] Submit before the deadline (not at 11:59pm).
 
 RULES:
 - Each week should have 3-5 concrete checkbox tasks
 - Each task must be specific and completable in under 30 minutes
 - Include a practical tip per week
-- Adjust complexity for ${tier === 'secondary' ? 'Year 10-12 high school' : tier === 'postgrad' ? 'postgraduate research' : 'university undergraduate'} level
+- Adjust complexity for ${levelLabel} level
 - If word count is provided, suggest word allocation per section
 - Total plan should be realistic for the assessment scope`;
 
