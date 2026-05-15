@@ -20,17 +20,18 @@ export default async function handler(req, res) {
   const quota = await checkQuota(userId);
   if (quota.exceeded) return res.status(402).json({ success: false, error: quota.error });
 
-  const { briefText, assessmentTitle, assessmentType, tier, wordCount, documentType, literalMode } = req.body || {};
+  const { briefText, assessmentTitle, assessmentType, tier, wordCount, documentType, literalMode, accessibilityProfile } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ success: false, error: 'API key not configured.' });
   if (!briefText || briefText.length < 20) return res.status(400).json({ success: false, error: 'briefText required.' });
 
   const levelLabel = tier === 'secondary' ? 'Year 10-12 high school' : tier === 'postgrad' ? 'postgraduate research' : 'university undergraduate';
   const literalPreamble = literalMode ? '\nLITERAL MODE: No metaphors, no idioms, no ambiguity. Label emotions [feeling: X]. Mark uncertainty [uncertain] vs [confirmed]. Number all steps.\n' : '';
+  const profilePreamble = accessibilityProfile && accessibilityProfile !== 'standard' ? `\nAdapt output for ${accessibilityProfile} accessibility profile.\n` : '';
 
   // Type-specific prompt overrides
   if (documentType === 'exam_paper') {
-    const examPrompt = `You are a study planner inside Simplifii-OS. Australian English. No em-dashes.${literalPreamble}
+    const examPrompt = `You are a study planner inside Simplifii-OS. Australian English. No em-dashes.${literalPreamble}${profilePreamble}
 
 You are reading an ACTUAL exam paper. Analyse it and create a PRACTICE PLAN.
 
@@ -91,7 +92,7 @@ ${briefText.slice(0, 5000)}`;
   }
 
   if (documentType === 'rubric') {
-    const rubricPrompt = `You are a study planner inside Simplifii-OS. Australian English. No em-dashes.${literalPreamble}
+    const rubricPrompt = `You are a study planner inside Simplifii-OS. Australian English. No em-dashes.${literalPreamble}${profilePreamble}
 
 You are reading an ACTUAL marking rubric. Decode it for the student.
 
@@ -131,7 +132,7 @@ ${briefText.slice(0, 5000)}`;
     }
   }
 
-  const systemPrompt = `You are a study planner inside Simplifii-OS. Australian English. No em-dashes.${literalPreamble}
+  const systemPrompt = `You are a study planner inside Simplifii-OS. Australian English. No em-dashes.${literalPreamble}${profilePreamble}
 
 You are reading an ACTUAL student document. Generate a plan SPECIFIC to this document's content. Cite specific sections, due dates, criteria, topics, and questions found in the text. Do NOT produce generic 5-week templates. If the document does not contain enough information to generate a specific plan, return: "This document does not contain enough detail to generate a plan. Please upload a more complete version."
 

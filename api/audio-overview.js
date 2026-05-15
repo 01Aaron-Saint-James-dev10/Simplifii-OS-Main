@@ -22,12 +22,12 @@ export default async function handler(req, res) {
   const quota = await checkQuota(userId);
   if (quota.exceeded) return res.status(402).json({ success: false, error: quota.error });
 
-  const { briefText, assessmentTitle, tier } = req.body || {};
+  const { briefText, assessmentTitle, tier, literalMode, accessibilityProfile } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ success: false, error: 'API key not configured.' });
   if (!briefText || briefText.length < 20) return res.status(400).json({ success: false, error: 'briefText required.' });
 
-  const systemPrompt = `You are a friendly audio overview narrator inside Simplifii-OS. Australian English. No em-dashes.
+  let systemPrompt = `You are a friendly audio overview narrator inside Simplifii-OS. Australian English. No em-dashes.
 
 Convert this assessment brief into a 60-second spoken script. Write it as if you are a calm, friendly senior student explaining the assignment to a ${tier === 'secondary' ? 'stressed Year 11 friend' : 'classmate'}.
 
@@ -39,6 +39,9 @@ RULES:
 - No jargon. Explain any unavoidable terms.
 - Max 150 words (about 60 seconds spoken).
 - Return ONLY the script text. No formatting, no headers.`;
+
+  if (literalMode) systemPrompt += '\n\nLITERAL MODE: No metaphors, no idioms. Use concrete, specific language only.';
+  if (accessibilityProfile && accessibilityProfile !== 'standard') systemPrompt += `\n\nAdapt script for ${accessibilityProfile} accessibility profile.`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
