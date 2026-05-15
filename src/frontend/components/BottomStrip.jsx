@@ -80,14 +80,14 @@ export default function BottomStrip({ wordCount, targetWords }) {
         </span>
 
         <span style={{ color: TEXT_FAINT }}>
-          Beta. Local-only. Your work stays yours.
+          Beta. Synced securely. We never sell your data.
         </span>
       </div>
 
-      {/* Right: local badge */}
+      {/* Right: auto-saved badge */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 3, color: TEXT_FAINT }}>
         <span style={{ width: 5, height: 5, borderRadius: '50%', background: ACCENT_PULSE, display: 'inline-block' }} aria-hidden="true" />
-        Local-only
+        Auto-saved
       </div>
     </footer>
   );

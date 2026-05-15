@@ -23,7 +23,7 @@ export default function BodyDoublingLine() {
       }}
       aria-live="polite"
     >
-      Beta. Local-only. Your work stays yours.
+      Beta. Synced securely. We never sell your data.
     </p>
   );
 }
