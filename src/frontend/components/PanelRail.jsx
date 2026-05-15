@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import ToolModal from './ToolModal';
+import { announceTransition } from '../services/PredictabilityService';
 import {
   SURFACE_CARD,
   SURFACE_RAISED,
@@ -104,7 +105,11 @@ export default function PanelRail({ activePanel, onSelectPanel, panelContent }) 
               aria-selected={isActive}
               aria-label={p.label}
               title={p.tip}
-              onClick={() => onSelectPanel(isActive ? null : p.id)}
+              onClick={() => {
+                const next = isActive ? null : p.id;
+                if (next) announceTransition(p.label);
+                onSelectPanel(next);
+              }}
               style={{
                 width: 36,
                 height: 36,

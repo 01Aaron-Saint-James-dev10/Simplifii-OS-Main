@@ -3,6 +3,7 @@ import { useSettings } from '../SettingsContext';
 import useConfidenceDetector from '../hooks/useConfidenceDetector';
 import AffirmationBanner from './AffirmationBanner';
 import ResponseFeedback from './ResponseFeedback';
+import { announceAction } from '../services/PredictabilityService';
 import {
   SURFACE_RAISED,
   TEXT_PRIMARY,
@@ -75,6 +76,13 @@ export default function TutorPanel({ assessmentTitle, briefText, documentType })
     setError('');
 
     try {
+      const proceed = await announceAction({
+        type: 'ai_response',
+        description: 'Send your question to the tutor',
+        estimatedMs: 5000,
+      });
+      if (proceed === 'cancel') { setLoading(false); return; }
+
       const response = await fetch('/api/tutor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

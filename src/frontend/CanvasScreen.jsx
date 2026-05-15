@@ -28,6 +28,7 @@ import ReentryOverlay from './components/ReentryOverlay';
 import CanvasSettingsOverlay from './components/CanvasSettingsOverlay';
 import NoBriefPrompt from './components/NoBriefPrompt';
 import AffirmationBanner from './components/AffirmationBanner';
+import AnnouncementBanner from './components/AnnouncementBanner';
 import './CanvasScreen.css';
 
 /**
@@ -428,6 +429,7 @@ export default function CanvasScreen() {
         />
       </div>
 
+      <AnnouncementBanner />
       {showSaveAffirmation && <AffirmationBanner trigger="save_event" visible={true} />}
       <BottomStrip wordCount={wordCount} targetWords={targetWords} />
 

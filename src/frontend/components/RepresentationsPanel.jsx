@@ -3,6 +3,7 @@ import { useSettings } from '../SettingsContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import AsciiLoader from './AsciiLoader';
+import { announceAction } from '../services/PredictabilityService';
 import {
   SURFACE_RAISED,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
@@ -64,6 +65,14 @@ export default function RepresentationsPanel({ briefText, assessmentTitle, cours
     setLoading(type);
     setError('');
     try {
+      const typeLabel = TYPES.find(t => t.id === type)?.label || type;
+      const proceed = await announceAction({
+        type: 'ai_response',
+        description: `Translate into ${typeLabel}`,
+        estimatedMs: 8000,
+      });
+      if (proceed === 'cancel') { setLoading(null); return; }
+
       const response = await fetch('/api/represent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSettings } from '../SettingsContext';
 import AsciiLoader from './AsciiLoader';
+import { announceAction } from '../services/PredictabilityService';
 import {
   SURFACE_RAISED,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
@@ -45,6 +46,13 @@ export default function AudioOverviewPlayer({ briefText, assessmentTitle }) {
     setLoading(true);
     setError('');
     try {
+      const proceed = await announceAction({
+        type: 'ai_response',
+        description: 'Generate audio overview script',
+        estimatedMs: 8000,
+      });
+      if (proceed === 'cancel') { setLoading(false); return; }
+
       const res = await fetch('/api/audio-overview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

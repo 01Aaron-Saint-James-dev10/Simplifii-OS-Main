@@ -3,6 +3,7 @@ import { useSettings } from '../SettingsContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import AsciiLoader from './AsciiLoader';
+import { announceAction } from '../services/PredictabilityService';
 import ResponseFeedback from './ResponseFeedback';
 import {
   SURFACE_RAISED,
@@ -60,6 +61,13 @@ export default function ToolPanel({
     setLoading(true);
     setError('');
     try {
+      const proceed = await announceAction({
+        type: 'ai_response',
+        description: `Generate ${title}`,
+        estimatedMs: 10000,
+      });
+      if (proceed === 'cancel') { setLoading(false); return; }
+
       const payload = buildPayload(briefText, rubricText, draftText, { tier: activeTier, assessmentTitle });
       const response = await fetch(endpoint, {
         method: 'POST',
