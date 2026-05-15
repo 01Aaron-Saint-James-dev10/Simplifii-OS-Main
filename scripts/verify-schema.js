@@ -37,8 +37,13 @@ const EXPECTED_TABLES = [
   'profile_definitions',
   'question_transformations',
   'ai_response_feedback',
+  'tool_feedback',
+  'page_feedback',
   'session_feedback',
   'assessment_representations',
+  'document_classifications',
+  'classification_telemetry',
+  'audio_overviews',
 ];
 
 // Columns added via ALTER TABLE that are load-bearing for features.

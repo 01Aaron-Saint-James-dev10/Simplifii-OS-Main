@@ -34,6 +34,29 @@ export default function MultimodalCanvas({ question, documentId, onAskTutor }) {
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState('');
 
+  // Answer workspace state (per question, persisted to localStorage)
+  const [answers, setAnswers] = useState(() => {
+    // Restore any previously saved answers for this document
+    const restored = {};
+    try {
+      for (let i = 1; i <= 40; i++) {
+        const key = `simplifii_answer_${documentId}_q${i}`;
+        const stored = localStorage.getItem(key);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const lastAttempt = parsed.attempts?.[parsed.attempts.length - 1];
+          if (lastAttempt?.text) restored[i] = lastAttempt.text;
+        }
+      }
+    } catch { /* ignore corrupt localStorage */ }
+    return restored;
+  });
+  const userAnswer = answers[question.number] || '';
+  const setUserAnswer = (text) => setAnswers(prev => ({ ...prev, [question.number]: text }));
+  const [hintLoading, setHintLoading] = useState(false);
+  const [hint, setHint] = useState({});
+  const [saved, setSaved] = useState({});
+
   const generate = useCallback(async (formatType) => {
     if (formatType === 'original' || content[formatType]) {
       setActiveFormat(formatType);
@@ -281,21 +304,120 @@ export default function MultimodalCanvas({ question, documentId, onAskTutor }) {
         {renderContent()}
       </div>
 
-      {/* Inline tutor prompt */}
-      {onAskTutor && (
-        <div style={{ padding: '8px 14px', borderTop: `1px solid ${SURFACE_RAISED}`, display: 'flex', gap: 6 }}>
+      {/* Answer workspace */}
+      <div style={{ padding: '0 14px 14px', borderTop: `1px solid ${SURFACE_RAISED}` }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0 6px' }}>
+          <span style={{ fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ACCENT_PULSE }}>
+            Your answer
+          </span>
+          {saved[question.number] && (
+            <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, color: TEXT_FAINT }}>Saved</span>
+          )}
+        </div>
+        <textarea
+          placeholder={`Try answering Q${question.number} here...`}
+          value={userAnswer}
+          onChange={(e) => { setUserAnswer(e.target.value); setSaved(prev => ({ ...prev, [question.number]: false })); }}
+          style={{
+            width: '100%', minHeight: 160, padding: '10px 12px',
+            fontFamily: FONT_BODY, fontSize: 13, lineHeight: 1.7,
+            color: TEXT_PRIMARY, background: 'transparent',
+            border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS,
+            resize: 'vertical', outline: 'none',
+          }}
+          onFocus={e => { e.currentTarget.style.borderColor = ACCENT_PULSE; }}
+          onBlur={e => { e.currentTarget.style.borderColor = SURFACE_RAISED; }}
+        />
+
+        {/* Hint display */}
+        {hint[question.number] && (
+          <div style={{ marginTop: 8, padding: '8px 10px', background: ACCENT_GLASS, border: `1px solid ${ACCENT_BORDER}`, borderRadius: BORDER_RADIUS }}>
+            <p style={{ fontFamily: FONT_SYSTEM, fontSize: 9, color: ACCENT_PULSE, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Hint</p>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_PRIMARY, margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{hint[question.number]}</p>
+          </div>
+        )}
+
+        {/* Action buttons */}
+        <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
           <button type="button"
-            onClick={() => onAskTutor(question.text, activeFormat)}
+            disabled={hintLoading}
+            onClick={async () => {
+              setHintLoading(true);
+              try {
+                const res = await fetch('/api/tutor', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    messages: [{ role: 'user', text: `Give me a hint for this question (do NOT give the answer): ${question.text}` }],
+                    assessmentTitle: `Question ${question.number}`,
+                    tier: activeTier || 'tertiary',
+                    systemOverride: 'You are a Socratic tutor. Give ONE helpful hint that guides the student toward the answer without revealing it. Keep it under 3 sentences. Australian English.',
+                  }),
+                });
+                const data = await res.json();
+                if (data.success) setHint(prev => ({ ...prev, [question.number]: data.reply }));
+              } catch { /* network error */ }
+              setHintLoading(false);
+            }}
             style={{
               fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 600,
               color: TEXT_MUTED, background: 'transparent',
               border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS,
-              padding: '4px 10px', cursor: 'pointer', minHeight: 28,
+              padding: '4px 10px', cursor: hintLoading ? 'wait' : 'pointer', minHeight: 28,
             }}>
-            Ask tutor about this question
+            {hintLoading ? 'Thinking...' : 'Get a hint'}
           </button>
+          <button type="button"
+            disabled={!userAnswer.trim()}
+            onClick={() => {
+              if (onAskTutor) onAskTutor(
+                `My answer to Q${question.number}: "${userAnswer}"\n\nThe question was: ${question.text}\n\nHow did I go? What could I improve?`,
+                activeFormat
+              );
+            }}
+            style={{
+              fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 600,
+              color: userAnswer.trim() ? ACCENT_PULSE : TEXT_FAINT,
+              background: userAnswer.trim() ? ACCENT_GLASS : 'transparent',
+              border: `1px solid ${userAnswer.trim() ? ACCENT_BORDER : SURFACE_RAISED}`,
+              borderRadius: BORDER_RADIUS,
+              padding: '4px 10px', cursor: userAnswer.trim() ? 'pointer' : 'default', minHeight: 28,
+            }}>
+            Check my answer
+          </button>
+          <button type="button"
+            disabled={!userAnswer.trim()}
+            onClick={() => {
+              // Save to localStorage keyed by documentId + question number
+              const key = `simplifii_answer_${documentId}_q${question.number}`;
+              const existing = JSON.parse(localStorage.getItem(key) || '{"attempts":[]}');
+              existing.attempts.push({ text: userAnswer, timestamp: Date.now(), format: activeFormat });
+              localStorage.setItem(key, JSON.stringify(existing));
+              setSaved(prev => ({ ...prev, [question.number]: true }));
+            }}
+            style={{
+              fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 600,
+              color: userAnswer.trim() ? TEXT_MUTED : TEXT_FAINT,
+              background: 'transparent',
+              border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS,
+              padding: '4px 10px', cursor: userAnswer.trim() ? 'pointer' : 'default', minHeight: 28,
+            }}>
+            Save attempt
+          </button>
+          {onAskTutor && (
+            <button type="button"
+              onClick={() => onAskTutor(question.text, activeFormat)}
+              style={{
+                fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 600,
+                color: TEXT_MUTED, background: 'transparent',
+                border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS,
+                padding: '4px 10px', cursor: 'pointer', minHeight: 28,
+              }}>
+              Ask tutor about this question
+            </button>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

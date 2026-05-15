@@ -42,6 +42,7 @@
     "prestart": "node scripts/copy-pdf-worker.js && node scripts/build-grounding-manifest.js",
     "verify-schema": "node scripts/verify-schema.js",
     "prebuild": "node scripts/copy-pdf-worker.js && node scripts/build-grounding-manifest.js",
+    "postbuild": "node scripts/verify-schema.js || true",
     "postinstall": "node scripts/copy-pdf-worker.js",
     "prepare": "husky || true"
   },

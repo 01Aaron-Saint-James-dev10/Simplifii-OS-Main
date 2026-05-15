@@ -438,3 +438,35 @@ Light/Paper mode: side panels render white while canvas stays black. Audit theme
 ## Sprint DD — Reading + Writing Support Layer
 
 Active reading + writing assistance throughout the editor. 12 features: read-aloud for editor content, read-aloud for original document, reading speed estimator, comprehension break reminders, reading ruler, focus mode, sentence starters, idea-to-sentence helper (voice to structured text), dyslexia-friendly spell help, writing analysis sidebar, word prediction, citation/reference helper. Profile-aware defaults per accessibility profile. Effort: 40-50 hours. Priority: build after multimodal canvas.
+
+---
+
+## Sprint FF — Universal Resource Library (60-80 hours)
+
+**Purpose:** Replace "upload your own PDF" workflow with "choose from pre-parsed library" as PRIMARY path. Upload becomes secondary fallback. Solves PDF parsing reliability at scale and creates a knowledge moat through curated content.
+
+**Two-tier system:**
+- **Tier 1: Curated Library** (server-side, pre-parsed). HSC past papers (NESA, public, 2018-2024), marking guidelines, VCE/QCE/WACE equivalents, ACARA syllabuses, OpenStax textbooks. Each item: pre-classified, pre-parsed, pre-chunked, multimodal transformations cached for popular items.
+- **Tier 2: User Uploads** (existing flow). Students upload their own PDFs. Successful parses optionally contributed to community library (anonymised, consented, reviewed).
+
+**Legal scope:** NESA (educationstandards.nsw.edu.au), VCAA (vcaa.vic.edu.au), QCAA (qcaa.qld.edu.au), ACARA (australiancurriculum.edu.au), OpenStax (CC-BY), MIT OCW (CC-BY-NC-SA). DO NOT scrape: Chegg, Course Hero, StuDocu, Khan Academy, anything behind auth, anything with robots.txt disallow.
+
+**Schema:** resource_library table (id, source, category, subject, year, level, state, title, raw_text, parsed_content, question_count, total_marks, time_allowed_minutes, source_url, license, verified, tags). library_usage table for tracking. GIN index on tags.
+
+**UX:** Fork after "Add Course": Browse Library (recommended, instant load) or Upload Your Own (existing flow). Library picker: subject, year, type filters, preview before selecting.
+
+**Phase 1 (30 hours):** Schema + RLS. Firecrawl background scrape of top 8 HSC subjects (112 docs). Parse + seed library. Build picker UI.
+**Phase 2 (15 hours):** Community contribution flow. Anonymisation pipeline. Review queue. Contributor crediting.
+**Phase 3 (20 hours):** Scale to VCE, QCE, WACE.
+
+**Priority:** Build AFTER current autism-first + multimodal sprints complete and tester window opens.
+
+---
+
+## Sprint GG — Universal Sandpit Tools
+
+**For Teachers:** UDL Lesson Planner, Visual Supports Planner, Strengths and Interests, Task Analysis, Skill Chaining, Differentiation Levels, Social Script Generator, Assignment Helper, Reflective Lens.
+
+**For Students:** Floating Thoughts, First Strings, Pathway, Student Multi-Tool, Concept Explainer.
+
+Each is a focused mini-tool on a secondary page, not main canvas. Spoon Theory Planner already logged as Sprint Y (Dragon Ball Energy Tracking: orange visual, 11-13 balls per Aaron's preference). Effort: TBD per tool. Priority: post-Sprint FF.

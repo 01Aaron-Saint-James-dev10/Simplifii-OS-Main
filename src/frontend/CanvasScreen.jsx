@@ -8,7 +8,6 @@ import { supabase } from '../lib/supabaseClient';
 import CanvasNav from './components/CanvasNav';
 import CanvasEditor from './components/CanvasEditor';
 import SectionEditor from './components/SectionEditor';
-import SectionRail from './components/SectionRail';
 import JokeOverlay from './components/JokeOverlay';
 import DocumentClassifiedModal from './components/DocumentClassifiedModal';
 import PanelRail from './components/PanelRail';
@@ -477,15 +476,19 @@ export default function CanvasScreen() {
           )}
           {briefs.length === 0 && !extractedText && <NoBriefPrompt courseId={courseId} />}
 
-          {/* Exam paper: multimodal canvas per question */}
-          {isExamPaper && examData?.questions?.length > 0 ? (
-            <MultimodalCanvas
-              question={examData.questions.find(q => q.number === activeQuestionNum) || examData.questions[0]}
-              documentId={courseId}
-              onAskTutor={(qText) => {
-                setActivePanel('tutor');
-              }}
-            />
+          {/* Exam paper: multimodal canvas per question. SectionEditor NEVER renders on exam papers. */}
+          {isExamPaper ? (
+            examData?.questions?.length > 0 ? (
+              <MultimodalCanvas
+                question={examData.questions.find(q => q.number === activeQuestionNum) || examData.questions[0]}
+                documentId={courseId}
+                onAskTutor={() => { setActivePanelWithLog('tutor'); }}
+              />
+            ) : (
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', fontFamily: 'var(--font-system, system-ui)', fontSize: 12 }}> {/* allow-style */}
+                Parsing exam questions...
+              </div>
+            )
           ) : (
           <SectionEditor
             sections={activeSections}

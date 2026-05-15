@@ -6,6 +6,7 @@ import ResponseFeedback from './ResponseFeedback';
 import { announceAction } from '../services/PredictabilityService';
 import ComprehensionCheck from './ComprehensionCheck';
 import { getProfilePromptAddition } from '../../services/AccessibilityProfileService';
+import { literalise } from '../../core/LiteralMode';
 import {
   SURFACE_RAISED,
   TEXT_PRIMARY,
