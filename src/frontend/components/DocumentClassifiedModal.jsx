@@ -36,11 +36,11 @@ export default function DocumentClassifiedModal({ type, confidence, suggestedAct
   const info = TYPE_LABELS[type] || TYPE_LABELS.unknown;
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9998, display: 'flex', alignItems: 'center', justifyContent: 'center', background: OVERLAY_BACKDROP, padding: 16 }}
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9998, display: 'flex', alignItems: 'center', justifyContent: 'center', background: OVERLAY_BACKDROP, padding: 24, overflowY: 'auto' }}
       onClick={onDismiss}>
       <div role="dialog" aria-modal="true" aria-label="Document classified"
         onClick={e => e.stopPropagation()}
-        style={{ width: '100%', maxWidth: 440, background: SURFACE_CARD, border: `1px solid ${GLASS_BORDER}`, borderRadius: 12, padding: '28px 24px', outline: 'none' }}>
+        style={{ width: '100%', maxWidth: 440, maxHeight: 'calc(100vh - 48px)', overflowY: 'auto', margin: 'auto', background: SURFACE_CARD, border: `1px solid ${GLASS_BORDER}`, borderRadius: 12, padding: '28px 24px', outline: 'none' }}>
 
         <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: ACCENT_PULSE, margin: '0 0 8px' }}>
           Document detected

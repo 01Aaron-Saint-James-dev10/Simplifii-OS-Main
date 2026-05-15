@@ -429,6 +429,12 @@ Review docs/PRIOR_BUILD_AUDIT.md. Top candidates from prior builds: AI risk scor
 
 ---
 
+## Sprint EE — Visual Polish and Theme Consistency
+
+Light/Paper mode: side panels render white while canvas stays black. Audit theme tokens for paper theme. Canvas background must use theme background var, not hardcoded black. Check tokens.js, CanvasScreen.jsx, SectionEditor.jsx for hardcoded dark values. System-wide aesthetic update: rounded corners (8-12px border-radius on panels, modals, cards), subtle shadows (0 2px 8px rgba(0,0,0,0.08)), smoother 200ms transitions on hover, softer focus rings. Effort: 8-12 hours. Priority: post-autism-first.
+
+---
+
 ## Sprint DD — Reading + Writing Support Layer
 
 Active reading + writing assistance throughout the editor. 12 features: read-aloud for editor content, read-aloud for original document, reading speed estimator, comprehension break reminders, reading ruler, focus mode, sentence starters, idea-to-sentence helper (voice to structured text), dyslexia-friendly spell help, writing analysis sidebar, word prediction, citation/reference helper. Profile-aware defaults per accessibility profile. Effort: 40-50 hours. Priority: build after multimodal canvas.
