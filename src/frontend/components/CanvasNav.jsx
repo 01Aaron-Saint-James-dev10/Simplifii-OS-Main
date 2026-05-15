@@ -47,7 +47,6 @@ export default function CanvasNav({ courseName, assessmentTitle, saveStatus, las
         background: SURFACE_CARD_SOLID, // allow-style
         backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
         borderBottom: `1px solid ${SURFACE_RAISED}`,
-        backdropFilter: 'blur(8px)',
       }}
       role="navigation"
       aria-label="Canvas navigation"

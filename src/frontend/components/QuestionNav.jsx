@@ -40,8 +40,12 @@ export default function QuestionNav({ questions = [], activeQuestion, onSelect, 
             fontFamily: FONT_SYSTEM, fontSize: 8, fontWeight: 700,
             letterSpacing: '0.1em', textTransform: 'uppercase',
             color: TEXT_FAINT, padding: '8px 12px 4px',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
           }}>
-            {sectionName}
+            <span>{sectionName}</span>
+            <span style={{ fontSize: 7, fontWeight: 400, letterSpacing: 0 }}>
+              {sectionQs.length}q {sectionQs.reduce((s, q) => s + (q.marks || 0), 0)}m
+            </span>
           </div>
 
           {sectionQs.map(q => {

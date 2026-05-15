@@ -59,6 +59,11 @@ const PANELS = [
 
 export default function PanelRail({ activePanel, onSelectPanel, panelContent }) {
   const [showInfo, setShowInfo] = useState(false);
+  // Show labels by default on first visit, collapse after user has explored
+  const [expanded, setExpanded] = useState(() => {
+    try { return localStorage.getItem('simplifii_rail_collapsed') !== 'true'; } catch { return true; }
+  });
+  const railWidth = expanded ? 110 : 44;
 
   return (
     <div style={{ display: 'flex', flexShrink: 0 }}>
@@ -83,18 +88,51 @@ export default function PanelRail({ activePanel, onSelectPanel, panelContent }) 
       {/* Tab rail */}
       <nav
         style={{
-          width: 44,
+          width: railWidth,
+          transition: 'width 150ms ease',
           background: SURFACE_CARD,
           borderLeft: `1px solid ${SURFACE_RAISED}`,
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
+          alignItems: expanded ? 'stretch' : 'center',
           paddingTop: 8,
           gap: 2,
+          overflowY: 'auto',
+          overflowX: 'hidden',
         }}
         role="tablist"
         aria-label="Canvas panels"
       >
+        {/* Collapse/expand toggle */}
+        <button
+          type="button"
+          aria-label={expanded ? 'Collapse toolbar' : 'Expand toolbar'}
+          title={expanded ? 'Collapse toolbar' : 'Expand toolbar'}
+          onClick={() => {
+            const next = !expanded;
+            setExpanded(next);
+            try { localStorage.setItem('simplifii_rail_collapsed', next ? 'false' : 'true'); } catch {}
+          }}
+          style={{
+            width: expanded ? '100%' : 36,
+            height: 24,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            outline: 'none',
+            fontFamily: FONT_SYSTEM,
+            fontSize: 10,
+            color: TEXT_FAINT,
+            marginBottom: 4,
+            alignSelf: 'center',
+          }}
+        >
+          {expanded ? '\u2039 collapse' : '\u203A'}
+        </button>
+
         {PANELS.map(p => {
           const isActive = activePanel === p.id;
           return (
@@ -111,26 +149,31 @@ export default function PanelRail({ activePanel, onSelectPanel, panelContent }) 
                 onSelectPanel(next);
               }}
               style={{
-                width: 36,
-                height: 36,
+                width: expanded ? '100%' : 36,
+                height: 32,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
+                justifyContent: expanded ? 'flex-start' : 'center',
+                gap: expanded ? 6 : 0,
+                padding: expanded ? '0 8px' : 0,
                 background: isActive ? ACCENT_GLASS : 'transparent',
                 border: isActive ? `1px solid ${ACCENT_BORDER}` : '1px solid transparent',
                 borderRadius: BORDER_RADIUS,
                 cursor: 'pointer',
                 outline: 'none',
                 fontFamily: FONT_SYSTEM,
-                fontSize: 11,
-                fontWeight: 700,
+                fontSize: expanded ? 10 : 11,
+                fontWeight: isActive ? 700 : 600,
                 color: isActive ? ACCENT_PULSE : TEXT_FAINT,
                 letterSpacing: '0.04em',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
               }}
               onFocus={e => { e.currentTarget.style.boxShadow = `0 0 0 2px ${FOCUS_RING}`; }}
               onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
             >
-              {p.icon}
+              <span style={{ width: 18, textAlign: 'center', flexShrink: 0 }}>{p.icon}</span>
+              {expanded && <span>{p.label}</span>}
             </button>
           );
         })}

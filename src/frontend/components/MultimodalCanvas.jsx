@@ -258,12 +258,17 @@ export default function MultimodalCanvas({ question, documentId, onAskTutor }) {
       {/* Header */}
       <div style={{ padding: '10px 14px', borderBottom: `1px solid ${SURFACE_RAISED}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
+          {question.section && (
+            <div style={{ fontFamily: FONT_SYSTEM, fontSize: 8, fontWeight: 600, color: TEXT_FAINT, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 2 }}>
+              {question.section}
+            </div>
+          )}
           <span style={{ fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, color: ACCENT_PULSE, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
             Question {question.number}
           </span>
           {question.marks > 0 && (
             <span style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_FAINT, marginLeft: 8 }}>
-              {question.marks} marks
+              {question.marks} {question.marks === 1 ? 'mark' : 'marks'}
             </span>
           )}
         </div>
