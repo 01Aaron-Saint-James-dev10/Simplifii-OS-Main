@@ -101,6 +101,10 @@ export default function CanvasSettingsOverlay({ onClose }) {
     reducedMotion, setReducedMotion,
     isZenMode, setIsZenMode,
     theme, setTheme,
+    autismFirstEnabled, setAutismFirstEnabled,
+    sensoryLevel, setSensoryLevel,
+    predictabilityAnnouncements, setPredictabilityAnnouncements,
+    isLiteralMode, setIsLiteralMode,
   } = useSettings();
 
   // Font family stored in localStorage directly (not in SettingsContext to avoid
@@ -211,6 +215,33 @@ export default function CanvasSettingsOverlay({ onClose }) {
         <div style={{ borderTop: `1px solid ${SURFACE_RAISED}`, margin: '12px 0' }} />
         <SectionLabel>Focus</SectionLabel>
         <Toggle label="Distraction-free mode" description="Hide rails and bottom strip. Press Escape to exit." value={isZenMode} onChange={setIsZenMode} />
+
+        <div style={{ borderTop: `1px solid ${SURFACE_RAISED}`, margin: '12px 0' }} />
+        <SectionLabel>Autism-first features</SectionLabel>
+        <Toggle label="Autism-first mode" description="Enables predictability, sensory dial, literal mode, and decision support" value={autismFirstEnabled} onChange={setAutismFirstEnabled} />
+        {autismFirstEnabled && (
+          <>
+            <Toggle label="Predictability announcements" description="Announces every AI action before it happens" value={predictabilityAnnouncements} onChange={setPredictabilityAnnouncements} />
+            <Toggle label="Literal mode" description="Removes metaphors, idioms, and ambiguous language from AI" value={isLiteralMode} onChange={setIsLiteralMode} />
+            <div style={{ padding: '8px 0' }}>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600, color: TEXT_PRIMARY, marginBottom: 6 }}>Sensory level</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, color: TEXT_FAINT }}>Minimal</span>
+                <input
+                  type="range"
+                  min={1}
+                  max={10}
+                  value={sensoryLevel}
+                  onChange={e => setSensoryLevel(Number(e.target.value))}
+                  aria-label={`Sensory level: ${sensoryLevel}`}
+                  style={{ flex: 1, accentColor: ACCENT_PULSE }}
+                />
+                <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, color: TEXT_FAINT }}>Full</span>
+                <span style={{ fontFamily: FONT_SYSTEM, fontSize: 11, fontWeight: 700, color: ACCENT_PULSE, minWidth: 20, textAlign: 'center' }}>{sensoryLevel}</span>
+              </div>
+            </div>
+          </>
+        )}
 
         <div style={{ borderTop: `1px solid ${SURFACE_RAISED}`, margin: '12px 0' }} />
         <SectionLabel>Wellbeing</SectionLabel>
