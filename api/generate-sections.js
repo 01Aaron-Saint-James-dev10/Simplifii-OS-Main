@@ -32,6 +32,7 @@ export default async function handler(req, res) {
 Analyse this assessment brief and generate the OPTIMAL section structure for this specific assessment type.
 
 DO NOT default to Introduction/Body/Conclusion for everything. Match the assessment type:
+- exam_paper / Exam Paper: Use the ACTUAL section structure from the document. Typically Section I (Multiple Choice), Section II (Short Answer), Section III (Extended Response). Name sections exactly as they appear in the paper. Include question ranges and marks per section.
 - Essay: Introduction, Argument sections (named by topic), Conclusion
 - Lab Report: Title, Abstract, Introduction, Method, Results, Discussion, Conclusion, References
 - Literature Review: Introduction, Theme sections (named by theme), Synthesis, Conclusion

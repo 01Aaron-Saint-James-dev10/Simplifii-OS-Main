@@ -179,11 +179,18 @@ export default function CanvasScreen() {
   const [sectionsLoading, setSectionsLoading] = useState(false);
   const [activeSection, setActiveSection] = useState('introduction');
   const compileFnRef = useRef(null);
+  const lastDocTypeRef = useRef(null);
 
   // Use sections pre-generated during ingestion when available, otherwise
-  // fetch on demand. This eliminates the blank-panel window between upload
-  // and first canvas open.
+  // fetch on demand. Re-fetches when document type changes (e.g. classification
+  // arrives and changes from unknown to exam_paper).
   useEffect(() => {
+    // If docType changed and we already have sections, regenerate
+    if (dynamicSections && effectiveDocType && lastDocTypeRef.current !== effectiveDocType) {
+      lastDocTypeRef.current = effectiveDocType;
+      setDynamicSections(null); // force re-fetch with correct type
+      return;
+    }
     if (dynamicSections) return;
 
     // 1. Sections already baked into extractionData by the ingestion cloud path.
@@ -216,7 +223,7 @@ export default function CanvasScreen() {
       body: JSON.stringify({
         briefText: briefOrText.slice(0, 4000),
         assessmentTitle: currentTitle,
-        assessmentType: course.extractionData?.documentType || '',
+        assessmentType: effectiveDocType || course.extractionData?.documentType || '',
         tier: course.extractionData?.detectedLevel || 'tertiary',
         wordCount: targetWords,
       }),
@@ -231,7 +238,7 @@ export default function CanvasScreen() {
       })
       .catch(() => {})
       .finally(() => setSectionsLoading(false));
-  }, [briefOrText, course.extractionData, courseId, currentTitle, targetWords, dynamicSections]);
+  }, [briefOrText, course.extractionData, courseId, currentTitle, targetWords, dynamicSections, effectiveDocType]);
 
   const examFallbackSections = [
     { type: 'section_mc', label: 'Section I: Multiple Choice', targetWords: 0, guidance: 'Practice the multiple choice questions. Eliminate wrong answers first.' },
