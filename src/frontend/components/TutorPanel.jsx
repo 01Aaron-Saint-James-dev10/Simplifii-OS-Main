@@ -36,11 +36,21 @@ const QUICK_PROMPTS = [
   'What is the opposite view?',
 ];
 
+const DOC_TYPE_LABELS = {
+  exam_paper: 'exam paper practice',
+  rubric: 'rubric',
+  brief: 'assessment',
+  reading: 'reading',
+  notes: 'notes',
+};
+
 export default function TutorPanel({ assessmentTitle, briefText, documentType }) {
   const { activeTier, homeLanguage, easyRead } = useSettings();
   const { activeTrigger, checkMessage, clearTrigger } = useConfidenceDetector();
   const [messages, setMessages] = useState([
-    { role: 'tutor', text: `Working on "${assessmentTitle || 'your assessment'}". What are you stuck on?` },
+    { role: 'tutor', text: documentType && DOC_TYPE_LABELS[documentType]
+      ? `Working on your ${DOC_TYPE_LABELS[documentType]}. What are you stuck on?`
+      : `Working on "${assessmentTitle || 'your assessment'}". What are you stuck on?` },
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);

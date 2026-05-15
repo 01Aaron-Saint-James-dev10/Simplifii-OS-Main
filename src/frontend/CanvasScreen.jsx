@@ -219,13 +219,21 @@ export default function CanvasScreen() {
       .finally(() => setSectionsLoading(false));
   }, [briefOrText, course.extractionData, courseId, currentTitle, targetWords, dynamicSections]);
 
-  const activeSections = dynamicSections || [
+  const examFallbackSections = [
+    { type: 'section_mc', label: 'Section I: Multiple Choice', targetWords: 0, guidance: 'Practice the multiple choice questions. Eliminate wrong answers first.' },
+    { type: 'section_short', label: 'Section II: Short Answer', targetWords: 0, guidance: 'Short answer questions. Show your working. Be specific.' },
+    { type: 'section_extended', label: 'Section III: Extended Response', targetWords: 0, guidance: 'Extended response. Plan before writing. Use evidence from the question.' },
+  ];
+
+  const essayFallbackSections = [
     { type: 'introduction', label: 'Introduction', targetWords: Math.round(targetWords * 0.15), guidance: '' },
     { type: 'body_1', label: 'Body Section 1', targetWords: Math.round(targetWords * 0.25), guidance: '' },
     { type: 'body_2', label: 'Body Section 2', targetWords: Math.round(targetWords * 0.25), guidance: '' },
     { type: 'body_3', label: 'Body Section 3', targetWords: Math.round(targetWords * 0.20), guidance: '' },
     { type: 'conclusion', label: 'Conclusion', targetWords: Math.round(targetWords * 0.15), guidance: '' },
   ];
+
+  const activeSections = dynamicSections || (isExamPaper ? examFallbackSections : essayFallbackSections);
 
   useEffect(() => {
     if (docClassification) return;

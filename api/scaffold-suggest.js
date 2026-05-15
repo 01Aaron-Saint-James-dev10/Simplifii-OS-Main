@@ -15,13 +15,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { rateLimit, getIdentifier } from './_rateLimit.js';
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-  // Log once at cold start; handler will return 401 per request
-  if (typeof console !== 'undefined') console.error('[scaffold-suggest] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
-}
 
 const supabase = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
@@ -54,7 +49,7 @@ export default async function handler(req, res) {
   if (limited) return res.status(429).json({ success: false, error: limited.error });
 
   if (!supabase) {
-    return res.status(401).json({ success: false, error: 'Authentication required to use scaffold suggestions.' });
+    return res.status(200).json({ success: true, suggestedPastQuestions: [], confidence: 'none', note: 'Past questions database not yet configured.' });
   }
 
   const { assessmentBriefText, subject, state } = req.body || {};
