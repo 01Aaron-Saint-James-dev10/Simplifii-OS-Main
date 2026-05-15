@@ -53,8 +53,8 @@ const PANELS = [
     info: 'Gives formative feedback on your draft against each rubric criterion. Not a grade predictor: it highlights what is strong and what needs more work, with specific suggestions.' },
   { id: 'hidden',     icon: '?', label: 'Hidden', tip: 'Hidden: decode what markers want',
     info: 'Decodes the hidden curriculum: the unstated expectations that markers have but the brief does not spell out. What "critical analysis" actually means in practice, what register to use, etc.' },
-  // BreathBubble removed from panel rail per tester feedback.
-  // Relocated to CanvasSettingsOverlay > Wellbeing section.
+  { id: 'analysis',  icon: '\u2261', label: 'Analysis', tip: 'Analysis: real-time writing metrics',
+    info: 'Shows reading level, average sentence length, passive voice percentage, filler words, and word repetition as you write. Helps you tighten your prose.' },
 ];
 
 export default function PanelRail({ activePanel, onSelectPanel, panelContent }) {

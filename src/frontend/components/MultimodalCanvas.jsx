@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useSettings } from '../SettingsContext';
 import { transformQuestion, FORMAT_TYPES } from '../services/QuestionTransformer';
+import { getFormatPriority } from '../../services/AccessibilityProfileService';
 import { announceAction } from '../services/PredictabilityService';
 import AsciiLoader from './AsciiLoader';
 import ComprehensionCheck from './ComprehensionCheck';
@@ -27,7 +28,19 @@ import {
  */
 export default function MultimodalCanvas({ question, documentId, onAskTutor }) {
   const { activeTier, accessibilityProfile, autismFirstEnabled } = useSettings();
-  const [activeFormat, setActiveFormat] = useState('original');
+  const priority = getFormatPriority(accessibilityProfile);
+  const [activeFormat, setActiveFormat] = useState(priority[0] || 'original');
+
+  // Auto-generate preferred format on first render (profile-aware)
+  const autoGenRef = React.useRef(false);
+  React.useEffect(() => {
+    if (autoGenRef.current) return;
+    autoGenRef.current = true;
+    const preferred = priority[0];
+    if (preferred && preferred !== 'original') {
+      generate(preferred);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [content, setContent] = useState({});
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState('');

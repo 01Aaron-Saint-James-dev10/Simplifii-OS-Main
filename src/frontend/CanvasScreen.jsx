@@ -35,6 +35,8 @@ import MultimodalCanvas from './components/MultimodalCanvas';
 import QuestionNav from './components/QuestionNav';
 import { parseExamPaper } from '../services/ExamPaperParser';
 import { startAmbient, stopAmbient } from './services/AmbientSound';
+import ReadingRuler from './components/ReadingRuler';
+import WritingAnalysis from './components/WritingAnalysis';
 import './CanvasScreen.css';
 
 /**
@@ -390,6 +392,9 @@ export default function CanvasScreen() {
         />
       </div>
       {/* BreathBubble relocated to CanvasSettingsOverlay > Wellbeing */}
+      <div style={{ display: activePanel === 'analysis' ? 'contents' : 'none' }}>
+        <WritingAnalysis draftText={draftText} />
+      </div>
     </>
   ) : null;
 
@@ -485,6 +490,7 @@ export default function CanvasScreen() {
 
       <AnnouncementBanner />
       <FidgetZone />
+      <ReadingRuler />
       {showSaveAffirmation && <AffirmationBanner trigger="save_event" visible={true} />}
       <BottomStrip wordCount={wordCount} targetWords={targetWords} />
 
