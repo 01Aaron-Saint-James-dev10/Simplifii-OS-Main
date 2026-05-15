@@ -3,6 +3,7 @@ import { useSettings } from '../SettingsContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import AsciiLoader from './AsciiLoader';
+import ResponseFeedback from './ResponseFeedback';
 import {
   SURFACE_RAISED,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
@@ -136,6 +137,7 @@ export default function ToolPanel({
           <pre style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_PRIMARY, margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
             {result}
           </pre>
+          <ResponseFeedback toolName={toolId} context={{ assessmentTitle, courseId }} />
         </div>
       )}
     </div>

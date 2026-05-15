@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { endSession } from '../../core/StudyPatternTracker';
+import SessionFeedbackModal from '../components/SessionFeedbackModal';
 import {
   TEXT_MUTED, ACCENT_PULSE,
   FONT_SYSTEM, BORDER_RADIUS, SURFACE_RAISED, ACCENT_BORDER,
@@ -12,6 +13,7 @@ import {
 export default function LogoutButton() {
   const { signOut } = useAuth();
   const [busy, setBusy] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   const handleLogout = async () => {
     setBusy(true);
@@ -38,15 +40,20 @@ export default function LogoutButton() {
   };
 
   return (
-    <button
-      type="button"
-      onClick={handleLogout}
-      disabled={busy}
-      aria-label="Sign out"
-      style={styles.button}
-    >
-      {busy ? 'Signing out...' : 'Sign out'}
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={() => setShowFeedback(true)}
+        disabled={busy}
+        aria-label="Sign out"
+        style={styles.button}
+      >
+        {busy ? 'Signing out...' : 'Sign out'}
+      </button>
+      {showFeedback && (
+        <SessionFeedbackModal onDone={() => { setShowFeedback(false); handleLogout(); }} />
+      )}
+    </>
   );
 }
 

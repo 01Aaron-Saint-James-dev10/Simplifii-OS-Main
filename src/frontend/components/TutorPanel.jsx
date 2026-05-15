@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSettings } from '../SettingsContext';
+import ResponseFeedback from './ResponseFeedback';
 import {
   SURFACE_RAISED,
   TEXT_PRIMARY,
@@ -115,6 +116,7 @@ export default function TutorPanel({ assessmentTitle }) {
             <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_PRIMARY, margin: 0, lineHeight: 1.5 }}>
               {m.text}
             </p>
+            {m.role === 'tutor' && i > 0 && <ResponseFeedback toolName="tutor" context={{ messageIndex: i }} />}
           </div>
         ))}
         {loading && (
