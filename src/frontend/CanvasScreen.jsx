@@ -29,6 +29,7 @@ import CanvasSettingsOverlay from './components/CanvasSettingsOverlay';
 import NoBriefPrompt from './components/NoBriefPrompt';
 import AffirmationBanner from './components/AffirmationBanner';
 import AnnouncementBanner from './components/AnnouncementBanner';
+import { getSensoryCSSVars, getSensoryProfile } from '../theme/sensoryProfiles';
 import './CanvasScreen.css';
 
 /**
@@ -44,7 +45,7 @@ import './CanvasScreen.css';
 export default function CanvasScreen() {
   const { courseId, assessmentTitle, navigateToAssessments } = useRouter();
   const { courses, activeCourse, projectSources } = useProject();
-  const { reducedMotion, isZenMode, theme } = useSettings();
+  const { reducedMotion, isZenMode, theme, autismFirstEnabled, sensoryLevel } = useSettings();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Supabase fallback: if localStorage has no course for this courseId,
@@ -364,7 +365,9 @@ export default function CanvasScreen() {
   ) : null;
 
   return (
-    <div className={`canvas-root theme-${theme || 'dark'} ${reducedMotion ? 'canvas-no-motion' : ''} ${isZenMode ? 'canvas-zen' : ''}`}>
+    <div className={`canvas-root theme-${theme || 'dark'} ${reducedMotion ? 'canvas-no-motion' : ''} ${isZenMode ? 'canvas-zen' : ''}`}
+      style={autismFirstEnabled ? getSensoryCSSVars(sensoryLevel) : undefined}
+    >
       <CanvasNav
         courseName={courseName}
         assessmentTitle={currentTitle}

@@ -24,6 +24,11 @@ export default function MatrixRain() {
     // Respect reduced motion and user toggle
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
     if (localStorage.getItem('simplifii_matrix_rain') === 'false') return;
+    // Sensory dial: matrix rain off below level 8 when autism-first is active
+    if (localStorage.getItem('simplifii_autism_first') === 'true') {
+      const sl = Number(localStorage.getItem('simplifii_sensory_level')) || 5;
+      if (sl < 8) return;
+    }
 
     const canvas = canvasRef.current;
     if (!canvas) return;

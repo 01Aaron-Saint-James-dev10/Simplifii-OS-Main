@@ -426,3 +426,9 @@ Check against current build, add missing only: high contrast mode, reading ruler
 ## Sprint CC — Features from Prior Builds to Restore
 
 Review docs/PRIOR_BUILD_AUDIT.md. Top candidates from prior builds: AI risk scoring algorithm (10-dimension text authenticity), hidden curriculum decoder structured JSON schema, V1/V2/V3 depth levels for brief simplifier, key terms extraction prompt, heuristic outline bucketing. Aaron to pick 3-5 features. Effort: TBD. Priority: post-tester.
+
+---
+
+## Sprint DD — Reading + Writing Support Layer
+
+Active reading + writing assistance throughout the editor. 12 features: read-aloud for editor content, read-aloud for original document, reading speed estimator, comprehension break reminders, reading ruler, focus mode, sentence starters, idea-to-sentence helper (voice to structured text), dyslexia-friendly spell help, writing analysis sidebar, word prediction, citation/reference helper. Profile-aware defaults per accessibility profile. Effort: 40-50 hours. Priority: build after multimodal canvas.

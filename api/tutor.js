@@ -50,7 +50,7 @@ export default async function handler(req, res) {
   const quota = await checkQuota(userId);
   if (quota.exceeded) return res.status(402).json({ success: false, error: quota.error });
 
-  const { messages, assessmentTitle, tier, homeLanguage, easyRead, briefText, documentType } = req.body || {};
+  const { messages, assessmentTitle, tier, homeLanguage, easyRead, briefText, documentType, sensoryLevel } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
   if (!apiKey) {
@@ -80,6 +80,15 @@ export default async function handler(req, res) {
 
   if (assessmentTitle) {
     systemPrompt += `\n\nThe learner is currently working on: "${assessmentTitle}".`;
+  }
+
+  // Sensory-level-aware response length
+  if (sensoryLevel && typeof sensoryLevel === 'number') {
+    if (sensoryLevel <= 3) {
+      systemPrompt += '\n\nSENSORY LEVEL LOW (1-3). Give brief one-sentence responses. No examples unless asked. Under 30 words.';
+    } else if (sensoryLevel >= 7) {
+      systemPrompt += '\n\nSENSORY LEVEL HIGH (7-10). Give detailed responses with examples and multiple angles. Up to 150 words.';
+    }
   }
 
   // Confidence reinforcement: if user asks "is this right" repeatedly,

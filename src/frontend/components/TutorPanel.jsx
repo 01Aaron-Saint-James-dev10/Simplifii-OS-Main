@@ -46,7 +46,7 @@ const DOC_TYPE_LABELS = {
 };
 
 export default function TutorPanel({ assessmentTitle, briefText, documentType }) {
-  const { activeTier, homeLanguage, easyRead } = useSettings();
+  const { activeTier, homeLanguage, easyRead, autismFirstEnabled, sensoryLevel } = useSettings();
   const { activeTrigger, checkMessage, clearTrigger } = useConfidenceDetector();
   const [messages, setMessages] = useState([
     { role: 'tutor', text: documentType && DOC_TYPE_LABELS[documentType]
@@ -94,6 +94,7 @@ export default function TutorPanel({ assessmentTitle, briefText, documentType })
           easyRead: easyRead || false,
           briefText: briefText || '',
           documentType: documentType || '',
+          sensoryLevel: autismFirstEnabled ? sensoryLevel : undefined,
         }),
       });
       const data = await response.json();
