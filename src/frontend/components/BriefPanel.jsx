@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { appendEvent } from '../../core/HistoryOfThought';
 import { runBriefSimplifier } from '../../services/BriefSimplifierService';
 import ToolModal from './ToolModal';
+import AudioOverviewPlayer from './AudioOverviewPlayer';
 import BriefSimplifierTool from './BriefSimplifierTool';
 import {
   SURFACE_RAISED,
@@ -88,22 +89,8 @@ export default function BriefPanel({ brief, rubricCriteria, rubricBands, rubricD
         Decode this brief
       </button>
 
-      {/* Audio overview stub */}
-      <button
-        type="button"
-        disabled
-        title="Coming soon"
-        aria-label="Listen to overview (coming soon)"
-        style={{
-          fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
-          textTransform: 'uppercase', color: TEXT_FAINT, background: 'transparent',
-          border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS,
-          padding: '10px 14px', cursor: 'not-allowed', minHeight: 44, outline: 'none',
-          opacity: 0.5,
-        }}
-      >
-        Listen to overview (coming soon)
-      </button>
+      {/* Audio overview */}
+      <AudioOverviewPlayer briefText={brief?.body || brief?.title || ''} assessmentTitle={assessmentTitle} />
 
       {/* Rubric self-assessment */}
       <div>
