@@ -42,9 +42,12 @@ const AWARDS = [
 ];
 
 const SHOWCASE = [
-  { id: 'workspace', label: 'Your workspace', desc: 'Research dashboard with phases, strands, chapters, and corpus in one view.' },
-  { id: 'draft', label: 'Your draft', desc: 'Chapter editor with real-time citation flagging. Every claim checked against your uploaded sources.' },
-  { id: 'reset', label: 'Your reset', desc: 'Built-in breaks designed for sustainable thinking. No guilt. No streak shaming.' },
+  { id: 'upload', label: '1. Upload', desc: 'Drop a PDF or paste a URL. We extract your assessments, due dates, rubric criteria, and build your workspace automatically.' },
+  { id: 'editor', label: '2. Write', desc: 'Full editor with real-time citation flagging. Every claim checked against your uploaded sources. Voice input available.' },
+  { id: 'tutor', label: '3. Ask', desc: 'Socratic tutor powered by Claude. Asks questions to sharpen your thinking. Never writes for you. Adapts to your year level.' },
+  { id: 'voice', label: '4. Speak', desc: 'Voice-to-text input. Speak your thoughts, text appears at cursor. Free, browser-native, no recordings stored.' },
+  { id: 'hsc', label: '5. Practice', desc: '26 years of HSC past papers across NSW, VIC, QLD, WA. Matched to your assessment. Marker feedback included.' },
+  { id: 'reset', label: '6. Reset', desc: 'Built-in breaks designed for sustainable thinking. No guilt. No streaks. No shame. Just good work habits.' },
 ];
 
 const COMPARISON = [
