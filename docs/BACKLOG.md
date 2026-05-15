@@ -470,3 +470,50 @@ Active reading + writing assistance throughout the editor. 12 features: read-alo
 **For Students:** Floating Thoughts, First Strings, Pathway, Student Multi-Tool, Concept Explainer.
 
 Each is a focused mini-tool on a secondary page, not main canvas. Spoon Theory Planner already logged as Sprint Y (Dragon Ball Energy Tracking: orange visual, 11-13 balls per Aaron's preference). Effort: TBD per tool. Priority: post-Sprint FF.
+
+---
+
+## Sprint HH — Postgrad Pathway Mapper + Public Thesis Library (90 hours)
+
+**Purpose:** Map the full Australian postgraduate research pathway (Honours, MRes, Masters by Research, PhD) across major institutions. Build a depository of publicly-accessible thesis examples. Provide timeline scaffolding, scholarship discovery, and milestone tracking.
+
+**Sources (all public/open access):** Trove (NLA), UNSWorks, Minerva Access (Melbourne), eScholarship (Sydney), ANU Open Research, UQ eSpace, Monash Bridges, Adelaide Research & Scholarship, UWA Research Repository, Macquarie ResearchOnline, OATD, AOASG. Pathway/scholarship data from each uni's public "Future Students" pages, StudyAssist.gov.au, data.gov.au RTP data.
+
+**Schema:** postgrad_pathways (university, program_type, entry_requirements, milestones, word_count_range), scholarships (name, provider, amount, eligibility, deadlines, tags), thesis_library (title, author, year, university, level, abstract, chapter_structure, license), user_pathway_progress (current_milestone, milestone_status, scholarships_applied).
+
+**UX:** New /pathway route. User selects program type, discipline, state(s). Dashboard shows matching universities, timeline with milestones, eligible scholarships, and sample theses. "Use as template" imports chapter structure into canvas.
+
+**Phase 1 (40 hours):** NSW unis (UNSW, Sydney, Macquarie, UTS, Western Sydney, Newcastle, Wollongong). Seed data from Aaron's lived MRes experience.
+**Phase 2 (30 hours):** Group of Eight national (Melbourne, ANU, UQ, Monash, Adelaide, UWA).
+**Phase 3 (20 hours):** Regional + specialist unis.
+
+**Legal:** Check each repository's ToS. Only store CC-licensed theses. Link-only for unclear licences. DMCA-style takedown button. UNSW supervisor sign-off before build.
+
+**Prerequisite:** Aaron writes "My MRes Journey at UNSW" one-pager as seed data.
+
+**Scope expansion:** Pathway Mapper covers ALL levels, not just postgrad:
+- Undergraduate pathway (Year 12 to first year uni)
+- TAFE pathway (cert III/IV/diploma to workforce or articulation)
+- Apprenticeship pathway
+- Return-to-study pathway (mature age entry, RPL)
+- International student pathway (visa, English proficiency, agents)
+
+**Priority:** Build AFTER Sprint FF ships and tester window opens. Timeline: ~6-8 weeks from now.
+
+---
+
+## Sprint II — Scholarship Discovery (20 hours)
+
+Extracted from Sprint HH as standalone feature. Aggregate ALL Australian scholarships from data.gov.au, StudyAssist, state and federal databases. Filter by user profile (disability, first-gen, low-SES, indigenous, regional). Push deadline notifications. Available to Y10-12 students for early scholarship awareness, not just postgrad. Priority: post-Sprint HH Phase 1.
+
+---
+
+## Sprint JJ — Thesis Template Importer (15 hours)
+
+"Use as template" button on every thesis in Sprint HH library. Imports chapter structure (heading hierarchy, word count targets per chapter, methodology type) into Three-Tier Canvas. User starts writing with a proven structural scaffold. Priority: ships alongside Sprint HH.
+
+---
+
+## Sprint KK — Institutional Sales Mode (40 hours)
+
+B2B dashboard for schools/unis. Bulk student licence management. Admin reporting on Authenticity Report aggregates. SSO integration (SAML, OAuth via institutional providers). Procurement-friendly billing (POs, ABN invoicing, annual contracts). Target customers: Aria Learning, UNSW Equitable Learning Services, disability service providers, NDIS-funded learning support orgs. Priority: post-tester, post-Sprint FF.
