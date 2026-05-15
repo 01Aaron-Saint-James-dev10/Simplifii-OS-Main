@@ -1,5 +1,6 @@
 import { TierParameters } from './TierParameters';
 import { createLogger } from '../utils/logger';
+import { detectAssessmentFormat, detectTerm } from './BriefUtils';
 
 const log = createLogger('BriefService');
 

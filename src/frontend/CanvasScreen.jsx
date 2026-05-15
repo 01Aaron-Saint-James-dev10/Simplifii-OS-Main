@@ -90,7 +90,12 @@ export default function CanvasScreen() {
 
   // Document classification: use value baked in during ingestion if present.
   const preClassifiedType = course.extractionData?.documentType || null;
-  // targetWords is computed below after docClassification is available
+  const [docClassification, setDocClassification] = useState(
+    preClassifiedType ? { type: preClassifiedType, confidence: 1 } : null
+  );
+  const effectiveDocType = docClassification?.type || preClassifiedType || null;
+  const isExamPaper = effectiveDocType === 'exam_paper';
+  const targetWords = isExamPaper ? 0 : (brief?.wordCountGoal || 1500);
   const currentTitle = brief?.title || assessmentTitle || 'Assessment';
   const rubricCriteria = course.extractionData?.rubricCriteria || [];
   const rubricBands = course.extractionData?.rubricBands || [];
@@ -222,14 +227,6 @@ export default function CanvasScreen() {
     { type: 'conclusion', label: 'Conclusion', targetWords: Math.round(targetWords * 0.15), guidance: '' },
   ];
 
-  const [docClassification, setDocClassification] = useState(
-    preClassifiedType ? { type: preClassifiedType, confidence: 1 } : null
-  );
-
-  // Reactive document type: updates when classification completes
-  const effectiveDocType = docClassification?.type || preClassifiedType || null;
-  const isExamPaper = effectiveDocType === 'exam_paper';
-  const targetWords = isExamPaper ? 0 : (brief?.wordCountGoal || 1500);
   useEffect(() => {
     if (docClassification) return;
     if (!briefOrText || briefOrText.length < 30) return;
