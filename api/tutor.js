@@ -11,6 +11,8 @@
  * Env var: ANTHROPIC_API_KEY (set in Vercel project settings)
  */
 
+import { rateLimit, getIdentifier } from './_rateLimit.js';
+
 const BASE_PROMPT = `You are a Socratic tutor inside Simplifii-OS, an Australian neuroinclusive education platform.
 
 HARD RULES:
@@ -39,6 +41,9 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'Method not allowed. Use POST.' });
   }
+
+  const limited = rateLimit(getIdentifier(req), { maxRequests: 30, windowMs: 60000 });
+  if (limited) return res.status(429).json({ success: false, error: limited.error });
 
   const { messages, assessmentTitle, tier, homeLanguage, easyRead } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;

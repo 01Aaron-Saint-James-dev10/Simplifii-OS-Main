@@ -8,6 +8,8 @@
  * Returns { success, content, type }
  */
 
+import { rateLimit, getIdentifier } from './_rateLimit.js';
+
 const PROMPTS = {
   plain_english: `Translate this assessment brief into plain English suitable for a Year 10 student.
 Use short sentences (max 12 words each). Remove all jargon.
@@ -64,6 +66,9 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'POST only.' });
   }
+
+  const limited = rateLimit(getIdentifier(req), { maxRequests: 20, windowMs: 60000 });
+  if (limited) return res.status(429).json({ success: false, error: limited.error });
 
   const { briefText, type, assessmentTitle, tier } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;

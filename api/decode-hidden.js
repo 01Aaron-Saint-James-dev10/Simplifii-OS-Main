@@ -7,8 +7,13 @@
  * POST { briefText, assessmentTitle, tier }
  */
 
+import { rateLimit, getIdentifier } from './_rateLimit.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only.' });
+
+  const limited = rateLimit(getIdentifier(req), { maxRequests: 15, windowMs: 60000 });
+  if (limited) return res.status(429).json({ success: false, error: limited.error });
 
   const { briefText, assessmentTitle, tier } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;

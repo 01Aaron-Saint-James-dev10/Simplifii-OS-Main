@@ -13,11 +13,17 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { rateLimit, getIdentifier } from './_rateLimit.js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || 'https://aqcreatryuvuuynwvnqy.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY || ''
-);
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  // Log once at cold start; handler will return 401 per request
+  if (typeof console !== 'undefined') console.error('[scaffold-suggest] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+}
+
+const supabase = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 // Extract key topic words from assessment text
 function extractKeywords(text) {
@@ -42,6 +48,13 @@ function extractKeywords(text) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'Method not allowed. Use POST.' });
+  }
+
+  const limited = rateLimit(getIdentifier(req), { maxRequests: 20, windowMs: 60000 });
+  if (limited) return res.status(429).json({ success: false, error: limited.error });
+
+  if (!supabase) {
+    return res.status(401).json({ success: false, error: 'Authentication required to use scaffold suggestions.' });
   }
 
   const { assessmentBriefText, subject, state } = req.body || {};

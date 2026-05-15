@@ -12,28 +12,6 @@
  */
 
 import { appendEvent } from '../core/HistoryOfThought';
-import { callAnthropic, isApiKeyConfigured } from '../api/anthropicClient';
-
-const SYSTEM_PROMPT = `You are an assessment briefing tool for university students. Decode assignment briefs into actionable weekly tasks, plain-language criteria, and unstated expectations. Australian English. No em-dashes. Return JSON only, no preamble.
-
-Return this exact JSON shape:
-{
-  "weeklyTasks": [{ "week": 1, "tasks": ["task description"] }],
-  "rubricAlignment": [{ "criterion": "name", "weekCovered": 1 }],
-  "jargonDecoded": [{ "term": "academic term", "plainLanguage": "plain explanation" }],
-  "hiddenCurriculum": [{ "unstatedExpectation": "what markers really want", "evidence": "where you can see it" }]
-}`;
-
-function buildUserPrompt(brief, context) {
-  const parts = [];
-  if (brief?.title) parts.push(`Assessment title: ${brief.title}`);
-  if (brief?.weight) parts.push(`Weight: ${brief.weight}`);
-  if (brief?.wordCountGoal) parts.push(`Word count target: ${brief.wordCountGoal}`);
-  if (brief?.dueDate) parts.push(`Due date: ${brief.dueDate}`);
-  if (context?.rubricCriteria?.length > 0) parts.push(`Rubric criteria: ${context.rubricCriteria.join('; ')}`);
-  if (context?.rawText) parts.push(`\nBrief text:\n${context.rawText.slice(0, 4000)}`);
-  return parts.join('\n') || 'Decode this assessment brief.';
-}
 
 function mockBriefSimplifierOutput(brief) {
   const title = brief?.title || 'Assessment';
@@ -64,14 +42,6 @@ function mockBriefSimplifierOutput(brief) {
   };
 }
 
-function validateResponse(parsed) {
-  return parsed
-    && Array.isArray(parsed.weeklyTasks)
-    && Array.isArray(parsed.rubricAlignment)
-    && Array.isArray(parsed.jargonDecoded)
-    && Array.isArray(parsed.hiddenCurriculum);
-}
-
 export async function runBriefSimplifier({ assessmentBrief, courseContext }) {
   let result;
   let source = 'mock';
@@ -79,35 +49,43 @@ export async function runBriefSimplifier({ assessmentBrief, courseContext }) {
   let error = null;
   const start = Date.now();
 
-  if (isApiKeyConfigured()) {
-    try {
-      const userPrompt = buildUserPrompt(assessmentBrief, courseContext);
-      const raw = await callAnthropic(SYSTEM_PROMPT, userPrompt, {
-        model: 'claude-sonnet-4-6',
-        maxTokens: 4000,
-        temperature: 0.3,
-        timeoutMs: 30000,
-      });
-      latencyMs = Date.now() - start;
+  try {
+    const briefText = courseContext?.rawText || assessmentBrief?.title || '';
+    if (briefText.length < 20) throw new Error('Brief text too short for API');
 
-      // Parse JSON from response (strip markdown fences if present)
-      const cleaned = raw.replace(/^```json?\s*/i, '').replace(/```\s*$/, '').trim();
-      const parsed = JSON.parse(cleaned);
+    const resp = await fetch('/api/simplify-brief', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        briefText,
+        assessmentTitle: assessmentBrief?.title || 'Assessment',
+        assessmentType: assessmentBrief?.type || 'Essay',
+        wordCount: assessmentBrief?.wordCountGoal,
+      }),
+    });
+    latencyMs = Date.now() - start;
 
-      if (validateResponse(parsed)) {
-        result = parsed;
-        source = 'api';
-      } else {
-        throw new Error('Invalid response shape from API');
-      }
-    } catch (err) {
-      if (typeof console !== 'undefined') console.warn('[BriefSimplifier] API call failed, falling back to mock:', err?.message);
-      error = err?.message || 'unknown';
-      result = mockBriefSimplifierOutput(assessmentBrief);
-      source = 'mock';
+    if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
+    const data = await resp.json();
+
+    if (data.success && data.plan) {
+      // The serverless endpoint returns markdown; wrap as weekly plan
+      result = {
+        weeklyTasks: [{ week: 1, tasks: [data.plan] }],
+        rubricAlignment: [],
+        jargonDecoded: [],
+        hiddenCurriculum: [],
+        rawPlan: data.plan,
+      };
+      source = 'api';
+    } else {
+      throw new Error(data.error || 'Invalid response from server');
     }
-  } else {
+  } catch (err) {
+    if (typeof console !== 'undefined') console.warn('[BriefSimplifier] API call failed, falling back to mock:', err?.message);
+    error = err?.message || 'unknown';
     result = mockBriefSimplifierOutput(assessmentBrief);
+    source = 'mock';
   }
 
   try {
@@ -120,8 +98,8 @@ export async function runBriefSimplifier({ assessmentBrief, courseContext }) {
         source,
         latencyMs: source === 'api' ? latencyMs : undefined,
         error: error || undefined,
-        weekCount: result.weeklyTasks.length,
-        jargonCount: result.jargonDecoded.length,
+        weekCount: result.weeklyTasks?.length || 0,
+        jargonCount: result.jargonDecoded?.length || 0,
       },
     });
   } catch { /* vault may be locked */ }

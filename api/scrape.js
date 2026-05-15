@@ -11,10 +11,15 @@
  * Env var: FIRECRAWL_API_KEY (set in Vercel project settings)
  */
 
+import { rateLimit, getIdentifier } from './_rateLimit.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'Method not allowed. Use POST.' });
   }
+
+  const limited = rateLimit(getIdentifier(req), { maxRequests: 10, windowMs: 60000 });
+  if (limited) return res.status(429).json({ success: false, error: limited.error });
 
   const { url } = req.body || {};
   if (!url || typeof url !== 'string' || !url.startsWith('http')) {

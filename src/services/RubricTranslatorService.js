@@ -12,30 +12,6 @@
  */
 
 import { appendEvent } from '../core/HistoryOfThought';
-import { callAnthropic, isApiKeyConfigured } from '../api/anthropicClient';
-
-const SYSTEM_PROMPT = `You are a rubric translator for university students. Convert academic rubric criteria into plain language a 16-year-old could understand. Tell the student what the marker actually wants in each band. Australian English. No em-dashes. Return JSON only, no preamble.
-
-Return this exact JSON shape:
-{
-  "plainCriteria": [
-    {
-      "original": "the original criterion text from the rubric",
-      "simplified": "what this means in plain English",
-      "whatMarkerWants": "what the marker is actually looking for"
-    }
-  ]
-}`;
-
-function buildUserPrompt(criteria, bands) {
-  const parts = ['Translate these rubric criteria into plain language.\n'];
-  if (bands && bands.length > 0) parts.push(`Grade bands: ${bands.join(', ')}\n`);
-  if (criteria && criteria.length > 0) {
-    parts.push('Criteria:');
-    criteria.forEach((c, i) => parts.push(`${i + 1}. ${c}`));
-  }
-  return parts.join('\n');
-}
 
 function mockRubricTranslatorOutput(criteria, bands) {
   const bandNames = bands && bands.length > 0 ? bands : ['Excellent', 'Good', 'Satisfactory', 'Unsatisfactory'];
@@ -49,12 +25,6 @@ function mockRubricTranslatorOutput(criteria, bands) {
   };
 }
 
-function validateResponse(parsed) {
-  return parsed
-    && Array.isArray(parsed.plainCriteria)
-    && parsed.plainCriteria.every(c => c.original && c.simplified && c.whatMarkerWants);
-}
-
 export async function runRubricTranslator({ rubricCriteria, rubricBands }) {
   let result;
   let source = 'mock';
@@ -62,25 +32,31 @@ export async function runRubricTranslator({ rubricCriteria, rubricBands }) {
   let error = null;
   const start = Date.now();
 
-  if (isApiKeyConfigured() && rubricCriteria && rubricCriteria.length > 0) {
+  if (rubricCriteria && rubricCriteria.length > 0) {
     try {
-      const userPrompt = buildUserPrompt(rubricCriteria, rubricBands);
-      const raw = await callAnthropic(SYSTEM_PROMPT, userPrompt, {
-        model: 'claude-sonnet-4-6',
-        maxTokens: 4000,
-        temperature: 0.3,
-        timeoutMs: 30000,
+      const rubricText = rubricCriteria.map((c, i) => `${i + 1}. ${c}`).join('\n');
+      const resp = await fetch('/api/decode-rubric', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rubricText, assessmentTitle: 'Assessment' }),
       });
       latencyMs = Date.now() - start;
 
-      const cleaned = raw.replace(/^```json?\s*/i, '').replace(/```\s*$/, '').trim();
-      const parsed = JSON.parse(cleaned);
+      if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
+      const data = await resp.json();
 
-      if (validateResponse(parsed)) {
-        result = parsed;
+      if (data.success && data.decoded) {
+        // The serverless endpoint returns markdown; wrap in the expected shape
+        result = {
+          plainCriteria: rubricCriteria.map(c => ({
+            original: c,
+            simplified: c,
+            whatMarkerWants: data.decoded,
+          })),
+        };
         source = 'api';
       } else {
-        throw new Error('Invalid response shape from API');
+        throw new Error(data.error || 'Invalid response from server');
       }
     } catch (err) {
       if (typeof console !== 'undefined') console.warn('[RubricTranslator] API call failed, falling back to mock:', err?.message);

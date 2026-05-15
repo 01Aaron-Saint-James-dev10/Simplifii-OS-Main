@@ -8,6 +8,8 @@
  * Returns { success, type, confidence, suggested_actions }
  */
 
+import { rateLimit, getIdentifier } from './_rateLimit.js';
+
 const PATTERNS = {
   exam_paper: /\b(Question\s+\d|Section\s+[I|II|III|IV|A-D]|\(\d+\s*marks?\)|\bexam\b.*\bpaper\b|HSC|VCE|QCE|WACE|ATAR)\b/i,
   rubric: /\b(criteria|band\s+[1-6]|high\s+distinction|distinction|credit|pass|fail|marking\s+guide|rubric|expected\s+qualities)\b/i,
@@ -26,6 +28,9 @@ const ACTIONS = {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only.' });
+
+  const limited = rateLimit(getIdentifier(req), { maxRequests: 30, windowMs: 60000 });
+  if (limited) return res.status(429).json({ success: false, error: limited.error });
 
   const { textSnippet } = req.body || {};
   if (!textSnippet) return res.status(400).json({ success: false, error: 'textSnippet required.' });
