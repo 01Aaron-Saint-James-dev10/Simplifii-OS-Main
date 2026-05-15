@@ -10,6 +10,7 @@ import CanvasEditor from './components/CanvasEditor';
 import SectionEditor from './components/SectionEditor';
 import SectionRail from './components/SectionRail';
 import JokeOverlay from './components/JokeOverlay';
+import DocumentClassifiedModal from './components/DocumentClassifiedModal';
 import PanelRail from './components/PanelRail';
 import BriefPanel from './components/BriefPanel';
 import TutorPanel from './components/TutorPanel';
@@ -175,6 +176,27 @@ export default function CanvasScreen() {
     { type: 'body_3', label: 'Body Section 3', targetWords: Math.round(targetWords * 0.20), guidance: '' },
     { type: 'conclusion', label: 'Conclusion', targetWords: Math.round(targetWords * 0.15), guidance: '' },
   ];
+
+  // Document classification
+  const [docClassification, setDocClassification] = useState(null);
+  useEffect(() => {
+    if (!briefOrText || briefOrText.length < 30) return;
+    const classKey = `simplifii_classified_${courseId}_${currentTitle}`;
+    if (sessionStorage.getItem(classKey)) return;
+    fetch('/api/classify-document', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ textSnippet: briefOrText.slice(0, 1000) }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.type !== 'unknown') {
+          setDocClassification(data);
+          sessionStorage.setItem(classKey, 'true');
+        }
+      })
+      .catch(() => {});
+  }, [briefOrText, courseId, currentTitle]);
 
   // Panel rail + collapse state
   const [activePanel, setActivePanel] = useState(null);
@@ -365,6 +387,24 @@ export default function CanvasScreen() {
       )}
 
       <JokeOverlay />
+
+      {docClassification && (
+        <DocumentClassifiedModal
+          type={docClassification.type}
+          confidence={docClassification.confidence}
+          suggestedActions={docClassification.suggested_actions}
+          onAction={(i) => {
+            const toolMap = { 0: 'simplify', 1: 'rubric', 2: null };
+            if (docClassification.type === 'exam_paper') toolMap[0] = 'pastqs';
+            if (docClassification.type === 'rubric') toolMap[0] = 'rubric';
+            const panel = toolMap[i];
+            if (panel) setActivePanel(panel);
+            setDocClassification(null);
+          }}
+          onOverride={() => setDocClassification(null)}
+          onDismiss={() => setDocClassification(null)}
+        />
+      )}
     </div>
   );
 }

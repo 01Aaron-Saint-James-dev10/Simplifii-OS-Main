@@ -136,8 +136,15 @@ export default function SectionEditor({
         ))}
       </div>
 
-      {/* Voice input */}
-      <div style={{ position: 'absolute', right: 16, bottom: 16, zIndex: 30 }}>
+      {/* Slash command hints + voice input */}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 16px', zIndex: 30 }}>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {[{ cmd: '/joke', label: 'Joke' }, { cmd: 'Cmd+Shift+V', label: 'Voice' }].map(h => (
+            <span key={h.cmd} style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: TEXT_FAINT, padding: '2px 6px', border: `1px solid ${SURFACE_RAISED}`, borderRadius: 3 }}>
+              {h.cmd} <span style={{ opacity: 0.6 }}>{h.label}</span>
+            </span>
+          ))}
+        </div>
         <VoiceInputButton />
       </div>
     </div>

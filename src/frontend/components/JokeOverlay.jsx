@@ -36,7 +36,7 @@ export default function JokeOverlay() {
         setJoke('Could not reach the joke service.');
       }
       setLoading(false);
-      setTimeout(() => setVisible(false), 10000);
+      // Stays visible until user clicks to dismiss (no auto-hide)
     };
 
     window.addEventListener('simplifii:joke-request', handler);
