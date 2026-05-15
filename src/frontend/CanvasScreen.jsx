@@ -7,6 +7,7 @@ import { useRouter } from '../contexts/RouterContext';
 import { supabase } from '../lib/supabaseClient';
 import CanvasNav from './components/CanvasNav';
 import CanvasEditor from './components/CanvasEditor';
+import SectionEditor from './components/SectionEditor';
 import SectionRail from './components/SectionRail';
 import PanelRail from './components/PanelRail';
 import BriefPanel from './components/BriefPanel';
@@ -137,6 +138,8 @@ export default function CanvasScreen() {
 
   // Section rail
   const [activeSection, setActiveSection] = useState('introduction');
+  const compileFnRef = useRef(null);
+  const useSections = briefs.length > 0 || extractedText;
 
   // Panel rail
   const [activePanel, setActivePanel] = useState(null);
@@ -161,7 +164,7 @@ export default function CanvasScreen() {
         <TutorPanel assessmentTitle={currentTitle} />
       </div>
       <div style={{ display: activePanel === 'preview' ? 'contents' : 'none' }}>
-        <PreviewPanel draftText={draftText} wordCount={wordCount} />
+        <PreviewPanel draftText={compileFnRef.current ? compileFnRef.current() : draftText} wordCount={wordCount} />
       </div>
       <div style={{ display: activePanel === 'sources' ? 'contents' : 'none' }}>
         <SourcesPanel courseId={courseId} />
@@ -274,7 +277,15 @@ export default function CanvasScreen() {
 
         <div className="canvas-centre">
           {briefs.length === 0 && !extractedText && <NoBriefPrompt courseId={courseId} />}
-          <CanvasEditor
+          <SectionEditor
+            sections={[
+              { type: 'introduction', label: 'Introduction' },
+              { type: 'body1', label: 'Body Section 1' },
+              { type: 'body2', label: 'Body Section 2' },
+              { type: 'body3', label: 'Body Section 3' },
+              { type: 'conclusion', label: 'Conclusion' },
+            ]}
+            activeSection={activeSection}
             courseId={courseId}
             assessmentTitle={currentTitle}
             targetWords={targetWords}
@@ -282,6 +293,7 @@ export default function CanvasScreen() {
             onSaveStatusChange={handleSaveStatus}
             onTextChange={setDraftText}
             onJsonDocChange={setTiptapDoc}
+            onCompileReady={(fn) => { compileFnRef.current = fn; }}
             citationFlags={unverifiedMatches}
           />
           <BibliographyView />
