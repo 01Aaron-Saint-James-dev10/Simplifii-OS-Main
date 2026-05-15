@@ -19,6 +19,7 @@ import {
   BORDER_RADIUS, GRADIENT_EMERALD_CYAN,
 } from '../../theme/tokens';
 import NeuralAvatar from '../components/visuals/NeuralAvatar';
+import MatrixRain from '../components/MatrixRain';
 import ShowcasePreview from './ShowcasePreview';
 import EducationLevels from './EducationLevels';
 import './LandingPage.css';
@@ -106,7 +107,9 @@ export default function LandingPage() {
   const r1 = useReveal(), r2 = useReveal(), r3 = useReveal(), r4 = useReveal(), r5 = useReveal(), r6 = useReveal(), r7 = useReveal(), rA = useReveal(), rE = useReveal();
 
   return (
-    <div className="lp-root" style={{ minHeight: '100vh', background: SURFACE_BASE }}>
+    <div className="lp-root" style={{ minHeight: '100vh', background: SURFACE_BASE, position: 'relative' }}>
+      <MatrixRain />
+      <div style={{ position: 'relative', zIndex: 1 }}>
       <a href="#main-content" className="lp-skip-link">Skip to main content</a>
 
       {/* ── HERO ──────────────────────────────────────────────── */}
@@ -372,6 +375,7 @@ export default function LandingPage() {
           <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_LABEL, letterSpacing: '0.04em', margin: 0 }}>Made with care for every kind of mind</p>
         </div>
       </footer>
+      </div>
     </div>
   );
 }
