@@ -19,7 +19,7 @@ export default function AuthGate({ children }) {
     return (
       <div style={styles.loadingRoot}>
         <p style={styles.loadingText}>
-          {authError === 'RETRYING' ? 'Reconnecting...' : 'Loading...'}
+          {authError === 'RETRYING' ? 'Reconnecting...' : 'Checking your sign-in...'}
         </p>
       </div>
     );

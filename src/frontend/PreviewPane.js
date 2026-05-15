@@ -124,7 +124,7 @@ export default function PreviewPane({ activePillarId, onClose }) {
           }}
           title={isDraft ? 'Draft data; refining via Ollama in the background.' : 'Verified against the canonical reconciled briefs.'}
         >
-          {isDraft ? 'Draft' : 'Sovereign Verified'}
+          {isDraft ? 'Draft' : 'Verified'}
         </div>
 
         <header style={{ marginBottom: 28, paddingBottom: 14, borderBottom: '1px solid #e5e7eb' }}>

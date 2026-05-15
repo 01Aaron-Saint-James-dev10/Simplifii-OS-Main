@@ -43,7 +43,7 @@ export default function AccessibilityPage() {
             <Li><strong>BionicText reading mode.</strong> Bolds the first syllable of every word at five intensity levels. Includes academic word highlighting. Designed for faster scanning and reduced reading fatigue.</Li>
             <Li><strong>LiteralMode.</strong> Transforms all AI output into plain, imperative English. Strips jargon, hedging, and passive voice. You control how the AI speaks to you.</Li>
             <Li><strong>Reading comfort overlays.</strong> Mint, cream, or sky blue tints to reduce visual fatigue. Adjustable font scale (normal, large, extra large) and line spacing (normal, relaxed, loose).</Li>
-            <Li><strong>LOD Steering Drawer.</strong> Three cognitive load levels (Compass, Sprint, Map) that control how much scaffolding and future information the system reveals. The student sets the pace.</Li>
+            <Li><strong>Steering Drawer.</strong> Three detail levels (Compass, Sprint, Map) that control how much scaffolding and future information the system reveals. You set the pace.</Li>
             <Li><strong>Strengths-based, trauma-informed language.</strong> No guilt notifications. No deficit framing. No competitive ranking. No "you missed a day" shame. No "superpower" erasure of difficulty.</Li>
             <Li><strong>History of Thought.</strong> A transparent audit trail of every AI contribution and learner edit. The student always knows what the AI did and what they did.</Li>
             <Li><strong>Touch targets minimum 44 by 44 pixels</strong> throughout the application (WCAG 2.5.8).</Li>

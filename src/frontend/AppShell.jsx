@@ -99,7 +99,7 @@ export default function AppShell() {
   if (disclaimerState === 'loading') {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: SURFACE_BASE }}>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_MUTED }}>Loading...</p>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_MUTED }}>Setting up your workspace...</p>
       </div>
     );
   }
