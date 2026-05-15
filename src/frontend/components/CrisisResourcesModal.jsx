@@ -33,6 +33,14 @@ const CATEGORIES = [
     ],
   },
   {
+    title: 'If you are Aboriginal or Torres Strait Islander',
+    defaultOpen: false,
+    accent: ACCENT_PULSE,
+    resources: [
+      { name: '13YARN', phone: '13 92 76', note: '24/7 crisis support, yarn with an Aboriginal or Torres Strait Islander person', url: 'https://13yarn.org.au' },
+    ],
+  },
+  {
     title: 'If you are LGBTQI+',
     defaultOpen: false,
     accent: ACCENT_PULSE,
@@ -67,14 +75,6 @@ const CATEGORIES = [
     accent: COLOUR_WARN,
     resources: [
       { name: '1800RESPECT', phone: '1800 737 732', note: '24/7 confidential counselling and support', url: 'https://1800respect.org.au' },
-    ],
-  },
-  {
-    title: 'If you are Aboriginal or Torres Strait Islander',
-    defaultOpen: false,
-    accent: ACCENT_PULSE,
-    resources: [
-      { name: '13YARN', phone: '13 92 76', note: '24/7 crisis support, yarn with an Aboriginal or Torres Strait Islander person', url: 'https://13yarn.org.au' },
     ],
   },
   {
@@ -127,7 +127,7 @@ export default function CrisisResourcesModal({ onClose }) {
 
         {/* Categories */}
         {CATEGORIES.map((cat, ci) => (
-          <details key={ci} open={cat.defaultOpen} style={{ marginBottom: 8 }}>
+          <details key={ci} open={cat.defaultOpen} style={{ marginBottom: 14 }}>
             <summary style={{
               fontFamily: FONT_SYSTEM, fontSize: 11, fontWeight: 700,
               letterSpacing: '0.08em', textTransform: 'uppercase',

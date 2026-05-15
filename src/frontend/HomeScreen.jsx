@@ -162,6 +162,19 @@ export default function HomeScreen() {
             </span>
           )}
           <ThemeSwitcher />
+          <button
+            type="button"
+            onClick={() => {
+              const cur = localStorage.getItem('simplifii_matrix_rain') !== 'false';
+              localStorage.setItem('simplifii_matrix_rain', String(!cur));
+              window.location.reload();
+            }}
+            title="Toggle background animation"
+            aria-label="Toggle matrix rain animation"
+            style={{ background: 'none', border: `1px solid ${ACCENT_BORDER}`, borderRadius: 3, padding: '3px 8px', cursor: 'pointer', fontFamily: "'JetBrains Mono', monospace", fontSize: 10, fontWeight: 700, color: localStorage.getItem('simplifii_matrix_rain') !== 'false' ? ACCENT_PULSE : TEXT_MUTED, minHeight: 28, minWidth: 28 }}
+          >
+            {localStorage.getItem('simplifii_matrix_rain') !== 'false' ? '\u2603' : '\u2601'}
+          </button>
           <TalkToSomeoneLink />
           <LogoutButton />
         </div>
