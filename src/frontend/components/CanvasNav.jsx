@@ -2,7 +2,7 @@ import React from 'react';
 import { useRouter } from '../../contexts/RouterContext';
 import ExportMenu from './ExportMenu';
 import {
-  SURFACE_BASE,
+  SURFACE_BASE, SURFACE_CARD_SOLID,
   SURFACE_RAISED,
   TEXT_PRIMARY,
   TEXT_MUTED,
@@ -44,7 +44,7 @@ export default function CanvasNav({ courseName, assessmentTitle, saveStatus, las
         justifyContent: 'space-between',
         height: 48,
         padding: '0 20px',
-        background: 'rgba(9, 9, 11, 0.85)',
+        background: SURFACE_CARD_SOLID, // allow-style
         backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
         borderBottom: `1px solid ${SURFACE_RAISED}`,
         backdropFilter: 'blur(8px)',

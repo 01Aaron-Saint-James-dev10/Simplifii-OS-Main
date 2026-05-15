@@ -307,7 +307,7 @@ export default function CanvasScreen() {
       <div className="canvas-body">
         {/* Collapse toggle for left rail */}
         <button type="button" onClick={toggleLeft} title={leftCollapsed ? 'Show sections' : 'Hide sections'}
-          style={{ position: 'absolute', left: leftCollapsed ? 4 : 130, top: 56, zIndex: 20, width: 20, height: 20, borderRadius: 10, background: 'rgba(16,185,129,0.15)', border: 'none', color: '#10b981', cursor: 'pointer', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          style={{ position: 'absolute', left: leftCollapsed ? 4 : 130, top: 56, zIndex: 20, width: 20, height: 20, borderRadius: 10, background: 'var(--sov-line-dim, rgba(16,185,129,0.18))', border: 'none', color: 'var(--sov-line, #10b981)', cursor: 'pointer', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}> {/* allow-style */}
           {leftCollapsed ? '\u203A' : '\u2039'}
         </button>
         {!leftCollapsed && (

@@ -2,7 +2,7 @@ import React from 'react';
 import { getTaskStatus } from '../../services/StatusService';
 import StatusPill from './StatusPill';
 import {
-  SURFACE_CARD,
+  SURFACE_CARD, SURFACE_CARD_GLASS,
   SURFACE_RAISED,
   TEXT_PRIMARY,
   TEXT_MUTED,
@@ -88,7 +88,7 @@ export default function CourseCard({ course, courseId, density = 'standard', onO
   return (
     <div
       style={{
-        background: 'rgba(24, 24, 27, 0.75)',
+        background: SURFACE_CARD_GLASS, // allow-style
         backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
         border: `1px solid ${SURFACE_RAISED}`,
         borderRadius: BORDER_RADIUS,
