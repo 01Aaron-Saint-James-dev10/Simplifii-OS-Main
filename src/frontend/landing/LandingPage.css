@@ -83,16 +83,56 @@
 
 .lp-pillar-card {
   transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+  cursor: pointer;
 }
 
 .lp-pillar-card:hover {
-  border-color: rgba(16,185,129,0.25);
-  box-shadow: 0 0 24px rgba(16,185,129,0.08);
+  border-color: rgba(16,185,129,0.35);
+  box-shadow: 0 0 24px rgba(16,185,129,0.12), 0 0 48px rgba(16,185,129,0.06);
   transform: translateY(-2px);
+}
+
+.lp-pillar-card:active,
+.lp-pillar-card:focus-within {
+  border-color: #10b981;
+  box-shadow: 0 0 20px rgba(16,185,129,0.5), 0 0 60px rgba(16,185,129,0.2), inset 0 0 12px rgba(16,185,129,0.06);
+  transform: translateY(-1px);
+}
+
+/* Same glow on a11y cards, edu cards, award pills */
+.lp-a11y-card:active,
+.lp-a11y-card:focus-within {
+  border-color: #10b981;
+  box-shadow: 0 0 20px rgba(16,185,129,0.5), 0 0 60px rgba(16,185,129,0.2);
+}
+
+.lp-edu-card:active,
+.lp-edu-card:focus-within {
+  border-color: #10b981;
+  box-shadow: 0 0 20px rgba(16,185,129,0.5), 0 0 60px rgba(16,185,129,0.2);
+}
+
+.lp-award-pill:active {
+  box-shadow: 0 0 16px rgba(16,185,129,0.5);
+  transform: translateY(0);
+}
+
+/* Comparison table row glow on hover */
+.lp-comparison-table tbody tr:hover td {
+  background: rgba(16,185,129,0.04);
+}
+
+/* FAQ question glow on active */
+.lp-faq-answer.open {
+  max-height: 300px;
+  padding: 12px 0 0;
+  border-left: 2px solid #10b981;
+  margin-left: -2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .lp-pillar-card:hover { transform: none; }
+  .lp-pillar-card:active { transform: none; }
 }
 
 /* ── Awards bar ─────────────────────────────────────────────────── */
