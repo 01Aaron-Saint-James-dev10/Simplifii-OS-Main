@@ -123,15 +123,19 @@ export const transformQuestion = async ({ questionText, questionNumber, formatTy
     content = { text: data.reply };
   }
 
-  // Cache result
+  // Cache result (fire-and-forget; table may not exist yet)
   if (documentId) {
-    supabase.from('question_transformations').upsert({
-      document_id: documentId,
-      question_number: questionNumber,
-      format_type: formatType,
-      question_text: questionText,
-      format_content: content,
-    }, { onConflict: 'document_id,question_number,format_type' }).catch(() => {});
+    (async () => {
+      try {
+        await supabase.from('question_transformations').upsert({
+          document_id: documentId,
+          question_number: questionNumber,
+          format_type: formatType,
+          question_text: questionText,
+          format_content: content,
+        }, { onConflict: 'document_id,question_number,format_type' });
+      } catch { /* ignore cache write failures */ }
+    })();
   }
 
   return content;

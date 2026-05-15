@@ -40,6 +40,7 @@
     "check-style": "node scripts/check-style.js",
     "copy-pdf-worker": "node scripts/copy-pdf-worker.js",
     "prestart": "node scripts/copy-pdf-worker.js && node scripts/build-grounding-manifest.js",
+    "verify-schema": "node scripts/verify-schema.js",
     "prebuild": "node scripts/copy-pdf-worker.js && node scripts/build-grounding-manifest.js",
     "postinstall": "node scripts/copy-pdf-worker.js",
     "prepare": "husky || true"
