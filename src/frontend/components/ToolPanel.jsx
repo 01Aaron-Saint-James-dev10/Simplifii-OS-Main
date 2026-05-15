@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSettings } from '../SettingsContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabaseClient';
 import AsciiLoader from './AsciiLoader';
 import {
   SURFACE_RAISED,
@@ -36,9 +38,22 @@ export default function ToolPanel({
   buttonLabel, briefText, rubricText, draftText, assessmentTitle, courseId,
 }) {
   const { activeTier } = useSettings();
+  const { user } = useAuth();
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Load cached result on mount
+  useEffect(() => {
+    if (!user || !courseId || !toolId) return;
+    supabase.from('assessment_representations')
+      .select('content')
+      .eq('course_id', courseId)
+      .eq('user_id', user.id)
+      .eq('type', toolId)
+      .maybeSingle()
+      .then(({ data }) => { if (data?.content) setResult(data.content); });
+  }, [user, courseId, toolId]);
 
   const run = async () => {
     setLoading(true);
@@ -52,7 +67,18 @@ export default function ToolPanel({
       });
       const data = await response.json();
       if (data.success) {
-        setResult(data[resultKey] || '');
+        const content = data[resultKey] || '';
+        setResult(content);
+        // Persist to Supabase
+        if (user && courseId && content) {
+          supabase.from('assessment_representations').upsert({
+            assessment_id: assessmentTitle || 'default',
+            course_id: courseId,
+            user_id: user.id,
+            type: toolId,
+            content,
+          }, { onConflict: 'assessment_id,course_id,user_id,type' }).catch(() => {});
+        }
       } else {
         setError(data.error || 'Tool failed. Try again.');
       }
