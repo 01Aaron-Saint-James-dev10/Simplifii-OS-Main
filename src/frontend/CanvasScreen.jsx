@@ -88,7 +88,8 @@ export default function CanvasScreen() {
     }) || briefs[0] || null;
   }, [briefs, assessmentTitle]);
 
-  const targetWords = brief?.wordCountGoal || 1500;
+  const isExamPaper = preClassifiedType === 'exam_paper';
+  const targetWords = isExamPaper ? 0 : (brief?.wordCountGoal || 1500);
   const currentTitle = brief?.title || assessmentTitle || 'Assessment';
   const rubricCriteria = course.extractionData?.rubricCriteria || [];
   const rubricBands = course.extractionData?.rubricBands || [];
@@ -252,6 +253,7 @@ export default function CanvasScreen() {
           rubricDetected={rubricDetected}
           courseId={courseId}
           assessmentTitle={currentTitle}
+          extractedText={extractedText}
         />
       </div>
       <div style={{ display: activePanel === 'tutor' ? 'contents' : 'none' }}>

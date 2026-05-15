@@ -34,7 +34,7 @@ import {
  *   assessmentTitle - string
  */
 
-export default function BriefPanel({ brief, rubricCriteria, rubricBands, rubricDetected, courseId, assessmentTitle }) {
+export default function BriefPanel({ brief, rubricCriteria, rubricBands, rubricDetected, courseId, assessmentTitle, extractedText }) {
   const [selfAssessment, setSelfAssessment] = useState({});
   const [showSimplifier, setShowSimplifier] = useState(false);
   const [simplifierResult, setSimplifierResult] = useState(null);
@@ -54,7 +54,7 @@ export default function BriefPanel({ brief, rubricCriteria, rubricBands, rubricD
   };
 
   const handleDecodebrief = async () => {
-    const result = await runBriefSimplifier({ assessmentBrief: brief, courseContext: { courseId } });
+    const result = await runBriefSimplifier({ assessmentBrief: brief, courseContext: { courseId, rawText: extractedText || brief?.body || '' } });
     setSimplifierResult(result);
     setShowSimplifier(true);
   };
@@ -90,7 +90,7 @@ export default function BriefPanel({ brief, rubricCriteria, rubricBands, rubricD
       </button>
 
       {/* Audio overview */}
-      <AudioOverviewPlayer briefText={brief?.body || brief?.title || ''} assessmentTitle={assessmentTitle} />
+      <AudioOverviewPlayer briefText={brief?.body || extractedText || brief?.title || ''} assessmentTitle={assessmentTitle} />
 
       {/* Rubric self-assessment */}
       <div>
@@ -149,7 +149,7 @@ export default function BriefPanel({ brief, rubricCriteria, rubricBands, rubricD
       {showSimplifier && simplifierResult && (
         <ToolModal
           title="Brief Simplifier"
-          statusBadge="alpha"
+          statusBadge={null}
           description="Your assessment brief decoded into a weekly plan, jargon glossary, and hidden expectations."
           onClose={() => setShowSimplifier(false)}
         >

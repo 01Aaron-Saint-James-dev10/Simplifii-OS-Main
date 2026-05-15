@@ -31,8 +31,10 @@ export default function BreathBubble() {
 
   useEffect(() => {
     if (!active) return;
+    let cancelled = false;
     startRef.current = Date.now();
     const tick = () => {
+      if (cancelled) return;
       const ms = Date.now() - startRef.current;
       setElapsed(ms);
       const cyclePos = ms % CYCLE_MS;
@@ -46,7 +48,10 @@ export default function BreathBubble() {
       timerRef.current = requestAnimationFrame(tick);
     };
     timerRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(timerRef.current);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(timerRef.current);
+    };
   }, [active]);
 
   const phase = PHASES[phaseIdx];
