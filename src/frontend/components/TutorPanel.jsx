@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSettings } from '../SettingsContext';
 import useConfidenceDetector from '../hooks/useConfidenceDetector';
+import useLearnerContext from '../hooks/useLearnerContext';
 import AffirmationBanner from './AffirmationBanner';
 import ResponseFeedback from './ResponseFeedback';
 import { announceAction } from '../services/PredictabilityService';
@@ -50,6 +51,7 @@ const DOC_TYPE_LABELS = {
 export default function TutorPanel({ assessmentTitle, briefText, documentType, pendingMessage, onPendingConsumed }) {
   const { activeTier, homeLanguage, easyRead, autismFirstEnabled, sensoryLevel, specialInterests, isLiteralMode, accessibilityProfile } = useSettings();
   const { activeTrigger, checkMessage } = useConfidenceDetector();
+  const { learnerContext } = useLearnerContext();
   const [messages, setMessages] = useState([
     { role: 'tutor', text: documentType && DOC_TYPE_LABELS[documentType]
       ? `Working on your ${DOC_TYPE_LABELS[documentType]}. What are you stuck on?`
@@ -112,6 +114,7 @@ export default function TutorPanel({ assessmentTitle, briefText, documentType, p
           decisionSkeleton: autismFirstEnabled || false,
           accessibilityProfile: accessibilityProfile || 'standard',
           profilePromptAddition: accessibilityProfile !== 'standard' ? getProfilePromptAddition(accessibilityProfile) : undefined,
+          learnerContext: learnerContext || undefined,
         }),
       });
       const data = await response.json();

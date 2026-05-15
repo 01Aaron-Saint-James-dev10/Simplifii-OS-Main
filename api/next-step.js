@@ -22,7 +22,7 @@ export default async function handler(req, res) {
   if (quota.exceeded) return res.status(402).json({ success: false, error: quota.error });
 
   const { briefText, rubricText, draftText, wordCount, targetWords,
-          assessmentTitle, tier, toolsUsed, currentPanel, literalMode, accessibilityProfile } = req.body || {};
+          assessmentTitle, tier, toolsUsed, currentPanel, literalMode, accessibilityProfile, learnerContext } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ success: false, error: 'API key not configured.' });
 
@@ -56,6 +56,7 @@ RULES:
 
   if (literalMode) systemPrompt += '\n\nLITERAL MODE: No metaphors. Use concrete, specific language only.';
   if (accessibilityProfile && accessibilityProfile !== 'standard') systemPrompt += `\n\nAdapt suggestion for ${accessibilityProfile} accessibility profile.`;
+  if (learnerContext) systemPrompt += learnerContext;
 
   const context = `Assessment: "${assessmentTitle || 'Untitled'}"
 Tier: ${tier || 'secondary'}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSettings } from '../SettingsContext';
+import useLearnerContext from '../hooks/useLearnerContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import AsciiLoader from './AsciiLoader';
@@ -40,6 +41,7 @@ export default function ToolPanel({
   buttonLabel, briefText, rubricText, draftText, assessmentTitle, courseId,
 }) {
   const { activeTier, isLiteralMode, accessibilityProfile } = useSettings();
+  const { learnerContext } = useLearnerContext();
   const { user } = useAuth();
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
@@ -72,6 +74,7 @@ export default function ToolPanel({
         tier: activeTier, assessmentTitle,
         literalMode: isLiteralMode || false,
         accessibilityProfile: accessibilityProfile || 'standard',
+        learnerContext: learnerContext || undefined,
       });
       const response = await fetch(endpoint, {
         method: 'POST',

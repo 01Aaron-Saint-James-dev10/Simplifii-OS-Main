@@ -20,7 +20,7 @@ export default async function handler(req, res) {
   const quota = await checkQuota(userId);
   if (quota.exceeded) return res.status(402).json({ success: false, error: quota.error });
 
-  const { draftText, rubricCriteria, assessmentTitle, tier, literalMode, accessibilityProfile } = req.body || {};
+  const { draftText, rubricCriteria, assessmentTitle, tier, literalMode, accessibilityProfile, learnerContext } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ success: false, error: 'API key not configured.' });
   if (!draftText || draftText.length < 50) return res.status(400).json({ success: false, error: 'draftText required (min 50 chars).' });
@@ -54,6 +54,7 @@ RULES:
 
   if (literalMode) systemPrompt += '\n\nLITERAL MODE: No metaphors, no idioms, no ambiguity. Use concrete, specific language only.';
   if (accessibilityProfile && accessibilityProfile !== 'standard') systemPrompt += `\n\nAdapt feedback tone and length for ${accessibilityProfile} accessibility profile.`;
+  if (learnerContext) systemPrompt += learnerContext;
 
   try {
     const userMsg = `Assessment: "${assessmentTitle || 'Untitled'}"

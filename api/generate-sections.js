@@ -22,7 +22,7 @@ export default async function handler(req, res) {
   const quota = await checkQuota(userId);
   if (quota.exceeded) return res.status(402).json({ success: false, error: quota.error });
 
-  const { briefText, assessmentTitle, assessmentType, tier, wordCount, literalMode, accessibilityProfile } = req.body || {};
+  const { briefText, assessmentTitle, assessmentType, tier, wordCount, literalMode, accessibilityProfile, learnerContext } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ success: false, error: 'API key not configured.' });
   if (!briefText || briefText.length < 20) return res.status(400).json({ success: false, error: 'briefText required.' });
@@ -60,6 +60,7 @@ RULES:
 
   if (literalMode) systemPrompt += '\n\nLITERAL MODE: No metaphors, no idioms. Use concrete language in guidance fields.';
   if (accessibilityProfile && accessibilityProfile !== 'standard') systemPrompt += `\n\nAdapt guidance text for ${accessibilityProfile} accessibility profile.`;
+  if (learnerContext) systemPrompt += learnerContext;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {

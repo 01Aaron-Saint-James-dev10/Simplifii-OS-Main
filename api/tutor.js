@@ -137,6 +137,12 @@ If neither fits, offer: "Surprise me" option that picks for them. Never present 
     }
   }
 
+  // Learner context: profiler data, pain points, steering dials, session check-in
+  const learnerContext = req.body?.learnerContext;
+  if (learnerContext) {
+    systemPrompt += `\n${learnerContext}`;
+  }
+
   // Inject document content so the tutor can reference the actual material
   if (briefText && briefText.length > 30) {
     const typeLabel = documentType === 'exam_paper' ? 'an exam paper'
