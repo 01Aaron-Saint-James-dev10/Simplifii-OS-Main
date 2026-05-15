@@ -17,6 +17,7 @@ import LogoutButton from './auth/LogoutButton';
 import EmptyWorkspace from './workspace/EmptyWorkspace';
 import TesterWelcomeModal from './components/TesterWelcomeModal';
 import ThemeSwitcher from './components/ThemeSwitcher';
+import { useRealtimeClock } from './hooks/useRealtimeClock';
 import AffirmationBanner from './components/AffirmationBanner';
 import { ACCENT_BORDER, ACCENT_PULSE, TEXT_MUTED, FONT_DISPLAY } from '../theme/tokens';
 import './HomeScreen.css';
@@ -88,8 +89,8 @@ export default function HomeScreen() {
   const [displayName, setDisplayName] = useState(null);
   const [showTesterWelcome, setShowTesterWelcome] = useState(false);
   const isAaron = user?.email === AARON_EMAIL;
+  const clock = useRealtimeClock();
 
-  // Track whether this is first render of the session for greeting copy
   const isFirstSession = !sessionStorage.getItem('simplifii_greeted');
 
   useEffect(() => {
@@ -167,27 +168,37 @@ export default function HomeScreen() {
       </nav>
 
       <main className="home-main">
-        {/* Greeting: time-aware, context-aware */}
-        {(displayName || isAaron) && (() => {
-          const hour = new Date().getHours();
+        {/* Greeting: tier-aware + time-aware + context-aware */}
+        {(() => {
           const name = displayName || '';
-          const nameSuffix = name ? `, ${name}` : '';
-          let greeting;
+          const nameBit = name ? `, ${name}` : '';
+          const tier = profileTier || activeTier || 'tertiary';
+          const timeGreet = clock.timeOfDay === 'late' ? 'Working late' : clock.timeOfDay === 'morning' ? 'Good morning' : clock.timeOfDay === 'afternoon' ? 'Good afternoon' : 'Good evening';
+          let greeting, sub;
           if (isFirstSession) {
-            greeting = `Welcome to Simplifii-OS${nameSuffix}`;
-          } else if (hour < 6) {
-            greeting = `Working late${nameSuffix}?`;
-          } else if (hour < 12) {
-            greeting = `Good morning${nameSuffix}`;
-          } else if (hour < 17) {
-            greeting = `Good afternoon${nameSuffix}`;
+            greeting = `Welcome to Simplifii-OS${nameBit}`;
+            sub = 'Your neuroinclusive workspace is ready.';
+          } else if (tier === 'secondary') {
+            greeting = `${timeGreet}${nameBit}`;
+            sub = sortedCourses.length > 0 ? `You have ${sortedCourses.length} course${sortedCourses.length === 1 ? '' : 's'}. Let's tackle the next one.` : 'Ready for your next assessment?';
+          } else if (tier === 'postgrad') {
+            greeting = `Welcome back${nameBit}`;
+            sub = 'Your research workspace is ready.';
+          } else if (tier === 'homeschool') {
+            greeting = `${timeGreet}${nameBit}`;
+            sub = "How can we help your learner today?";
           } else {
-            greeting = `Good evening${nameSuffix}`;
+            greeting = `${timeGreet}${nameBit}`;
+            sub = sortedCourses.length > 0 ? `${sortedCourses.length} course${sortedCourses.length === 1 ? '' : 's'} active.` : "Let's get started.";
           }
           return (
-            <p style={{ fontFamily: FONT_DISPLAY, fontSize: 15, color: TEXT_MUTED, margin: '16px 24px 0', padding: 0 }}>
-              {greeting}
-            </p>
+            <div style={{ padding: '20px 24px 8px' }}>
+              <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(1.25rem, 3vw, 1.75rem)', fontWeight: 700, color: 'var(--sov-ink, #e4e4e7)', margin: '0 0 4px' }}>{greeting}</h2>
+              <p style={{ fontFamily: FONT_DISPLAY, fontSize: 14, color: TEXT_MUTED, margin: 0 }}>{sub}</p>
+              <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: 'var(--sov-ink-faint, #52525b)', margin: '8px 0 0', letterSpacing: '0.06em' }}>
+                {clock.dayOfWeek}, {clock.formattedDate} | {clock.formattedTime} {clock.timezone.replace('_', ' ').split('/').pop()}
+              </p>
+            </div>
           );
         })()}
 
