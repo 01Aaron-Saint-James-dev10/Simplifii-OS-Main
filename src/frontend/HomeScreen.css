@@ -41,11 +41,10 @@
   justify-content: space-between;
   padding: 0 24px;
   height: 56px;
-  background: rgba(9, 9, 11, 0.85); /* semi-transparent nav so rain peeks through */
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid #27272a; /* SURFACE_RAISED */
-  backdrop-filter: blur(8px);
+  background: var(--sov-bg-1, rgba(9, 9, 11, 0.85));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--sov-hairline, #27272a);
 }
 
 .home-nav-brand {
@@ -58,9 +57,9 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: 13px;
   font-weight: 800;
-  color: #10b981; /* ACCENT_PULSE */
-  background: rgba(16,185,129,0.08); /* ACCENT_GLASS */
-  border: 1px solid rgba(16,185,129,0.15); /* ACCENT_BORDER_FAINT */
+  color: var(--sov-line, #10b981);
+  background: var(--sov-line-dim, rgba(16,185,129,0.18));
+  border: 1px solid var(--sov-line-dim, rgba(16,185,129,0.18));
   width: 30px;
   height: 30px;
   display: flex;
@@ -68,13 +67,14 @@
   justify-content: center;
   border-radius: 3px;
   letter-spacing: 0;
+  box-shadow: var(--sov-glow, 0 0 12px rgba(16,185,129,0.5));
 }
 
 .home-nav-title {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 15px;
   font-weight: 700;
-  color: #e4e4e7; /* TEXT_PRIMARY */
+  color: var(--sov-ink, #e4e4e7);
   letter-spacing: 0.01em;
 }
 
@@ -106,15 +106,32 @@
 .home-main {
   max-width: 1040px;
   margin: 0 auto;
-  padding: 28px 28px 56px;
+  padding: 20px 28px 56px;
 }
 
 .home-section {
-  margin-bottom: 28px;
+  margin-bottom: 24px;
+  padding: 16px;
+  border: 1px solid var(--sov-hairline, rgba(16,185,129,0.18));
+  border-radius: 4px;
+  background: linear-gradient(180deg, var(--sov-bg-1, rgba(12,12,15,0.5)), transparent);
+  position: relative;
 }
 
+/* Corner markers (Sovereign-OS v3 style) */
+.home-section::before,
+.home-section::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--sov-line, #10b981);
+}
+.home-section::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.home-section::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
 .home-section + .home-section {
-  padding-top: 4px;
+  padding-top: 16px;
 }
 
 /* ============================================================
@@ -138,10 +155,10 @@
 }
 
 .home-week-title {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Geist', -apple-system, sans-serif;
   font-size: 16px;
   font-weight: 700;
-  color: #e4e4e7; /* TEXT_PRIMARY */
+  color: var(--sov-ink, #e4e4e7);
   margin: 0;
   letter-spacing: 0.01em;
 }
@@ -280,12 +297,29 @@
 .home-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .home-grid-compact {
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 8px;
+  gap: 10px;
+}
+
+/* Mobile: single column */
+@media (max-width: 640px) {
+  .home-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .home-main {
+    padding: 16px 16px 48px;
+  }
+  .home-section {
+    padding: 12px;
+  }
+  .home-nav {
+    padding: 0 16px;
+  }
 }
 
 /* ============================================================
@@ -303,19 +337,19 @@
 }
 
 .home-empty-title {
-  font-family: 'Inter', sans-serif;
-  font-size: 20px;
+  font-family: 'Geist', -apple-system, sans-serif;
+  font-size: 22px;
   font-weight: 700;
-  color: #e4e4e7; /* TEXT_PRIMARY */
+  color: var(--sov-ink, #e4e4e7);
   margin: 0 0 10px;
 }
 
 .home-empty-sub {
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  color: #71717a; /* TEXT_MUTED */
-  max-width: 400px;
-  line-height: 1.6;
+  font-family: 'Geist', -apple-system, sans-serif;
+  font-size: 15px;
+  color: var(--sov-ink-dim, #71717a);
+  max-width: 440px;
+  line-height: 1.7;
   margin: 0;
 }
 
