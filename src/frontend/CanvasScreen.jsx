@@ -87,6 +87,8 @@ export default function CanvasScreen() {
     }) || briefs[0] || null;
   }, [briefs, assessmentTitle]);
 
+  // Document classification: use value baked in during ingestion if present.
+  const preClassifiedType = course.extractionData?.documentType || null;
   const isExamPaper = preClassifiedType === 'exam_paper';
   const targetWords = isExamPaper ? 0 : (brief?.wordCountGoal || 1500);
   const currentTitle = brief?.title || assessmentTitle || 'Assessment';
@@ -206,8 +208,6 @@ export default function CanvasScreen() {
     { type: 'conclusion', label: 'Conclusion', targetWords: Math.round(targetWords * 0.15), guidance: '' },
   ];
 
-  // Document classification: use value baked in during ingestion if present.
-  const preClassifiedType = course.extractionData?.documentType || null;
   const [docClassification, setDocClassification] = useState(
     preClassifiedType ? { type: preClassifiedType, confidence: 1 } : null
   );
