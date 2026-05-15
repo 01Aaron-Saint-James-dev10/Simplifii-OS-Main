@@ -10,6 +10,12 @@ export const SettingsProvider = ({ children }) => {
   );
   useEffect(() => { localStorage.setItem('simplifii_home_language', homeLanguage); }, [homeLanguage]);
 
+  // Matrix rain background animation toggle
+  const [matrixRain, setMatrixRain] = useState(
+    localStorage.getItem('simplifii_matrix_rain') !== 'false'
+  );
+  useEffect(() => { localStorage.setItem('simplifii_matrix_rain', String(matrixRain)); }, [matrixRain]);
+
   // Easy Read mode for intellectual disability support
   const [easyRead, setEasyRead] = useState(
     localStorage.getItem('simplifii_easy_read') === 'true'
@@ -146,6 +152,7 @@ export const SettingsProvider = ({ children }) => {
     <SettingsContext.Provider value={{
       homeLanguage, setHomeLanguage,
       easyRead, setEasyRead,
+      matrixRain, setMatrixRain,
       activeTier, setActiveTier,
       mode, setMode,
       eduLevel, setEduLevel, 

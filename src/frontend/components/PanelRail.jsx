@@ -26,18 +26,18 @@ import {
  */
 
 const PANELS = [
-  { id: 'brief',      icon: 'B', label: 'Brief' },
-  { id: 'tutor',      icon: 'T', label: 'Tutor' },
-  { id: 'preview',    icon: 'P', label: 'Preview' },
-  { id: 'sources',    icon: 'S', label: 'Sources' },
-  { id: 'provenance', icon: 'A', label: 'Authenticity' },
-  { id: 'check',      icon: 'C', label: 'Check' },
-  { id: 'pastqs',     icon: 'Q', label: "Past Q's" },
-  { id: 'udl',        icon: 'U', label: 'UDL 3.0' },
-  { id: 'simplify',   icon: '\u2606', label: 'Simplify' },
-  { id: 'rubric',     icon: 'R', label: 'Rubric' },
-  { id: 'scorer',     icon: '\u2714', label: 'Scorer' },
-  { id: 'hidden',     icon: '?', label: 'Hidden' },
+  { id: 'brief',      icon: 'B', label: 'Brief', tip: 'Brief: extracted assessment criteria' },
+  { id: 'tutor',      icon: 'T', label: 'Tutor', tip: 'Tutor: Socratic AI, asks questions' },
+  { id: 'preview',    icon: 'P', label: 'Preview', tip: 'Preview: compile all sections' },
+  { id: 'sources',    icon: 'S', label: 'Sources', tip: 'Sources: uploaded documents' },
+  { id: 'provenance', icon: 'A', label: 'Authenticity', tip: 'Authenticity: provenance + history' },
+  { id: 'check',      icon: 'C', label: 'Check', tip: 'Check: verify against rubric' },
+  { id: 'pastqs',     icon: 'Q', label: "Past Q's", tip: "Past Q's: HSC practice questions" },
+  { id: 'udl',        icon: 'U', label: 'UDL 3.0', tip: 'UDL 3.0: 4 ways to understand' },
+  { id: 'simplify',   icon: '\u2606', label: 'Simplify', tip: 'Simplify: week-by-week action plan' },
+  { id: 'rubric',     icon: 'R', label: 'Rubric', tip: 'Rubric: plain language translation' },
+  { id: 'scorer',     icon: '\u2714', label: 'Scorer', tip: 'Scorer: formative feedback on draft' },
+  { id: 'hidden',     icon: '?', label: 'Hidden', tip: 'Hidden: decode what markers want' },
 ];
 
 export default function PanelRail({ activePanel, onSelectPanel, panelContent }) {
@@ -85,6 +85,7 @@ export default function PanelRail({ activePanel, onSelectPanel, panelContent }) 
               role="tab"
               aria-selected={isActive}
               aria-label={p.label}
+              title={p.tip}
               onClick={() => onSelectPanel(isActive ? null : p.id)}
               style={{
                 width: 36,

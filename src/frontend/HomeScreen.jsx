@@ -289,8 +289,23 @@ export default function HomeScreen() {
             <section className="home-section" aria-label="Decision helper">
               <DecisionButton
                 onDecide={() => {
-                  // TODO: pick most urgent task, navigate to Screen 4 with 15-min timer
-                  console.info('[HomeScreen] Decision externalisation triggered');
+                  // Find most urgent course: overdue first, then soonest due
+                  const entries = Object.entries(courses || {});
+                  if (entries.length === 0) return;
+                  let best = entries[0];
+                  let bestDays = Infinity;
+                  for (const [id, c] of entries) {
+                    const briefs = c.extractionData?.assessmentBriefs || [];
+                    for (const b of briefs) {
+                      if (!b.dueDate) continue;
+                      const days = Math.floor((new Date(b.dueDate) - new Date()) / (1000*60*60*24));
+                      if (days < bestDays) { bestDays = days; best = [id, c]; }
+                    }
+                  }
+                  const [cId, c] = best;
+                  const cBriefs = c.extractionData?.assessmentBriefs || [];
+                  if (cBriefs.length > 1) navigateToAssessments(cId);
+                  else navigateToCanvas(cId, null);
                 }}
               />
             </section>

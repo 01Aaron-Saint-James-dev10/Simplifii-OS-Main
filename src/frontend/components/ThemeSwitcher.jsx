@@ -5,10 +5,10 @@ import {
 } from '../../theme/tokens';
 
 const THEMES = [
-  { id: 'obsidian', label: 'Obsidian', key: 'alpha' },
-  { id: 'vaporwave', label: 'Vaporwave', key: 'beta' },
-  { id: 'surreal', label: 'Surreal', key: 'gamma' },
-  { id: 'minimal', label: 'Minimal', key: 'delta' },
+  { id: 'obsidian', label: 'Obsidian' },
+  { id: 'vaporwave', label: 'Vaporwave' },
+  { id: 'surreal', label: 'Paper' },
+  { id: 'minimal', label: 'Clean' },
 ];
 
 const STORAGE_KEY = 'simplifii_sovereign_theme';
@@ -91,7 +91,7 @@ export default function ThemeSwitcher() {
       onFocus={e => { e.currentTarget.style.boxShadow = `0 0 0 2px ${FOCUS_RING}`; }}
       onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
     >
-      {theme.key} // {theme.label.toLowerCase()}
+      {theme.label}
     </button>
   );
 }

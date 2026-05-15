@@ -2,6 +2,24 @@
 
 ---
 
+## Sprint U: Sector Research Ingestion Pipeline
+
+**Goal:** Ingest publicly available Australian education research, synthesise student pain points by tier/demographic, feed into tutor system prompts so AI responses are informed by sector-wide evidence.
+
+**Phase 1 (12-16 hrs):** Automated scrape of CYDA, QILT SES, Headspace/Orygen, Universities Accord submissions, NCVER VET, ADCET, data.gov.au. Store raw text in research_documents table.
+
+**Phase 2 (8-12 hrs Aaron):** Claude-assisted synthesis of pain points from research documents. Aaron reviews + curates. Stored in pain_points table with tier, demographic, frequency.
+
+**Phase 3 (3-4 hrs):** Tutor system prompt injection. Query top 5 relevant sector findings before each Claude call. Tutor becomes sector-evidence-informed.
+
+**Phase 4:** UNSW HREA ethics approval. Source citations in product. MRes thesis integration.
+
+**Total:** 35-40 hours minimum. Post-tester, 1 month to full pipeline.
+
+**Constraints:** No Reddit/Twitter scraping (TOS). Free-text QILT needs institutional access. Synthesis requires Aaron's validation. Annual source refresh.
+
+---
+
 ## Sprint M: Universal Document Type Detection and Routing
 
 **Goal:** User uploads any document. System detects type, routes to correct parser, surfaces output in matching UI.

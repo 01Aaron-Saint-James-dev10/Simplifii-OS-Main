@@ -21,8 +21,9 @@ export default function MatrixRain() {
   const canvasRef = useRef(null);
 
   useEffect(() => {
-    // Respect reduced motion
+    // Respect reduced motion and user toggle
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    if (localStorage.getItem('simplifii_matrix_rain') === 'false') return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
