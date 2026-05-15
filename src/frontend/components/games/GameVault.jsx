@@ -63,7 +63,7 @@ const VAULT = [
 ];
 
 const CATEGORY_COLOURS = {
-  Focus:    '#10b981',
+  Focus:    ACCENT_PULSE,
   Pattern:  '#3b82f6',
   Logic:    '#8b5cf6',
   Recovery: '#f59e0b',

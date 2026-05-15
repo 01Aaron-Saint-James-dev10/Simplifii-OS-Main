@@ -43,7 +43,7 @@ import {
 
 const ROSE   = '#f43f5e';
 const AMBER  = '#f59e0b';
-const EMERALD = '#10b981';
+const EMERALD = ACCENT_PULSE;
 
 function StretchAnimation({ prompt }) {
   const pathRef   = useRef(null);

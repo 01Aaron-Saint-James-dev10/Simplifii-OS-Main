@@ -235,7 +235,7 @@ const styles = {
     marginTop:     '1.5rem',
   },
   confirmButton: {
-    backgroundColor: '#10b981',
+    backgroundColor: ACCENT_PULSE,
     color:           '#000',
     border:          'none',
     borderRadius:    '0.5rem',

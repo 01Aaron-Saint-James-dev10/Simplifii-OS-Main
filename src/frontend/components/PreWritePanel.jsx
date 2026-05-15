@@ -7,6 +7,7 @@ import {
   SURFACE_RAISED, SURFACE_CARD,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
   ACCENT_PULSE, ACCENT_GLASS, ACCENT_BORDER,
+  COLOUR_WARN,
   FONT_SYSTEM, FONT_BODY,
   BORDER_RADIUS, FOCUS_RING,
 } from '../../theme/tokens';
@@ -184,7 +185,7 @@ export default function PreWritePanel({ assessmentTitle, briefText, sectionType,
             )}
 
             {error && (
-              <p style={{ margin: 0, fontFamily: FONT_SYSTEM, fontSize: 10, color: '#f87171' }}>{error}</p>
+              <p style={{ margin: 0, fontFamily: FONT_SYSTEM, fontSize: 10, color: COLOUR_WARN }}>{error}</p>
             )}
 
             {scaffold && !loading && (
