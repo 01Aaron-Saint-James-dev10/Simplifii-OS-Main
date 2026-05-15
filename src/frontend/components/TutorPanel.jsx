@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSettings } from '../SettingsContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabaseClient';
 import useConfidenceDetector from '../hooks/useConfidenceDetector';
 import useLearnerContext from '../hooks/useLearnerContext';
 import AffirmationBanner from './AffirmationBanner';
@@ -48,19 +50,38 @@ const DOC_TYPE_LABELS = {
   notes: 'notes',
 };
 
-export default function TutorPanel({ assessmentTitle, briefText, documentType, pendingMessage, onPendingConsumed }) {
+export default function TutorPanel({ assessmentTitle, briefText, documentType, courseId, pendingMessage, onPendingConsumed }) {
   const { activeTier, homeLanguage, easyRead, autismFirstEnabled, sensoryLevel, specialInterests, isLiteralMode, accessibilityProfile } = useSettings();
+  const { user } = useAuth();
   const { activeTrigger, checkMessage } = useConfidenceDetector();
   const { learnerContext } = useLearnerContext();
-  const [messages, setMessages] = useState([
-    { role: 'tutor', text: documentType && DOC_TYPE_LABELS[documentType]
-      ? `Working on your ${DOC_TYPE_LABELS[documentType]}. What are you stuck on?`
-      : `Working on "${assessmentTitle || 'your assessment'}". What are you stuck on?` },
-  ]);
+  const defaultGreeting = documentType && DOC_TYPE_LABELS[documentType]
+    ? `Working on your ${DOC_TYPE_LABELS[documentType]}. What are you stuck on?`
+    : `Working on "${assessmentTitle || 'your assessment'}". What are you stuck on?`;
+  const [messages, setMessages] = useState([{ role: 'tutor', text: defaultGreeting }]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const scrollRef = useRef(null);
+
+  // Load cached conversation on mount
+  useEffect(() => {
+    if (!user || !courseId) return;
+    supabase.from('assessment_representations')
+      .select('content')
+      .eq('course_id', courseId)
+      .eq('user_id', user.id)
+      .eq('type', 'tutor_conversation')
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.content) {
+          try {
+            const cached = JSON.parse(data.content);
+            if (Array.isArray(cached) && cached.length > 1) setMessages(cached);
+          } catch { /* ignore */ }
+        }
+      });
+  }, [user, courseId]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -119,7 +140,20 @@ export default function TutorPanel({ assessmentTitle, briefText, documentType, p
       });
       const data = await response.json();
       if (data.success && data.reply) {
-        setMessages(prev => [...prev, { role: 'tutor', text: data.reply }]);
+        setMessages(prev => {
+          const updated = [...prev, { role: 'tutor', text: data.reply }];
+          // Persist conversation to Supabase
+          if (user && courseId) {
+            supabase.from('assessment_representations').upsert({
+              assessment_id: assessmentTitle || 'default',
+              course_id: courseId,
+              user_id: user.id,
+              type: 'tutor_conversation',
+              content: JSON.stringify(updated),
+            }, { onConflict: 'assessment_id,course_id,user_id,type' }).catch(() => {});
+          }
+          return updated;
+        });
       } else {
         setError(data.error || 'Could not reach the tutor. Try again.');
         // Fallback: local Socratic response

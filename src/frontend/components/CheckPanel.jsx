@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabaseClient';
 import { runCheckAgainstRubric } from '../../services/CheckAgainstRubricService';
 import {
   SURFACE_RAISED,
@@ -42,8 +44,25 @@ function wordStatus(count, target) {
 }
 
 export default function CheckPanel({ draftText, wordCount, targetWords, rubricCriteria, courseId, assessmentTitle }) {
+  const { user } = useAuth();
   const [result, setResult] = useState(null);
   const [running, setRunning] = useState(false);
+
+  // Load cached result on mount
+  useEffect(() => {
+    if (!user || !courseId) return;
+    supabase.from('assessment_representations')
+      .select('content')
+      .eq('course_id', courseId)
+      .eq('user_id', user.id)
+      .eq('type', 'rubric_check')
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.content) {
+          try { setResult(JSON.parse(data.content)); } catch { /* ignore */ }
+        }
+      });
+  }, [user, courseId]);
 
   const ws = wordStatus(wordCount, targetWords);
 
@@ -54,6 +73,16 @@ export default function CheckPanel({ draftText, wordCount, targetWords, rubricCr
         draftText, rubricCriteria, targetWords, courseId, assessmentTitle,
       });
       setResult(r);
+      // Persist to Supabase
+      if (user && courseId && r) {
+        supabase.from('assessment_representations').upsert({
+          assessment_id: assessmentTitle || 'default',
+          course_id: courseId,
+          user_id: user.id,
+          type: 'rubric_check',
+          content: JSON.stringify(r),
+        }, { onConflict: 'assessment_id,course_id,user_id,type' }).catch(() => {});
+      }
     } catch { /* non-fatal */ }
     setRunning(false);
   };

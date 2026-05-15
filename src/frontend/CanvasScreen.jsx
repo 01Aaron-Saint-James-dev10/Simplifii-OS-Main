@@ -329,7 +329,7 @@ export default function CanvasScreen() {
         />
       </div>
       <div style={{ display: activePanel === 'tutor' ? 'contents' : 'none' }}>
-        <TutorPanel assessmentTitle={currentTitle} briefText={briefOrText} documentType={effectiveDocType} pendingMessage={pendingTutorMessage} onPendingConsumed={() => setPendingTutorMessage(null)} />
+        <TutorPanel assessmentTitle={currentTitle} briefText={briefOrText} documentType={effectiveDocType} courseId={courseId} pendingMessage={pendingTutorMessage} onPendingConsumed={() => setPendingTutorMessage(null)} />
       </div>
       <div style={{ display: activePanel === 'preview' ? 'contents' : 'none' }}>
         <PreviewPanel draftText={compileFnRef.current ? compileFnRef.current() : draftText} wordCount={wordCount} />
@@ -448,6 +448,7 @@ export default function CanvasScreen() {
             briefText={briefOrText}
             sectionType={activeSection}
             tier={course.extractionData?.detectedLevel || 'tertiary'}
+            courseId={courseId}
             onInsert={(text) => {
               window.dispatchEvent(new CustomEvent('simplifii:voice-transcript', { detail: { text: ' ' + text } }));
               appendEvent({ event_type: 'tier_transition', payload: { from: 1, to: 3, trigger: 'pre_write_insert' } }).catch(() => {});

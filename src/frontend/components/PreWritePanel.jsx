@@ -1,5 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useSettings } from '../SettingsContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabaseClient';
 import SentenceStarters from './SentenceStarters';
 import IdeaToSentence from './IdeaToSentence';
 import { appendEvent } from '../../core/HistoryOfThought';
@@ -41,13 +43,27 @@ const TIER_LABEL_STYLE = {
   justifyContent: 'space-between',
 };
 
-export default function PreWritePanel({ assessmentTitle, briefText, sectionType, tier, onInsert }) {
+export default function PreWritePanel({ assessmentTitle, briefText, sectionType, tier, onInsert, courseId }) {
   const { isLiteralMode, accessibilityProfile, sensoryLevel, autismFirstEnabled } = useSettings();
+  const { user } = useAuth();
   const [scaffold, setScaffold] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [accepted, setAccepted] = useState(false);
   const [activeTab, setActiveTab] = useState('scaffold'); // 'scaffold' | 'starters' | 'idea'
+
+  // Load cached scaffold on mount
+  useEffect(() => {
+    if (!user || !courseId) return;
+    const key = `pre_write_${sectionType || 'default'}`;
+    supabase.from('assessment_representations')
+      .select('content')
+      .eq('course_id', courseId)
+      .eq('user_id', user.id)
+      .eq('type', key)
+      .maybeSingle()
+      .then(({ data }) => { if (data?.content) setScaffold(data.content); });
+  }, [user, courseId, sectionType]);
 
   const generateScaffold = useCallback(async () => {
     setLoading(true);
@@ -77,6 +93,17 @@ export default function PreWritePanel({ assessmentTitle, briefText, sectionType,
       if (data.success) {
         setScaffold(data.reply);
         appendEvent({ event_type: 'pre_write_generated', payload: { assessmentTitle, sectionType } }).catch(() => {});
+        // Persist to Supabase
+        if (user && courseId && data.reply) {
+          const key = `pre_write_${sectionType || 'default'}`;
+          supabase.from('assessment_representations').upsert({
+            assessment_id: assessmentTitle || 'default',
+            course_id: courseId,
+            user_id: user.id,
+            type: key,
+            content: data.reply,
+          }, { onConflict: 'assessment_id,course_id,user_id,type' }).catch(() => {});
+        }
       } else {
         setError('Could not generate. Try again.');
       }
