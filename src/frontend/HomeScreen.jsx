@@ -103,7 +103,8 @@ export default function HomeScreen() {
           setShowTesterWelcome(true);
         }
         sessionStorage.setItem('simplifii_greeted', 'true');
-      });
+      })
+      .catch(() => { /* profile load failed, non-blocking */ });
   }, [user, isAaron]);
   // Pass activeTier into the existing stream system so SovereignRouter
   // can resolve the correct profile. No layout changes in this sprint.

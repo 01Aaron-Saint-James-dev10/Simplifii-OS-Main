@@ -37,7 +37,8 @@ export default function FeedbackDashboard() {
   useEffect(() => {
     if (!isAaron) return;
     supabase.from('feedback').select('*').order('created_at', { ascending: false })
-      .then(({ data }) => { setItems(data || []); setLoading(false); });
+      .then(({ data }) => { setItems(data || []); setLoading(false); })
+      .catch(() => { setLoading(false); });
   }, [isAaron]);
 
   const updateStatus = async (id, status) => {

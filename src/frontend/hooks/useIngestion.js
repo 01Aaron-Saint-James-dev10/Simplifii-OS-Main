@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createLogger } from '../../utils/logger';
 import { mapToWorkspace, deriveRoadmapFromAssessments, extractDeepCourseData, mergeExtractionData } from '../../services/BriefService';
 
@@ -48,7 +48,7 @@ export function useIngestion({
   // Sprint 9.1a: groundingCount includes both baked-in and user-uploaded PDFs.
   // Baked-in count is sync; uploaded count updates via refreshGroundingCount().
   const [uploadedCount, setUploadedCount] = useState(0);
-  useState(() => { listUploadedPdfs().then(r => setUploadedCount(r.length)).catch(() => {}); });
+  useEffect(() => { listUploadedPdfs().then(r => setUploadedCount(r.length)).catch(() => {}); }, []);
   const groundingCount = listGroundingPdfs().length + uploadedCount;
   const refreshGroundingCount = () => {
     listUploadedPdfs().then(r => setUploadedCount(r.length)).catch(() => {});
