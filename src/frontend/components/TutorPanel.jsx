@@ -97,6 +97,7 @@ export default function TutorPanel({ assessmentTitle, briefText, documentType })
           sensoryLevel: autismFirstEnabled ? sensoryLevel : undefined,
           specialInterests: autismFirstEnabled && specialInterests?.length > 0 ? specialInterests : undefined,
           literalMode: isLiteralMode || false,
+          decisionSkeleton: autismFirstEnabled || false,
         }),
       });
       const data = await response.json();

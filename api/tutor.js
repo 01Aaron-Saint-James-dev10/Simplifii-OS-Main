@@ -109,6 +109,15 @@ export default async function handler(req, res) {
   // redirect to self-assessment rather than providing validation
   systemPrompt += `\n\nCONFIDENCE REINFORCEMENT: If the learner asks "is this right?" or "am I on track?" more than twice in a session, respond with: "Show me what you think. Then we will check it together." Do not validate or invalidate their work directly. Instead, ask them to state their position first, then help them evaluate it themselves. If the learner asks "what should I do next?", respond with: "You already know what matters. Want me to confirm or surprise you?"`;
 
+  // Decision Skeleton: max 2 options with cognitive load labels
+  const decisionSkeleton = req.body?.decisionSkeleton;
+  if (decisionSkeleton) {
+    systemPrompt += `\n\nDECISION SKELETON MODE. When asking the user a question, structure responses as EXACTLY 2 options unless the user explicitly asks for more. Format each option as:
+Option 1: [action] (estimated [time], cognitive load: [easy/medium/hard])
+Option 2: [action] (estimated [time], cognitive load: [easy/medium/hard])
+If neither fits, offer: "Surprise me" option that picks for them. Never present more than 2 options. Never ask open-ended "what do you want to do?" questions.`;
+  }
+
   // Special Interest Bridge: use student's interests to explain concepts
   const specialInterests = req.body?.specialInterests;
   if (Array.isArray(specialInterests) && specialInterests.length > 0) {
