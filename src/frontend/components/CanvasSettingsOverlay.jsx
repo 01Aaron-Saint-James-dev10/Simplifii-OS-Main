@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSettings } from '../SettingsContext';
 import BreathBubble from './BreathBubble';
+import { getProfileCards } from '../../services/AccessibilityProfileService';
 import {
   SURFACE_CARD,
   SURFACE_RAISED,
@@ -107,6 +108,7 @@ export default function CanvasSettingsOverlay({ onClose }) {
     isLiteralMode, setIsLiteralMode,
     specialInterests, setSpecialInterests,
     ambientPreference, setAmbientPreference,
+    accessibilityProfile, setAccessibilityProfile,
   } = useSettings();
 
   // Font family stored in localStorage directly (not in SettingsContext to avoid
@@ -217,6 +219,15 @@ export default function CanvasSettingsOverlay({ onClose }) {
         <div style={{ borderTop: `1px solid ${SURFACE_RAISED}`, margin: '12px 0' }} />
         <SectionLabel>Focus</SectionLabel>
         <Toggle label="Distraction-free mode" description="Hide rails and bottom strip. Press Escape to exit." value={isZenMode} onChange={setIsZenMode} />
+
+        <div style={{ borderTop: `1px solid ${SURFACE_RAISED}`, margin: '12px 0' }} />
+        <SectionLabel>Accessibility profile</SectionLabel>
+        <RadioGroup
+          label="How does your brain work?"
+          options={getProfileCards().map(p => ({ value: p.id, label: p.name }))}
+          value={accessibilityProfile}
+          onChange={setAccessibilityProfile}
+        />
 
         <div style={{ borderTop: `1px solid ${SURFACE_RAISED}`, margin: '12px 0' }} />
         <SectionLabel>Autism-first features</SectionLabel>

@@ -50,7 +50,7 @@ export default async function handler(req, res) {
   const quota = await checkQuota(userId);
   if (quota.exceeded) return res.status(402).json({ success: false, error: quota.error });
 
-  const { messages, assessmentTitle, tier, homeLanguage, easyRead, briefText, documentType, sensoryLevel } = req.body || {};
+  const { messages, assessmentTitle, tier, homeLanguage, easyRead, briefText, documentType, sensoryLevel, accessibilityProfile } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
   if (!apiKey) {
@@ -94,6 +94,16 @@ export default async function handler(req, res) {
 
   if (assessmentTitle) {
     systemPrompt += `\n\nThe learner is currently working on: "${assessmentTitle}".`;
+  }
+
+  // Accessibility profile prompt addition
+  if (accessibilityProfile && accessibilityProfile !== 'standard') {
+    // Profile prompt additions are passed directly from the client
+    // since the profile definitions live in the frontend service.
+    const profilePrompt = req.body?.profilePromptAddition;
+    if (profilePrompt) {
+      systemPrompt += `\n\nACCESSIBILITY PROFILE (${accessibilityProfile}):\n${profilePrompt}`;
+    }
   }
 
   // Sensory-level-aware response length

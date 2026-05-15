@@ -5,6 +5,7 @@ import AffirmationBanner from './AffirmationBanner';
 import ResponseFeedback from './ResponseFeedback';
 import { announceAction } from '../services/PredictabilityService';
 import ComprehensionCheck from './ComprehensionCheck';
+import { getProfilePromptAddition } from '../../services/AccessibilityProfileService';
 import {
   SURFACE_RAISED,
   TEXT_PRIMARY,
@@ -47,7 +48,7 @@ const DOC_TYPE_LABELS = {
 };
 
 export default function TutorPanel({ assessmentTitle, briefText, documentType }) {
-  const { activeTier, homeLanguage, easyRead, autismFirstEnabled, sensoryLevel, specialInterests, isLiteralMode } = useSettings();
+  const { activeTier, homeLanguage, easyRead, autismFirstEnabled, sensoryLevel, specialInterests, isLiteralMode, accessibilityProfile } = useSettings();
   const { activeTrigger, checkMessage, clearTrigger } = useConfidenceDetector();
   const [messages, setMessages] = useState([
     { role: 'tutor', text: documentType && DOC_TYPE_LABELS[documentType]
@@ -99,6 +100,8 @@ export default function TutorPanel({ assessmentTitle, briefText, documentType })
           specialInterests: autismFirstEnabled && specialInterests?.length > 0 ? specialInterests : undefined,
           literalMode: isLiteralMode || false,
           decisionSkeleton: autismFirstEnabled || false,
+          accessibilityProfile: accessibilityProfile || 'standard',
+          profilePromptAddition: accessibilityProfile !== 'standard' ? getProfilePromptAddition(accessibilityProfile) : undefined,
         }),
       });
       const data = await response.json();

@@ -86,6 +86,11 @@ export const SettingsProvider = ({ children }) => {
   });
   useEffect(() => { localStorage.setItem('simplifii_theme', theme); }, [theme]);
 
+  // Accessibility profile
+  const [accessibilityProfile, setAccessibilityProfile] = useState(
+    localStorage.getItem('simplifii_accessibility_profile') || 'standard'
+  );
+
   // Autism-first features (7 features, individually toggleable)
   const [autismFirstEnabled, setAutismFirstEnabled] = useState(localStorage.getItem('simplifii_autism_first') === 'true');
   const [sensoryLevel, setSensoryLevel] = useState(Number(localStorage.getItem('simplifii_sensory_level')) || 5);
@@ -146,6 +151,7 @@ export const SettingsProvider = ({ children }) => {
     localStorage.setItem('gritLevel', gritLevel);
     localStorage.setItem('lodLevel', lodLevel);
     localStorage.setItem('simplifii_display', JSON.stringify(display));
+    localStorage.setItem('simplifii_accessibility_profile', accessibilityProfile);
     localStorage.setItem('simplifii_autism_first', String(autismFirstEnabled));
     localStorage.setItem('simplifii_sensory_level', String(sensoryLevel));
     localStorage.setItem('simplifii_predictability', String(predictabilityAnnouncements));
@@ -154,7 +160,7 @@ export const SettingsProvider = ({ children }) => {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('simplifii:lod-change', { detail: { lodLevel } }));
     }
-  }, [mode, eduLevel, highContrast, reducedMotion, darkMode, persona, overlayTint, fontScale, lineSpacing, isRulerActive, isBionicActive, bionicIntensity, isDriveAttached, isZenMode, isLeftCollapsed, isRightCollapsed, isLiteralMode, scaffoldingLevel, gritLevel, lodLevel, display, autismFirstEnabled, sensoryLevel, predictabilityAnnouncements, specialInterests, ambientPreference]);
+  }, [mode, eduLevel, highContrast, reducedMotion, darkMode, persona, overlayTint, fontScale, lineSpacing, isRulerActive, isBionicActive, bionicIntensity, isDriveAttached, isZenMode, isLeftCollapsed, isRightCollapsed, isLiteralMode, scaffoldingLevel, gritLevel, lodLevel, display, accessibilityProfile, autismFirstEnabled, sensoryLevel, predictabilityAnnouncements, specialInterests, ambientPreference]);
 
   const rules = {
     sequential: { font: 'Inter', spacing: 'normal', lineHeight: 'normal', letterSpacing: 'normal' },
@@ -191,6 +197,7 @@ export const SettingsProvider = ({ children }) => {
       isStressed, setIsStressed,
       display, updateDisplay,
       theme, setTheme,
+      accessibilityProfile, setAccessibilityProfile,
       autismFirstEnabled, setAutismFirstEnabled,
       sensoryLevel, setSensoryLevel,
       predictabilityAnnouncements, setPredictabilityAnnouncements,
