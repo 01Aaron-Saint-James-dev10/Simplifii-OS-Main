@@ -41,6 +41,7 @@ import PreWritePanel from './components/PreWritePanel';
 import FirstLookCard from './components/FirstLookCard';
 import AssessmentSwitcher from './components/AssessmentSwitcher';
 import { appendEvent } from '../core/HistoryOfThought';
+import { startIdleDetection, stopIdleDetection } from '../core/ExecutiveSpine';
 import { determinePhase, checkPhaseTransition } from '../core/TaskLifecycleManager';
 import { processDocumentWithGCP } from '../services/DocumentAIService';
 import './CanvasScreen.css';
@@ -59,6 +60,12 @@ export default function CanvasScreen() {
   const { courseId, assessmentTitle, navigateToAssessments, navigateToCanvas } = useRouter();
   const { courses, activeCourse, projectSources, upgradeCourseExtraction } = useProject();
   const { reducedMotion, isZenMode, theme, autismFirstEnabled, sensoryLevel, isLiteralMode, ambientPreference } = useSettings();
+
+  // Idle detection: start on canvas mount, stop on unmount
+  useEffect(() => {
+    startIdleDetection({ thresholdMs: 120_000 }); // 2 min idle threshold
+    return () => stopIdleDetection();
+  }, []);
 
   // Ambient sound: start/stop when preference changes
   useEffect(() => {
