@@ -215,6 +215,7 @@ export default function CanvasSettingsOverlay({ onClose }) {
           onChange={setTheme}
         />
         <Toggle label="Reduced motion" description="Disable all animations and transitions" value={reducedMotion} onChange={setReducedMotion} />
+        <Toggle label="Visual effects (FX)" description="Matrix rain animation in header and footer strips" value={localStorage.getItem('simplifii_matrix_rain') !== 'false'} onChange={(v) => { localStorage.setItem('simplifii_matrix_rain', String(v)); window.location.reload(); }} />
 
         <div style={{ borderTop: `1px solid ${SURFACE_RAISED}`, margin: '12px 0' }} />
         <SectionLabel>Focus</SectionLabel>
