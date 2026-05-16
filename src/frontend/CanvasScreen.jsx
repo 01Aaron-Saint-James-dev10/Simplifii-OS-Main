@@ -40,13 +40,11 @@ import ComprehensionBreak from './components/ComprehensionBreak';
 import PreWritePanel from './components/PreWritePanel';
 import FirstLookCard from './components/FirstLookCard';
 import AssessmentSwitcher from './components/AssessmentSwitcher';
-import EnergyOrbs from './components/EnergyOrbs';
 import SubmitModal from './components/SubmitModal';
 import CanvasHelpOverlay from './components/CanvasHelpOverlay';
 import { appendEvent } from '../core/HistoryOfThought';
 import { startIdleDetection, stopIdleDetection } from '../core/ExecutiveSpine';
 import { determinePhase, checkPhaseTransition } from '../core/TaskLifecycleManager';
-import { processDocumentWithGCP } from '../services/DocumentAIService';
 import './CanvasScreen.css';
 
 /**
@@ -252,6 +250,7 @@ export default function CanvasScreen() {
     e.target.value = '';
     for (const file of files) {
       try {
+        const { processDocumentWithGCP } = await import('../services/DocumentAIService');
         const text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
         if (text && text.length > 0) {
           const existingRaw = course.extractionData?.rawText || '';
@@ -511,8 +510,6 @@ export default function CanvasScreen() {
         onSelectPanel={setActivePanelWithLog}
       />
 
-      {/* Energy orbs (Spoon Theory) */}
-      <EnergyOrbs userId="default" />
 
       {/* Hidden file input for Add Docs */}
       <input

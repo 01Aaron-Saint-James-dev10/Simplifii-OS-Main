@@ -16,6 +16,7 @@ import FeedbackButton from './feedback/FeedbackButton';
 import AuraOrb from './components/AuraOrb';
 import AuraChatOverlay from './components/AuraChatOverlay';
 import FirstTimeTooltip from './components/FirstTimeTooltip';
+import EnergyOrbs from './components/EnergyOrbs';
 import CanvasSettingsOverlay from './components/CanvasSettingsOverlay';
 import BetaBanner from './components/BetaBanner';
 import MatrixRain from './components/MatrixRain';
@@ -152,6 +153,7 @@ export default function AppShell() {
                 <BetaBanner />
                 <ViewSwitch />
               </div>
+              <EnergyOrbs userId={user?.id || 'anon'} />
               <FeedbackButton />
               <FirstTimeTooltip id="aura_orb" text="Tap me for help at any time. I am AURA, your study guide." position="left" delay={2000}>
                 <AuraOrb onClick={() => setAuraChatOpen(prev => !prev)} auraState={auraChatOpen ? 'listening' : 'idle'} />
