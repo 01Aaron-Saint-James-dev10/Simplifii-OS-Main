@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useProject } from '../ProjectContext';
 import { useIngestion } from '../../frontend/hooks/useIngestion';
 import {
@@ -49,6 +49,13 @@ export default function AddCourseButton() {
   const handleClick = () => {
     if (!ingesting) inputRef.current?.click();
   };
+
+  // Listen for trigger from Add Work modal
+  useEffect(() => {
+    const handler = () => { if (!ingesting) inputRef.current?.click(); };
+    window.addEventListener('simplifii:trigger-add-work', handler);
+    return () => window.removeEventListener('simplifii:trigger-add-work', handler);
+  }, [ingesting]);
 
   const handleFiles = (e) => {
     const files = Array.from(e.target.files || []);

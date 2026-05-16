@@ -401,10 +401,9 @@ export default function HomeScreen() {
         <AddWorkModal
           onSelect={(workType) => {
             setShowAddWork(false);
-            // Store work type for AURA context, then open ingestion
             sessionStorage.setItem('simplifii_work_type', workType);
-            // For now: trigger the standard add flow
-            // TODO: route differently based on workType
+            // Trigger the file picker via custom event (AddCourseButton listens)
+            window.dispatchEvent(new CustomEvent('simplifii:trigger-add-work'));
           }}
           onClose={() => setShowAddWork(false)}
         />

@@ -96,7 +96,7 @@ export default function CheckPanel({ draftText, wordCount, targetWords, rubricCr
       {/* Word count bar */}
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-          <span style={{ fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 600, color: ws.colour }}>{ws.label}</span>
+          <span style={{ fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 600, color: ws.colour }} title="This is the section word limit. Your assessment may have a different total requirement.">{ws.label}</span>
           <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, color: TEXT_FAINT }}>
             {ws.status === 'under' ? 'Keep writing' : ws.status === 'building' ? 'Keep going' : ws.status === 'on-target' ? 'On target' : ws.status === 'over' ? `Trim ${wordCount - targetWords} words` : ''}
           </span>

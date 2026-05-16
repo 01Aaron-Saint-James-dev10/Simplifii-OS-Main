@@ -107,7 +107,7 @@ export default function CanvasNav({ courseName, assessmentTitle, saveStatus, las
             aria-hidden="true"
           />
           <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', color: TEXT_FAINT }}>
-            {saveStatus === 'saved' && lastSavedAgo ? `Saved ${lastSavedAgo}` : saveStatus === 'saving' ? 'Saving...' : 'Unsaved'}
+            {saveStatus === 'saved' ? `Auto-saved ${lastSavedAgo || ''}` : saveStatus === 'saving' ? 'Saving...' : 'Unsaved changes'}
           </span>
         </div>
         <button
