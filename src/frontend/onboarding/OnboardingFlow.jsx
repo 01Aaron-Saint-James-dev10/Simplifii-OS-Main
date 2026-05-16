@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import TierPickerStep from './TierPickerStep';
+import WhatBringsYouStep from './WhatBringsYouStep';
+import MeetAuraStep from './MeetAuraStep';
 import AccessibilityStep from './AccessibilityStep';
 import ProfilerStep from './ProfilerStep';
 import SecondaryDetailsStep from './SecondaryDetailsStep';
@@ -55,7 +57,9 @@ function applyPrefsToLocalStorage(prefs) {
 // Non-secondary: tier -> accessibility -> profiler
 // Secondary:     tier -> secondaryDetails -> accessibility -> painPoints -> profiler
 const STEP_NAMES = {
-  tier: 'Who you are',
+  whatBringsYou: 'What brings you here',
+  meetAura: 'Meet AURA',
+  tier: 'Your level',
   secondaryDetails: 'Your school details',
   accessibility: 'How you learn best',
   painPoints: 'What gets in the way',
@@ -63,7 +67,8 @@ const STEP_NAMES = {
 };
 
 function buildSteps(tier) {
-  const steps = ['tier'];
+  const steps = ['whatBringsYou', 'meetAura'];
+  if (!tier) steps.push('tier'); // Only show old tier picker if not set via whatBringsYou
   if (tier === 'secondary') steps.push('secondaryDetails');
   steps.push('accessibility');
   if (tier === 'secondary') steps.push('painPoints');
@@ -155,6 +160,16 @@ export default function OnboardingFlow() {
       {/* Steps */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 0 80px' }}>
         <AnimatePresence mode="wait">
+          {currentStep === 'whatBringsYou' && (
+            <motion.div key="whatBringsYou" variants={slideVariants} initial="enter" animate="centre" exit="exit" transition={{ duration: 0.3 }}>
+              <WhatBringsYouStep onSelect={(t) => { setTier(t); next(); }} />
+            </motion.div>
+          )}
+          {currentStep === 'meetAura' && (
+            <motion.div key="meetAura" variants={slideVariants} initial="enter" animate="centre" exit="exit" transition={{ duration: 0.3 }}>
+              <MeetAuraStep onContinue={next} />
+            </motion.div>
+          )}
           {currentStep === 'tier' && (
             <motion.div key="tier" variants={slideVariants} initial="enter" animate="centre" exit="exit" transition={{ duration: 0.3 }}>
               <TierPickerStep selected={tier} onSelect={setTier} onContinue={next} />
