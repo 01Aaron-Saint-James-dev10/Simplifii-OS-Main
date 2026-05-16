@@ -5,10 +5,10 @@ import {
 } from '../../theme/tokens';
 
 const THEMES = [
-  { id: 'obsidian', label: 'Obsidian' },
-  { id: 'vaporwave', label: 'Vaporwave' },
+  { id: 'obsidian', label: 'Dark' },
+  { id: 'vaporwave', label: 'Neon' },
   { id: 'surreal', label: 'Paper' },
-  { id: 'minimal', label: 'Clean' },
+  { id: 'minimal', label: 'Light' },
 ];
 
 const STORAGE_KEY = 'simplifii_sovereign_theme';

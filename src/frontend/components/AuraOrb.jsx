@@ -121,7 +121,7 @@ const STATES = {
   lowEnergy: { distortion: 0.04, pulse: 0.5, rotationSpeed: 0.05, primary: [0.44, 0.44, 0.48], secondary: [0.28, 0.28, 0.31] },
 };
 
-function FluidOrb({ state = 'idle' }) {
+function FluidOrb({ state = 'idle', audioLevel = 0 }) {
   const meshRef = useRef();
   const materialRef = useRef();
   const config = STATES[state] || STATES.idle;
@@ -137,8 +137,9 @@ function FluidOrb({ state = 'idle' }) {
 
     u.uTime.value = t;
 
-    // Lerp towards target state
-    u.uDistortion.value += (targetRef.current.distortion - u.uDistortion.value) * 0.02;
+    // Audio-reactive distortion: adds audioLevel to base distortion when speaking
+    const audioBoost = audioLevel * 0.12;
+    u.uDistortion.value += (targetRef.current.distortion + audioBoost - u.uDistortion.value) * 0.08;
     u.uPulse.value += (targetRef.current.pulse - u.uPulse.value) * 0.02;
     u.uColourPrimary.value.lerp(new THREE.Vector3(...targetRef.current.primary), 0.02);
     u.uColourSecondary.value.lerp(new THREE.Vector3(...targetRef.current.secondary), 0.02);
@@ -247,7 +248,15 @@ function GlyphCore({ state }) {
 
 export default function AuraOrb({ onClick, auraState = 'idle' }) {
   const [reducedMotion, setReducedMotion] = useState(false);
+  const [audioLevel, setAudioLevel] = useState(0);
   const containerRef = useRef(null);
+
+  // Listen for audio level events from the voice engine
+  useEffect(() => {
+    const handler = (e) => setAudioLevel(e.detail?.level || 0);
+    window.addEventListener('simplifii:aura-audio-level', handler);
+    return () => window.removeEventListener('simplifii:aura-audio-level', handler);
+  }, []);
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -370,7 +379,7 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
         <ambientLight intensity={0.3} />
         <pointLight position={[2, 2, 2]} intensity={0.8} color="#ef9f27" />
         <pointLight position={[-2, -1, 1]} intensity={0.4} color="#10b981" />
-        <FluidOrb state={currentState} />
+        <FluidOrb state={currentState} audioLevel={audioLevel} />
         <GlyphCore state={currentState} />
         <OrbParticles state={currentState} />
       </Canvas>

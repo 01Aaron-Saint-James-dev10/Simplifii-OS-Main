@@ -179,11 +179,11 @@ export default function HomeScreen() {
               localStorage.setItem('simplifii_matrix_rain', String(!cur));
               window.location.reload();
             }}
-            title="Toggle background animation"
-            aria-label="Toggle matrix rain animation"
+            title={localStorage.getItem('simplifii_matrix_rain') !== 'false' ? 'Background animation is ON. Click to turn off.' : 'Background animation is OFF. Click to turn on.'}
+            aria-label={localStorage.getItem('simplifii_matrix_rain') !== 'false' ? 'Turn off background animation' : 'Turn on background animation'}
             style={{ background: 'none', border: `1px solid ${ACCENT_BORDER}`, borderRadius: 3, padding: '3px 8px', cursor: 'pointer', fontFamily: "'JetBrains Mono', monospace", fontSize: 10, fontWeight: 700, color: localStorage.getItem('simplifii_matrix_rain') !== 'false' ? ACCENT_PULSE : TEXT_MUTED, minHeight: 28, minWidth: 28 }}
           >
-            {localStorage.getItem('simplifii_matrix_rain') !== 'false' ? '\u2603' : '\u2601'}
+            {localStorage.getItem('simplifii_matrix_rain') !== 'false' ? 'FX on' : 'FX off'}
           </button>
           <TalkToSomeoneLink />
           <LogoutButton />

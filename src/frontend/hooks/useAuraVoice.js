@@ -96,7 +96,7 @@ export function useAuraVoice() {
     setAudioLevel(0);
   }, []);
 
-  // Poll audio analyser for waveform level (drives orb distortion)
+  // Poll audio analyser for waveform level (drives orb distortion via event)
   const pollAudioLevel = useCallback(() => {
     if (!analyserRef.current) return;
     const data = new Uint8Array(analyserRef.current.frequencyBinCount);
@@ -104,7 +104,10 @@ export function useAuraVoice() {
       if (!analyserRef.current) return;
       analyserRef.current.getByteFrequencyData(data);
       const avg = data.reduce((s, v) => s + v, 0) / data.length;
-      setAudioLevel(avg / 255);
+      const level = avg / 255;
+      setAudioLevel(level);
+      // Dispatch to orb for real-time reactivity
+      window.dispatchEvent(new CustomEvent('simplifii:aura-audio-level', { detail: { level } }));
       if (isSpeaking) requestAnimationFrame(poll);
     };
     poll();
