@@ -10,11 +10,13 @@ import {
 const TIERS = [
   { value: 'primary', label: 'Primary school', desc: 'I help you break down schoolwork into steps you can follow.' },
   { value: 'secondary', label: 'Secondary school', desc: 'I decode your rubrics and help you write with confidence.' },
-  { value: 'tertiary', label: 'University student', desc: 'I turn your assessment briefs into a plan and guide you through each step.' },
-  { value: 'postgrad', label: 'Postgrad and research', desc: 'I help you manage research, writing, and deadlines.' },
-  { value: 'tafe', label: 'TAFE and vocational', desc: 'I help you understand competency requirements and build your evidence.' },
+  { value: 'tertiary', label: 'University or college', desc: 'I turn your assessment briefs into a plan and guide you through each step.' },
+  { value: 'postgrad', label: 'Postgraduate or research', desc: 'I help you manage research, writing, and deadlines.' },
+  { value: 'tafe', label: 'TAFE, vocational or trade', desc: 'I help you understand competency requirements and build your evidence.' },
   { value: 'homeschool', label: 'Homeschooling', desc: 'I help you and your child work through curriculum together.' },
-  { value: 'educator', label: 'Educator', desc: 'I give you anonymised insights about how your students engage.' },
+  { value: 'educator', label: 'Teacher or educator', desc: 'I give you anonymised insights about how your students engage.' },
+  { value: 'helper', label: 'Helping someone else study', desc: 'I support parents, tutors, carers, and support workers guiding a learner.' },
+  { value: 'explorer', label: 'Just exploring', desc: 'See how it works with a sample assignment. No upload needed.' },
 ];
 
 /**

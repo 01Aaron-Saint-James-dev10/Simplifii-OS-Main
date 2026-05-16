@@ -18,7 +18,7 @@ import {
  * Delegates to the existing useIngestion hook for the full
  * PDF-to-course pipeline.
  *
- * Spec: PRODUCT_SPEC.md Section 8 (top nav: Logo, Add course, Settings)
+ * Spec: PRODUCT_SPEC.md Section 8 (top nav: Logo, Add subject, Settings)
  */
 
 export default function AddCourseButton() {
@@ -63,7 +63,7 @@ export default function AddCourseButton() {
         type="button"
         onClick={handleClick}
         disabled={ingesting}
-        aria-label={ingesting ? 'Uploading course' : 'Add course'}
+        aria-label={ingesting ? 'Uploading' : 'Add subject'}
         style={{
           fontFamily: FONT_SYSTEM,
           fontSize: 10,
@@ -85,7 +85,7 @@ export default function AddCourseButton() {
         onFocus={e => { e.currentTarget.style.boxShadow = `0 0 0 2px ${FOCUS_RING}`; }}
         onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
       >
-        {ingesting ? 'Uploading...' : '+ Add course'}
+        {ingesting ? 'Uploading...' : '+ Add subject'}
       </button>
       <input
         ref={inputRef}

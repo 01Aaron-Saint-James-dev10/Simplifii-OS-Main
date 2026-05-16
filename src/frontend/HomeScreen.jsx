@@ -362,9 +362,9 @@ export default function HomeScreen() {
             )}
 
             {/* Course grid */}
-            <section className="home-section" aria-label="Your courses">
+            <section className="home-section" aria-label="Your subjects and tasks">
               <div className="home-grid-header">
-                <h2 className="home-section-label">Your courses</h2>
+                <h2 className="home-section-label">Your subjects and tasks</h2>
                 <span className="home-sort-label">Sorted by earliest next-due</span>
               </div>
               <div className={`home-grid ${display.cardDensity === 'compact' ? 'home-grid-compact' : ''}`}>
