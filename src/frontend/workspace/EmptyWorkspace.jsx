@@ -78,51 +78,11 @@ export default function EmptyWorkspace({ tier, onCourseAdded }) {
           {subhead}
         </p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 400, margin: '0 auto' }}>
-          {/* Card 1: Upload */}
-          <button type="button" onClick={() => { if (!ingesting) fileRef.current?.click(); }} disabled={ingesting}
-            style={{ display: 'flex', gap: 14, padding: '16px 18px', textAlign: 'left', background: 'transparent', border: `1px solid ${ACCENT_BORDER}`, borderRadius: 8, cursor: ingesting ? 'wait' : 'pointer', minHeight: 44, alignItems: 'flex-start' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={ACCENT_PULSE} strokeWidth="1.5" strokeLinecap="round" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }}>
-              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
-            </svg>
-            <div>
-              <span style={{ fontFamily: FONT_DISPLAY, fontSize: 14, fontWeight: 700, color: TEXT_PRIMARY, display: 'block' }}>
-                {ingesting ? 'Reading your files...' : 'I have a document'}
-              </span>
-              <span style={{ fontFamily: FONT_SYSTEM, fontSize: 11, color: TEXT_MUTED, lineHeight: 1.4, display: 'block', marginTop: 2 }}>
-                Upload a PDF, photo, or paste text from your assignment, rubric, or course outline
-              </span>
-            </div>
-          </button>
+        <div style={{ maxWidth: 400, margin: '0 auto', textAlign: 'center' }}>
+          <p style={{ fontFamily: FONT_SYSTEM, fontSize: 12, color: TEXT_MUTED, margin: '0 0 16px', lineHeight: 1.5 }}>
+            Tap <strong>+ Add work</strong> in the header to get started.
+          </p>
           <input ref={fileRef} type="file" accept=".pdf" multiple onChange={handleFilePick} style={{ display: 'none' }} aria-hidden="true" />
-
-          {/* Card 2: Manual */}
-          <button type="button" onClick={() => setShowModal(true)}
-            style={{ display: 'flex', gap: 14, padding: '16px 18px', textAlign: 'left', background: 'transparent', border: `1px solid ${GLASS_BORDER}`, borderRadius: 8, cursor: 'pointer', minHeight: 44, alignItems: 'flex-start' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={TEXT_MUTED} strokeWidth="1.5" strokeLinecap="round" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }}>
-              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-            </svg>
-            <div>
-              <span style={{ fontFamily: FONT_DISPLAY, fontSize: 14, fontWeight: 700, color: TEXT_PRIMARY, display: 'block' }}>I will type it in</span>
-              <span style={{ fontFamily: FONT_SYSTEM, fontSize: 11, color: TEXT_MUTED, lineHeight: 1.4, display: 'block', marginTop: 2 }}>
-                Tell me the subject name, what you need to do, and when it is due
-              </span>
-            </div>
-          </button>
-
-          {/* Card 3: Demo */}
-          <button type="button" onClick={() => setShowUrlModal(true)}
-            style={{ display: 'flex', gap: 14, padding: '16px 18px', textAlign: 'left', background: 'transparent', border: `1px solid ${GLASS_BORDER}`, borderRadius: 8, cursor: 'pointer', minHeight: 44, alignItems: 'flex-start' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={TEXT_MUTED} strokeWidth="1.5" strokeLinecap="round" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }}>
-              <path d="M5 3l14 9-14 9V3z" />
-            </svg>
-            <div>
-              <span style={{ fontFamily: FONT_DISPLAY, fontSize: 14, fontWeight: 700, color: TEXT_PRIMARY, display: 'block' }}>Show me how it works</span>
-              <span style={{ fontFamily: FONT_SYSTEM, fontSize: 11, color: TEXT_MUTED, lineHeight: 1.4, display: 'block', marginTop: 2 }}>
-                Load a sample assignment so you can explore the tool before adding your own work
-              </span>
-            </div>
-          </button>
 
           {ingestStatus && <AsciiLoader status={ingestStatus} />}
         </div>
