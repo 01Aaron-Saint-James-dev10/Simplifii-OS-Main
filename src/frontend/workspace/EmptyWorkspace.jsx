@@ -72,7 +72,7 @@ export default function EmptyWorkspace({ tier, onCourseAdded }) {
         </svg>
 
         <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 'clamp(1.5rem, 4vw, 2rem)', color: TEXT_PRIMARY, margin: '0 0 8px' }}>
-          Your workspace is ready
+          Your space is ready
         </h1>
         <p style={{ fontFamily: FONT_DISPLAY, fontSize: 16, color: TEXT_MUTED, margin: '0 0 32px', lineHeight: 1.6 }}>
           {subhead}

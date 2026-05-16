@@ -219,13 +219,13 @@ export default function HomeScreen() {
           let greeting, sub;
           if (isFirstSession) {
             greeting = `Welcome to Simplifii-OS${nameBit}`;
-            sub = 'Your neuroinclusive workspace is ready.';
+            sub = name ? `${name}'s space is ready.` : 'Your space is ready.';
           } else if (tier === 'secondary') {
             greeting = `${timeGreet}${nameBit}`;
             sub = sortedCourses.length > 0 ? `You have ${sortedCourses.length} course${sortedCourses.length === 1 ? '' : 's'}. Let's tackle the next one.` : 'Ready for your next assessment?';
           } else if (tier === 'postgrad') {
             greeting = `Welcome back${nameBit}`;
-            sub = 'Your research workspace is ready.';
+            sub = name ? `${name}'s research space is ready.` : 'Your research space is ready.';
           } else if (tier === 'homeschool') {
             greeting = `${timeGreet}${nameBit}`;
             sub = "How can we help your learner today?";
