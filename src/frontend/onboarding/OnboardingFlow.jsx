@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabaseClient';
 import TierPickerStep from './TierPickerStep';
 import WhatBringsYouStep from './WhatBringsYouStep';
 import MeetAuraStep from './MeetAuraStep';
+import { DEMO_COURSE } from '../../data/demoCourse';
 import AccessibilityStep from './AccessibilityStep';
 import ProfilerStep from './ProfilerStep';
 import SecondaryDetailsStep from './SecondaryDetailsStep';
@@ -162,7 +163,23 @@ export default function OnboardingFlow() {
         <AnimatePresence mode="wait">
           {currentStep === 'whatBringsYou' && (
             <motion.div key="whatBringsYou" variants={slideVariants} initial="enter" animate="centre" exit="exit" transition={{ duration: 0.3 }}>
-              <WhatBringsYouStep onSelect={(t) => { setTier(t); next(); }} />
+              <WhatBringsYouStep onSelect={async (t) => {
+                setTier(t);
+                if (t === 'explorer') {
+                  // Skip all onboarding, load demo course, go to app
+                  try {
+                    await supabase.from('profiles').update({ tier: 'tertiary', onboarding_completed: true }).eq('id', user.id);
+                    // Store demo course in localStorage for ProjectContext to pick up
+                    const demoId = `demo_${Date.now()}`;
+                    const courses = JSON.parse(localStorage.getItem('simplifii_courses_v1') || '{}');
+                    courses[demoId] = DEMO_COURSE;
+                    localStorage.setItem('simplifii_courses_v1', JSON.stringify(courses));
+                  } catch { /* non-blocking */ }
+                  navigate('/app');
+                  return;
+                }
+                next();
+              }} />
             </motion.div>
           )}
           {currentStep === 'meetAura' && (
