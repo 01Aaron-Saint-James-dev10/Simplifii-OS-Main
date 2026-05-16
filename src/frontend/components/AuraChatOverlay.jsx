@@ -28,13 +28,23 @@ export default function AuraChatOverlay({ open, onClose }) {
   const { user } = useAuth();
   const { isLiteralMode, accessibilityProfile, activeTier } = useSettings();
   const { learnerContext } = useLearnerContext();
-  const [messages, setMessages] = useState([
-    { role: 'tutor', text: 'What are you working on? I can help you figure out the next step.' },
-  ]);
+  const defaultGreeting = [{ role: 'tutor', text: 'What are you working on? I can help you figure out the next step.' }];
+  const [messages, setMessages] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('simplifii_aura_chat');
+      if (cached) { const parsed = JSON.parse(cached); if (Array.isArray(parsed) && parsed.length > 0) return parsed; }
+    } catch { /* ignore */ }
+    return defaultGreeting;
+  });
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Persist chat to sessionStorage
+  useEffect(() => {
+    if (messages.length > 1) sessionStorage.setItem('simplifii_aura_chat', JSON.stringify(messages));
+  }, [messages]);
 
   // Auto-scroll on new messages
   useEffect(() => {

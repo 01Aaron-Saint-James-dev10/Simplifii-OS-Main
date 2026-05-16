@@ -173,6 +173,53 @@ function FluidOrb({ state = 'idle' }) {
   );
 }
 
+// Floating particles orbiting the sphere
+function OrbParticles({ state }) {
+  const ref = useRef();
+  const config = STATES[state] || STATES.idle;
+  const count = 24;
+
+  const positions = useMemo(() => {
+    const arr = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      const r = 1.3 + Math.random() * 0.4;
+      arr[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+      arr[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+      arr[i * 3 + 2] = r * Math.cos(phi);
+    }
+    return arr;
+  }, []);
+
+  useFrame(({ clock }) => {
+    if (!ref.current) return;
+    const t = clock.getElapsedTime();
+    ref.current.rotation.y = t * config.rotationSpeed * 0.3;
+    ref.current.rotation.x = Math.sin(t * 0.15) * 0.2;
+  });
+
+  return (
+    <points ref={ref}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          array={positions}
+          count={count}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <pointsMaterial
+        color={new THREE.Color(...config.primary)}
+        size={0.04}
+        transparent
+        opacity={0.7}
+        sizeAttenuation
+      />
+    </points>
+  );
+}
+
 // Inner geometric glyph (wireframe icosahedron as the "core")
 function GlyphCore({ state }) {
   const ref = useRef();
@@ -213,10 +260,20 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
   // Listen for AURA state events from the app
   const [currentState, setCurrentState] = useState(auraState);
   useEffect(() => {
-    const handler = (e) => setCurrentState(e.detail?.state || 'idle');
-    window.addEventListener('simplifii:aura-state', handler);
-    return () => window.removeEventListener('simplifii:aura-state', handler);
-  }, []);
+    const stateHandler = (e) => setCurrentState(e.detail?.state || 'idle');
+    const idleHandler = () => setCurrentState('lowEnergy');
+    const inputHandler = () => { if (currentState === 'lowEnergy') setCurrentState('idle'); };
+    window.addEventListener('simplifii:aura-state', stateHandler);
+    window.addEventListener('simplifii:idle', idleHandler);
+    document.addEventListener('keydown', inputHandler, { passive: true });
+    document.addEventListener('mousedown', inputHandler, { passive: true });
+    return () => {
+      window.removeEventListener('simplifii:aura-state', stateHandler);
+      window.removeEventListener('simplifii:idle', idleHandler);
+      document.removeEventListener('keydown', inputHandler);
+      document.removeEventListener('mousedown', inputHandler);
+    };
+  }, [currentState]);
 
   useEffect(() => { setCurrentState(auraState); }, [auraState]);
 
@@ -277,6 +334,7 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
         <pointLight position={[-2, -1, 1]} intensity={0.4} color="#10b981" />
         <FluidOrb state={currentState} />
         <GlyphCore state={currentState} />
+        <OrbParticles state={currentState} />
       </Canvas>
     </div>
   );
