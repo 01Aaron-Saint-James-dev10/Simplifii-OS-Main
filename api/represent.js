@@ -10,6 +10,7 @@
 
 import { rateLimit, getIdentifier } from './_rateLimit.js';
 import { checkQuota, recordUsage } from './_quota.js';
+import { sanitiseLearnerContext } from './_sanitize.js';
 
 const PROMPTS = {
   plain_english: `Translate this assessment brief into plain English suitable for a Year 10 student.
@@ -93,7 +94,8 @@ ${PROMPTS[type]}`;
 
   if (literalMode) systemPrompt += '\n\nLITERAL MODE: No metaphors, no idioms, no ambiguity. Use concrete, specific language only.';
   if (accessibilityProfile && accessibilityProfile !== 'standard') systemPrompt += `\n\nAdapt output for ${accessibilityProfile} accessibility profile.`;
-  if (learnerContext) systemPrompt += learnerContext;
+  const safeContext = sanitiseLearnerContext(learnerContext);
+  if (safeContext) systemPrompt += safeContext;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {

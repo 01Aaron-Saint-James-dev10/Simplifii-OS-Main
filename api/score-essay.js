@@ -9,6 +9,7 @@
 
 import { rateLimit, getIdentifier } from './_rateLimit.js';
 import { checkQuota, recordUsage } from './_quota.js';
+import { sanitiseLearnerContext } from './_sanitize.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only.' });
@@ -54,7 +55,8 @@ RULES:
 
   if (literalMode) systemPrompt += '\n\nLITERAL MODE: No metaphors, no idioms, no ambiguity. Use concrete, specific language only.';
   if (accessibilityProfile && accessibilityProfile !== 'standard') systemPrompt += `\n\nAdapt feedback tone and length for ${accessibilityProfile} accessibility profile.`;
-  if (learnerContext) systemPrompt += learnerContext;
+  const safeContext = sanitiseLearnerContext(learnerContext);
+  if (safeContext) systemPrompt += safeContext;
 
   try {
     const userMsg = `Assessment: "${assessmentTitle || 'Untitled'}"

@@ -9,6 +9,7 @@
 
 import { rateLimit, getIdentifier } from './_rateLimit.js';
 import { checkQuota, recordUsage } from './_quota.js';
+import { sanitiseLearnerContext } from './_sanitize.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only.' });
@@ -28,7 +29,7 @@ export default async function handler(req, res) {
   const levelLabel = tier === 'secondary' ? 'Year 10-12 high school' : tier === 'postgrad' ? 'postgraduate research' : 'university undergraduate';
   const literalPreamble = literalMode ? '\nLITERAL MODE: No metaphors, no idioms, no ambiguity. Label emotions [feeling: X]. Mark uncertainty [uncertain] vs [confirmed]. Number all steps.\n' : '';
   const profilePreamble = accessibilityProfile && accessibilityProfile !== 'standard' ? `\nAdapt output for ${accessibilityProfile} accessibility profile.\n` : '';
-  const learnerPreamble = learnerContext || '';
+  const learnerPreamble = sanitiseLearnerContext(learnerContext);
 
   // Type-specific prompt overrides
   if (documentType === 'exam_paper') {

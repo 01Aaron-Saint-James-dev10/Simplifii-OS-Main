@@ -13,6 +13,7 @@
 
 import { rateLimit, getIdentifier } from './_rateLimit.js';
 import { checkQuota, recordUsage } from './_quota.js';
+import { sanitiseLearnerContext } from './_sanitize.js';
 
 const BASE_PROMPT = `You are a Socratic tutor inside Simplifii-OS, an Australian neuroinclusive education platform.
 
@@ -138,7 +139,7 @@ If neither fits, offer: "Surprise me" option that picks for them. Never present 
   }
 
   // Learner context: profiler data, pain points, steering dials, session check-in
-  const learnerContext = req.body?.learnerContext;
+  const learnerContext = sanitiseLearnerContext(req.body?.learnerContext);
   if (learnerContext) {
     systemPrompt += `\n${learnerContext}`;
   }
