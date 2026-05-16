@@ -39,7 +39,11 @@ export default function AuraChatOverlay({ open, onClose }) {
 
   // Derive active task context from ALL uploaded documents (not just [0])
   const activeCourse = courseId ? courses?.[courseId] : null;
-  const allDocs = activeCourse?.extractionData?.assessmentBriefs || [];
+  // Try multiple possible keys for document storage
+  const allDocs = activeCourse?.extractionData?.assessmentBriefs
+    || activeCourse?.extractionData?.documents
+    || activeCourse?.extractionData?.files
+    || [];
   const activeDocType = activeCourse?.extractionData?.documentType || '';
 
   // Use highest-priority doc for primary title (assessment brief > rubric > other)
@@ -47,9 +51,14 @@ export default function AuraChatOverlay({ open, onClose }) {
   const activeAssessmentTitle = routerAssessment || primaryDoc?.title || '';
 
   // Build aggregated brief text from ALL docs (cap each at 600 chars, total 3200)
+  // Fallback to primaryRawText if individual doc bodies are empty
   const activeBriefText = useMemo(() => {
-    if (allDocs.length === 0) return '';
-    return allDocs
+    if (allDocs.length === 0) {
+      // No structured docs: use primaryRawText as the context
+      const raw = activeCourse?.extractionData?.primaryRawText || '';
+      return raw ? `[PRIMARY DOCUMENT]\n${raw.slice(0, 3200)}` : '';
+    }
+    const assembled = allDocs
       .slice(0, 6)
       .map((doc, i) => {
         const body = (doc?.body || '').slice(0, 600);
@@ -59,7 +68,12 @@ export default function AuraChatOverlay({ open, onClose }) {
       .filter(Boolean)
       .join('\n\n---\n\n')
       .slice(0, 3200);
-  }, [allDocs]);
+    // If assembled is empty (briefs have titles but no bodies), fallback to raw text
+    if (!assembled && activeCourse?.extractionData?.primaryRawText) {
+      return `[PRIMARY DOCUMENT]\n${activeCourse.extractionData.primaryRawText.slice(0, 3200)}`;
+    }
+    return assembled;
+  }, [allDocs, activeCourse]);
 
   // Document inventory for AURA context
   const docInventory = useMemo(() => {
@@ -137,10 +151,32 @@ export default function AuraChatOverlay({ open, onClose }) {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
-  // Focus input when opened + surface queued phase-transition messages
+  // BUG 3 FIX: Reset AURA chat when courseId changes
+  const prevCourseRef = useRef(courseId);
+  useEffect(() => {
+    if (courseId && courseId !== prevCourseRef.current) {
+      prevCourseRef.current = courseId;
+      sessionStorage.removeItem('simplifii_aura_chat');
+      setMessages([{ role: 'tutor', text: greetingText }]);
+    }
+  }, [courseId, greetingText]);
+
+  // Focus input when opened + surface queued phase-transition messages + debug log
   useEffect(() => {
     if (!open) return;
     setTimeout(() => inputRef.current?.focus(), 100);
+    // BUG 1 DEBUG: Log what extractionData actually contains
+    if (typeof console !== 'undefined') {
+      console.log('[AURA MULTIDOC DEBUG]', {
+        courseId,
+        activeCourse: activeCourse ? 'exists' : 'null',
+        extractionDataKeys: activeCourse?.extractionData ? Object.keys(activeCourse.extractionData) : 'no extractionData',
+        assessmentBriefsCount: activeCourse?.extractionData?.assessmentBriefs?.length,
+        allDocsCount: allDocs.length,
+        primaryRawTextLength: activeCourse?.extractionData?.primaryRawText?.length || 0,
+        activeBriefTextLength: activeBriefText?.length || 0,
+      });
+    }
     const queued = getQueuedAuraMessages();
     if (queued.length > 0) {
       const phaseMessages = queued.map(q => ({ role: 'tutor', text: q.message }));
@@ -214,8 +250,16 @@ export default function AuraChatOverlay({ open, onClose }) {
       });
       const data = await response.json();
       if (data.success && data.reply && data.reply.trim()) {
+        // Strip markdown from AURA response (no raw **bold**, __italic__, [links]())
+        const clean = data.reply
+          .replace(/\*\*(.+?)\*\*/g, '$1')
+          .replace(/__(.+?)__/g, '$1')
+          .replace(/\*(.+?)\*/g, '$1')
+          .replace(/_(.+?)_/g, '$1')
+          .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+          .replace(/^#{1,4}\s+/gm, '');
         dispatchAuraState('speaking');
-        setMessages(prev => [...prev, { role: 'tutor', text: data.reply }]);
+        setMessages(prev => [...prev, { role: 'tutor', text: clean }]);
         // Return to idle after a short display period
         setTimeout(() => dispatchAuraState('idle'), 2000);
       } else {

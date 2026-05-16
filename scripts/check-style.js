@@ -113,6 +113,11 @@ function scanFile(filePath, content) {
       }
     }
 
+    // Raw markdown link syntax (should be JSX <a> tags, not __[text](url)__)
+    if (/__\[/.test(line) && !/\/\//.test(line.slice(0, line.indexOf('__[')))) {
+      violations.push(`${rel}:${i + 1}: raw markdown link syntax (__[...]) detected - use JSX <a> tag instead`);
+    }
+
     // US spellings inside user-facing contexts only.
     if (skipSpelling) continue;
     if (isCssOrTailwindContext(line)) continue;
