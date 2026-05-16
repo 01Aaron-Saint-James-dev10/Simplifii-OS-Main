@@ -94,11 +94,28 @@ export default function BreathBubble() {
             }} />
           </div>
 
-          <p style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 600, color: TEXT_PRIMARY, margin: 0 }} aria-live="polite">
+          {/* Phase countdown number (neon green, prominent) */}
+          <p style={{ fontFamily: FONT_DISPLAY, fontSize: 48, fontWeight: 800, color: ACCENT_PULSE, margin: 0, lineHeight: 1, textShadow: '0 0 12px rgba(16,185,129,0.6)' }} aria-live="polite">
+            {(() => {
+              const cyclePos = elapsed % CYCLE_MS;
+              let acc = 0;
+              for (let i = 0; i < PHASES.length; i++) {
+                const phaseStart = acc;
+                acc += PHASES[i].duration;
+                if (cyclePos < acc) {
+                  const phaseElapsed = cyclePos - phaseStart;
+                  const phaseRemaining = Math.ceil((PHASES[i].duration - phaseElapsed) / 1000);
+                  return phaseRemaining;
+                }
+              }
+              return '';
+            })()}
+          </p>
+          <p style={{ fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 600, color: TEXT_PRIMARY, margin: 0 }}>
             {phase.label}
           </p>
-          <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_FAINT, margin: 0 }}>
-            Cycle {cycleCount + 1} | {remaining}s remaining
+          <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_FAINT, margin: '4px 0 0' }}>
+            Cycle {cycleCount + 1} | {remaining}s total remaining
           </p>
 
           <button type="button" onClick={() => setActive(false)}

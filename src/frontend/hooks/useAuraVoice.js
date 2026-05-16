@@ -75,17 +75,38 @@ export function useAuraVoice() {
     }
   }, []);
 
-  // Browser TTS fallback
+  // Browser TTS fallback (handles async voice loading)
   const fallbackSpeak = useCallback((text) => {
     if (!window.speechSynthesis) { setIsSpeaking(false); return; }
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-AU';
-    utterance.rate = 0.95;
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      window.dispatchEvent(new CustomEvent('simplifii:aura-state', { detail: { state: 'idle' } }));
+
+    const doSpeak = () => {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-AU';
+      utterance.rate = 0.95;
+      // Try to find an Australian or English voice
+      const voices = window.speechSynthesis.getVoices();
+      const auVoice = voices.find(v => v.lang === 'en-AU') || voices.find(v => v.lang.startsWith('en'));
+      if (auVoice) utterance.voice = auVoice;
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        window.dispatchEvent(new CustomEvent('simplifii:aura-state', { detail: { state: 'idle' } }));
+      };
+      utterance.onerror = () => {
+        setIsSpeaking(false);
+        window.dispatchEvent(new CustomEvent('simplifii:aura-state', { detail: { state: 'idle' } }));
+      };
+      window.speechSynthesis.cancel(); // Clear any queued speech
+      window.speechSynthesis.speak(utterance);
     };
-    window.speechSynthesis.speak(utterance);
+
+    // Voices may not be loaded yet (Chrome loads them async)
+    if (window.speechSynthesis.getVoices().length > 0) {
+      doSpeak();
+    } else {
+      window.speechSynthesis.onvoiceschanged = () => { doSpeak(); };
+      // Fallback: try anyway after 100ms
+      setTimeout(doSpeak, 100);
+    }
   }, []);
 
   // Stop speaking (for interruption)
