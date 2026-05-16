@@ -17,6 +17,7 @@ import LogoutButton from './auth/LogoutButton';
 import EmptyWorkspace from './workspace/EmptyWorkspace';
 import TesterWelcomeModal from './components/TesterWelcomeModal';
 import DocumentClassifiedModal from './components/DocumentClassifiedModal';
+import AddWorkModal from './components/AddWorkModal';
 import ThemeSwitcher from './components/ThemeSwitcher';
 import { useRealtimeClock } from './hooks/useRealtimeClock';
 import AffirmationBanner from './components/AffirmationBanner';
@@ -90,6 +91,7 @@ export default function HomeScreen() {
   const [displayName, setDisplayName] = useState(null);
   const [showTesterWelcome, setShowTesterWelcome] = useState(false);
   const [classifiedDoc, setClassifiedDoc] = useState(null);
+  const [showAddWork, setShowAddWork] = useState(false);
   const isAaron = user?.email === AARON_EMAIL;
 
   // Listen for document classification events from useIngestion
@@ -157,14 +159,14 @@ export default function HomeScreen() {
           <span className="home-nav-title">Simplifii-OS</span>
         </div>
         <div className="home-nav-actions">
-          <AddCourseButton />
           <button
             type="button"
-            onClick={navigateToResearch}
-            style={{ padding: '4px 12px', background: 'transparent', border: `1px solid ${ACCENT_BORDER}`, borderRadius: 6, fontFamily: 'system-ui,sans-serif', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_PULSE, cursor: 'pointer' }}
-            aria-label="Open Research Workspace"
+            onClick={() => setShowAddWork(true)}
+            aria-label="Add homework, assignment, exam prep, or research"
+            title="Add homework, an assignment, exam prep, or research. Choose what fits best."
+            style={{ padding: '4px 14px', background: 'transparent', border: `1px solid ${ACCENT_BORDER}`, borderRadius: 6, fontFamily: 'system-ui,sans-serif', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_PULSE, cursor: 'pointer', minHeight: 28 }}
           >
-            Research
+            + Add work
           </button>
           {display.overdueTally && overdueCount > 0 && (
             <span className="home-overdue-badge" aria-label={`${overdueCount} overdue task${overdueCount === 1 ? '' : 's'}`}>
@@ -174,27 +176,15 @@ export default function HomeScreen() {
           <button
             type="button"
             onClick={() => window.dispatchEvent(new CustomEvent('simplifii:open-settings'))}
-            aria-label="Open settings"
-            title="Settings"
-            style={{ background: 'none', border: `1px solid ${ACCENT_BORDER}`, borderRadius: 3, padding: '3px 8px', cursor: 'pointer', fontFamily: "'JetBrains Mono', monospace", fontSize: 10, fontWeight: 700, color: TEXT_MUTED, minHeight: 28, minWidth: 28 }}
+            aria-label="Accessibility, display, and learning preferences"
+            title="Accessibility, display, and learning preferences. Change your font, theme, and how AURA talks to you."
+            style={{ background: 'none', border: `1px solid ${ACCENT_BORDER}`, borderRadius: 3, padding: '3px 8px', cursor: 'pointer', minHeight: 28, minWidth: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            Settings
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M8 10a2 2 0 100-4 2 2 0 000 4z" stroke={TEXT_MUTED} strokeWidth="1.2" />
+              <path d="M13.5 8a5.5 5.5 0 01-.4 2l1.2 1.2-1.5 1.5L11.6 11.5a5.5 5.5 0 01-2 .4v1.6H7.4v-1.6a5.5 5.5 0 01-2-.4L4.2 12.7l-1.5-1.5L3.9 10a5.5 5.5 0 01-.4-2H2V5.8h1.5a5.5 5.5 0 01.4-2L2.7 2.6l1.5-1.5L5.4 2.3a5.5 5.5 0 012-.4V.4h2.2v1.5a5.5 5.5 0 012 .4l1.2-1.2 1.5 1.5-1.2 1.2a5.5 5.5 0 01.4 2H15V8h-1.5z" stroke={TEXT_MUTED} strokeWidth="1.2" />
+            </svg>
           </button>
-          <ThemeSwitcher />
-          <button
-            type="button"
-            onClick={() => {
-              const cur = localStorage.getItem('simplifii_matrix_rain') !== 'false';
-              localStorage.setItem('simplifii_matrix_rain', String(!cur));
-              window.location.reload();
-            }}
-            title={localStorage.getItem('simplifii_matrix_rain') !== 'false' ? 'Background animation is ON. Click to turn off.' : 'Background animation is OFF. Click to turn on.'}
-            aria-label={localStorage.getItem('simplifii_matrix_rain') !== 'false' ? 'Turn off background animation' : 'Turn on background animation'}
-            style={{ background: 'none', border: `1px solid ${ACCENT_BORDER}`, borderRadius: 3, padding: '3px 8px', cursor: 'pointer', fontFamily: "'JetBrains Mono', monospace", fontSize: 10, fontWeight: 700, color: localStorage.getItem('simplifii_matrix_rain') !== 'false' ? ACCENT_PULSE : TEXT_MUTED, minHeight: 28, minWidth: 28 }}
-          >
-            {localStorage.getItem('simplifii_matrix_rain') !== 'false' ? 'FX on' : 'FX off'}
-          </button>
-          <TalkToSomeoneLink />
           <LogoutButton />
         </div>
       </nav>
@@ -405,6 +395,19 @@ export default function HomeScreen() {
 
       {showTesterWelcome && (
         <TesterWelcomeModal onDismiss={() => setShowTesterWelcome(false)} />
+      )}
+
+      {showAddWork && (
+        <AddWorkModal
+          onSelect={(workType) => {
+            setShowAddWork(false);
+            // Store work type for AURA context, then open ingestion
+            sessionStorage.setItem('simplifii_work_type', workType);
+            // For now: trigger the standard add flow
+            // TODO: route differently based on workType
+          }}
+          onClose={() => setShowAddWork(false)}
+        />
       )}
 
       {classifiedDoc && (
