@@ -261,3 +261,24 @@ Guidance for when to invoke skills under `.claude/skills/`. Descriptive, not enf
 | Systematic Debugging | Before any `git commit`; whenever a `ReferenceError`, `TypeError`, or unhandled promise rejection is observed. |
 
 If a trigger fires and the relevant skill cannot be applied (missing context, ambiguous request), surface the gap to the learner rather than guessing.
+
+## Source of Truth Documents (Read Before Touching AURA)
+
+Before writing, editing, or reviewing any code related to AURA, the chat overlay,
+the ingestion pipeline, or the API route that receives assessmentTitle/briefText,
+CC must read these files in this order:
+
+1. docs/AURA_SYSTEM_PROMPT_V3.md - the complete AURA behaviour specification
+2. docs/AURA_CONTEXT_CONTRACT.md - the exact API contract AURA requires
+3. docs/PROHIBITED_PATTERNS.md - what CC must never build
+
+Before writing any student-facing UI text, nudge, feedback message, or error state,
+CC must also read:
+4. docs/AURA_LEARNER_JOURNEY_MAP.html - every node and crisis AURA must handle
+
+The stress test archive is at docs/AURA_STRESS_TEST_5_PASSES.html.
+Read it when scoping any new AURA feature to check whether the feature
+reintroduces a gap that was already found and fixed.
+
+These documents are source of truth. CLAUDE.md is the law.
+If they conflict, surface the conflict to Aaron before resolving it.

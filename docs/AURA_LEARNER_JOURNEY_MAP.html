@@ -1,0 +1,233 @@
+
+<!DOCTYPE html>
+<html>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);background:transparent;color:var(--color-text-primary)}
+.map{padding:1.5rem 0}
+.phase{margin-bottom:2rem}
+.phase-header{display:flex;align-items:center;gap:10px;margin-bottom:.75rem}
+.phase-label{font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--color-text-secondary);white-space:nowrap}
+.phase-line{flex:1;height:0.5px;background:var(--color-border-tertiary)}
+.nodes{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.node{border:0.5px solid var(--color-border-tertiary);border-radius:10px;padding:.75rem;cursor:pointer;transition:border-color .15s,background .15s;position:relative}
+.node:hover{border-color:var(--color-border-secondary);background:var(--color-background-secondary)}
+.node-stage{font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.35rem}
+.node-title{font-size:13px;font-weight:500;margin-bottom:.3rem;color:var(--color-text-primary)}
+.node-sub{font-size:11px;color:var(--color-text-secondary);line-height:1.4}
+.challenge{border-left:2px solid #E24B4A}
+.challenge .node-stage{color:#E24B4A}
+.growth{border-left:2px solid #1D9E75}
+.growth .node-stage{color:#1D9E75}
+.neutral{border-left:2px solid #534AB7}
+.neutral .node-stage{color:#534AB7}
+.voice{border-left:2px solid #185FA5}
+.voice .node-stage{color:#185FA5}
+.legend{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:1.5rem;font-size:12px;color:var(--color-text-secondary)}
+.legend span{display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%}
+</style>
+<div class="map">
+<div class="legend">
+  <span><span class="dot" style="background:#534AB7"></span>AURA guidance node</span>
+  <span><span class="dot" style="background:#E24B4A"></span>Crisis / challenge node</span>
+  <span><span class="dot" style="background:#1D9E75"></span>Growth / win node</span>
+  <span><span class="dot" style="background:#185FA5"></span>Voice moment</span>
+</div>
+
+<div class="phase">
+<div class="phase-header"><span class="phase-label">Stage 01: First Contact</span><span class="phase-line"></span></div>
+<div class="nodes">
+  <div class="node neutral" onclick="sendPrompt('What does AURA say when a brand new learner lands on Simplifii for the first time?')">
+    <div class="node-stage">Node 01</div>
+    <div class="node-title">Landing page arrival</div>
+    <div class="node-sub">First impression. Zero prior trust. AURA is silent here.</div>
+  </div>
+  <div class="node neutral" onclick="sendPrompt('How does AURA guide learners through the onboarding profile questions?')">
+    <div class="node-stage">Node 02</div>
+    <div class="node-title">Profile onboarding</div>
+    <div class="node-sub">Neuro profiling. Dials set. AURA listens and mirrors.</div>
+  </div>
+  <div class="node challenge" onclick="sendPrompt('What if a learner refuses to answer the onboarding questions or says they dont know?')">
+    <div class="node-stage">Crisis 01</div>
+    <div class="node-title">Onboarding resistance</div>
+    <div class="node-sub">Overwhelm. Distrust. "Why do you need to know this?"</div>
+  </div>
+  <div class="node neutral" onclick="sendPrompt('How does AURA confirm the learner profile back to them after onboarding?')">
+    <div class="node-stage">Node 03</div>
+    <div class="node-title">Profile mirror</div>
+    <div class="node-sub">System reads back what it learned. Learner corrects anything.</div>
+  </div>
+  <div class="node voice" onclick="sendPrompt('Should AURA offer voice onboarding as an alternative to typing?')">
+    <div class="node-stage">Voice 01</div>
+    <div class="node-title">Voice as entry option</div>
+    <div class="node-sub">For learners who cannot or will not type their profile.</div>
+  </div>
+</div>
+</div>
+
+<div class="phase">
+<div class="phase-header"><span class="phase-label">Stage 02: Ingestion Drive</span><span class="phase-line"></span></div>
+<div class="nodes">
+  <div class="node neutral" onclick="sendPrompt('How does AURA guide a learner through dropping in their first assessment brief?')">
+    <div class="node-stage">Node 04</div>
+    <div class="node-title">First document drop</div>
+    <div class="node-sub">Brief, rubric, syllabus. AURA confirms what it found.</div>
+  </div>
+  <div class="node challenge" onclick="sendPrompt('What does AURA do when the ingested document is low quality, scanned badly, or missing the rubric?')">
+    <div class="node-stage">Crisis 02</div>
+    <div class="node-title">Missing rubric</div>
+    <div class="node-sub">No rubric found. AURA asks targeted questions to reconstruct it.</div>
+  </div>
+  <div class="node challenge" onclick="sendPrompt('What does AURA say when a learner has 6 overlapping deadlines and is clearly overwhelmed?')">
+    <div class="node-stage">Crisis 03</div>
+    <div class="node-title">Deadline pile-up</div>
+    <div class="node-sub">6 tasks due same week. AURA surfaces Pareto triage, not panic.</div>
+  </div>
+  <div class="node neutral" onclick="sendPrompt('How does AURA explain the auto-generated Pareto Steps to a learner who has never seen them?')">
+    <div class="node-stage">Node 05</div>
+    <div class="node-title">Pareto Steps reveal</div>
+    <div class="node-sub">5 highest-mark actions. AURA explains why each matters.</div>
+  </div>
+  <div class="node challenge" onclick="sendPrompt('What if the learner disagrees with the Pareto Steps AURA generated?')">
+    <div class="node-stage">Crisis 04</div>
+    <div class="node-title">Learner overrides plan</div>
+    <div class="node-sub">AURA defers. Adapts. Never argues.</div>
+  </div>
+</div>
+</div>
+
+<div class="phase">
+<div class="phase-header"><span class="phase-label">Stage 03: Pillar Gallery</span><span class="phase-line"></span></div>
+<div class="nodes">
+  <div class="node neutral" onclick="sendPrompt('How does AURA help a learner choose which Pillar to work on when everything feels urgent?')">
+    <div class="node-stage">Node 06</div>
+    <div class="node-title">Course prioritisation</div>
+    <div class="node-sub">Multiple Pillars active. AURA surfaces the highest-urgency one.</div>
+  </div>
+  <div class="node challenge" onclick="sendPrompt('What if a learner has not opened Simplifii for 2 weeks and is now behind on multiple tasks?')">
+    <div class="node-stage">Crisis 05</div>
+    <div class="node-title">Return after absence</div>
+    <div class="node-sub">2 weeks offline. AURA re-orients without shame or guilt.</div>
+  </div>
+  <div class="node growth" onclick="sendPrompt('How does AURA celebrate a completed Pillar without toxic positivity?')">
+    <div class="node-stage">Win 01</div>
+    <div class="node-title">Pillar completed</div>
+    <div class="node-sub">Task submitted. AURA acknowledges with specific, earned praise.</div>
+  </div>
+</div>
+</div>
+
+<div class="phase">
+<div class="phase-header"><span class="phase-label">Stage 04: Authoring Cockpit</span><span class="phase-line"></span></div>
+<div class="nodes">
+  <div class="node challenge" onclick="sendPrompt('What does AURA do when a learner opens the cockpit and just stares at a blank page for 90 seconds?')">
+    <div class="node-stage">Crisis 06</div>
+    <div class="node-title">Blank page paralysis</div>
+    <div class="node-sub">90 seconds idle. Tier 1 pre-write activates.</div>
+  </div>
+  <div class="node neutral" onclick="sendPrompt('How does AURA run Tier 2 Socratic questioning for a learner who says they dont know anything about the topic?')">
+    <div class="node-stage">Node 07</div>
+    <div class="node-title">Socratic entry point</div>
+    <div class="node-sub">Learner claims total ignorance. AURA finds the smallest foothold.</div>
+  </div>
+  <div class="node challenge" onclick="sendPrompt('What does AURA do when a learner is clearly copying AI output directly into Tier 3 without engaging?')">
+    <div class="node-stage">Crisis 07</div>
+    <div class="node-title">AI over-reliance signal</div>
+    <div class="node-sub">Authenticity split hits 60% AI. AURA flags it. Does not shame.</div>
+  </div>
+  <div class="node voice" onclick="sendPrompt('How should AURA handle voice dictation of Tier 3 writing for a learner with dyslexia who cannot type efficiently?')">
+    <div class="node-stage">Voice 02</div>
+    <div class="node-title">Voice-to-Tier 3</div>
+    <div class="node-sub">Dyslexic learner dictates. AURA transcribes, preserves voice.</div>
+  </div>
+  <div class="node challenge" onclick="sendPrompt('What does AURA do when a learner says they hate what they wrote and wants to delete everything?')">
+    <div class="node-stage">Crisis 08</div>
+    <div class="node-title">Self-sabotage signal</div>
+    <div class="node-sub">Learner wants to delete all work. AURA holds the block, offers alternatives.</div>
+  </div>
+  <div class="node neutral" onclick="sendPrompt('How does AURA run a rubric check mid-writing without interrupting flow?')">
+    <div class="node-stage">Node 08</div>
+    <div class="node-title">Mid-write rubric check</div>
+    <div class="node-sub">Learner asks "am I on track?". AURA returns a one-line per criterion scan.</div>
+  </div>
+  <div class="node challenge" onclick="sendPrompt('What does AURA do when a learner says they are in physical pain and cannot continue working?')">
+    <div class="node-stage">Crisis 09</div>
+    <div class="node-title">Chronic pain / fatigue</div>
+    <div class="node-sub">CFS/fibro/pain signal. AURA activates rest protocol.</div>
+  </div>
+  <div class="node growth" onclick="sendPrompt('How does AURA acknowledge when a learner produces a genuinely strong Socratic response?')">
+    <div class="node-stage">Win 02</div>
+    <div class="node-title">Strong Socratic response</div>
+    <div class="node-sub">Learner insight is specific and connected. AURA names exactly what was strong.</div>
+  </div>
+</div>
+</div>
+
+<div class="phase">
+<div class="phase-header"><span class="phase-label">Cross-Stage: Wellbeing and Crisis</span><span class="phase-line"></span></div>
+<div class="nodes">
+  <div class="node challenge" onclick="sendPrompt('What does AURA do if a learner expresses that they feel stupid or like a failure?')">
+    <div class="node-stage">Crisis 10</div>
+    <div class="node-title">Shame spiral</div>
+    <div class="node-sub">"I am too dumb for this." AURA stops the task, addresses the person.</div>
+  </div>
+  <div class="node challenge" onclick="sendPrompt('What does AURA do if a learner mentions feeling unsafe or in crisis?')">
+    <div class="node-stage">Crisis 11</div>
+    <div class="node-title">Safety crisis</div>
+    <div class="node-sub">Distress signal. AURA exits task mode immediately. Surfaces support.</div>
+  </div>
+  <div class="node challenge" onclick="sendPrompt('What does AURA do when a learner discloses a disability or diagnosis mid-session they did not mention in onboarding?')">
+    <div class="node-stage">Crisis 12</div>
+    <div class="node-title">Mid-session disclosure</div>
+    <div class="node-sub">New disability disclosed. AURA updates profile, adjusts immediately.</div>
+  </div>
+  <div class="node voice" onclick="sendPrompt('How should AURA respond when a learner uses voice and their speech is difficult to parse due to a speech difference?')">
+    <div class="node-stage">Voice 03</div>
+    <div class="node-title">Speech difference</div>
+    <div class="node-sub">Stutter, dysarthria, accent. AURA confirms before acting.</div>
+  </div>
+  <div class="node challenge" onclick="sendPrompt('What does AURA do if a learner has been idle for 30 minutes and the deadline is in 2 hours?')">
+    <div class="node-stage">Crisis 13</div>
+    <div class="node-title">Deadline emergency</div>
+    <div class="node-sub">2 hours left. Learner frozen. AURA enters triage mode.</div>
+  </div>
+  <div class="node growth" onclick="sendPrompt('How does AURA open a session when it has growth signals from the previous session?')">
+    <div class="node-stage">Win 03</div>
+    <div class="node-title">Session continuity</div>
+    <div class="node-sub">AURA opens with a specific reference to last session progress.</div>
+  </div>
+</div>
+</div>
+
+<div class="phase">
+<div class="phase-header"><span class="phase-label">Stage 05: Submission and After</span><span class="phase-line"></span></div>
+<div class="nodes">
+  <div class="node neutral" onclick="sendPrompt('How does AURA guide a learner through the pre-submission checklist?')">
+    <div class="node-stage">Node 09</div>
+    <div class="node-title">Pre-submission check</div>
+    <div class="node-sub">Word count, citations, format, rubric coverage. AURA runs the checklist.</div>
+  </div>
+  <div class="node neutral" onclick="sendPrompt('How does AURA explain the Authenticity Report to a learner before they submit?')">
+    <div class="node-stage">Node 10</div>
+    <div class="node-title">Authenticity Report</div>
+    <div class="node-sub">Human vs AI split explained. Learner understands what markers see.</div>
+  </div>
+  <div class="node growth" onclick="sendPrompt('What does AURA do after a learner submits their first assessment in Simplifii?')">
+    <div class="node-stage">Win 04</div>
+    <div class="node-title">First submission</div>
+    <div class="node-sub">Major milestone. AURA stores the growth signal. Specific acknowledgement.</div>
+  </div>
+  <div class="node challenge" onclick="sendPrompt('What does AURA do when a learner gets a grade back that is lower than expected?')">
+    <div class="node-stage">Crisis 14</div>
+    <div class="node-title">Poor grade received</div>
+    <div class="node-sub">Disappointing result. AURA surfaces rubric gap, not personal failure.</div>
+  </div>
+  <div class="node growth" onclick="sendPrompt('How does AURA use previous assessment data to improve guidance on the next task?')">
+    <div class="node-stage">Win 05</div>
+    <div class="node-title">Cross-task learning</div>
+    <div class="node-sub">Pattern from last essay informs this one. AURA references it explicitly.</div>
+  </div>
+</div>
+</div>
+</div>
