@@ -59,6 +59,12 @@ export default async function handler(req, res) {
 
   let systemPrompt = '';
 
+  // Structured assessment data (always inject if available, regardless of rawText)
+  const assessmentSummary = req.body?.assessmentSummary || '';
+  if (assessmentSummary) {
+    systemPrompt += `STRUCTURED ASSESSMENT DATA (confirmed accurate):\n${assessmentSummary}\n\nUse this for weight, due date, and rubric criteria questions. This data is always reliable.\n\n`;
+  }
+
   // Document context injection or hallucination prevention
   if (documentContextAvailable && briefText) {
     systemPrompt += `DOCUMENT CONTEXT:\n${documentInventory}\n\nASSESSMENT CONTENT (aggregated from ${documentCount} loaded document${documentCount === 1 ? '' : 's'}):\n${briefText.slice(0, 3200)}\n\nYou have access to ${documentCount} document(s) for this course. Answer questions using this content. Reference which document you are drawing from.\n\n`;

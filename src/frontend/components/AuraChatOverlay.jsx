@@ -50,6 +50,27 @@ export default function AuraChatOverlay({ open, onClose }) {
   // Use highest-priority doc for primary title (assessment brief > rubric > other)
   const primaryDoc = allDocs.find(d => d.source === 'explicit' || d.weight) || allDocs[0];
   const activeAssessmentTitle = routerAssessment || primaryDoc?.title || '';
+  const activeWeight = primaryDoc?.weight || '';
+  const activeDueDate = primaryDoc?.dueDate || '';
+  const rubricCriteria = activeCourse?.extractionData?.rubricCriteria || [];
+
+  // Build structured assessment summary (confirmed accurate data the canvas uses)
+  const assessmentSummary = useMemo(() => {
+    const parts = [];
+    if (activeAssessmentTitle) parts.push(`ASSESSMENT: ${activeAssessmentTitle}`);
+    if (activeWeight) parts.push(`Weight: ${activeWeight}`);
+    if (activeDueDate) parts.push(`Due: ${activeDueDate}`);
+    if (allDocs.length > 1) {
+      parts.push(`Other assessments in this course:`);
+      allDocs.slice(1, 5).forEach(d => {
+        parts.push(`  - ${d.title || 'Untitled'}${d.weight ? ' (' + d.weight + ')' : ''}${d.dueDate ? ' due ' + d.dueDate : ''}`);
+      });
+    }
+    if (rubricCriteria.length > 0) {
+      parts.push(`Rubric criteria: ${rubricCriteria.map(r => r.criterion || r).join('; ')}`);
+    }
+    return parts.length > 0 ? parts.join('\n') : '';
+  }, [activeAssessmentTitle, activeWeight, activeDueDate, allDocs, rubricCriteria]);
 
   // Build document context for AURA from extractionData
   // Priority: rawText (full concatenated text) > assessmentBriefs[].body > primaryRawText
@@ -220,6 +241,7 @@ export default function AuraChatOverlay({ open, onClose }) {
             ? [{ role: 'user', text: stalenessWarning }, ...updated.slice(1)]
             : updated.slice(1),
           assessmentTitle: activeAssessmentTitle || undefined,
+          assessmentSummary: assessmentSummary || undefined,
           briefText: hasDocContext ? activeBriefText.slice(0, 3200) : undefined,
           documentType: activeDocType || undefined,
           documentCount: allDocs.length,
