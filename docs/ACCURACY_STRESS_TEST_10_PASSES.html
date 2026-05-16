@@ -1,0 +1,134 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);background:transparent;color:var(--color-text-primary)}
+.pass{margin-bottom:1.25rem;border:0.5px solid var(--color-border-tertiary);border-radius:10px;overflow:hidden}
+.pass-head{padding:.6rem 1rem;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.badge{font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;padding:2px 8px;border-radius:4px;white-space:nowrap}
+.b1{background:#FCEBEB;color:#A32D2D}.b2{background:#FAEEDA;color:#854F0B}.b3{background:#E6F1FB;color:#185FA5}
+.b4{background:#EAF3DE;color:#3B6D11}.b5{background:#EEEDFE;color:#534AB7}.b6{background:#FAECE7;color:#993C1D}
+.b7{background:#E1F5EE;color:#0F6E56}.b8{background:#FBEAF0;color:#993556}.b9{background:#F1EFE8;color:#5F5E5A}
+.b10{background:#FCEBEB;color:#791F1F}
+.pass-title{font-size:13px;font-weight:500}
+.pass-method{font-size:11px;color:var(--color-text-secondary);margin-left:auto}
+.body{padding:.75rem 1rem}
+.gap{display:flex;gap:8px;margin-bottom:.45rem;font-size:12px;line-height:1.45}
+.gap:last-child{margin-bottom:0}
+.tag{font-size:10px;font-weight:500;text-transform:uppercase;padding:2px 5px;border-radius:3px;white-space:nowrap;height:fit-content;margin-top:2px}
+.miss{background:var(--color-background-danger);color:var(--color-text-danger)}
+.weak{background:var(--color-background-warning);color:var(--color-text-warning)}
+.deep{background:var(--color-background-info);color:var(--color-text-info)}
+</style>
+<div style="padding:1rem 0">
+
+<div class="pass">
+<div class="pass-head"><span class="badge b1">Pass 1</span><span class="pass-title">Temporal accuracy: the dimension we completely missed</span><span class="pass-method">Physics: time as a variable</span></div>
+<div class="body">
+<div class="gap"><span class="tag miss">MISSING</span>AI accuracy degrades over time. A rubric ingested 6 weeks ago may have been updated by the lecturer. AURA still references the old version. No staleness detection. No "this document was ingested 42 days ago, confirm it is still current."</div>
+<div class="gap"><span class="tag miss">MISSING</span>Profile accuracy decays. A learner's accessibility needs, energy patterns, and cognitive load profile change over a semester. A profile set in Week 1 is increasingly inaccurate by Week 12. No time-decay model on profile fields. No "this profile is 90 days old, do any fields need updating?"</div>
+<div class="gap"><span class="tag miss">MISSING</span>Pareto Steps become stale mid-task. A student starts an essay in Week 3, does not return until Week 7. The Pareto Steps were computed from a rubric that may have been superseded by an addendum. No version-stamping on Pareto Step generation.</div>
+<div class="gap"><span class="tag miss">MISSING</span>Session context drift. AURA uses last_session data. But if a student uses the system daily for a month, the last_session reference keeps moving and AURA loses the longer arc. No longitudinal accuracy model beyond the last session.</div>
+<div class="gap"><span class="tag deep">FIX</span>Every ingested document, every generated Pareto Step, and every profile field needs a created_at, last_verified_at, and expires_at. AURA checks staleness before every call and surfaces it if exceeded.</div>
+</div>
+</div>
+
+<div class="pass">
+<div class="pass-head"><span class="badge b2">Pass 2</span><span class="pass-title">Cascading error propagation: one wrong thing poisons everything downstream</span><span class="pass-method">Engineering: failure mode analysis (FMEA)</span></div>
+<div class="body">
+<div class="gap"><span class="tag miss">MISSING</span>Ingestion error propagates silently to Pareto Steps. If the rubric is extracted with 40% confidence, the Pareto Steps built from it are wrong. But the Pareto Step confidence watermark only shows per-step, not "these steps were built from a low-confidence rubric." The root cause is invisible.</div>
+<div class="gap"><span class="tag miss">MISSING</span>Wrong document type classification cascades. If a biology exam paper is classified as an "essay brief," every AURA response is structured around essay scaffolding, not exam technique. The classification error multiplies across the entire session.</div>
+<div class="gap"><span class="tag miss">MISSING</span>Profile field error cascades. If "processing_speed_multiplier" is set to 1.0 by default because the learner skipped that question, but the learner is actually a 3x processor, every idle threshold fires three times too fast. One missing field creates a session-long experience failure.</div>
+<div class="gap"><span class="tag miss">MISSING</span>No error propagation graph. We log four isolated problems. We do not log the causal chain: "rubric confidence 0.4 → Pareto Steps unreliable → AURA guidance misdirected → learner worked on wrong section → submission underperformed."</div>
+<div class="gap"><span class="tag deep">FIX</span>Every log entry needs a parent_event_id field. If a Pareto Step was generated from a low-confidence ingestion, that link is stored. If an AURA response was built from a stale Pareto Step, that link is stored. The full error chain becomes queryable.</div>
+</div>
+</div>
+
+<div class="pass">
+<div class="pass-head"><span class="badge b3">Pass 3</span><span class="pass-title">Confirmation bias in the accuracy system itself</span><span class="pass-method">Cognitive science + adversarial testing</span></div>
+<div class="body">
+<div class="gap"><span class="tag miss">MISSING</span>The learner flag system only captures errors the learner notices. A learner who does not know the rubric was misread will not flag it. The accuracy system has a blind spot exactly where the learner has a blind spot. They reinforce each other.</div>
+<div class="gap"><span class="tag miss">MISSING</span>AURA confidently wrong is more dangerous than AURA uncertain wrong. If AURA says "your rubric requires critical analysis worth 30%" with certainty, and the actual rubric says 15%, the learner trusts the wrong number because AURA sounded sure. We measure whether the learner flags it. We do not measure calibration: does AURA's expressed certainty match its actual accuracy?</div>
+<div class="gap"><span class="tag miss">MISSING</span>The four problems assume honest users. An adversarial user who deliberately uploads a fake rubric or a corrupted PDF breaks every downstream accuracy assumption. No adversarial input detection.</div>
+<div class="gap"><span class="tag miss">MISSING</span>No ground truth comparison. We have no mechanism to compare AURA's extraction against a known-good version of the same document. Without ground truth we are measuring self-reported accuracy.</div>
+<div class="gap"><span class="tag deep">FIX</span>Build a calibration score per AURA response: does the expressed confidence (hedging language, confidence watermark) match the actual rubric_confidence and brieftext_length? Add automated weekly accuracy sampling: randomly select 50 ingestion events, re-run extraction, compare to stored result. Flag divergence above 15%.</div>
+</div>
+</div>
+
+<div class="pass">
+<div class="pass-head"><span class="badge b4">Pass 4</span><span class="pass-title">Accuracy at the edges: the 1% of users who break everything</span><span class="pass-method">Chaos engineering + boundary condition testing</span></div>
+<div class="body">
+<div class="gap"><span class="tag miss">MISSING</span>Zero-byte documents. Learner uploads an empty PDF (happens when a printer driver creates an empty file). pdfjs extracts nothing. confidence_score is 0. But the current system does not handle the "extracted nothing at all" case separately from "extracted with low confidence." AURA fires with empty briefText and hallucinates.</div>
+<div class="gap"><span class="tag miss">MISSING</span>Multilingual documents. A Chinese student uploads a Mandarin rubric. pdfjs extracts the characters but AURA's accuracy logging assumes English text hashing. The raw_text_hash is meaningless and the extracted_fields JSON is garbage. No multilingual extraction accuracy path.</div>
+<div class="gap"><span class="tag miss">MISSING</span>Handwritten or photo documents. A student photographs a handwritten feedback sheet. OCR runs. But OCR accuracy on handwriting is 60-80% at best. We have no separate logging path for OCR-sourced content vs clean PDF extraction. They both get the same confidence score calculation which is wrong for OCR.</div>
+<div class="gap"><span class="tag miss">MISSING</span>Extremely long documents. A 200-page thesis has its first 5000 chars hashed. But the relevant rubric criteria are on page 187. The accuracy logging does not reflect which pages were actually used for extraction.</div>
+<div class="gap"><span class="tag deep">FIX</span>Add extraction_method field: clean_pdf, ocr_image, ocr_handwritten, empty, multilingual. Each method gets its own confidence baseline and its own accuracy threshold. A 0.7 confidence for clean PDF extraction is very different from 0.7 for OCR handwriting.</div>
+</div>
+</div>
+
+<div class="pass">
+<div class="pass-head"><span class="badge b5">Pass 5</span><span class="pass-title">Distributed systems accuracy: what happens between services</span><span class="pass-method">Systems engineering: CAP theorem + eventual consistency</span></div>
+<div class="body">
+<div class="gap"><span class="tag miss">MISSING</span>Race condition between IndexedDB write and Supabase sync. A learner saves a block at 11:58pm and closes the laptop. IndexedDB write succeeds. Supabase sync is in flight. Laptop goes offline. The data exists locally but the cloud has a 45-second-old version. The accuracy logging records "write confirmed" but the cloud version is wrong.</div>
+<div class="gap"><span class="tag miss">MISSING</span>The four problems assume a single source of truth. In reality there are three: IndexedDB (local), Supabase (cloud), and the AURA API's in-memory context object. These three can diverge. We log writes to IndexedDB and we log the AURA context snapshot. We do not log whether they agreed with each other at the moment the API call fired.</div>
+<div class="gap"><span class="tag miss">MISSING</span>Supabase RLS (Row Level Security) silent failures. If an RLS policy is misconfigured, a write appears to succeed on the client but is silently rejected server-side. The learner sees "saved" but the data is not there. Our write verification hashes the local copy, not the server copy.</div>
+<div class="gap"><span class="tag miss">MISSING</span>API response truncation. The Anthropic API has token limits. If the AURA system prompt plus context plus conversation history exceeds the limit, the context is silently truncated. AURA responds without the full profile, without all rubric criteria, without the full brief. We have no logging for context window truncation events.</div>
+<div class="gap"><span class="tag deep">FIX</span>Add three fields to aura_context_snapshots: estimated_token_count, context_truncated (bool), truncated_fields (array). Before every API call, estimate the token count. If approaching the limit, log which fields were dropped and in what order. Surface to Aaron's dashboard as a P1 alert when truncation exceeds 5% of calls.</div>
+</div>
+</div>
+
+<div class="pass">
+<div class="pass-head"><span class="badge b6">Pass 6</span><span class="pass-title">Human accuracy: the learner is also a source of error</span><span class="pass-method">Human factors engineering + UX research</span></div>
+<div class="body">
+<div class="gap"><span class="tag miss">MISSING</span>Learner confirms an incorrect extraction. The ingestion pipeline shows the learner what it extracted and asks them to confirm. But a learner who does not understand the rubric will confirm wrong extractions as correct. user_confirmed: true is not the same as extraction_accurate: true.</div>
+<div class="gap"><span class="tag miss">MISSING</span>Learner inputs incorrect profile data. A learner with undiagnosed ADHD selects "no attention difficulties" during onboarding. The profile is accurate to what they said, inaccurate to their actual needs. We have no mechanism to detect profile-behaviour divergence over time.</div>
+<div class="gap"><span class="tag miss">MISSING</span>Learner misuses the flag system. A frustrated learner flags every response as wrong even when AURA was correct. Or a learner never flags anything because they do not realise it is wrong. The flag system assumes rational, representative flagging behaviour.</div>
+<div class="gap"><span class="tag miss">MISSING</span>Learner accuracy of their own work. AURA's authenticity split tracks AI vs human contribution. But if a human writes something factually wrong, we log it as human content with full authenticity. The accuracy of the content itself is never measured.</div>
+<div class="gap"><span class="tag deep">FIX</span>Behaviour-profile divergence detection. Compare declared profile settings against observed behaviour over 10+ sessions. If a learner declared "Light scaffolding preferred" but requests Tier 1 pre-write 90% of the time, flag the divergence and offer a profile update. This is automatic ground-truth checking on the learner's own data.</div>
+</div>
+</div>
+
+<div class="pass">
+<div class="pass-head"><span class="badge b7">Pass 7</span><span class="pass-title">Statistical accuracy: our sample sizes are wrong</span><span class="pass-method">Statistics: sampling theory + Simpson's paradox</span></div>
+<div class="body">
+<div class="gap"><span class="tag miss">MISSING</span>The flag system at low volume is noise. At 100 users, 3 flags on a response type means nothing statistically. At 10,000 users it means something. We have no minimum sample size threshold before accuracy patterns are treated as signal vs noise. Aaron could act on a false pattern.</div>
+<div class="gap"><span class="tag miss">MISSING</span>Simpson's paradox risk. AURA accuracy looks good overall but is terrible for one specific tier (say, Primary learners uploading handwritten documents). The aggregate accuracy metric hides the subgroup failure. We need accuracy broken down by: tier, document type, extraction method, rubric confidence band.</div>
+<div class="gap"><span class="tag miss">MISSING</span>Survivorship bias in the accuracy data. Learners who give up and leave do not flag responses. The most damaging accuracy failures produce churn, not flags. We are measuring accuracy among retained users, which is a biased sample.</div>
+<div class="gap"><span class="tag miss">MISSING</span>No A/B accuracy testing. We have one AURA prompt version. We have no way to test whether a different system prompt version produces more accurate responses. We cannot improve without comparison.</div>
+<div class="gap"><span class="tag deep">FIX</span>Build a minimum_signal_threshold into the accuracy dashboard. Do not surface accuracy patterns until n >= 30 instances. Break every accuracy metric by tier + document_type + extraction_method. Track session_ended_without_submission as a proxy accuracy signal for learners who churned.</div>
+</div>
+</div>
+
+<div class="pass">
+<div class="pass-head"><span class="badge b8">Pass 8</span><span class="pass-title">Privacy accuracy: the logging system itself creates risk</span><span class="pass-method">Privacy engineering + GDPR/Australian Privacy Act</span></div>
+<div class="body">
+<div class="gap"><span class="tag miss">MISSING</span>The accuracy logs we are building contain learner data. ingestion_events stores extracted_fields which contains assessment content. aura_response_flags logs the response text hash. aura_context_snapshots stores profile data at call time. None of these tables were in the original three-layer data architecture. Where do they sit? Who can see them?</div>
+<div class="gap"><span class="tag miss">MISSING</span>The correction_delta in ingestion_events stores what the learner changed. That delta reveals the gap between what was in the document and what the learner expected. That is sensitive academic data. It needs the same protection as Layer 1 (learner work content), not Layer 2 (telemetry).</div>
+<div class="gap"><span class="tag miss">MISSING</span>Log retention policy is undefined. How long do accuracy logs live? GDPR right to deletion applies. If a learner requests data deletion, do the accuracy logs get purged? If yes, we lose the training signal. If no, we are in violation.</div>
+<div class="gap"><span class="tag miss">MISSING</span>The raw_text_hash is a SHA256 of document content. In theory a hash cannot be reversed. In practice, for short documents with predictable content (standard rubric formats), rainbow table attacks are possible. We are storing a weak pseudonymisation of document content.</div>
+<div class="gap"><span class="tag deep">FIX</span>Assign every new log table a data_classification: operational (can be retained, aggregated, used for product improvement) or sensitive (must be deletable on request, never aggregated with identifying data). Add a privacy_review_required flag to the CLAUDE.md before any new table is created.</div>
+</div>
+</div>
+
+<div class="pass">
+<div class="pass-head"><span class="badge b9">Pass 9</span><span class="pass-title">Accuracy of the accuracy system: who watches the watchmen</span><span class="pass-method">Second-order systems thinking + meta-validation</span></div>
+<div class="body">
+<div class="gap"><span class="tag miss">MISSING</span>The confidence_score calculation itself is unvalidated. We defined it as chars_extracted / estimated_chars_from_page_count. That formula has never been tested against ground truth. It could systematically over-report confidence for dense PDFs and under-report for sparse ones.</div>
+<div class="gap"><span class="tag miss">MISSING</span>The write verification hash (JSON.stringify length + first 100 chars) is weak. Two different objects can have the same length and same first 100 characters. It is not a real integrity check. It is a comfort check.</div>
+<div class="gap"><span class="tag miss">MISSING</span>The flag button requires cognitive load from the learner at the exact moment they are most confused and frustrated. The accuracy system depends on learner effort at the worst possible moment. Flagging rates will be low not because AURA is accurate but because flagging is hard.</div>
+<div class="gap"><span class="tag miss">MISSING</span>Aaron has no dashboard. All of this logging builds up in Supabase but there is no interface to see it. An accuracy system that produces data nobody reads is not an accuracy system. It is a false sense of security.</div>
+<div class="gap"><span class="tag deep">FIX</span>Three things: (1) Replace the confidence formula with a validated one: extract the same document twice with different pdfjs settings, compare outputs, use divergence as the confidence measure. (2) Replace the hash with a proper CRC32 of the full serialised object. (3) Build a minimal accuracy dashboard: one page, four numbers, updated daily: ingestion confidence p50/p95, flag rate per 100 calls, context truncation rate, write verification failure rate.</div>
+</div>
+</div>
+
+<div class="pass">
+<div class="pass-head"><span class="badge b10">Pass 10</span><span class="pass-title">Existential accuracy: what we are not even measuring</span><span class="pass-method">First principles + unknown unknowns</span></div>
+<div class="body">
+<div class="gap"><span class="tag miss">MISSING</span>Did AURA's guidance actually help the learner learn? We measure whether the guidance was factually accurate to the document. We do not measure whether it produced better outcomes. A rubric-accurate Pareto Step delivered to a learner in crisis still fails. Accuracy of output is not accuracy of impact.</div>
+<div class="gap"><span class="tag miss">MISSING</span>Accuracy of AURA's pedagogical choices. AURA asks a Socratic question. The question is accurate to the rubric. But was it the right question for this learner at this moment? We have no outcome measure for pedagogical accuracy. Did the learner produce better writing after the Socratic exchange?</div>
+<div class="gap"><span class="tag miss">MISSING</span>Accuracy of the system prompt itself. The AURA v3 system prompt is our best work. But it has never been validated against outcomes. We do not know if the prohibited word list actually reduces shame spirals. We do not know if the three-nudge idle sequence produces better re-engagement than two nudges or four. The prompt is an untested hypothesis.</div>
+<div class="gap"><span class="tag miss">MISSING</span>Accuracy of who is actually using the account. A learner shares their login with a friend. The accuracy system logs everything against learner A's profile but learner B is the one interacting. Every accuracy measurement is now attributed to the wrong person.</div>
+<div class="gap"><span class="tag deep">FIX</span>The only real accuracy measure for an educational product is: did the learner perform better on their next assessment after using the system? Everything else is a proxy. Build the one metric that matters: link session_id to eventual submission_grade (where available) and track the correlation. That is the ground truth everything else serves.</div>
+</div>
+</div>
+
+</div>
