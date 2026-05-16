@@ -45,14 +45,24 @@ function collectTasks(courses) {
   const tasks = [];
   for (const [courseId, course] of Object.entries(courses || {})) {
     const briefs = course.extractionData?.assessmentBriefs || [];
+    if (briefs.length === 0) {
+      // Course with no briefs: still show it as undated
+      tasks.push({
+        courseId,
+        courseName: course.name || 'Untitled',
+        title: course.name || 'Untitled',
+        weight: '',
+        dueDate: null,
+      });
+      continue;
+    }
     for (const brief of briefs) {
-      if (!brief.dueDate) continue;
       tasks.push({
         courseId,
         courseName: course.name || 'Untitled',
         title: brief.title || 'Assessment',
         weight: brief.weight || '',
-        dueDate: brief.dueDate,
+        dueDate: brief.dueDate || null,
       });
     }
   }
@@ -91,14 +101,15 @@ export default function TimelineStrip({ courses, now: nowProp }) {
   // Collect all tasks and bin by day key
   const allTasks = collectTasks(courses);
   const overdueTasks = [];
+  const undatedTasks = [];
   const dayBins = {};
   for (const key of days.map(d => d.key)) {
     dayBins[key] = [];
   }
 
   for (const task of allTasks) {
-    const parsed = parseDueDate(task.dueDate);
-    if (!parsed) continue;
+    const parsed = task.dueDate ? parseDueDate(task.dueDate) : null;
+    if (!parsed) { undatedTasks.push(task); continue; }
     const status = getTaskStatus(parsed, now);
     const taskKey = buildDayKey(parsed);
 
@@ -209,6 +220,24 @@ function DayCell({ dayName, dateLabel, tasks, isToday, isOverdue }) {
           </div>
         );
       })}
+      {/* Undated tasks shown at the end */}
+      {undatedTasks.length > 0 && (
+        <div style={{ padding: '6px 8px' }}>
+          <div style={{ fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: TEXT_FAINT, marginBottom: 4 }}>
+            Date not set
+          </div>
+          {undatedTasks.map((task, i) => (
+            <div key={`undated_${i}`} style={{ padding: '4px 6px', background: SURFACE_CARD, border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS, marginBottom: 3 }}>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 600, color: TEXT_MUTED, lineHeight: 1.3 }}>
+                {task.title}
+              </div>
+              <div style={{ fontFamily: FONT_SYSTEM, fontSize: 9, color: TEXT_FAINT, marginTop: 2 }}>
+                {task.courseName}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
