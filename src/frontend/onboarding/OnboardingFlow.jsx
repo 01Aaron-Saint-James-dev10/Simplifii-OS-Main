@@ -69,7 +69,12 @@ const STEP_NAMES = {
 
 function buildSteps(tier) {
   const steps = ['whatBringsYou', 'meetAura'];
-  if (!tier) steps.push('tier'); // Only show old tier picker if not set via whatBringsYou
+  if (!tier) steps.push('tier');
+  if (tier === 'helper') {
+    // Helping someone else: ask about the person they support, then accessibility
+    steps.push('accessibility');
+    return steps;
+  }
   if (tier === 'secondary') steps.push('secondaryDetails');
   steps.push('accessibility');
   if (tier === 'secondary') steps.push('painPoints');

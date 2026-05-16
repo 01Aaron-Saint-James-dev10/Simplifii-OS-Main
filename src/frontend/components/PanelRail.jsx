@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import ToolModal from './ToolModal';
+import FirstTimeTooltip from './FirstTimeTooltip';
 import { announceTransition } from '../services/PredictabilityService';
 import {
   SURFACE_CARD,
@@ -133,9 +134,9 @@ export default function PanelRail({ activePanel, onSelectPanel, panelContent }) 
           {expanded ? '\u2039 collapse' : '\u203A'}
         </button>
 
-        {PANELS.map(p => {
+        {PANELS.map((p, pIdx) => {
           const isActive = activePanel === p.id;
-          return (
+          const btn = (
             <button
               key={p.id}
               type="button"
@@ -176,6 +177,15 @@ export default function PanelRail({ activePanel, onSelectPanel, panelContent }) 
               {expanded && <span>{p.label}</span>}
             </button>
           );
+          // Show tooltip on first tab (Brief) for first-time users
+          if (pIdx === 0) {
+            return (
+              <FirstTimeTooltip key={p.id} id="panel_brief" text="Start here. Your assessment decoded into plain language." position="left" delay={3000}>
+                {btn}
+              </FirstTimeTooltip>
+            );
+          }
+          return btn;
         })}
 
         {/* Info button at bottom of rail */}
