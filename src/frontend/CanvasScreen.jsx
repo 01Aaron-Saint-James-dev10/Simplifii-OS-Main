@@ -67,6 +67,23 @@ export default function CanvasScreen() {
     return () => stopIdleDetection();
   }, []);
 
+  // AURA proactive greeting: emit canvas-ready after data loads
+  useEffect(() => {
+    if (!courseId || !course?.name) return;
+    const brief0 = briefs[0];
+    const timer = setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('aura:canvas-ready', {
+        detail: {
+          courseId,
+          assessmentTitle: brief0?.title || course.name,
+          weight: brief0?.weight || '',
+          dueDate: brief0?.dueDate || '',
+        },
+      }));
+    }, 2000); // 2s delay: let canvas render first
+    return () => clearTimeout(timer);
+  }, [courseId, course?.name]); // eslint-disable-line
+
   // Ambient sound: start/stop when preference changes
   useEffect(() => {
     if (autismFirstEnabled && ambientPreference && ambientPreference !== 'none') {

@@ -77,6 +77,19 @@ export default function AppShell() {
     return () => window.removeEventListener('simplifii:open-settings', handler);
   }, []);
 
+  // AURA proactive greeting: auto-open chat when canvas is ready (first time per course)
+  useEffect(() => {
+    const handler = (e) => {
+      const { courseId: cId } = e.detail || {};
+      const key = `aura_greeted_${cId}`;
+      if (sessionStorage.getItem(key)) return; // already greeted this session
+      sessionStorage.setItem(key, 'true');
+      setAuraChatOpen(true);
+    };
+    window.addEventListener('aura:canvas-ready', handler);
+    return () => window.removeEventListener('aura:canvas-ready', handler);
+  }, []);
+
   useEffect(() => {
     if (!user) return;
     (async () => {
