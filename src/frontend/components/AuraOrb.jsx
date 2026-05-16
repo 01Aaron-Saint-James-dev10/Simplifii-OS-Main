@@ -375,6 +375,10 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
         gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
         style={{ background: 'transparent' }}
         dpr={Math.min(window.devicePixelRatio, 2)}
+        onCreated={({ gl }) => {
+          const canvas = gl.domElement;
+          canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); setReducedMotion(true); });
+        }}
       >
         <ambientLight intensity={0.3} />
         <pointLight position={[2, 2, 2]} intensity={0.8} color="#ef9f27" />
