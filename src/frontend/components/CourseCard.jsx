@@ -2,6 +2,8 @@ import React from 'react';
 import { getTaskStatus } from '../../services/StatusService';
 import StatusPill from './StatusPill';
 import PhaseIndicator from './PhaseIndicator';
+import GradeInput from './GradeInput';
+import { determinePhase, PHASES } from '../../core/TaskLifecycleManager';
 import {
   SURFACE_CARD, SURFACE_CARD_GLASS,
   SURFACE_RAISED,
@@ -196,6 +198,11 @@ export default function CourseCard({ course, courseId, density = 'standard', onO
       >
         Open
       </button>
+
+      {/* Grade input for submitted courses (Phase 6+) */}
+      {determinePhase(course) >= PHASES.SUBMISSION && (
+        <GradeInput courseId={courseId} assessmentTitle={briefs[0]?.title || ''} />
+      )}
     </div>
   );
 }

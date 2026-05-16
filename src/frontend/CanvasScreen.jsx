@@ -40,6 +40,7 @@ import ComprehensionBreak from './components/ComprehensionBreak';
 import PreWritePanel from './components/PreWritePanel';
 import FirstLookCard from './components/FirstLookCard';
 import { appendEvent } from '../core/HistoryOfThought';
+import { determinePhase, checkPhaseTransition } from '../core/TaskLifecycleManager';
 import './CanvasScreen.css';
 
 /**
@@ -109,6 +110,23 @@ export default function CanvasScreen() {
       return display === assessmentTitle || b.title === assessmentTitle;
     }) || briefs[0] || null;
   }, [briefs, assessmentTitle]);
+
+  // Task lifecycle phase detection: fires AURA messages at phase boundaries
+  const phaseRef = useRef(determinePhase(course));
+  useEffect(() => {
+    const newPhase = determinePhase(course);
+    if (newPhase !== phaseRef.current) {
+      const topBrief = briefs[0];
+      checkPhaseTransition(courseId, phaseRef.current, newPhase, {
+        title: topBrief?.title || courseName,
+        rubricCount: course.extractionData?.rubricCriteria?.length || briefs.length,
+        paretoStep1: course.extractionData?.paretoSteps?.[0] || '',
+        topCriterion: course.extractionData?.rubricCriteria?.[0]?.criterion || '',
+        topWeight: course.extractionData?.rubricCriteria?.[0]?.weight || '',
+      });
+      phaseRef.current = newPhase;
+    }
+  }, [course, courseId, courseName, briefs]);
 
   // Document classification: use value baked in during ingestion if present.
   const preClassifiedType = course.extractionData?.documentType || null;
