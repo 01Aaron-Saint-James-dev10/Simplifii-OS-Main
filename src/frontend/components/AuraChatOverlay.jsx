@@ -50,29 +50,35 @@ export default function AuraChatOverlay({ open, onClose }) {
   const primaryDoc = allDocs.find(d => d.source === 'explicit' || d.weight) || allDocs[0];
   const activeAssessmentTitle = routerAssessment || primaryDoc?.title || '';
 
-  // Build aggregated brief text from ALL docs (cap each at 600 chars, total 3200)
-  // Fallback to primaryRawText if individual doc bodies are empty
+  // Build document context for AURA from extractionData
+  // Priority: rawText (full concatenated text) > assessmentBriefs[].body > primaryRawText
   const activeBriefText = useMemo(() => {
-    if (allDocs.length === 0) {
-      // No structured docs: use primaryRawText as the context
-      const raw = activeCourse?.extractionData?.primaryRawText || '';
-      return raw ? `[PRIMARY DOCUMENT]\n${raw.slice(0, 3200)}` : '';
+    const ext = activeCourse?.extractionData;
+    if (!ext) return '';
+
+    // rawText contains ALL uploaded document text concatenated (best source)
+    const rawText = ext.rawText || ext.primaryRawText || '';
+
+    // If we have structured briefs with bodies, use those for labelled context
+    const docsWithBodies = allDocs.filter(d => d.body && d.body.length > 20);
+    if (docsWithBodies.length > 0) {
+      const labelled = docsWithBodies
+        .slice(0, 4)
+        .map((doc, i) => `[${doc.title || `Document ${i + 1}`}]\n${doc.body.slice(0, 800)}`)
+        .join('\n\n---\n\n');
+      // Append remaining raw text if available and labelled text is short
+      if (labelled.length < 2000 && rawText.length > labelled.length) {
+        return `${labelled}\n\n---\n\n[ADDITIONAL CONTENT]\n${rawText.slice(labelled.length, 3200)}`.slice(0, 3200);
+      }
+      return labelled.slice(0, 3200);
     }
-    const assembled = allDocs
-      .slice(0, 6)
-      .map((doc, i) => {
-        const body = (doc?.body || '').slice(0, 600);
-        if (!body) return '';
-        return `[DOC ${i + 1}: ${doc?.title || 'Untitled'}]\n${body}`;
-      })
-      .filter(Boolean)
-      .join('\n\n---\n\n')
-      .slice(0, 3200);
-    // If assembled is empty (briefs have titles but no bodies), fallback to raw text
-    if (!assembled && activeCourse?.extractionData?.primaryRawText) {
-      return `[PRIMARY DOCUMENT]\n${activeCourse.extractionData.primaryRawText.slice(0, 3200)}`;
+
+    // No bodies in briefs: use raw text directly (this is the common case for multi-doc uploads)
+    if (rawText) {
+      return rawText.slice(0, 3200);
     }
-    return assembled;
+
+    return '';
   }, [allDocs, activeCourse]);
 
   // Document inventory for AURA context
@@ -161,22 +167,10 @@ export default function AuraChatOverlay({ open, onClose }) {
     }
   }, [courseId, greetingText]);
 
-  // Focus input when opened + surface queued phase-transition messages + debug log
+  // Focus input when opened + surface queued phase-transition messages
   useEffect(() => {
     if (!open) return;
     setTimeout(() => inputRef.current?.focus(), 100);
-    // BUG 1 DEBUG: Log what extractionData actually contains
-    if (typeof console !== 'undefined') {
-      console.log('[AURA MULTIDOC DEBUG]', {
-        courseId,
-        activeCourse: activeCourse ? 'exists' : 'null',
-        extractionDataKeys: activeCourse?.extractionData ? Object.keys(activeCourse.extractionData) : 'no extractionData',
-        assessmentBriefsCount: activeCourse?.extractionData?.assessmentBriefs?.length,
-        allDocsCount: allDocs.length,
-        primaryRawTextLength: activeCourse?.extractionData?.primaryRawText?.length || 0,
-        activeBriefTextLength: activeBriefText?.length || 0,
-      });
-    }
     const queued = getQueuedAuraMessages();
     if (queued.length > 0) {
       const phaseMessages = queued.map(q => ({ role: 'tutor', text: q.message }));
