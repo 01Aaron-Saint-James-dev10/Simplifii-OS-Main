@@ -1,0 +1,37 @@
+# Simplifii-OS
+> The neuroinclusive AI study companion for every kind of mind.
+
+## What it is
+Simplifii-OS is a free AI-powered study tool designed specifically for neurodiverse students (ADHD, dyslexia, autism, and all learning differences). It helps learners decode rubrics, plan assignments, write with confidence, and submit on time.
+
+## Who it is for
+- Primary school students (Years 1-6)
+- Secondary school students (Years 7-12, HSC, VCE, QCE, WACE)
+- University and college students (undergraduate)
+- Postgraduate and research students (MRes, PhD)
+- TAFE and vocational learners
+- Homeschooling families
+- Teachers and educators
+
+## Key features
+- AURA: AI study companion that guides without writing for you (Socratic method)
+- Rubric decoder: translates academic criteria into plain language
+- Three-tier canvas: AI scaffolds (Tier 1), Socratic questions (Tier 2), your writing (Tier 3)
+- Authenticity Report: proves what is yours vs what AI contributed
+- Accessibility: literal mode, bionic reading, dyslexia fonts, screen reader support
+- Spoon Theory energy tracking for managing cognitive load
+- Practice mode: HSC/VCE/QCE/WACE exam questions with AI guidance
+- Institutional navigator: LMS help, extension templates, disability support referrals
+
+## Built by
+Simplifii Pty Ltd, Sydney, Australia
+Founded by Aaron Bugge (UNSW, neurodiversity researcher)
+
+## Values
+- Trauma-informed: no guilt, no shame, no toxic positivity
+- Strengths-based: leads with what you do well
+- Sovereign: your work is private, institutions see only statistics
+- Australian English throughout
+
+## URL
+https://simplifii-os-main.vercel.app
