@@ -167,6 +167,7 @@ export default function CanvasSettingsOverlay({ onClose }) {
         </div>
 
         <SectionLabel>Reading</SectionLabel>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_MUTED, margin: '0 0 8px', lineHeight: 1.4 }}>How your text looks on screen</p>
         <Toggle label="Bionic Reading" description="Bold the first 40% of each word for faster scanning" value={isBionicActive} onChange={setIsBionicActive} />
 
         <RadioGroup
@@ -204,6 +205,7 @@ export default function CanvasSettingsOverlay({ onClose }) {
 
         <div style={{ borderTop: `1px solid ${SURFACE_RAISED}`, margin: '12px 0' }} />
         <SectionLabel>Display</SectionLabel>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_MUTED, margin: '0 0 8px', lineHeight: 1.4 }}>Colours, motion, and visual comfort</p>
         <RadioGroup
           label="Theme"
           options={[
@@ -223,6 +225,7 @@ export default function CanvasSettingsOverlay({ onClose }) {
 
         <div style={{ borderTop: `1px solid ${SURFACE_RAISED}`, margin: '12px 0' }} />
         <SectionLabel>Accessibility profile</SectionLabel>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_MUTED, margin: '0 0 8px', lineHeight: 1.4 }}>Tell us how your brain works so AURA can adapt its language and support style</p>
         <RadioGroup
           label="How does your brain work?"
           options={getProfileCards().map(p => ({ value: p.id, label: p.name }))}
@@ -306,6 +309,7 @@ export default function CanvasSettingsOverlay({ onClose }) {
 
         <div style={{ borderTop: `1px solid ${SURFACE_RAISED}`, margin: '12px 0' }} />
         <SectionLabel>Wellbeing</SectionLabel>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_MUTED, margin: '0 0 8px', lineHeight: 1.4 }}>Tools to help you manage stress and focus</p>
         <BreathBubble />
       </div>
     </div>
