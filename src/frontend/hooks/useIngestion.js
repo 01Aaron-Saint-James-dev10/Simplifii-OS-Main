@@ -3,7 +3,8 @@ import { createLogger } from '../../utils/logger';
 import { mapToWorkspace, deriveRoadmapFromAssessments, extractDeepCourseData, mergeExtractionData } from '../../services/BriefService';
 
 const log = createLogger('useIngestion');
-import { processDocumentWithGCP } from '../../services/DocumentAIService';
+// Dynamic import to avoid circular dependency with DocumentAIService -> UDLAuditService
+const loadDocumentAI = () => import('../../services/DocumentAIService').then(m => m.processDocumentWithGCP);
 import { fetchGroundingPdfs, listGroundingPdfs } from '../../utils/GroundingLoader';
 import { listUploadedPdfs } from '../../services/IndexedDBService';
 import { nameCourse, getProviderName, extractAssessmentBriefs, REASONING_START_EVENT, REASONING_END_EVENT } from '../../services/RewriteService';
@@ -514,6 +515,7 @@ export function useIngestion({
           try {
             // PDF bridge: swap mock_jwt_token_xyz123 for a real Supabase
             // session token once src/lib/supabaseClient.js auth is complete.
+            const processDocumentWithGCP = await loadDocumentAI();
             const text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
             const deepData = extractDeepCourseData(text);
             aggregated = mergeExtractionData(aggregated, { ...deepData, rawText: text });
@@ -576,6 +578,7 @@ export function useIngestion({
         for (const file of groupFiles) {
           setIngestStatus(`Extracting ${file.name}...`);
           try {
+            const processDocumentWithGCP = await loadDocumentAI();
             const text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
             const deepData = extractDeepCourseData(text);
             aggregated = mergeExtractionData(aggregated, { ...deepData, rawText: text });
