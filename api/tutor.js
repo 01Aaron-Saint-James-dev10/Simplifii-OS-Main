@@ -45,6 +45,7 @@ export default async function handler(req, res) {
   const literalMode = req.body?.literalMode || false;
   const decisionSkeleton = req.body?.decisionSkeleton || false;
   const specialInterests = req.body?.specialInterests || [];
+  const voiceMode = req.body?.voiceMode || false;
   const learnerContext = sanitiseLearnerContext(req.body?.learnerContext);
 
   // Document context flags (from AuraChatOverlay)
@@ -76,6 +77,7 @@ export default async function handler(req, res) {
     decisionSkeleton,
     specialInterests: Array.isArray(specialInterests) ? specialInterests : [],
     sensoryLevel: typeof sensoryLevel === 'number' ? sensoryLevel : 5,
+    voiceMode,
   });
 
   // EAL/D language support (additive to AURA)
@@ -110,19 +112,23 @@ export default async function handler(req, res) {
       return res.status(502).json({ success: false, error: 'AI service unavailable. Try again.' });
     }
 
-    const data = await response.json();
+    const data = await response.json().catch(() => null);
+    if (!data || !data.content || !data.content[0]?.text) {
+      return res.status(502).json({ success: false, error: 'AI service returned an invalid response. Try again.' });
+    }
+
     await recordUsage(userId, 'tutor', {
       tokensIn: data?.usage?.input_tokens || 0,
       tokensOut: data?.usage?.output_tokens || 0,
     });
-    const reply = data?.content?.[0]?.text || '';
 
+    const reply = data.content[0].text.trim();
     if (!reply) {
-      return res.status(502).json({ success: false, error: 'Empty response from Claude.' });
+      return res.status(502).json({ success: false, error: 'AI returned an empty response. Try again.' });
     }
 
     return res.status(200).json({ success: true, reply });
-  } catch (err) {
-    return res.status(500).json({ success: false, error: err.message || 'Tutor request failed.' });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Something went wrong. Try again.' });
   }
 }

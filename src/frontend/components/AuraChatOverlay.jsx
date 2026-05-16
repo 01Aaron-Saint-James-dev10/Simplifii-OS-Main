@@ -69,16 +69,19 @@ export default function AuraChatOverlay({ open, onClose }) {
   const inputRef = useRef(null);
   const { isListening, interimTranscript, start: startVoice, stop: stopVoice, isSupported: voiceSupported } = useSpeechToText();
 
-  // When voice transcript arrives, auto-send it
+  // Use a ref so the voice handler always calls the latest send
+  const sendRef = useRef(null);
+
+  // When voice transcript arrives, auto-send it via ref (avoids stale closure)
   useEffect(() => {
     if (!open) return;
     const handler = (e) => {
       const text = e.detail?.text;
-      if (text && text.trim()) send(text.trim());
+      if (text && text.trim() && sendRef.current) sendRef.current(text.trim());
     };
     window.addEventListener('simplifii:voice-transcript', handler);
     return () => window.removeEventListener('simplifii:voice-transcript', handler);
-  }, [open, send]);
+  }, [open]);
 
   // Persist chat to sessionStorage
   useEffect(() => {
@@ -126,6 +129,7 @@ export default function AuraChatOverlay({ open, onClose }) {
           documentType: activeDocType || undefined,
           documentContextAvailable: hasDocContext,
           documentContextPartial: hasPartialContext,
+          voiceMode: isListening || false,
           tier: activeTier || 'tertiary',
           literalMode: isLiteralMode || false,
           accessibilityProfile: accessibilityProfile || 'standard',
@@ -134,7 +138,7 @@ export default function AuraChatOverlay({ open, onClose }) {
         }),
       });
       const data = await response.json();
-      if (data.success && data.reply) {
+      if (data.success && data.reply && data.reply.trim()) {
         dispatchAuraState('speaking');
         setMessages(prev => [...prev, { role: 'tutor', text: data.reply }]);
         // Return to idle after a short display period
@@ -149,7 +153,8 @@ export default function AuraChatOverlay({ open, onClose }) {
     } finally {
       setLoading(false);
     }
-  }, [messages, loading, activeTier, isLiteralMode, accessibilityProfile, learnerContext, user]);
+  }, [messages, loading, activeTier, isLiteralMode, accessibilityProfile, learnerContext, user, isListening, stopVoice, activeAssessmentTitle, activeBriefText, activeDocType]);
+  sendRef.current = send;
 
   if (!open) return null;
 
@@ -172,7 +177,7 @@ export default function AuraChatOverlay({ open, onClose }) {
         overflow: 'hidden',
       }}
       role="dialog"
-      aria-modal="false"
+      aria-modal="true"
       aria-label="AURA assistant"
     >
       {/* Header */}
