@@ -18,6 +18,7 @@ import EmptyWorkspace from './workspace/EmptyWorkspace';
 import TesterWelcomeModal from './components/TesterWelcomeModal';
 import DocumentClassifiedModal from './components/DocumentClassifiedModal';
 import AddWorkModal from './components/AddWorkModal';
+import WelcomeBanner from './components/WelcomeBanner';
 import ThemeSwitcher from './components/ThemeSwitcher';
 import { useRealtimeClock } from './hooks/useRealtimeClock';
 import AffirmationBanner from './components/AffirmationBanner';
@@ -206,6 +207,9 @@ export default function HomeScreen() {
       </nav>
 
       <main className="home-main">
+        {/* First-time welcome banner (shows once after onboarding) */}
+        <WelcomeBanner />
+
         {/* Greeting: tier-aware + time-aware + context-aware */}
         {(() => {
           const name = displayName || '';
