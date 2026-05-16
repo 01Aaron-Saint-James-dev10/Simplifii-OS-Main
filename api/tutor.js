@@ -15,6 +15,7 @@ import { rateLimit, getIdentifier } from './_rateLimit.js';
 import { checkQuota, recordUsage } from './_quota.js';
 import { sanitiseLearnerContext } from './_sanitize.js';
 import { buildAuraPrompt } from './_aura-prompt.js';
+import { LMS_NAVIGATION, EXTENSION_SCAFFOLD, REFERRALS, detectLMS } from './_lms_navigator.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -93,6 +94,34 @@ export default async function handler(req, res) {
   // Easy Read mode (additive to AURA for intellectual disability support)
   if (easyRead) {
     systemPrompt += `\n\nEASY READ MODE: Maximum 10 words per sentence. One idea per line. Bold key words using **bold**. No metaphors. No idioms. No sarcasm. Concrete, literal language only.`;
+  }
+
+  // Institutional Navigator: detect barriers in the latest user message
+  const lastUserMsg = (messages || []).filter(m => m.role === 'user').pop();
+  if (lastUserMsg?.text) {
+    const msgLower = lastUserMsg.text.toLowerCase();
+    const detectedLMS = detectLMS(lastUserMsg.text);
+
+    // LMS navigation help
+    if (detectedLMS && LMS_NAVIGATION[detectedLMS]) {
+      const lms = LMS_NAVIGATION[detectedLMS];
+      systemPrompt += `\n\nINSTITUTIONAL NAVIGATOR MODE (${lms.name}):\nThe learner needs help with their LMS. Here is the guidance for ${lms.name}:\n- Find assignment: ${lms.find_assignment}\n- Submit work: ${lms.submit_work}\n- Find grades: ${lms.find_grades}\n- Find rubric: ${lms.find_rubric}\n- Support: ${lms.contact_support}\n\nSurface the relevant steps. Ask which specific action they need if unclear. Do NOT pretend to have direct LMS access.`;
+    }
+
+    // Extension requests
+    if (/extension|late|can't submit|not going to make it|deadline/i.test(msgLower)) {
+      systemPrompt += `\n\nEXTENSION NAVIGATOR: The learner may need an extension. Ask these 3 questions in order:\n1. "${EXTENSION_SCAFFOLD.questions[0].prompt}"\n2. "${EXTENSION_SCAFFOLD.questions[1].prompt}" (options: ${EXTENSION_SCAFFOLD.questions[1].options.join(', ')})\n3. "${EXTENSION_SCAFFOLD.questions[2].prompt}" (options: ${EXTENSION_SCAFFOLD.questions[2].options.join(', ')})\nFrom their answers, generate a plain, factual, non-grovelling extension request email draft. No excessive apology. No medical detail. State what they need, why (one sentence), and a proposed new date.`;
+    }
+
+    // Disability support referral
+    if (/disability|accessibility|adjustment|accommodat|special needs/i.test(msgLower)) {
+      systemPrompt += `\n\nDISABILITY SUPPORT REFERRAL:\n${REFERRALS.disability_support}\nDo NOT give medical or legal advice. Do NOT speculate about specific institutional policies. Defer to their institution as the authority.`;
+    }
+
+    // Academic integrity questions
+    if (/academic integrity|plagiarism|ai policy|cheating|turnitin score/i.test(msgLower)) {
+      systemPrompt += `\n\nACADEMIC INTEGRITY REFERRAL:\n${REFERRALS.academic_integrity}\nDo NOT give legal advice. Do NOT say "it is fine to use AI." Always defer to the institution's policy.`;
+    }
   }
 
   try {
