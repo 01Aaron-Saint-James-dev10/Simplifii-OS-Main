@@ -171,6 +171,15 @@ export default function HomeScreen() {
               {overdueCount}
             </span>
           )}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('simplifii:open-settings'))}
+            aria-label="Open settings"
+            title="Settings"
+            style={{ background: 'none', border: `1px solid ${ACCENT_BORDER}`, borderRadius: 3, padding: '3px 8px', cursor: 'pointer', fontFamily: "'JetBrains Mono', monospace", fontSize: 10, fontWeight: 700, color: TEXT_MUTED, minHeight: 28, minWidth: 28 }}
+          >
+            Settings
+          </button>
           <ThemeSwitcher />
           <button
             type="button"

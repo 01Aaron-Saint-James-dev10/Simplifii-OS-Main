@@ -127,10 +127,12 @@ export default function AuraChatOverlay({ open, onClose }) {
       return `Last session you worked on ${lastSession.tasks_touched[0]}. Want to continue?`;
     }
     if (!activeAssessmentTitle) return 'What are you working on? I can help you figure out the next step.';
-    return allDocs.length > 1
-      ? `Working on "${activeAssessmentTitle}". I have ${allDocs.length} documents loaded. What do you need help with?`
+    // Include weight and due date in greeting when available
+    const details = [activeWeight, activeDueDate ? `due ${activeDueDate}` : ''].filter(Boolean).join(', ');
+    return details
+      ? `Working on "${activeAssessmentTitle}" (${details}). What do you need help with?`
       : `Working on "${activeAssessmentTitle}". What do you need help with?`;
-  }, [activeAssessmentTitle, allDocs.length, lastSession]);
+  }, [activeAssessmentTitle, activeWeight, activeDueDate, allDocs.length, lastSession]);
 
   const { speak, stopSpeaking, isSpeaking, startContinuousListening, stopContinuousListening, isListeningContinuous } = useAuraVoice();
   const [voiceMode, setVoiceMode] = useState(false);
