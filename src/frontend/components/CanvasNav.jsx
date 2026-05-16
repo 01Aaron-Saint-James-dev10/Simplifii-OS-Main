@@ -30,7 +30,7 @@ import {
  *   lastSavedAgo      - string (e.g. "2s ago")
  */
 
-export default function CanvasNav({ courseName, assessmentTitle, saveStatus, lastSavedAgo, tiptapDoc, htmlContent, courseId, onOpenSettings, onCourseName, onAddDocs }) {
+export default function CanvasNav({ courseName, assessmentTitle, saveStatus, lastSavedAgo, tiptapDoc, htmlContent, courseId, onOpenSettings, onCourseName, onAddDocs, onSubmit }) {
   const { navigateHome } = useRouter();
 
   return (
@@ -135,6 +135,21 @@ export default function CanvasNav({ courseName, assessmentTitle, saveStatus, las
           assessmentTitle={assessmentTitle}
           courseId={courseId}
         />
+        <button
+          type="button"
+          onClick={onSubmit}
+          aria-label="Mark this assessment as submitted and view your Authenticity Report"
+          title="Mark as submitted"
+          style={{
+            fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 700,
+            letterSpacing: '0.06em', textTransform: 'uppercase',
+            color: TEXT_MUTED, background: 'transparent',
+            border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS,
+            padding: '4px 10px', cursor: 'pointer', minHeight: 28,
+          }}
+        >
+          Submit
+        </button>
         <button
           type="button"
           onClick={onOpenSettings}

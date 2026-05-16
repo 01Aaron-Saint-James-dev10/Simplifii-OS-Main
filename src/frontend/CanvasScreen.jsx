@@ -41,6 +41,7 @@ import PreWritePanel from './components/PreWritePanel';
 import FirstLookCard from './components/FirstLookCard';
 import AssessmentSwitcher from './components/AssessmentSwitcher';
 import EnergyOrbs from './components/EnergyOrbs';
+import SubmitModal from './components/SubmitModal';
 import { appendEvent } from '../core/HistoryOfThought';
 import { startIdleDetection, stopIdleDetection } from '../core/ExecutiveSpine';
 import { determinePhase, checkPhaseTransition } from '../core/TaskLifecycleManager';
@@ -95,6 +96,7 @@ export default function CanvasScreen() {
     return () => stopAmbient();
   }, [autismFirstEnabled, ambientPreference]);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [submitOpen, setSubmitOpen] = useState(false);
 
   // Supabase fallback: if localStorage has no course for this courseId,
   // fetch course + assessments from Supabase and rebuild extractionData.
@@ -492,6 +494,7 @@ export default function CanvasScreen() {
         onOpenSettings={() => setSettingsOpen(true)}
         onCourseName={briefs.length > 1 ? () => navigateToAssessments(courseId) : undefined}
         onAddDocs={() => addDocsRef.current?.click()}
+        onSubmit={() => setSubmitOpen(true)}
       />
 
       <NextStepBanner
@@ -627,6 +630,23 @@ export default function CanvasScreen() {
         <ComprehensionBreak onCheckRequest={() => setActivePanel('check')} />
       )}
       {showSaveAffirmation && <AffirmationBanner trigger="save_event" visible={true} />}
+
+      {/* What should I do next? - primary entry for overwhelmed users */}
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new CustomEvent('aura:canvas-ready', { detail: { courseId, assessmentTitle: currentTitle } }))}
+        style={{
+          position: 'fixed', bottom: 44, left: '50%', transform: 'translateX(-50%)',
+          padding: '8px 20px', borderRadius: 20, fontFamily: "'Inter', sans-serif",
+          fontSize: 12, fontWeight: 600, color: '#09090b', background: '#10b981',
+          border: 'none', cursor: 'pointer', zIndex: 90,
+          boxShadow: '0 2px 12px rgba(16,185,129,0.3)',
+        }}
+        aria-label="Ask AURA what to do next"
+      >
+        What should I do next?
+      </button>
+
       <BottomStrip wordCount={wordCount} targetWords={targetWords} />
 
       <ReentryOverlay
@@ -642,6 +662,18 @@ export default function CanvasScreen() {
 
       {settingsOpen && (
         <CanvasSettingsOverlay onClose={() => setSettingsOpen(false)} />
+      )}
+
+      {submitOpen && (
+        <SubmitModal
+          courseId={courseId}
+          assessmentTitle={currentTitle}
+          wordCount={wordCount}
+          targetWords={targetWords}
+          authenticitySplit={{ human_percent: 85, ai_percent: 15 }}
+          onSubmitted={() => { setSubmitOpen(false); }}
+          onClose={() => setSubmitOpen(false)}
+        />
       )}
 
       <JokeOverlay />

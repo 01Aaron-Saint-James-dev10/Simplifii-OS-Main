@@ -124,15 +124,26 @@ export default function AuraChatOverlay({ open, onClose }) {
       return `Last time you ${signal}. Ready to pick up where you left off?`;
     }
     if (lastSession && lastSession.days_ago > 0 && lastSession.tasks_touched?.length > 0) {
-      return `Last session you worked on ${lastSession.tasks_touched[0]}. Want to continue?`;
+      return `Welcome back. Last session you worked on ${lastSession.tasks_touched[0]}. Want to continue, or start something new?`;
     }
-    if (!activeAssessmentTitle) return 'What are you working on? I can help you figure out the next step.';
-    // Include weight and due date in greeting when available
+    if (!activeAssessmentTitle) return 'What are you working on? Tap "+ Add work" to upload your assignment, or just tell me what you need help with.';
+
+    // Contextual greeting with specific next action
     const details = [activeWeight, activeDueDate ? `due ${activeDueDate}` : ''].filter(Boolean).join(', ');
-    return details
-      ? `Working on "${activeAssessmentTitle}" (${details}). What do you need help with?`
-      : `Working on "${activeAssessmentTitle}". What do you need help with?`;
-  }, [activeAssessmentTitle, activeWeight, activeDueDate, allDocs.length, lastSession]);
+    const hasContent = activeBriefText && activeBriefText.length > 100;
+    const paretoStep = activeCourse?.extractionData?.paretoSteps?.[0] || '';
+
+    if (!hasContent) {
+      // No documents loaded yet
+      return `Working on "${activeAssessmentTitle}"${details ? ` (${details})` : ''}. To get started, tap "Add docs" to upload your assignment brief or rubric. I will build your plan from there.`;
+    }
+    if (paretoStep) {
+      // Documents loaded, has Pareto steps
+      return `Working on "${activeAssessmentTitle}"${details ? ` (${details})` : ''}. Your first focus is: ${paretoStep}. Tap "Starters" on the left when you are ready, or ask me anything.`;
+    }
+    // Documents loaded, no Pareto
+    return `Working on "${activeAssessmentTitle}"${details ? ` (${details})` : ''}. I have your documents loaded. What would you like to start with?`;
+  }, [activeAssessmentTitle, activeWeight, activeDueDate, activeBriefText, activeCourse, lastSession]);
 
   const { speak, stopSpeaking, isSpeaking, startContinuousListening, stopContinuousListening, isListeningContinuous } = useAuraVoice();
   const [voiceMode, setVoiceMode] = useState(false);
