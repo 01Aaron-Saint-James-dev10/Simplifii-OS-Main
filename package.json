@@ -18,6 +18,7 @@
     "@tiptap/starter-kit": "^2.27.2",
     "axios": "^1.4.0",
     "docx": "^9.6.1",
+    "elevenlabs": "^1.59.0",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.38.0",
     "jspdf": "^4.2.1",

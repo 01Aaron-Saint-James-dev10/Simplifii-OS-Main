@@ -6,6 +6,7 @@ import { useProject } from '../ProjectContext';
 import { useRouter } from '../../contexts/RouterContext';
 import useLearnerContext from '../hooks/useLearnerContext';
 import { useSpeechToText } from '../hooks/useSpeechToText';
+import { useAuraVoice } from '../hooks/useAuraVoice';
 import { checkDocumentStaleness, logResponseFlag } from '../../services/AccuracyLogger';
 import { getQueuedAuraMessages } from '../../core/TaskLifecycleManager';
 import { loadLastSession } from '../../services/SessionSummaryService';
@@ -109,6 +110,9 @@ export default function AuraChatOverlay({ open, onClose }) {
       ? `Working on "${activeAssessmentTitle}". I have ${allDocs.length} documents loaded. What do you need help with?`
       : `Working on "${activeAssessmentTitle}". What do you need help with?`;
   }, [activeAssessmentTitle, allDocs.length, lastSession]);
+
+  const { speak, stopSpeaking, isSpeaking, startContinuousListening, stopContinuousListening, isListeningContinuous } = useAuraVoice();
+  const [voiceMode, setVoiceMode] = useState(false);
 
   const [messages, setMessages] = useState(() => {
     try {
@@ -254,6 +258,8 @@ export default function AuraChatOverlay({ open, onClose }) {
           .replace(/^#{1,4}\s+/gm, '');
         dispatchAuraState('speaking');
         setMessages(prev => [...prev, { role: 'tutor', text: clean }]);
+        // Voice mode: speak the response
+        if (voiceMode) speak(clean);
         // Return to idle after a short display period
         setTimeout(() => dispatchAuraState('idle'), 2000);
       } else {
@@ -306,17 +312,43 @@ export default function AuraChatOverlay({ open, onClose }) {
             AURA
           </span>
           <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, color: TEXT_FAINT, marginLeft: 8 }}>
-            {loading ? 'Thinking...' : 'Your cognitive GPS'}
+            {isSpeaking ? 'Speaking...' : loading ? 'Thinking...' : isListeningContinuous ? 'Listening...' : 'Your cognitive GPS'}
           </span>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close AURA"
-          style={{ background: 'none', border: 'none', color: TEXT_FAINT, cursor: 'pointer', fontSize: 16, padding: 4, minHeight: 28, minWidth: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >
-          &times;
-        </button>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={() => {
+              const next = !voiceMode;
+              setVoiceMode(next);
+              if (next) {
+                startContinuousListening((text) => { if (sendRef.current) sendRef.current(text); });
+              } else {
+                stopContinuousListening();
+                stopSpeaking();
+              }
+            }}
+            aria-label={voiceMode ? 'Exit voice mode' : 'Enter voice mode'}
+            title={voiceMode ? 'Voice mode ON' : 'Voice mode OFF'}
+            style={{
+              background: voiceMode ? ACCENT_GLASS : 'none',
+              border: voiceMode ? `1px solid ${ACCENT_BORDER}` : '1px solid transparent',
+              borderRadius: BORDER_RADIUS, cursor: 'pointer', padding: '2px 6px',
+              fontSize: 12, color: voiceMode ? ACCENT_PULSE : TEXT_FAINT,
+              minHeight: 28, minWidth: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            {voiceMode ? '\u{1F50A}' : '\u{1F507}'}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close AURA"
+            style={{ background: 'none', border: 'none', color: TEXT_FAINT, cursor: 'pointer', fontSize: 16, padding: 4, minHeight: 28, minWidth: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            &times;
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
