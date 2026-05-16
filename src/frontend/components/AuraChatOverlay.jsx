@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../SettingsContext';
@@ -41,17 +41,28 @@ export default function AuraChatOverlay({ open, onClose }) {
     || '';
   const activeBriefText = activeCourse?.extractionData?.assessmentBriefs?.[0]?.body || '';
   const activeDocType = activeCourse?.extractionData?.documentType || '';
-  const greetingText = activeAssessmentTitle
+  const greetingText = useMemo(() => activeAssessmentTitle
     ? `Working on "${activeAssessmentTitle}". What do you need help with?`
-    : 'What are you working on? I can help you figure out the next step.';
-  const defaultGreeting = [{ role: 'tutor', text: greetingText }];
+    : 'What are you working on? I can help you figure out the next step.',
+  [activeAssessmentTitle]);
+
   const [messages, setMessages] = useState(() => {
     try {
       const cached = sessionStorage.getItem('simplifii_aura_chat');
       if (cached) { const parsed = JSON.parse(cached); if (Array.isArray(parsed) && parsed.length > 0) return parsed; }
     } catch { /* ignore */ }
-    return defaultGreeting;
+    return [{ role: 'tutor', text: greetingText }];
   });
+
+  // Update greeting when context arrives async (courses load after mount)
+  useEffect(() => {
+    setMessages(prev => {
+      if (prev.length === 1 && prev[0].role === 'tutor' && prev[0].text !== greetingText) {
+        return [{ role: 'tutor', text: greetingText }];
+      }
+      return prev;
+    });
+  }, [greetingText]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef(null);
