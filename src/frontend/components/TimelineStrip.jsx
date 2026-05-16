@@ -98,7 +98,7 @@ export default function TimelineStrip({ courses, now: nowProp }) {
     });
   }
 
-  // Collect all tasks and bin by day key
+  // Collect all tasks and bin by day key (undatedTasks defined here for JSX at line 224)
   const allTasks = collectTasks(courses);
   const overdueTasks = [];
   const undatedTasks = [];

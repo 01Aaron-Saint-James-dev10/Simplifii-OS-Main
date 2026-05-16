@@ -18,6 +18,7 @@ import EmptyWorkspace from './workspace/EmptyWorkspace';
 import TesterWelcomeModal from './components/TesterWelcomeModal';
 import DocumentClassifiedModal from './components/DocumentClassifiedModal';
 import AddWorkModal from './components/AddWorkModal';
+import AddCourseModal from './workspace/AddCourseModal';
 import WelcomeBanner from './components/WelcomeBanner';
 import ThemeSwitcher from './components/ThemeSwitcher';
 import { useRealtimeClock } from './hooks/useRealtimeClock';
@@ -93,6 +94,14 @@ export default function HomeScreen() {
   const [showTesterWelcome, setShowTesterWelcome] = useState(false);
   const [classifiedDoc, setClassifiedDoc] = useState(null);
   const [showAddWork, setShowAddWork] = useState(false);
+  const [showManualEntry, setShowManualEntry] = useState(false);
+
+  // Listen for manual entry trigger from Add Work modal
+  useEffect(() => {
+    const handler = () => setShowManualEntry(true);
+    window.addEventListener('simplifii:trigger-manual-entry', handler);
+    return () => window.removeEventListener('simplifii:trigger-manual-entry', handler);
+  }, []);
   const isAaron = user?.email === AARON_EMAIL;
 
   // Listen for document classification events from useIngestion
@@ -417,6 +426,14 @@ export default function HomeScreen() {
 
       {showTesterWelcome && (
         <TesterWelcomeModal onDismiss={() => setShowTesterWelcome(false)} />
+      )}
+
+      {showManualEntry && (
+        <AddCourseModal
+          onClose={() => setShowManualEntry(false)}
+          onCourseAdded={(course) => { setShowManualEntry(false); addCourseWithData(course); }}
+          tier={profileTier || activeTier || 'tertiary'}
+        />
       )}
 
       {showAddWork && (
