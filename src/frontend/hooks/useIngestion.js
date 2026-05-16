@@ -11,6 +11,7 @@ import { reconcile as reconcileBriefs } from '../../services/SovereignReconciler
 import { SOVEREIGN_DATA_READY } from '../../core/Events';
 import { persistCourseToSupabase } from '../../lib/coursePersistence';
 import { useAuth } from '../../contexts/AuthContext';
+import { logIngestionEvent, detectExtractionMethod } from '../../services/AccuracyLogger';
 
 /**
  * useIngestion
@@ -579,6 +580,24 @@ export function useIngestion({
             const deepData = extractDeepCourseData(text);
             aggregated = mergeExtractionData(aggregated, { ...deepData, rawText: text });
             if (primaryRawText === null) primaryRawText = text;
+            // Log ingestion event for accuracy tracking
+            if (user?.id) {
+              logIngestionEvent({
+                userId: user.id,
+                docId: code,
+                docFilename: file.name,
+                docType: deepData.documentType || 'unknown',
+                extractionMethod: detectExtractionMethod(file, text),
+                rawTextLength: text?.length || 0,
+                extractedFields: {
+                  assessmentTitle: deepData.assessmentTitle ? { explicit: true } : null,
+                  rubricCriteria: deepData.rubricCriteria?.length > 0 ? { explicit: true } : null,
+                  dueDate: deepData.dueDate ? { explicit: true } : null,
+                  wordCount: deepData.wordCount ? { explicit: true } : null,
+                },
+                dueDate: deepData.dueDate || null,
+              }).catch(() => {});
+            }
           } catch (err) {
             log.warn(' skipped', file.name, err && err.message);
           }
