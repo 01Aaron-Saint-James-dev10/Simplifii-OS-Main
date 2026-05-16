@@ -21,7 +21,7 @@ import AddWorkModal from './components/AddWorkModal';
 import ThemeSwitcher from './components/ThemeSwitcher';
 import { useRealtimeClock } from './hooks/useRealtimeClock';
 import AffirmationBanner from './components/AffirmationBanner';
-import { ACCENT_BORDER, ACCENT_PULSE, TEXT_MUTED, FONT_DISPLAY } from '../theme/tokens';
+import { ACCENT_BORDER, ACCENT_PULSE, TEXT_MUTED, TEXT_FAINT, FONT_DISPLAY } from '../theme/tokens';
 import './HomeScreen.css';
 
 /**
@@ -178,12 +178,28 @@ export default function HomeScreen() {
             onClick={() => window.dispatchEvent(new CustomEvent('simplifii:open-settings'))}
             aria-label="Accessibility, display, and learning preferences"
             title="Accessibility, display, and learning preferences. Change your font, theme, and how AURA talks to you."
-            style={{ background: 'none', border: `1px solid ${ACCENT_BORDER}`, borderRadius: 3, padding: '3px 8px', cursor: 'pointer', minHeight: 28, minWidth: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ background: 'none', border: `1px solid ${ACCENT_BORDER}`, borderRadius: 3, padding: '3px 8px', cursor: 'pointer', minHeight: 28, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'system-ui,sans-serif', fontSize: 10, fontWeight: 700, color: TEXT_MUTED }}
           >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M8 10a2 2 0 100-4 2 2 0 000 4z" stroke={TEXT_MUTED} strokeWidth="1.2" />
               <path d="M13.5 8a5.5 5.5 0 01-.4 2l1.2 1.2-1.5 1.5L11.6 11.5a5.5 5.5 0 01-2 .4v1.6H7.4v-1.6a5.5 5.5 0 01-2-.4L4.2 12.7l-1.5-1.5L3.9 10a5.5 5.5 0 01-.4-2H2V5.8h1.5a5.5 5.5 0 01.4-2L2.7 2.6l1.5-1.5L5.4 2.3a5.5 5.5 0 012-.4V.4h2.2v1.5a5.5 5.5 0 012 .4l1.2-1.2 1.5 1.5-1.2 1.2a5.5 5.5 0 01.4 2H15V8h-1.5z" stroke={TEXT_MUTED} strokeWidth="1.2" />
             </svg>
+            Settings
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const cur = localStorage.getItem('simplifii_matrix_rain') !== 'false';
+              localStorage.setItem('simplifii_matrix_rain', String(!cur));
+              window.dispatchEvent(new CustomEvent('simplifii:fx-toggle'));
+              window.location.reload();
+            }}
+            aria-label="Toggle background visual effects"
+            title="Background visual effects. Toggle on or off."
+            style={{ background: 'none', border: `1px solid ${ACCENT_BORDER}`, borderRadius: 3, padding: '3px 8px', cursor: 'pointer', minHeight: 28, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'system-ui,sans-serif', fontSize: 10, fontWeight: 700, color: TEXT_MUTED }}
+          >
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: localStorage.getItem('simplifii_matrix_rain') !== 'false' ? ACCENT_PULSE : TEXT_FAINT }} />
+            FX
           </button>
           <LogoutButton />
         </div>
