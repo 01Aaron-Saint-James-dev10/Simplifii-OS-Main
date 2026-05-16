@@ -109,6 +109,7 @@ export default function TutorPanel({ assessmentTitle, briefText, documentType, c
     setInput('');
     setLoading(true);
     setError('');
+    window.dispatchEvent(new CustomEvent('simplifii:aura-state', { detail: { state: 'thinking' } }));
 
     try {
       const proceed = await announceAction({
@@ -166,6 +167,7 @@ export default function TutorPanel({ assessmentTitle, briefText, documentType, c
       setMessages(prev => [...prev, { role: 'tutor', text: fallback }]);
     } finally {
       setLoading(false);
+      window.dispatchEvent(new CustomEvent('simplifii:aura-state', { detail: { state: 'idle' } }));
     }
   };
 

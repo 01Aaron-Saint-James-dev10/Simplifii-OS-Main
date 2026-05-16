@@ -14,6 +14,7 @@ import FirstRunModal from './components/disclaimers/FirstRunModal';
 import AiDisclaimerFooter from './components/disclaimers/AiDisclaimerFooter';
 import FeedbackButton from './feedback/FeedbackButton';
 import AuraOrb from './components/AuraOrb';
+import AuraChatOverlay from './components/AuraChatOverlay';
 import BetaBanner from './components/BetaBanner';
 import MatrixRain from './components/MatrixRain';
 import { startSession, endSession } from '../core/StudyPatternTracker';
@@ -64,6 +65,7 @@ function ViewSwitch() {
 export default function AppShell() {
   const { user } = useAuth();
   const [disclaimerState, setDisclaimerState] = useState('loading'); // 'loading' | 'needed' | 'done'
+  const [auraChatOpen, setAuraChatOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -121,10 +123,8 @@ export default function AppShell() {
                 <ViewSwitch />
               </div>
               <FeedbackButton />
-              <AuraOrb onClick={() => {
-                // Dispatch event to open tutor panel on canvas, or show chat overlay on home
-                window.dispatchEvent(new CustomEvent('simplifii:aura-open'));
-              }} />
+              <AuraOrb onClick={() => setAuraChatOpen(prev => !prev)} auraState={auraChatOpen ? 'listening' : 'idle'} />
+              <AuraChatOverlay open={auraChatOpen} onClose={() => setAuraChatOpen(false)} />
               <AiDisclaimerFixed />
             </div>
           </RouterProvider>
