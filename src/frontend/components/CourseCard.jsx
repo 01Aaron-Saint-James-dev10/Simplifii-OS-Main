@@ -1,6 +1,7 @@
 import React from 'react';
 import { getTaskStatus } from '../../services/StatusService';
 import StatusPill from './StatusPill';
+import PhaseIndicator from './PhaseIndicator';
 import {
   SURFACE_CARD, SURFACE_CARD_GLASS,
   SURFACE_RAISED,
@@ -129,6 +130,7 @@ export default function CourseCard({ course, courseId, density = 'standard', onO
           }}>
             {termLabel || 'Term not detected'}
           </span>
+          <PhaseIndicator course={course} />
         </div>
         {status && <StatusPill status={status} />}
       </div>

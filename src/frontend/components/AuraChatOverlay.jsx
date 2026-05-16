@@ -7,6 +7,7 @@ import { useRouter } from '../../contexts/RouterContext';
 import useLearnerContext from '../hooks/useLearnerContext';
 import { useSpeechToText } from '../hooks/useSpeechToText';
 import { checkDocumentStaleness, logResponseFlag } from '../../services/AccuracyLogger';
+import { getQueuedAuraMessages } from '../../core/TaskLifecycleManager';
 import {
   SURFACE_CARD, SURFACE_RAISED,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
@@ -94,9 +95,15 @@ export default function AuraChatOverlay({ open, onClose }) {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
-  // Focus input when opened
+  // Focus input when opened + surface queued phase-transition messages
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 100);
+    if (!open) return;
+    setTimeout(() => inputRef.current?.focus(), 100);
+    const queued = getQueuedAuraMessages();
+    if (queued.length > 0) {
+      const phaseMessages = queued.map(q => ({ role: 'tutor', text: q.message }));
+      setMessages(prev => [...prev, ...phaseMessages]);
+    }
   }, [open]);
 
   // ESC to close
