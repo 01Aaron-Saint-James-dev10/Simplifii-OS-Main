@@ -6,6 +6,7 @@ import { useProject } from '../ProjectContext';
 import { useRouter } from '../../contexts/RouterContext';
 import useLearnerContext from '../hooks/useLearnerContext';
 import { useSpeechToText } from '../hooks/useSpeechToText';
+import { checkDocumentStaleness, logResponseFlag } from '../../services/AccuracyLogger';
 import {
   SURFACE_CARD, SURFACE_RAISED,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
@@ -117,13 +118,24 @@ export default function AuraChatOverlay({ open, onClose }) {
     dispatchAuraState('thinking');
 
     try {
+      // Staleness check: warn if document is expired
+      let stalenessWarning = '';
+      if (courseId && user?.id) {
+        const staleness = await checkDocumentStaleness(courseId, user.id);
+        if (staleness?.stale) {
+          stalenessWarning = `[STALENESS WARNING: Document was ingested ${staleness.daysOld} days ago. Treat rubric data as unverified.]`;
+        }
+      }
+
       const hasDocContext = activeBriefText && activeBriefText.length >= 100;
       const hasPartialContext = activeBriefText && activeBriefText.length > 0 && activeBriefText.length < 100;
       const response = await fetch('/api/tutor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: updated.slice(1), // skip greeting
+          messages: stalenessWarning
+            ? [{ role: 'user', text: stalenessWarning }, ...updated.slice(1)]
+            : updated.slice(1), // skip greeting
           assessmentTitle: activeAssessmentTitle || undefined,
           briefText: hasDocContext ? activeBriefText.slice(0, 2000) : undefined,
           documentType: activeDocType || undefined,
@@ -216,10 +228,24 @@ export default function AuraChatOverlay({ open, onClose }) {
             border: `1px solid ${m.role === 'user' ? ACCENT_BORDER : SURFACE_RAISED}`,
             borderRadius: BORDER_RADIUS + 4,
             padding: '8px 10px',
+            position: 'relative',
           }}>
             <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_PRIMARY, margin: 0, lineHeight: 1.5 }}>
               {m.text}
             </p>
+            {m.role === 'tutor' && i > 0 && (
+              <button
+                type="button"
+                onClick={() => logResponseFlag({ userId: user?.id, callId: `msg_${i}`, sessionId: courseId || 'global', flagCategory: 'inaccurate' })}
+                aria-label="Flag this response as inaccurate"
+                title="Flag as wrong"
+                style={{ position: 'absolute', bottom: 2, right: 4, background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: TEXT_FAINT, opacity: 0.4, padding: 2, lineHeight: 1 }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#ef4444'; }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = '0.4'; e.currentTarget.style.color = TEXT_FAINT; }}
+              >
+                &#9872;
+              </button>
+            )}
           </div>
         ))}
         {loading && (
