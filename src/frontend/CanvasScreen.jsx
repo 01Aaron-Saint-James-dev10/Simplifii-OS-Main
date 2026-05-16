@@ -42,6 +42,7 @@ import FirstLookCard from './components/FirstLookCard';
 import AssessmentSwitcher from './components/AssessmentSwitcher';
 import EnergyOrbs from './components/EnergyOrbs';
 import SubmitModal from './components/SubmitModal';
+import CanvasHelpOverlay from './components/CanvasHelpOverlay';
 import { appendEvent } from '../core/HistoryOfThought';
 import { startIdleDetection, stopIdleDetection } from '../core/ExecutiveSpine';
 import { determinePhase, checkPhaseTransition } from '../core/TaskLifecycleManager';
@@ -97,6 +98,7 @@ export default function CanvasScreen() {
   }, [autismFirstEnabled, ambientPreference]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // Supabase fallback: if localStorage has no course for this courseId,
   // fetch course + assessments from Supabase and rebuild extractionData.
@@ -495,6 +497,7 @@ export default function CanvasScreen() {
         onCourseName={briefs.length > 1 ? () => navigateToAssessments(courseId) : undefined}
         onAddDocs={() => addDocsRef.current?.click()}
         onSubmit={() => setSubmitOpen(true)}
+        onHelp={() => setHelpOpen(true)}
       />
 
       <NextStepBanner
@@ -663,6 +666,8 @@ export default function CanvasScreen() {
       {settingsOpen && (
         <CanvasSettingsOverlay onClose={() => setSettingsOpen(false)} />
       )}
+
+      {helpOpen && <CanvasHelpOverlay onClose={() => setHelpOpen(false)} />}
 
       {submitOpen && (
         <SubmitModal

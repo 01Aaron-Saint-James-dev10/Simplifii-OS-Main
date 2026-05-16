@@ -30,7 +30,7 @@ import {
  *   lastSavedAgo      - string (e.g. "2s ago")
  */
 
-export default function CanvasNav({ courseName, assessmentTitle, saveStatus, lastSavedAgo, tiptapDoc, htmlContent, courseId, onOpenSettings, onCourseName, onAddDocs, onSubmit }) {
+export default function CanvasNav({ courseName, assessmentTitle, saveStatus, lastSavedAgo, tiptapDoc, htmlContent, courseId, onOpenSettings, onCourseName, onAddDocs, onSubmit, onHelp }) {
   const { navigateHome } = useRouter();
 
   return (
@@ -149,6 +149,21 @@ export default function CanvasNav({ courseName, assessmentTitle, saveStatus, las
           }}
         >
           Submit
+        </button>
+        <button
+          type="button"
+          onClick={onHelp}
+          aria-label="Show a guide to using this canvas"
+          title="How to use this canvas"
+          style={{
+            fontFamily: FONT_SYSTEM, fontSize: 12, fontWeight: 700,
+            color: TEXT_FAINT, background: 'transparent',
+            border: `1px solid ${SURFACE_RAISED}`, borderRadius: '50%',
+            width: 28, height: 28, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          ?
         </button>
         <button
           type="button"
