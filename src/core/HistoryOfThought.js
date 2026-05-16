@@ -220,15 +220,6 @@ const decryptPayload = async (envelope) => {
 // physiologically engaged, not a bot. The hash covers: device fingerprint,
 // event timestamp, and the biometric reading (focus level and/or HRV).
 // The raw biometric value is never stored; only the one-way SHA-256 hash.
-const computeBiometricHash = async (biometricSignal) => {
-  if (!isCryptoAvailable() || !biometricSignal) return null;
-  try {
-    const enc = new TextEncoder().encode(JSON.stringify(biometricSignal));
-    const buf = await window.crypto.subtle.digest('SHA-256', enc);
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-  } catch { return null; }
-};
-
 const deviceSignature = async () => {
   if (!isCryptoAvailable()) return 'unknown';
   const ua = (typeof navigator !== 'undefined' && navigator.userAgent) || 'no-ua';
@@ -264,7 +255,6 @@ const pushToCloud = async (event) => {
       stream_id: event.stream_id,
       payload_encrypted: event.payload_encrypted,
       device_signature_sha256: event.device_signature_sha256,
-      biometric_hash: event.biometric_hash,
       schema_version: event.schema_version,
       timestamp_iso: event.timestamp_iso
     });
@@ -314,12 +304,6 @@ export const appendEvent = async ({ user_id = 'local', stream_id = 'tertiary', e
   const envelope = await encryptPayload(payload);
   const timestampIso = new Date().toISOString();
   const devSig = await deviceSignature();
-  // biometric_hash: SHA-256 of the biometric reading (focus, HRV) combined with
-  // the device fingerprint and timestamp. Proves biological presence at the time
-  // of the event without storing raw physiological data.
-  const biometricHash = payload.biometric_signal
-    ? await computeBiometricHash({ signal: payload.biometric_signal, device: devSig, ts: timestampIso })
-    : null;
   const event = {
     event_id: newEventId(),
     user_id,
@@ -328,7 +312,6 @@ export const appendEvent = async ({ user_id = 'local', stream_id = 'tertiary', e
     timestamp_iso: timestampIso,
     payload_encrypted: JSON.stringify(envelope),
     device_signature_sha256: devSig,
-    biometric_hash: biometricHash,
     schema_version: SCHEMA_VERSION
   };
   const db = await openDB();
