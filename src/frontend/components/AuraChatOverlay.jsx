@@ -103,14 +103,18 @@ export default function AuraChatOverlay({ open, onClose }) {
     dispatchAuraState('thinking');
 
     try {
+      const hasDocContext = activeBriefText && activeBriefText.length >= 100;
+      const hasPartialContext = activeBriefText && activeBriefText.length > 0 && activeBriefText.length < 100;
       const response = await fetch('/api/tutor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: updated.slice(1), // skip greeting
-          assessmentTitle: activeAssessmentTitle,
-          briefText: activeBriefText.slice(0, 2000),
-          documentType: activeDocType,
+          assessmentTitle: activeAssessmentTitle || undefined,
+          briefText: hasDocContext ? activeBriefText.slice(0, 2000) : undefined,
+          documentType: activeDocType || undefined,
+          documentContextAvailable: hasDocContext,
+          documentContextPartial: hasPartialContext,
           tier: activeTier || 'tertiary',
           literalMode: isLiteralMode || false,
           accessibilityProfile: accessibilityProfile || 'standard',

@@ -47,15 +47,28 @@ export default async function handler(req, res) {
   const specialInterests = req.body?.specialInterests || [];
   const learnerContext = sanitiseLearnerContext(req.body?.learnerContext);
 
-  let systemPrompt = buildAuraPrompt({
+  // Document context flags (from AuraChatOverlay)
+  const documentContextAvailable = req.body?.documentContextAvailable !== false && briefText && briefText.length >= 100;
+  const documentContextPartial = req.body?.documentContextPartial === true;
+
+  let systemPrompt = '';
+
+  // Prepend context warnings BEFORE the main AURA prompt
+  if (!documentContextAvailable && !briefText) {
+    systemPrompt += 'CONTEXT WARNING: No document has been ingested for this session. Do NOT describe, summarise, or reference any document. Do NOT hallucinate document content. If the learner asks about their document, respond: "I cannot see a document in this session. To get specific guidance, upload your brief through the Add Course flow so I can read it properly."\n\n';
+  } else if (documentContextPartial || (briefText && briefText.length < 100)) {
+    systemPrompt += 'CONTEXT WARNING: Document context is partial. Only reference what is explicitly present in briefText. Do not infer or expand.\n\n';
+  }
+
+  systemPrompt += buildAuraPrompt({
     tier: tier || 'tertiary',
-    activeTier: 'Tier2', // Tutor panel is always Tier 2 (Socratic)
+    activeTier: 'Tier2',
     persona: literalMode ? 'Literal' : 'Academic',
-    scaffolding: 'Heavy', // default; overridden by learnerContext if present
-    grit: 'Hard Socratic', // tutor default
+    scaffolding: 'Heavy',
+    grit: 'Hard Socratic',
     lod: 'Sprint',
     assessmentTitle: assessmentTitle || '',
-    briefText: briefText || '',
+    briefText: documentContextAvailable ? (briefText || '') : '',
     documentType: documentType || '',
     learnerContext,
     accessibilityProfile: accessibilityProfile || 'standard',
