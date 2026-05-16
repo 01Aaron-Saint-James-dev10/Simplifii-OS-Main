@@ -15,6 +15,7 @@ import AiDisclaimerFooter from './components/disclaimers/AiDisclaimerFooter';
 import FeedbackButton from './feedback/FeedbackButton';
 import AuraOrb from './components/AuraOrb';
 import AuraChatOverlay from './components/AuraChatOverlay';
+import FirstTimeTooltip from './components/FirstTimeTooltip';
 import CanvasSettingsOverlay from './components/CanvasSettingsOverlay';
 import BetaBanner from './components/BetaBanner';
 import MatrixRain from './components/MatrixRain';
@@ -152,7 +153,9 @@ export default function AppShell() {
                 <ViewSwitch />
               </div>
               <FeedbackButton />
-              <AuraOrb onClick={() => setAuraChatOpen(prev => !prev)} auraState={auraChatOpen ? 'listening' : 'idle'} />
+              <FirstTimeTooltip id="aura_orb" text="Tap me for help at any time. I am AURA, your study guide." position="left" delay={2000}>
+                <AuraOrb onClick={() => setAuraChatOpen(prev => !prev)} auraState={auraChatOpen ? 'listening' : 'idle'} />
+              </FirstTimeTooltip>
               <AuraChatOverlay open={auraChatOpen} onClose={() => setAuraChatOpen(false)} />
               {settingsOpen && <CanvasSettingsOverlay onClose={() => setSettingsOpen(false)} />}
               <AiDisclaimerFixed />
