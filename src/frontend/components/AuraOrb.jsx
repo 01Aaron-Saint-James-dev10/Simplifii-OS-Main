@@ -277,7 +277,44 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
 
   useEffect(() => { setCurrentState(auraState); }, [auraState]);
 
-  const handleClick = useCallback(() => { onClick?.(); }, [onClick]);
+  // Drag positioning
+  const [position, setPosition] = useState(() => {
+    try {
+      const saved = localStorage.getItem('simplifii_aura_pos');
+      if (saved) return JSON.parse(saved);
+    } catch { /* ignore */ }
+    return { bottom: 20, right: 76 };
+  });
+  const dragRef = useRef({ dragging: false, startX: 0, startY: 0, startPos: position });
+
+  const handlePointerDown = useCallback((e) => {
+    dragRef.current = { dragging: false, startX: e.clientX, startY: e.clientY, startPos: { ...position }, moved: 0 };
+    const handleMove = (ev) => {
+      const dx = ev.clientX - dragRef.current.startX;
+      const dy = ev.clientY - dragRef.current.startY;
+      dragRef.current.moved = Math.abs(dx) + Math.abs(dy);
+      if (dragRef.current.moved > 5) {
+        dragRef.current.dragging = true;
+        const newRight = Math.max(0, dragRef.current.startPos.right - dx);
+        const newBottom = Math.max(0, dragRef.current.startPos.bottom + dy);
+        setPosition({ bottom: newBottom, right: newRight });
+      }
+    };
+    const handleUp = () => {
+      document.removeEventListener('pointermove', handleMove);
+      document.removeEventListener('pointerup', handleUp);
+      if (dragRef.current.dragging) {
+        localStorage.setItem('simplifii_aura_pos', JSON.stringify(position));
+      }
+    };
+    document.addEventListener('pointermove', handleMove);
+    document.addEventListener('pointerup', handleUp);
+  }, [position]);
+
+  const handleClick = useCallback(() => {
+    if (dragRef.current.dragging) return; // Suppress click after drag
+    onClick?.();
+  }, [onClick]);
 
   // Reduced motion fallback: CSS-only gradient orb
   if (reducedMotion) {
@@ -307,10 +344,11 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
   return (
     <div
       ref={containerRef}
+      onPointerDown={handlePointerDown}
       style={{
         position: 'fixed',
-        bottom: 20,
-        right: 76,
+        bottom: position.bottom,
+        right: position.right,
         width: 64,
         height: 64,
         zIndex: 100,

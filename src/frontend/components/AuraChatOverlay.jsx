@@ -5,6 +5,7 @@ import { useSettings } from '../SettingsContext';
 import { useProject } from '../ProjectContext';
 import { useRouter } from '../../contexts/RouterContext';
 import useLearnerContext from '../hooks/useLearnerContext';
+import { useSpeechToText } from '../hooks/useSpeechToText';
 import {
   SURFACE_CARD, SURFACE_RAISED,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
@@ -55,6 +56,18 @@ export default function AuraChatOverlay({ open, onClose }) {
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
+  const { isListening, interimTranscript, start: startVoice, stop: stopVoice, isSupported: voiceSupported } = useSpeechToText();
+
+  // When voice transcript arrives, auto-send it
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      const text = e.detail?.text;
+      if (text && text.trim()) send(text.trim());
+    };
+    window.addEventListener('simplifii:voice-transcript', handler);
+    return () => window.removeEventListener('simplifii:voice-transcript', handler);
+  }, [open, send]);
 
   // Persist chat to sessionStorage
   useEffect(() => {
@@ -86,6 +99,7 @@ export default function AuraChatOverlay({ open, onClose }) {
     setMessages(updated);
     setInput('');
     setLoading(true);
+    if (isListening) stopVoice();
     dispatchAuraState('thinking');
 
     try {
@@ -195,23 +209,47 @@ export default function AuraChatOverlay({ open, onClose }) {
         )}
       </div>
 
+      {/* Voice interim indicator */}
+      {isListening && interimTranscript && (
+        <div style={{ padding: '4px 12px', fontFamily: FONT_BODY, fontSize: 11, color: TEXT_FAINT, borderTop: `1px solid ${SURFACE_RAISED}` }}>
+          {interimTranscript}...
+        </div>
+      )}
+
       {/* Input */}
-      <div style={{ padding: '8px 12px 12px', borderTop: `1px solid ${SURFACE_RAISED}`, display: 'flex', gap: 6 }}>
+      <div style={{ padding: '8px 12px 12px', borderTop: isListening && interimTranscript ? 'none' : `1px solid ${SURFACE_RAISED}`, display: 'flex', gap: 6 }}>
         <input
           ref={inputRef}
           type="text"
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') send(input); }}
-          placeholder="Ask AURA anything..."
-          disabled={loading}
+          placeholder={isListening ? 'Listening...' : 'Ask AURA anything...'}
+          disabled={loading || isListening}
           style={{
             flex: 1, fontFamily: FONT_BODY, fontSize: 12, color: TEXT_PRIMARY,
-            background: 'transparent', border: `1px solid ${SURFACE_RAISED}`,
+            background: 'transparent', border: `1px solid ${isListening ? ACCENT_BORDER : SURFACE_RAISED}`,
             borderRadius: BORDER_RADIUS + 2, padding: '8px 10px', outline: 'none',
             minHeight: 36,
           }}
         />
+        {voiceSupported && (
+          <button
+            type="button"
+            onClick={isListening ? stopVoice : startVoice}
+            aria-label={isListening ? 'Stop listening' : 'Voice input'}
+            style={{
+              fontFamily: FONT_SYSTEM, fontSize: 14, color: isListening ? '#ef4444' : ACCENT_PULSE,
+              background: isListening ? 'rgba(239,68,68,0.1)' : ACCENT_GLASS,
+              border: `1px solid ${isListening ? 'rgba(239,68,68,0.3)' : ACCENT_BORDER}`,
+              borderRadius: BORDER_RADIUS + 2, padding: '0 10px',
+              cursor: 'pointer', outline: 'none', minHeight: 36, minWidth: 36,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            {isListening ? '\u25A0' : '\u{1F3A4}'}
+          </button>
+        )}
         <button
           type="button"
           onClick={() => send(input)}
