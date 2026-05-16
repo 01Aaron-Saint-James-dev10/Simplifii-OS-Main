@@ -31,14 +31,20 @@ export default function LogoutButton() {
     } catch (err) {
       if (typeof console !== 'undefined') console.warn('[LogoutButton] signOut error (proceeding anyway):', err?.message);
     }
-    // Clear ALL app + Supabase state so next login starts clean.
-    // sb-* keys are Supabase session tokens that must go to prevent
-    // stale-token re-login failures.
+    // CRITICAL: Clear ALL user data to prevent data leaking to next user.
+    // sessionStorage: all keys (AURA chat, queues, greeting flags)
+    sessionStorage.clear();
+    // localStorage: all simplifii_* and sb-* keys plus settings keys
     const keysToKeep = new Set(['simplifii_beta_banner_dismissed']);
     const allKeys = Object.keys(localStorage);
     for (const key of allKeys) {
       if (keysToKeep.has(key)) continue;
-      if (key.startsWith('simplifii') || key.startsWith('sb-')) {
+      if (key.startsWith('simplifii') || key.startsWith('sb-') || key.startsWith('aura_greeted') ||
+          ['gritLevel', 'scaffoldingLevel', 'lodLevel', 'persona', 'mode', 'eduLevel',
+           'darkMode', 'highContrast', 'reducedMotion', 'fontScale', 'lineSpacing',
+           'isBionicActive', 'bionicIntensity', 'isLiteralMode', 'isZenMode',
+           'isRulerActive', 'isDriveAttached', 'overlayTint', 'isLeftCollapsed',
+           'isRightCollapsed', 'gcp_access_token'].includes(key)) {
         localStorage.removeItem(key);
       }
     }

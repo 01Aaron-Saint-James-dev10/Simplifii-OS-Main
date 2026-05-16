@@ -139,7 +139,7 @@ export default function AuraChatOverlay({ open, onClose }) {
 
   const [messages, setMessages] = useState(() => {
     try {
-      const cached = sessionStorage.getItem('simplifii_aura_chat');
+      const cached = sessionStorage.getItem(`simplifii_aura_chat_${user?.id || 'anon'}`);
       if (cached) { const parsed = JSON.parse(cached); if (Array.isArray(parsed) && parsed.length > 0) return parsed; }
     } catch { /* ignore */ }
     return [{ role: 'tutor', text: greetingText }];
@@ -176,7 +176,7 @@ export default function AuraChatOverlay({ open, onClose }) {
 
   // Persist chat to sessionStorage
   useEffect(() => {
-    if (messages.length > 1) sessionStorage.setItem('simplifii_aura_chat', JSON.stringify(messages));
+    if (messages.length > 1) sessionStorage.setItem(`simplifii_aura_chat_${user?.id || 'anon'}`, JSON.stringify(messages));
   }, [messages]);
 
   // Auto-scroll on new messages
@@ -189,7 +189,7 @@ export default function AuraChatOverlay({ open, onClose }) {
   useEffect(() => {
     if (courseId && courseId !== prevCourseRef.current) {
       prevCourseRef.current = courseId;
-      sessionStorage.removeItem('simplifii_aura_chat');
+      sessionStorage.removeItem(`simplifii_aura_chat_${user?.id || 'anon'}`);
       setMessages([{ role: 'tutor', text: greetingText }]);
     }
   }, [courseId, greetingText]);
@@ -439,7 +439,7 @@ export default function AuraChatOverlay({ open, onClose }) {
         {voiceSupported && (
           <button
             type="button"
-            onClick={isListening ? stopVoice : startVoice}
+            onClick={() => { if (isListening) { stopVoice(); } else { startVoice(); setVoiceMode(true); } }}
             aria-label={isListening ? 'Stop listening' : 'Voice input'}
             style={{
               fontFamily: FONT_SYSTEM, fontSize: 14, color: isListening ? '#ef4444' : ACCENT_PULSE,

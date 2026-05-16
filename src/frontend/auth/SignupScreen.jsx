@@ -11,22 +11,11 @@ import {
   BORDER_RADIUS,
 } from '../../theme/tokens';
 
-const TIERS = [
-  { value: 'primary', label: 'Primary school' },
-  { value: 'secondary', label: 'Secondary school (Year 7 to 12)' },
-  { value: 'tertiary', label: 'Tertiary (undergraduate)' },
-  { value: 'postgrad', label: 'Postgrad and research' },
-  { value: 'tafe', label: 'TAFE and vocational' },
-  { value: 'homeschool', label: 'Homeschooling' },
-  { value: 'educator', label: 'Academics and educators' },
-];
-
 export default function SignupScreen() {
   const { signUp } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [tier, setTier] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -44,7 +33,6 @@ export default function SignupScreen() {
     setLoading(true);
     try {
       await signUp(email, password, {
-        tier,
         display_name: displayName || null,
       });
       setDone(true);
@@ -129,24 +117,6 @@ export default function SignupScreen() {
             placeholder="At least 6 characters"
           />
 
-          <fieldset style={styles.fieldset}>
-            <legend style={styles.label}>I am a...</legend>
-            <div style={styles.tierGroup}>
-              {TIERS.map((t) => (
-                <label key={t.value} style={styles.tierOption}>
-                  <input
-                    type="radio"
-                    name="tier"
-                    value={t.value}
-                    checked={tier === t.value}
-                    onChange={() => setTier(t.value)}
-                    style={styles.radio}
-                  />
-                  <span style={styles.tierLabel}>{t.label}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
 
           <button type="submit" disabled={loading} style={styles.button}>
             {loading ? 'Creating account...' : 'Create account'}
