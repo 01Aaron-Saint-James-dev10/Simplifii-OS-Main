@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { endSession } from '../../core/StudyPatternTracker';
+import { saveSessionSummary } from '../../services/SessionSummaryService';
 import SessionFeedbackModal from '../components/SessionFeedbackModal';
 import {
   TEXT_MUTED, ACCENT_PULSE,
@@ -11,13 +12,20 @@ import {
  * Small logout button for the top nav. Subtle by default.
  */
 export default function LogoutButton() {
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const [busy, setBusy] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
 
   const handleLogout = async () => {
     setBusy(true);
     endSession();
+    // Save session summary for AURA cross-session memory
+    if (user?.id) {
+      saveSessionSummary({
+        userId: user.id,
+        sessionEndState: 'normal',
+      }).catch(() => {});
+    }
     try {
       await signOut();
     } catch (err) {

@@ -47,6 +47,8 @@ export default async function handler(req, res) {
   const decisionSkeleton = req.body?.decisionSkeleton || false;
   const specialInterests = req.body?.specialInterests || [];
   const voiceMode = req.body?.voiceMode || false;
+  const steeringDials = req.body?.steeringDials || {};
+  const lastSessionData = req.body?.lastSession || null;
   const learnerContext = sanitiseLearnerContext(req.body?.learnerContext);
 
   // Document context flags (from AuraChatOverlay)
@@ -66,13 +68,21 @@ export default async function handler(req, res) {
     systemPrompt += 'CONTEXT WARNING: Document context is partial. Only reference what is explicitly present. Do not infer or expand.\n\n';
   }
 
+  // Inject last session context if available
+  if (lastSessionData && lastSessionData.days_ago > 0) {
+    const sessionNote = lastSessionData.growth_signals?.length > 0
+      ? `LAST SESSION (${lastSessionData.days_ago} day${lastSessionData.days_ago === 1 ? '' : 's'} ago): Growth signal: "${lastSessionData.growth_signals[0]}". Tasks touched: ${(lastSessionData.tasks_touched || []).join(', ') || 'none'}. Blocks completed: ${lastSessionData.blocks_completed || 0}.`
+      : `LAST SESSION (${lastSessionData.days_ago} day${lastSessionData.days_ago === 1 ? '' : 's'} ago): Tasks: ${(lastSessionData.tasks_touched || []).join(', ') || 'none'}. Blocks: ${lastSessionData.blocks_completed || 0}.`;
+    systemPrompt += `${sessionNote}\nReference this when the learner asks "what was I doing?" or needs continuity.\n\n`;
+  }
+
   systemPrompt += buildAuraPrompt({
     tier: tier || 'tertiary',
     activeTier: 'Tier2',
-    persona: literalMode ? 'Literal' : 'Academic',
-    scaffolding: 'Heavy',
-    grit: 'Hard Socratic',
-    lod: 'Sprint',
+    persona: steeringDials.persona || (literalMode ? 'Literal' : 'Academic'),
+    scaffolding: steeringDials.scaffolding || 'Heavy',
+    grit: steeringDials.grit || 'Hard Socratic',
+    lod: steeringDials.lod || 'Sprint',
     assessmentTitle: assessmentTitle || '',
     briefText: documentContextAvailable ? (briefText || '') : '',
     documentType: documentType || '',

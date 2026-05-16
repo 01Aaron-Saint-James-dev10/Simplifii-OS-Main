@@ -8,6 +8,7 @@ import useLearnerContext from '../hooks/useLearnerContext';
 import { useSpeechToText } from '../hooks/useSpeechToText';
 import { checkDocumentStaleness, logResponseFlag } from '../../services/AccuracyLogger';
 import { getQueuedAuraMessages } from '../../core/TaskLifecycleManager';
+import { loadLastSession } from '../../services/SessionSummaryService';
 import {
   SURFACE_CARD, SURFACE_RAISED,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
@@ -31,7 +32,7 @@ function dispatchAuraState(state) {
 
 export default function AuraChatOverlay({ open, onClose }) {
   const { user } = useAuth();
-  const { isLiteralMode, accessibilityProfile, activeTier } = useSettings();
+  const { isLiteralMode, accessibilityProfile, activeTier, scaffoldingLevel, gritLevel, lodLevel, persona } = useSettings();
   const { courses } = useProject();
   const { courseId, assessmentTitle: routerAssessment } = useRouter();
   const { learnerContext } = useLearnerContext();
@@ -67,12 +68,27 @@ export default function AuraChatOverlay({ open, onClose }) {
       allDocs.map((d, i) => `- ${d.title || `Document ${i + 1}`}`).join('\n');
   }, [allDocs]);
 
+  // Session continuity: load last session for cross-session memory
+  const [lastSession, setLastSession] = useState(null);
+  useEffect(() => {
+    if (!user?.id) return;
+    loadLastSession(user.id).then(s => { if (s) setLastSession(s); });
+  }, [user?.id]);
+
   const greetingText = useMemo(() => {
+    // If returning from a previous session, reference it
+    if (lastSession && lastSession.days_ago > 0 && lastSession.growth_signals?.length > 0) {
+      const signal = lastSession.growth_signals[0];
+      return `Last time you ${signal}. Ready to pick up where you left off?`;
+    }
+    if (lastSession && lastSession.days_ago > 0 && lastSession.tasks_touched?.length > 0) {
+      return `Last session you worked on ${lastSession.tasks_touched[0]}. Want to continue?`;
+    }
     if (!activeAssessmentTitle) return 'What are you working on? I can help you figure out the next step.';
     return allDocs.length > 1
-      ? `Working on "${activeAssessmentTitle}". I have ${allDocs.length} documents loaded for this course. What do you need help with?`
+      ? `Working on "${activeAssessmentTitle}". I have ${allDocs.length} documents loaded. What do you need help with?`
       : `Working on "${activeAssessmentTitle}". What do you need help with?`;
-  }, [activeAssessmentTitle, allDocs.length]);
+  }, [activeAssessmentTitle, allDocs.length, lastSession]);
 
   const [messages, setMessages] = useState(() => {
     try {
@@ -181,6 +197,18 @@ export default function AuraChatOverlay({ open, onClose }) {
           literalMode: isLiteralMode || false,
           accessibilityProfile: accessibilityProfile || 'standard',
           learnerContext: learnerContext || undefined,
+          steeringDials: {
+            persona: persona || 'Literal',
+            scaffolding: scaffoldingLevel === 'heavy' ? 'Heavy' : scaffoldingLevel === 'light' ? 'Light' : 'Heavy',
+            grit: gritLevel === 'socratic' ? 'Hard Socratic' : gritLevel === 'literal' ? 'Literal Assistant' : 'Literal Assistant',
+            lod: lodLevel === 'map' ? 'Map' : lodLevel === 'compass' ? 'Compass' : 'Sprint',
+          },
+          lastSession: lastSession ? {
+            days_ago: lastSession.days_ago,
+            tasks_touched: lastSession.tasks_touched,
+            growth_signals: lastSession.growth_signals,
+            blocks_completed: lastSession.blocks_completed,
+          } : undefined,
           user_id: user?.id || null,
         }),
       });
