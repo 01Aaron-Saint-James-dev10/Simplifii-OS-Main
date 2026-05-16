@@ -36,17 +36,43 @@ export default function AuraChatOverlay({ open, onClose }) {
   const { courseId, assessmentTitle: routerAssessment } = useRouter();
   const { learnerContext } = useLearnerContext();
 
-  // Derive active task context for AURA
+  // Derive active task context from ALL uploaded documents (not just [0])
   const activeCourse = courseId ? courses?.[courseId] : null;
-  const activeAssessmentTitle = routerAssessment
-    || activeCourse?.extractionData?.assessmentBriefs?.[0]?.title
-    || '';
-  const activeBriefText = activeCourse?.extractionData?.assessmentBriefs?.[0]?.body || '';
+  const allDocs = activeCourse?.extractionData?.assessmentBriefs || [];
   const activeDocType = activeCourse?.extractionData?.documentType || '';
-  const greetingText = useMemo(() => activeAssessmentTitle
-    ? `Working on "${activeAssessmentTitle}". What do you need help with?`
-    : 'What are you working on? I can help you figure out the next step.',
-  [activeAssessmentTitle]);
+
+  // Use highest-priority doc for primary title (assessment brief > rubric > other)
+  const primaryDoc = allDocs.find(d => d.source === 'explicit' || d.weight) || allDocs[0];
+  const activeAssessmentTitle = routerAssessment || primaryDoc?.title || '';
+
+  // Build aggregated brief text from ALL docs (cap each at 600 chars, total 3200)
+  const activeBriefText = useMemo(() => {
+    if (allDocs.length === 0) return '';
+    return allDocs
+      .slice(0, 6)
+      .map((doc, i) => {
+        const body = (doc?.body || '').slice(0, 600);
+        if (!body) return '';
+        return `[DOC ${i + 1}: ${doc?.title || 'Untitled'}]\n${body}`;
+      })
+      .filter(Boolean)
+      .join('\n\n---\n\n')
+      .slice(0, 3200);
+  }, [allDocs]);
+
+  // Document inventory for AURA context
+  const docInventory = useMemo(() => {
+    if (allDocs.length === 0) return '';
+    return `LOADED DOCUMENTS (${allDocs.length} total):\n` +
+      allDocs.map((d, i) => `- ${d.title || `Document ${i + 1}`}`).join('\n');
+  }, [allDocs]);
+
+  const greetingText = useMemo(() => {
+    if (!activeAssessmentTitle) return 'What are you working on? I can help you figure out the next step.';
+    return allDocs.length > 1
+      ? `Working on "${activeAssessmentTitle}". I have ${allDocs.length} documents loaded for this course. What do you need help with?`
+      : `Working on "${activeAssessmentTitle}". What do you need help with?`;
+  }, [activeAssessmentTitle, allDocs.length]);
 
   const [messages, setMessages] = useState(() => {
     try {
@@ -142,11 +168,13 @@ export default function AuraChatOverlay({ open, onClose }) {
         body: JSON.stringify({
           messages: stalenessWarning
             ? [{ role: 'user', text: stalenessWarning }, ...updated.slice(1)]
-            : updated.slice(1), // skip greeting
+            : updated.slice(1),
           assessmentTitle: activeAssessmentTitle || undefined,
-          briefText: hasDocContext ? activeBriefText.slice(0, 2000) : undefined,
+          briefText: hasDocContext ? activeBriefText.slice(0, 3200) : undefined,
           documentType: activeDocType || undefined,
-          documentContextAvailable: hasDocContext,
+          documentCount: allDocs.length,
+          documentInventory: docInventory || undefined,
+          documentContextAvailable: allDocs.length > 0 && hasDocContext,
           documentContextPartial: hasPartialContext,
           voiceMode: isListening || false,
           tier: activeTier || 'tertiary',

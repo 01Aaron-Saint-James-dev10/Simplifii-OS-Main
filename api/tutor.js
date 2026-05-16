@@ -49,16 +49,20 @@ export default async function handler(req, res) {
   const learnerContext = sanitiseLearnerContext(req.body?.learnerContext);
 
   // Document context flags (from AuraChatOverlay)
+  const documentCount = req.body?.documentCount || 0;
+  const documentInventory = req.body?.documentInventory || '';
   const documentContextAvailable = req.body?.documentContextAvailable !== false && briefText && briefText.length >= 100;
   const documentContextPartial = req.body?.documentContextPartial === true;
 
   let systemPrompt = '';
 
-  // Prepend context warnings BEFORE the main AURA prompt
-  if (!documentContextAvailable && !briefText) {
+  // Document context injection or hallucination prevention
+  if (documentContextAvailable && briefText) {
+    systemPrompt += `DOCUMENT CONTEXT:\n${documentInventory}\n\nASSESSMENT CONTENT (aggregated from ${documentCount} loaded document${documentCount === 1 ? '' : 's'}):\n${briefText.slice(0, 3200)}\n\nYou have access to ${documentCount} document(s) for this course. Answer questions using this content. Reference which document you are drawing from.\n\n`;
+  } else if (!briefText || documentCount === 0) {
     systemPrompt += 'CONTEXT WARNING: No document has been ingested for this session. Do NOT describe, summarise, or reference any document. Do NOT hallucinate document content. If the learner asks about their document, respond: "I cannot see a document in this session. To get specific guidance, upload your brief through the Add Course flow so I can read it properly."\n\n';
-  } else if (documentContextPartial || (briefText && briefText.length < 100)) {
-    systemPrompt += 'CONTEXT WARNING: Document context is partial. Only reference what is explicitly present in briefText. Do not infer or expand.\n\n';
+  } else if (documentContextPartial) {
+    systemPrompt += 'CONTEXT WARNING: Document context is partial. Only reference what is explicitly present. Do not infer or expand.\n\n';
   }
 
   systemPrompt += buildAuraPrompt({
