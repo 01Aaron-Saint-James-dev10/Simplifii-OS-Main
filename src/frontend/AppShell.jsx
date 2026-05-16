@@ -19,6 +19,7 @@ import CanvasSettingsOverlay from './components/CanvasSettingsOverlay';
 import BetaBanner from './components/BetaBanner';
 import MatrixRain from './components/MatrixRain';
 import { startSession, endSession } from '../core/StudyPatternTracker';
+import { unlockWithUserId } from '../core/HistoryOfThought';
 import {
   SURFACE_BASE, SURFACE_RAISED,
   TEXT_MUTED, FONT_BODY,
@@ -101,12 +102,18 @@ export default function AppShell() {
     })();
   }, [user]);
 
-  // Study pattern tracking: start session on mount, end on unmount
+  // Study pattern tracking + HistoryOfThought unlock on auth
   useEffect(() => {
     if (disclaimerState !== 'done') return;
     startSession();
+    // Unlock HistoryOfThought vault so appendEvent calls succeed
+    if (user?.id) {
+      unlockWithUserId(user.id).then(() => {
+        if (typeof console !== 'undefined') console.log('[HistoryOfThought] vault unlocked for', user.id);
+      }).catch(() => { /* non-blocking: vault may already be unlocked */ });
+    }
     return () => endSession();
-  }, [disclaimerState]);
+  }, [disclaimerState, user]);
 
   if (disclaimerState === 'loading') {
     return (
