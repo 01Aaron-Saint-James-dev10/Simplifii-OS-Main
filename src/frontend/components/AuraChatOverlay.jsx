@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../SettingsContext';
+import { useProject } from '../ProjectContext';
+import { useRouter } from '../../contexts/RouterContext';
 import useLearnerContext from '../hooks/useLearnerContext';
 import {
   SURFACE_CARD, SURFACE_RAISED,
@@ -27,8 +29,21 @@ function dispatchAuraState(state) {
 export default function AuraChatOverlay({ open, onClose }) {
   const { user } = useAuth();
   const { isLiteralMode, accessibilityProfile, activeTier } = useSettings();
+  const { courses } = useProject();
+  const { courseId, assessmentTitle: routerAssessment } = useRouter();
   const { learnerContext } = useLearnerContext();
-  const defaultGreeting = [{ role: 'tutor', text: 'What are you working on? I can help you figure out the next step.' }];
+
+  // Derive active task context for AURA
+  const activeCourse = courseId ? courses?.[courseId] : null;
+  const activeAssessmentTitle = routerAssessment
+    || activeCourse?.extractionData?.assessmentBriefs?.[0]?.title
+    || '';
+  const activeBriefText = activeCourse?.extractionData?.assessmentBriefs?.[0]?.body || '';
+  const activeDocType = activeCourse?.extractionData?.documentType || '';
+  const greetingText = activeAssessmentTitle
+    ? `Working on "${activeAssessmentTitle}". What do you need help with?`
+    : 'What are you working on? I can help you figure out the next step.';
+  const defaultGreeting = [{ role: 'tutor', text: greetingText }];
   const [messages, setMessages] = useState(() => {
     try {
       const cached = sessionStorage.getItem('simplifii_aura_chat');
@@ -79,7 +94,9 @@ export default function AuraChatOverlay({ open, onClose }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: updated.slice(1), // skip greeting
-          assessmentTitle: '',
+          assessmentTitle: activeAssessmentTitle,
+          briefText: activeBriefText.slice(0, 2000),
+          documentType: activeDocType,
           tier: activeTier || 'tertiary',
           literalMode: isLiteralMode || false,
           accessibilityProfile: accessibilityProfile || 'standard',
