@@ -69,7 +69,7 @@ ${draftText.slice(0, 6000)}`;
       body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2500, system: systemPrompt, messages: [{ role: 'user', content: userMsg }] }),
     });
 
-    if (!response.ok) return res.status(502).json({ success: false, error: `Claude returned ${response.status}` });
+    if (!response.ok) return res.status(502).json({ success: false, error: 'AI service unavailable. Try again.' });
     const data = await response.json();
     await recordUsage(userId, 'score-essay', {
       tokensIn: data?.usage?.input_tokens || 0,

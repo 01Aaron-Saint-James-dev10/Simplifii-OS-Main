@@ -1,4 +1,5 @@
 import React from 'react';
+import DOMPurify from 'dompurify';
 import {
   SURFACE_RAISED,
   TEXT_PRIMARY,
@@ -48,7 +49,7 @@ export default function PreviewPanel({ draftText, wordCount }) {
             wordBreak: 'break-word',
           }}
           aria-label="Draft preview"
-          dangerouslySetInnerHTML={{ __html: draftText }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(draftText) }}
         />
       ) : (
         <div

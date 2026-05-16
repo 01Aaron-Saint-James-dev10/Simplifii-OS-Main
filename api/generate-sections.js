@@ -72,7 +72,7 @@ RULES:
       }),
     });
 
-    if (!response.ok) return res.status(502).json({ success: false, error: `Claude returned ${response.status}` });
+    if (!response.ok) return res.status(502).json({ success: false, error: 'AI service unavailable. Try again.' });
     const data = await response.json();
     await recordUsage(userId, 'generate-sections', {
       tokensIn: data?.usage?.input_tokens || 0,

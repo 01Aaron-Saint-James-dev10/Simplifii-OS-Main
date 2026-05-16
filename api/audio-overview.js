@@ -53,7 +53,7 @@ RULES:
         messages: [{ role: 'user', content: `Assessment: "${assessmentTitle || 'Untitled'}"\n\nBrief:\n${briefText.slice(0, 3000)}` }],
       }),
     });
-    if (!response.ok) return res.status(502).json({ success: false, error: `Claude returned ${response.status}` });
+    if (!response.ok) return res.status(502).json({ success: false, error: 'AI service unavailable. Try again.' });
     const data = await response.json();
     await recordUsage(userId, 'audio-overview', {
       tokensIn: data?.usage?.input_tokens || 0,

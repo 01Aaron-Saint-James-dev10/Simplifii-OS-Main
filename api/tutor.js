@@ -174,7 +174,7 @@ CRITICAL: Reference the ACTUAL content above when answering. If the learner asks
 
     if (!response.ok) {
       const body = await response.text().catch(() => '');
-      return res.status(502).json({ success: false, error: `Claude returned ${response.status}: ${body.slice(0, 200)}` });
+      return res.status(502).json({ success: false, error: 'AI service unavailable. Try again.' });
     }
 
     const data = await response.json();

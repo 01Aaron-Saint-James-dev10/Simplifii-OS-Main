@@ -72,7 +72,7 @@ RULES:
       body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2500, system: systemPrompt, messages: [{ role: 'user', content: `Assessment: "${assessmentTitle || 'Untitled'}"\n\nBrief:\n${briefText.slice(0, 5000)}` }] }),
     });
 
-    if (!response.ok) return res.status(502).json({ success: false, error: `Claude returned ${response.status}` });
+    if (!response.ok) return res.status(502).json({ success: false, error: 'AI service unavailable. Try again.' });
     const data = await response.json();
     await recordUsage(userId, 'decode-hidden', {
       tokensIn: data?.usage?.input_tokens || 0,

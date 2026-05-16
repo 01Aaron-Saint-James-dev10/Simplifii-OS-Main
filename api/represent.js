@@ -113,7 +113,7 @@ ${PROMPTS[type]}`;
 
     if (!response.ok) {
       const body = await response.text().catch(() => '');
-      return res.status(502).json({ success: false, error: `Claude returned ${response.status}` });
+      return res.status(502).json({ success: false, error: 'AI service unavailable. Try again.' });
     }
 
     const data = await response.json();

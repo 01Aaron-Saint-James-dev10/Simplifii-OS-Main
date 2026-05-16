@@ -46,8 +46,7 @@ export default async function handler(req, res) {
     });
 
     if (!response.ok) {
-      const body = await response.text().catch(() => '');
-      return res.status(502).json({ success: false, error: `Firecrawl returned ${response.status}: ${body.slice(0, 200)}` });
+      return res.status(502).json({ success: false, error: 'Could not fetch the page. Check the URL and try again.' });
     }
 
     const data = await response.json();
@@ -58,7 +57,7 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({ success: true, content });
-  } catch (err) {
-    return res.status(500).json({ success: false, error: err.message || 'Scrape failed.' });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Could not fetch the page. Try again.' });
   }
 }

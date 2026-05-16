@@ -83,7 +83,7 @@ ${briefText.slice(0, 5000)}`;
         body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, system: examPrompt, messages: [{ role: 'user', content: userMsg }] }),
       });
 
-      if (!response.ok) return res.status(502).json({ success: false, error: `Claude returned ${response.status}` });
+      if (!response.ok) return res.status(502).json({ success: false, error: 'AI service unavailable. Try again.' });
       const data = await response.json();
       await recordUsage(userId, 'simplify-brief', { tokensIn: data?.usage?.input_tokens || 0, tokensOut: data?.usage?.output_tokens || 0 });
       return res.status(200).json({ success: true, plan: data?.content?.[0]?.text || '' });
@@ -124,7 +124,7 @@ ${briefText.slice(0, 5000)}`;
         body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, system: rubricPrompt, messages: [{ role: 'user', content: userMsg }] }),
       });
 
-      if (!response.ok) return res.status(502).json({ success: false, error: `Claude returned ${response.status}` });
+      if (!response.ok) return res.status(502).json({ success: false, error: 'AI service unavailable. Try again.' });
       const data = await response.json();
       await recordUsage(userId, 'simplify-brief', { tokensIn: data?.usage?.input_tokens || 0, tokensOut: data?.usage?.output_tokens || 0 });
       return res.status(200).json({ success: true, plan: data?.content?.[0]?.text || '' });
@@ -175,7 +175,7 @@ ${briefText.slice(0, 5000)}`;
       body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, system: systemPrompt, messages: [{ role: 'user', content: userMsg }] }),
     });
 
-    if (!response.ok) return res.status(502).json({ success: false, error: `Claude returned ${response.status}` });
+    if (!response.ok) return res.status(502).json({ success: false, error: 'AI service unavailable. Try again.' });
     const data = await response.json();
     await recordUsage(userId, 'simplify-brief', {
       tokensIn: data?.usage?.input_tokens || 0,
