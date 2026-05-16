@@ -404,19 +404,24 @@ export default function HomeScreen() {
           confidence={classifiedDoc.confidence}
           suggestedActions={classifiedDoc.suggested_actions}
           onAction={() => {
+            // Mark as seen so CanvasScreen does not show the modal again
+            sessionStorage.setItem(`simplifii_classified_${classifiedDoc.courseId}`, 'true');
             navigateToCanvas(classifiedDoc.courseId);
             setClassifiedDoc(null);
           }}
           onOverride={(newType) => {
-            // Update the course extractionData with the user's override
             if (classifiedDoc.courseId && courses[classifiedDoc.courseId]) {
               upgradeCourseExtraction(classifiedDoc.courseId, {
                 extractionData: { documentType: newType },
               });
             }
+            sessionStorage.setItem(`simplifii_classified_${classifiedDoc.courseId}`, 'true');
             setClassifiedDoc(null);
           }}
-          onDismiss={() => setClassifiedDoc(null)}
+          onDismiss={() => {
+            sessionStorage.setItem(`simplifii_classified_${classifiedDoc.courseId}`, 'true');
+            setClassifiedDoc(null);
+          }}
         />
       )}
     </div>

@@ -54,7 +54,7 @@ import './CanvasScreen.css';
 
 export default function CanvasScreen() {
   const { courseId, assessmentTitle, navigateToAssessments } = useRouter();
-  const { courses, activeCourse, projectSources } = useProject();
+  const { courses, activeCourse, projectSources, upgradeCourseExtraction } = useProject();
   const { reducedMotion, isZenMode, theme, autismFirstEnabled, sensoryLevel, isLiteralMode, ambientPreference } = useSettings();
 
   // Ambient sound: start/stop when preference changes
@@ -559,7 +559,7 @@ export default function CanvasScreen() {
 
       <JokeOverlay />
 
-      {docClassification && (
+      {docClassification && docClassification.suggested_actions && !sessionStorage.getItem(`simplifii_classified_${courseId}`) && (
         <DocumentClassifiedModal
           type={docClassification.type}
           confidence={docClassification.confidence}
@@ -570,10 +570,18 @@ export default function CanvasScreen() {
             if (docClassification.type === 'rubric') toolMap[0] = 'rubric';
             const panel = toolMap[i];
             if (panel) setActivePanelWithLog(panel);
-            setDocClassification(null);
+            sessionStorage.setItem(`simplifii_classified_${courseId}`, 'true');
+            setDocClassification({ type: docClassification.type, confidence: docClassification.confidence });
           }}
-          onOverride={() => setDocClassification(null)}
-          onDismiss={() => setDocClassification(null)}
+          onOverride={(newType) => {
+            upgradeCourseExtraction(courseId, { extractionData: { documentType: newType } });
+            sessionStorage.setItem(`simplifii_classified_${courseId}`, 'true');
+            setDocClassification({ type: newType, confidence: 1 });
+          }}
+          onDismiss={() => {
+            sessionStorage.setItem(`simplifii_classified_${courseId}`, 'true');
+            setDocClassification({ type: docClassification.type, confidence: docClassification.confidence });
+          }}
         />
       )}
     </div>
