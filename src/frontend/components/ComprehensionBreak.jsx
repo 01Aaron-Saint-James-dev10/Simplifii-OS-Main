@@ -4,6 +4,7 @@ import {
   SURFACE_CARD, SURFACE_RAISED,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
   ACCENT_PULSE, ACCENT_GLASS, ACCENT_BORDER,
+  SHADOW_CARD,
   FONT_SYSTEM,
   BORDER_RADIUS, FOCUS_RING,
 } from '../../theme/tokens';
@@ -91,7 +92,7 @@ export default function ComprehensionBreak({ intervalMinutes, onCheckRequest }) 
         border: `1px solid ${ACCENT_BORDER}`,
         borderRadius: BORDER_RADIUS,
         padding: '14px 16px',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+        boxShadow: `0 4px 24px ${SHADOW_CARD}`,
         animation: reducedMotion ? 'none' : 'slideUpFade 0.25s ease-out',
       }}
     >

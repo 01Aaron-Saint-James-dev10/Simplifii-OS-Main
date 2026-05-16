@@ -10,6 +10,7 @@ import {
   ACCENT_PULSE,
   ACCENT_GLASS,
   ACCENT_BORDER,
+  SHADOW_CARD,
   FONT_SYSTEM,
   FONT_BODY,
   BORDER_RADIUS,
@@ -155,7 +156,7 @@ export default function AnnouncementBanner() {
         borderRadius: BORDER_RADIUS,
         maxWidth: 600,
         width: '100%',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+        boxShadow: `0 4px 12px ${SHADOW_CARD}`,
       }}>
         {/* Icon */}
         <span style={{ fontFamily: FONT_SYSTEM, fontSize: 16, color: ACCENT_PULSE, flexShrink: 0 }}>
