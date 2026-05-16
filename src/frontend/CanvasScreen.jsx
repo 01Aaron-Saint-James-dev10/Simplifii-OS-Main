@@ -40,6 +40,7 @@ import ComprehensionBreak from './components/ComprehensionBreak';
 import PreWritePanel from './components/PreWritePanel';
 import FirstLookCard from './components/FirstLookCard';
 import AssessmentSwitcher from './components/AssessmentSwitcher';
+import EnergyOrbs from './components/EnergyOrbs';
 import { appendEvent } from '../core/HistoryOfThought';
 import { startIdleDetection, stopIdleDetection } from '../core/ExecutiveSpine';
 import { determinePhase, checkPhaseTransition } from '../core/TaskLifecycleManager';
@@ -503,6 +504,9 @@ export default function CanvasScreen() {
         activePanel={activePanel}
         onSelectPanel={setActivePanelWithLog}
       />
+
+      {/* Energy orbs (Spoon Theory) */}
+      <EnergyOrbs userId="default" />
 
       {/* Hidden file input for Add Docs */}
       <input
