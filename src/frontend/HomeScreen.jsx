@@ -415,11 +415,16 @@ export default function HomeScreen() {
 
       {showAddWork && (
         <AddWorkModal
-          onSelect={(workType) => {
-            setShowAddWork(false);
-            sessionStorage.setItem('simplifii_work_type', workType);
-            // Trigger the file picker via custom event (AddCourseButton listens)
-            window.dispatchEvent(new CustomEvent('simplifii:trigger-add-work'));
+          onUpload={() => window.dispatchEvent(new CustomEvent('simplifii:trigger-add-work'))}
+          onManual={() => window.dispatchEvent(new CustomEvent('simplifii:trigger-manual-entry'))}
+          onDemo={() => {
+            // Load demo course and navigate to canvas
+            const { DEMO_COURSE } = require('../data/demoCourse');
+            const demoId = `demo_${Date.now()}`;
+            const existing = JSON.parse(localStorage.getItem('simplifii_courses_v1') || '{}');
+            existing[demoId] = DEMO_COURSE;
+            localStorage.setItem('simplifii_courses_v1', JSON.stringify(existing));
+            window.location.reload();
           }}
           onClose={() => setShowAddWork(false)}
         />
