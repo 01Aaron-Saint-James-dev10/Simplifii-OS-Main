@@ -15,6 +15,7 @@ import AiDisclaimerFooter from './components/disclaimers/AiDisclaimerFooter';
 import FeedbackButton from './feedback/FeedbackButton';
 import AuraOrb from './components/AuraOrb';
 import AuraChatOverlay from './components/AuraChatOverlay';
+import CanvasSettingsOverlay from './components/CanvasSettingsOverlay';
 import BetaBanner from './components/BetaBanner';
 import MatrixRain from './components/MatrixRain';
 import { startSession, endSession } from '../core/StudyPatternTracker';
@@ -66,6 +67,14 @@ export default function AppShell() {
   const { user } = useAuth();
   const [disclaimerState, setDisclaimerState] = useState('loading'); // 'loading' | 'needed' | 'done'
   const [auraChatOpen, setAuraChatOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Listen for settings open event from dashboard
+  useEffect(() => {
+    const handler = () => setSettingsOpen(true);
+    window.addEventListener('simplifii:open-settings', handler);
+    return () => window.removeEventListener('simplifii:open-settings', handler);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -125,6 +134,7 @@ export default function AppShell() {
               <FeedbackButton />
               <AuraOrb onClick={() => setAuraChatOpen(prev => !prev)} auraState={auraChatOpen ? 'listening' : 'idle'} />
               <AuraChatOverlay open={auraChatOpen} onClose={() => setAuraChatOpen(false)} />
+              {settingsOpen && <CanvasSettingsOverlay onClose={() => setSettingsOpen(false)} />}
               <AiDisclaimerFixed />
             </div>
           </RouterProvider>

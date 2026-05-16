@@ -282,8 +282,8 @@ export default function AuraChatOverlay({ open, onClose }) {
           .replace(/^#{1,4}\s+/gm, '');
         dispatchAuraState('speaking');
         setMessages(prev => [...prev, { role: 'tutor', text: clean }]);
-        // Voice mode: speak the response
-        if (voiceMode) speak(clean);
+        // Speak response if voice mode is on OR if the user spoke to AURA
+        if (voiceMode || isListeningContinuous) speak(clean);
         // Return to idle after a short display period
         setTimeout(() => dispatchAuraState('idle'), 2000);
       } else {
