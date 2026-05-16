@@ -39,8 +39,10 @@ import WritingAnalysis from './components/WritingAnalysis';
 import ComprehensionBreak from './components/ComprehensionBreak';
 import PreWritePanel from './components/PreWritePanel';
 import FirstLookCard from './components/FirstLookCard';
+import AssessmentSwitcher from './components/AssessmentSwitcher';
 import { appendEvent } from '../core/HistoryOfThought';
 import { determinePhase, checkPhaseTransition } from '../core/TaskLifecycleManager';
+import { processDocumentWithGCP } from '../services/DocumentAIService';
 import './CanvasScreen.css';
 
 /**
@@ -54,7 +56,7 @@ import './CanvasScreen.css';
  */
 
 export default function CanvasScreen() {
-  const { courseId, assessmentTitle, navigateToAssessments } = useRouter();
+  const { courseId, assessmentTitle, navigateToAssessments, navigateToCanvas } = useRouter();
   const { courses, activeCourse, projectSources, upgradeCourseExtraction } = useProject();
   const { reducedMotion, isZenMode, theme, autismFirstEnabled, sensoryLevel, isLiteralMode, ambientPreference } = useSettings();
 
@@ -212,6 +214,25 @@ export default function CanvasScreen() {
   const [sectionsLoading, setSectionsLoading] = useState(false);
   const [activeSection, setActiveSection] = useState('introduction');
   const compileFnRef = useRef(null);
+  const addDocsRef = useRef(null);
+
+  // Add-docs handler: upload additional PDFs to the current course
+  const handleAddDocs = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    e.target.value = '';
+    for (const file of files) {
+      try {
+        const text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
+        if (text && text.length > 0) {
+          const existingRaw = course.extractionData?.rawText || '';
+          upgradeCourseExtraction(courseId, {
+            extractionData: { rawText: existingRaw + '\n\n' + text },
+          });
+        }
+      } catch { /* non-blocking */ }
+    }
+  };
   const lastDocTypeRef = useRef(null);
 
   // Use sections pre-generated during ingestion when available, otherwise
@@ -445,6 +466,7 @@ export default function CanvasScreen() {
         courseId={courseId}
         onOpenSettings={() => setSettingsOpen(true)}
         onCourseName={briefs.length > 1 ? () => navigateToAssessments(courseId) : undefined}
+        onAddDocs={() => addDocsRef.current?.click()}
       />
 
       <NextStepBanner
@@ -458,7 +480,26 @@ export default function CanvasScreen() {
         onSelectPanel={setActivePanelWithLog}
       />
 
+      {/* Hidden file input for Add Docs */}
+      <input
+        ref={addDocsRef}
+        type="file"
+        accept=".pdf"
+        multiple
+        onChange={handleAddDocs}
+        style={{ display: 'none' }}
+        aria-hidden="true"
+      />
+
       <div className="canvas-body">
+        {/* Assessment switcher (shows if course has multiple assessments) */}
+        {briefs.length > 1 && (
+          <AssessmentSwitcher
+            assessments={briefs}
+            activeTitle={currentTitle}
+            onSelect={(title) => navigateToCanvas(courseId, title)}
+          />
+        )}
         {/* Left rail: Tier 1 Pre-Write (essay) or nothing (exam: QuestionNav handles it) */}
         {!isExamPaper && !leftCollapsed && (
           <PreWritePanel

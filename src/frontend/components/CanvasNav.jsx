@@ -30,7 +30,7 @@ import {
  *   lastSavedAgo      - string (e.g. "2s ago")
  */
 
-export default function CanvasNav({ courseName, assessmentTitle, saveStatus, lastSavedAgo, tiptapDoc, htmlContent, courseId, onOpenSettings, onCourseName }) {
+export default function CanvasNav({ courseName, assessmentTitle, saveStatus, lastSavedAgo, tiptapDoc, htmlContent, courseId, onOpenSettings, onCourseName, onAddDocs }) {
   const { navigateHome } = useRouter();
 
   return (
@@ -110,6 +110,24 @@ export default function CanvasNav({ courseName, assessmentTitle, saveStatus, las
             {saveStatus === 'saved' && lastSavedAgo ? `Saved ${lastSavedAgo}` : saveStatus === 'saving' ? 'Saving...' : 'Unsaved'}
           </span>
         </div>
+        <button
+          type="button"
+          onClick={onAddDocs}
+          aria-label="Add documents to this course"
+          style={{
+            fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 700,
+            letterSpacing: '0.06em', textTransform: 'uppercase',
+            color: TEXT_MUTED, background: 'transparent',
+            border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS,
+            padding: '4px 10px', cursor: 'pointer', minHeight: 28,
+            display: 'flex', alignItems: 'center', gap: 4,
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={TEXT_MUTED} strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+          </svg>
+          Add docs
+        </button>
         <ExportMenu
           tiptapDoc={tiptapDoc}
           htmlContent={htmlContent}
