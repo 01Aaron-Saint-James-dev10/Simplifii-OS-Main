@@ -13,6 +13,7 @@ import FeedbackDashboard from './admin/FeedbackDashboard';
 import FirstRunModal from './components/disclaimers/FirstRunModal';
 import AiDisclaimerFooter from './components/disclaimers/AiDisclaimerFooter';
 import FeedbackButton from './feedback/FeedbackButton';
+import AuraOrb from './components/AuraOrb';
 import BetaBanner from './components/BetaBanner';
 import MatrixRain from './components/MatrixRain';
 import { startSession, endSession } from '../core/StudyPatternTracker';
@@ -120,6 +121,10 @@ export default function AppShell() {
                 <ViewSwitch />
               </div>
               <FeedbackButton />
+              <AuraOrb onClick={() => {
+                // Dispatch event to open tutor panel on canvas, or show chat overlay on home
+                window.dispatchEvent(new CustomEvent('simplifii:aura-open'));
+              }} />
               <AiDisclaimerFixed />
             </div>
           </RouterProvider>
