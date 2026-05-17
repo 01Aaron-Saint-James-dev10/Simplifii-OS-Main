@@ -170,3 +170,35 @@ No ProjectContext or CanvasScreen changes required.
 ## Next Session Constraint
 
 Surface activeAssessmentId in the Pillar Gallery card so tapping an assessment card opens its scoped canvas directly (not the course-level canvas). Requires: assessment cards in HomeScreen/PillarGallery to call `navigateToCanvas(courseId, assessmentTitle)` with the specific assessment title.
+
+---
+
+## StructuredScaffold Rendering Fix
+
+**Commit:** `250d805a`
+**Files:** `src/services/BriefSimplifierService.js`, `src/frontend/components/BriefSimplifierTool.jsx`
+
+### Root cause
+
+Two paths call `/api/simplify-brief`:
+1. ToolPanel "Simplify" tab: checks `data.scaffold`, passes to `<StructuredScaffold>`. Works correctly.
+2. BriefPanel "Decode this brief" button: calls `runBriefSimplifier()` in BriefSimplifierService.js, which received `data.scaffold` from the API but **discarded it** (line 91-97). It wrapped `data.plan` into `weeklyTasks: [{ week: 1, tasks: [data.plan] }]`. BriefSimplifierTool.jsx then rendered this as a single bullet point. Students saw 4 raw bullets instead of the structured card UI.
+
+### Fix
+
+**BriefSimplifierService.js:** API success path now returns `{ scaffold: data.scaffold || null, rawPlan: data.plan }` instead of the weeklyTasks wrapper. Mock fallback path unchanged (still returns weeklyTasks for offline/dev).
+
+**BriefSimplifierTool.jsx:** Three-tier render priority:
+1. `result.scaffold.suggestedStructure` present → renders `<StructuredScaffold>`
+2. `result.rawPlan` present → readable paragraphs
+3. `result.weeklyTasks` present → legacy mock bullets
+
+### Test Results
+
+12/12 regression tests pass. Build compiles clean.
+
+---
+
+## Next Session Constraint
+
+Fix B5: strip `[TOOL:tag]` from rendered output before it reaches the canvas editor or AURA chat display. Location: PreWritePanel insert path and AuraChatOverlay message rendering.
