@@ -604,41 +604,79 @@ export default function CanvasScreen() {
           />
         )}
 
-        <div className="canvas-centre">
-          {/* Three-tier tab bar (essay mode only) */}
-          {!isExamPaper && (
-            <div style={{ display: 'flex', borderBottom: `1px solid var(--sov-line-dim, rgba(16,185,129,0.12))`, padding: '0 16px' }}> {/* allow-style */}
-              {[
-                { id: 'think', label: '1. Think First', hasDot: hasThinkContent },
-                { id: 'ideas', label: '2. Get Ideas', hasDot: hasIdeasContent },
-                { id: 'write', label: '3. Write', hasDot: false },
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setCanvasTab(tab.id)}
-                  style={{
-                    background: canvasTab === tab.id ? 'var(--sov-line-dim, rgba(16,185,129,0.12))' : 'none', /* allow-style */
-                    border: 'none',
-                    borderBottom: canvasTab === tab.id ? '2px solid var(--sov-line, #10b981)' : '2px solid transparent', /* allow-style */
-                    color: canvasTab === tab.id ? 'var(--sov-line, #10b981)' : 'var(--text-faint)', /* allow-style */
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font-system, system-ui)',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    padding: '8px 14px',
-                    transition: 'background 0.15s',
-                  }}
-                >
+        {/* Vertical tab sidebar: 48px left column, restores layout anchoring */}
+        {!isExamPaper && (
+          <nav
+            role="tablist"
+            aria-label="Canvas sections"
+            style={{
+              width: 48,
+              flexShrink: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              background: 'var(--theme-surface, #18181b)', /* allow-style */
+              borderRight: '1px solid var(--theme-border, #27272a)', /* allow-style */
+              paddingTop: 8,
+              gap: 2,
+            }}
+          >
+            {[
+              { id: 'think', label: 'THINK', fullLabel: '1. Think First', hasDot: hasThinkContent },
+              { id: 'ideas', label: 'IDEAS', fullLabel: '2. Get Ideas', hasDot: hasIdeasContent },
+              { id: 'write', label: 'WRITE', fullLabel: '3. Write', hasDot: false },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={canvasTab === tab.id}
+                aria-label={tab.fullLabel}
+                title={tab.fullLabel}
+                onClick={() => setCanvasTab(tab.id)}
+                style={{
+                  width: '100%',
+                  minHeight: 80,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  background: 'transparent',
+                  border: 'none',
+                  borderLeft: canvasTab === tab.id ? '3px solid var(--sov-line, #10b981)' : '3px solid transparent', /* allow-style */
+                  cursor: 'pointer',
+                  outline: 'none',
+                  paddingLeft: 0,
+                  paddingRight: 0,
+                }}
+                onFocus={e => { e.currentTarget.style.outline = '2px solid #f4f4f5'; }} /* allow-style */
+                onBlur={e => { e.currentTarget.style.outline = 'none'; }}
+              >
+                <span style={{
+                  writingMode: 'vertical-rl',
+                  transform: 'rotate(180deg)',
+                  fontFamily: 'var(--font-system, system-ui)',
+                  fontSize: 9,
+                  fontWeight: 700,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  color: canvasTab === tab.id ? 'var(--sov-line, #10b981)' : 'var(--text-faint, #52525b)', /* allow-style */
+                  userSelect: 'none',
+                }}>
                   {tab.label}
-                  {tab.hasDot && <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--sov-line, #10b981)', display: 'inline-block', marginLeft: 5 }} aria-label="Content ready" />} {/* allow-style */}
-                </button>
-              ))}
-            </div>
-          )}
+                </span>
+                {tab.hasDot && (
+                  <span
+                    style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--sov-line, #10b981)', flexShrink: 0 }} /* allow-style */
+                    aria-label="Content ready"
+                  />
+                )}
+              </button>
+            ))}
+          </nav>
+        )}
 
+        <div className="canvas-centre">
           {/* Tab: Think First (Tier 2 Socratic) */}
           <div style={{ display: !isExamPaper && canvasTab === 'think' ? 'flex' : 'none', flex: 1, overflow: 'auto' }}>
             {currentTitle && (
