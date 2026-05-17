@@ -597,3 +597,42 @@ documents that each contribute their own data to the assessment record.
 Currently all merge into rawText. Fix requires ingestion pipeline redesign.
 
 Separate sprint. Not blocking current functionality.
+
+---
+
+## SPRINT: Learning Journey Spine
+**Priority:** P1 - high value, changes product identity
+**Estimated effort:** 16-20 hours
+
+### Summary
+Replace the 13-tab canvas with a visible 5-stage learning journey spine. Student always knows where they are, what comes next, and how they are progressing.
+
+### Five Stages
+1. **Plan** - decode brief, understand rubric, set Pareto steps
+2. **Research** - find sources, add to corpus, build argument
+3. **Draft** - write with AI scaffold and Socratic support
+4. **Review** - rubric check, formative feedback, Authenticity split
+5. **Submit** - checklist, Authenticity Report, reflection prompt
+
+### AURA Adapts to Current Stage
+- Plan: asks "what must this essay prove?"
+- Research: asks "what evidence supports that?"
+- Draft: monitors silently, nudges every 10min if stuck
+- Review: asks 3 Socratic questions about weakest section
+- Submit: asks "what did you learn about your process?"
+
+### Frameworks to Implement
+- **ZPD:** AURA calibrates to edge of student capability
+- **Bloom's:** identify cognitive level per task, scaffold to it
+- **SDT:** competence feedback + growth acknowledgement
+- **Metacognition:** end-of-task reflection prompt
+- **UDL 3.0 Expert Learning:** student becomes aware of own profile
+
+### Acceptance Criteria
+- Student can see their stage at a glance
+- AURA responses are stage-aware
+- 13 tabs reorganised under 5 stages
+- End-of-task reflection is prompted automatically
+- Growth signals shown across sessions
+
+### Status: NOT STARTED. Logged for future sprint.
