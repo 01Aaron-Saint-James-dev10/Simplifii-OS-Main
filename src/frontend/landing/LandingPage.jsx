@@ -22,6 +22,7 @@ import NeuralAvatar from '../components/visuals/NeuralAvatar';
 import MatrixRain from '../components/MatrixRain';
 import ShowcasePreview from './ShowcasePreview';
 import EducationLevels from './EducationLevels';
+import EmailCapture from '../components/EmailCapture';
 import './LandingPage.css';
 
 const MQ_REDUCE = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -403,6 +404,10 @@ export default function LandingPage() {
         <p style={{ fontFamily: FONT_SYSTEM, fontSize: 11, color: TEXT_FAINT, letterSpacing: '0.04em', marginTop: 8 }}>
           No credit card. No ads. Your data, never sold.
         </p>
+        <div style={{ marginTop: 24, maxWidth: 380, marginLeft: 'auto', marginRight: 'auto' }}>
+          <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_FAINT, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Or join the waitlist</p>
+          <EmailCapture source="landing-footer" />
+        </div>
       </section>
 
       </main>
