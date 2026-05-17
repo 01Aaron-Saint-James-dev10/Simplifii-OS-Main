@@ -134,41 +134,62 @@ ${briefText.slice(0, 5000)}`;
     }
   }
 
-  const systemPrompt = `You are a study planner inside Simplifii-OS. Australian English. No em-dashes.${literalPreamble}${profilePreamble}${learnerPreamble}
+  const systemPrompt = `You are Simplifii's Assessment Scaffolder. Australian English. No em-dashes.${literalPreamble}${profilePreamble}${learnerPreamble}
 
-You are reading an ACTUAL student document. Generate a plan SPECIFIC to this document's content. Cite specific sections, due dates, criteria, topics, and questions found in the text. Do NOT produce generic 5-week templates. If the document does not contain enough information to generate a specific plan, return: "This document does not contain enough detail to generate a plan. Please upload a more complete version."
+A student cannot start. The blank page is the problem. You solve it by giving them a complete structural blueprint that is so specific and clear they can open a document and immediately know what to write.
 
-CRITICAL RULES:
-1. Reference the ACTUAL content provided. If the document mentions "cell biology", "Question 27", "due Friday Week 5", or "2000 words", your plan must reference those specifics.
-2. If this is an exam paper: list the sections, total marks, question count, and suggest a practice strategy per section.
-3. If this is an assignment brief: create a week-by-week plan tied to the actual requirements, criteria, and deadlines in the document.
-4. If this is a rubric: decode each criterion into plain language with specific actions.
-5. Never use placeholder text like "the [title] topic" or "[COURSE_NAME]".
+This tool is especially important for students with ADHD, executive function challenges, perfectionism, or writing anxiety: any student for whom "just start writing" is not sufficient instruction.
 
-Format your response as a WEEK-BY-WEEK ACTION PLAN with checkboxes:
+Return ONLY valid JSON. No markdown. No explanation outside the JSON.`;
 
-## Week 1: [Context-specific title]
-- [ ] [Specific task referencing actual document content]
-- [ ] [Specific task]
-- Tip: [Practical tip relevant to this document]
-
-...continue for as many weeks as the assessment needs...
-
-RULES:
-- Each week should have 3-5 concrete checkbox tasks
-- Each task must be specific and completable in under 30 minutes
-- Include a practical tip per week
-- Adjust complexity for ${levelLabel} level
-- If word count is provided, suggest word allocation per section
-- Total plan should be realistic for the assessment scope`;
+  const wordTarget = wordCount || 1500;
 
   try {
-    const userMsg = `Assessment: "${assessmentTitle || 'Untitled'}"
-Type: ${assessmentType || 'Essay'}
-${wordCount ? `Word count: ${wordCount}` : ''}
+    const userMsg = `Analyse this document and create a scaffold for a ${wordTarget}-word ${assessmentType || 'essay'} on "${assessmentTitle || 'Untitled'}" at ${levelLabel} level.
 
-Brief content:
-${briefText.slice(0, 5000)}`;
+DOCUMENT:
+${briefText.slice(0, 5000)}
+
+Return ONLY a JSON object:
+{
+  "suggestedStructure": [
+    {
+      "sectionName": "section name",
+      "wordCount": 300,
+      "keyQuestion": "the one question this section must answer",
+      "starterSentence": "one example opening sentence the student can adapt",
+      "commonMistakes": "specific mistake that loses marks for this section",
+      "rubricCriteriaLink": "which rubric criterion this addresses",
+      "bloomsPrompt": "one higher-order thinking question (Analyse/Evaluate/Create level)"
+    }
+  ],
+  "beforeYouStart": ["specific preparation step 1", "step 2", "step 3"],
+  "timeEstimate": {
+    "research": "X hours",
+    "planning": "X hours",
+    "writing": "X hours",
+    "editing": "X hours",
+    "neurodivergentBuffer": "X hours extra for processing time"
+  },
+  "normalisingMessage": "warm paragraph acknowledging starting is hard and this scaffold is here to help",
+  "hiddenExpectations": ["implicit expectation 1", "implicit expectation 2"],
+  "rubricAlignment": [
+    {"criterion": "criterion name", "sections": ["which sections address it"], "whatSeparatesHDFromP": "specific difference"}
+  ],
+  "thinkingFramework": "one paragraph: what cognitive moves this assessment requires (analyse, evaluate, synthesise, etc.)"
+}
+
+RULES:
+- 5-8 sections. Word counts must sum to EXACTLY ${wordTarget}
+- keyQuestion: THE question the student writes to answer for each section
+- starterSentence: one example opening sentence per section to break the blank page
+- beforeYouStart: 3 specific preparation steps BEFORE writing
+- timeEstimate: realistic breakdown including neurodivergent buffer
+- normalisingMessage: warm, specific, encouraging. Not generic.
+- Reference ACTUAL content from the document, not generic advice
+- rubricAlignment: map every criterion found to sections
+- Australian English
+- Return ONLY the JSON, nothing else`;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -182,8 +203,15 @@ ${briefText.slice(0, 5000)}`;
       tokensIn: data?.usage?.input_tokens || 0,
       tokensOut: data?.usage?.output_tokens || 0,
     });
-    return res.status(200).json({ success: true, plan: data?.content?.[0]?.text || '' });
-  } catch (err) {
-    return res.status(500).json({ success: false, error: err.message });
+    const rawText = data?.content?.[0]?.text || '';
+    // Try to parse structured JSON; fall back to raw text
+    let scaffold = null;
+    try {
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) scaffold = JSON.parse(jsonMatch[0]);
+    } catch { /* JSON parse failed, return raw */ }
+    return res.status(200).json({ success: true, plan: rawText, scaffold });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Something went wrong. Try again.' });
   }
 }
