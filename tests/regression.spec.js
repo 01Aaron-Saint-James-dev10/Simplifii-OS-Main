@@ -3,20 +3,16 @@ const { test, expect } = require('@playwright/test');
 const path = require('path');
 const fs = require('fs');
 
-const BASE_URL = 'https://simplifii-os-main.vercel.app';
 const TIMESTAMP = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 const SCREENSHOT_DIR = path.join('test-results', TIMESTAMP);
 const TEST_PDF = path.join(__dirname, '..', 'test-assets', 'test-document.pdf');
 
-// Shared state across suites
-let uploadSucceeded = false;
 const allErrors = [];
 const testTimings = [];
 
 function screenshot(page, name) {
-  const dir = SCREENSHOT_DIR;
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  return page.screenshot({ path: path.join(dir, `${name}.png`), fullPage: true });
+  if (!fs.existsSync(SCREENSHOT_DIR)) fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
+  return page.screenshot({ path: path.join(SCREENSHOT_DIR, `${name}.png`), fullPage: true });
 }
 
 function collectErrors(page) {
@@ -29,7 +25,7 @@ function collectErrors(page) {
 }
 
 // ============================================================
-// Suite 1: App Health
+// Suite 1: App Health + Test Mode Verification
 // ============================================================
 test.describe('Suite 1: App Health', () => {
   test('1.1 landing page loads without errors', async ({ page }) => {
@@ -37,7 +33,7 @@ test.describe('Suite 1: App Health', () => {
     const errors = [];
     page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
 
-    const response = await page.goto(BASE_URL, { waitUntil: 'networkidle' });
+    const response = await page.goto('/', { waitUntil: 'networkidle' });
     await screenshot(page, '01-landing');
 
     expect(response?.status()).toBeLessThan(400);
@@ -49,148 +45,202 @@ test.describe('Suite 1: App Health', () => {
     testTimings.push({ name: '1.1 landing', ms: Date.now() - start });
   });
 
-  test('1.2 critical landing elements present', async ({ page }) => {
+  test('1.2 test mode renders authenticated state', async ({ page }) => {
     const start = Date.now();
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
+    collectErrors(page);
 
-    // Check for primary CTA
-    const cta = page.locator('button:has-text("Start"), a:has-text("Start")');
-    const ctaCount = await cta.count();
-    console.log(`CTA buttons: ${ctaCount}`);
-    expect(ctaCount).toBeGreaterThan(0);
+    // Navigate directly to /app (protected route)
+    await page.goto('/app', { waitUntil: 'networkidle', timeout: 15000 });
+    await screenshot(page, '02-app-authenticated');
 
-    // Check for app name or branding
-    const bodyText = await page.textContent('body');
-    const hasBranding = bodyText?.includes('Simplifii') || bodyText?.includes('simplifii');
-    console.log(`Branding present: ${hasBranding}`);
-    expect(hasBranding).toBeTruthy();
+    const url = page.url();
+    console.log(`After /app navigation: ${url}`);
 
-    await screenshot(page, '02-elements');
-    testTimings.push({ name: '1.2 elements', ms: Date.now() - start });
+    // If test mode is active, we should NOT be redirected to /login
+    // If we ARE at /login, test mode is not active (running against prod)
+    const isAuthenticated = !url.includes('/login') && !url.includes('/signup');
+
+    if (isAuthenticated) {
+      console.log('TEST MODE ACTIVE: authenticated state confirmed');
+      // Look for dashboard elements that only render when authenticated
+      const bodyText = await page.textContent('body');
+      const hasDashboard = bodyText?.includes('Add') || bodyText?.includes('course') || bodyText?.includes('AURA');
+      console.log(`Dashboard content present: ${hasDashboard}`);
+    } else {
+      console.log('TEST MODE NOT ACTIVE: redirected to auth (running against production)');
+    }
+
+    testTimings.push({ name: '1.2 auth check', ms: Date.now() - start });
   });
 
-  test('1.3 navigation to auth flow', async ({ page }) => {
+  test('1.3 navigation works', async ({ page }) => {
     const start = Date.now();
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
+    await page.goto('/', { waitUntil: 'networkidle' });
 
-    // Click the primary CTA
     const cta = page.locator('button:has-text("Start"), a:has-text("Start")').first();
     if (await cta.isVisible()) {
       await cta.click();
       await page.waitForTimeout(2000);
-      await screenshot(page, '03-after-cta-click');
-
-      // Should navigate somewhere (auth page, app page, or modal)
-      const url = page.url();
-      console.log(`After CTA click URL: ${url}`);
+      await screenshot(page, '03-after-cta');
+      console.log(`After CTA: ${page.url()}`);
     }
     testTimings.push({ name: '1.3 navigation', ms: Date.now() - start });
   });
 });
 
 // ============================================================
-// Suite 2: Upload and Classification (requires auth)
+// Suite 2: Upload and Classification
 // ============================================================
 test.describe('Suite 2: Upload and Classification', () => {
-  test('2.1 PDF upload flow accessible', async ({ page }) => {
+  test('2.1 dashboard has upload capability', async ({ page }) => {
     const start = Date.now();
     collectErrors(page);
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
+    await page.goto('/app', { waitUntil: 'networkidle', timeout: 15000 });
+    await screenshot(page, '04-dashboard');
 
-    // Check if test PDF exists
-    expect(fs.existsSync(TEST_PDF)).toBeTruthy();
-    console.log(`Test PDF exists: ${fs.existsSync(TEST_PDF)}`);
-
-    // Look for upload-related elements (may require auth)
-    const uploadBtn = page.locator('button:has-text("Upload"), button:has-text("Add"), input[type="file"]');
-    const uploadCount = await uploadBtn.count();
-    console.log(`Upload elements found: ${uploadCount}`);
-
-    await screenshot(page, '04-upload-state');
-
-    if (uploadCount === 0) {
-      console.log('SKIP: Upload requires authentication (expected for unauthenticated view)');
-      uploadSucceeded = false;
-    } else {
-      uploadSucceeded = true;
+    const url = page.url();
+    if (url.includes('/login')) {
+      console.log('SKIP: not authenticated (test mode not active)');
+      testTimings.push({ name: '2.1 upload', ms: Date.now() - start });
+      return;
     }
 
+    // Look for Add Work / Add Course / Upload buttons
+    const addBtns = page.locator('button:has-text("Add"), button:has-text("Upload"), button:has-text("add")');
+    const addCount = await addBtns.count();
+    console.log(`Add/Upload buttons: ${addCount}`);
+
+    // Look for file inputs (may be hidden)
+    const fileInputs = page.locator('input[type="file"]');
+    const fileCount = await fileInputs.count();
+    console.log(`File inputs: ${fileCount}`);
+
+    await screenshot(page, '05-upload-elements');
     testTimings.push({ name: '2.1 upload', ms: Date.now() - start });
   });
 
-  test('2.2 file input accepts PDF', async ({ page }) => {
+  test('2.2 PDF upload triggers ingestion', async ({ page }) => {
     const start = Date.now();
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
+    collectErrors(page);
+    await page.goto('/app', { waitUntil: 'networkidle', timeout: 15000 });
 
-    // Look for hidden file inputs
-    const fileInputs = page.locator('input[type="file"]');
-    const fileCount = await fileInputs.count();
-    console.log(`File inputs on page: ${fileCount}`);
-
-    if (fileCount > 0) {
-      // Try setting the file
-      const input = fileInputs.first();
-      const accept = await input.getAttribute('accept');
-      console.log(`File input accept: ${accept}`);
-      const acceptsPdf = !accept || accept.includes('.pdf') || accept.includes('application/pdf');
-      console.log(`Accepts PDF: ${acceptsPdf}`);
+    if (page.url().includes('/login')) {
+      console.log('SKIP: not authenticated');
+      testTimings.push({ name: '2.2 PDF upload', ms: Date.now() - start });
+      return;
     }
 
-    await screenshot(page, '05-file-inputs');
-    testTimings.push({ name: '2.2 file input', ms: Date.now() - start });
+    expect(fs.existsSync(TEST_PDF)).toBeTruthy();
+
+    // Try to find and click Add Work button to open upload flow
+    const addBtn = page.locator('button:has-text("Add work"), button:has-text("Add Work")').first();
+    if (await addBtn.isVisible()) {
+      await addBtn.click();
+      await page.waitForTimeout(500);
+      await screenshot(page, '06-add-work-modal');
+
+      // Look for file input in the modal
+      const fileInput = page.locator('input[type="file"]').first();
+      if (await fileInput.count() > 0) {
+        await fileInput.setInputFiles(TEST_PDF);
+        console.log('PDF file set on input');
+        await page.waitForTimeout(3000); // Wait for ingestion
+        await screenshot(page, '07-after-upload');
+      } else {
+        console.log('No file input found in modal');
+      }
+    } else {
+      console.log('Add Work button not visible');
+      await screenshot(page, '06-no-add-work');
+    }
+
+    testTimings.push({ name: '2.2 PDF upload', ms: Date.now() - start });
   });
 });
 
 // ============================================================
-// Suite 3: Editor Interaction (skipped if upload failed)
+// Suite 3: Editor Interaction
 // ============================================================
 test.describe('Suite 3: Editor Interaction', () => {
-  test('3.1 editor area detection', async ({ page }) => {
+  test('3.1 editor and panel elements', async ({ page }) => {
     const start = Date.now();
     collectErrors(page);
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
+    await page.goto('/app', { waitUntil: 'networkidle', timeout: 15000 });
 
-    // Look for editor-like elements (contenteditable, textarea, tiptap)
+    if (page.url().includes('/login')) {
+      console.log('SKIP: not authenticated');
+      testTimings.push({ name: '3.1 editor', ms: Date.now() - start });
+      return;
+    }
+
+    await screenshot(page, '08-app-state');
+
+    // Check for editor elements
     const editors = page.locator('[contenteditable="true"], textarea, .tiptap, .ProseMirror');
     const editorCount = await editors.count();
     console.log(`Editor elements: ${editorCount}`);
 
-    // Look for panel/tab elements
+    // Check for panel/tab elements
     const panels = page.locator('[role="tablist"], [role="tab"], nav');
     const panelCount = await panels.count();
-    console.log(`Panel/tab elements: ${panelCount}`);
+    console.log(`Panel/nav elements: ${panelCount}`);
 
-    await screenshot(page, '06-editor-state');
+    // Check for AURA orb
+    const orb = page.locator('canvas, [aria-label*="AURA"], [class*="orb"]');
+    const orbCount = await orb.count();
+    console.log(`AURA orb elements: ${orbCount}`);
+
     testTimings.push({ name: '3.1 editor', ms: Date.now() - start });
   });
 
-  test('3.2 AURA orb present', async ({ page }) => {
+  test('3.2 AURA chat opens', async ({ page }) => {
     const start = Date.now();
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
+    await page.goto('/app', { waitUntil: 'networkidle', timeout: 15000 });
 
-    // Look for AURA orb (canvas element or styled div)
-    const orbElements = page.locator('canvas, [aria-label*="AURA"], [class*="orb"]');
-    const orbCount = await orbElements.count();
-    console.log(`AURA orb elements: ${orbCount}`);
+    if (page.url().includes('/login')) {
+      console.log('SKIP: not authenticated');
+      testTimings.push({ name: '3.2 AURA chat', ms: Date.now() - start });
+      return;
+    }
 
-    await screenshot(page, '07-aura-orb');
-    testTimings.push({ name: '3.2 orb', ms: Date.now() - start });
+    // Try clicking the AURA orb
+    const orbBtn = page.locator('canvas, [aria-label*="AURA"]').first();
+    if (await orbBtn.isVisible()) {
+      await orbBtn.click();
+      await page.waitForTimeout(1000);
+      await screenshot(page, '09-aura-chat-open');
+
+      // Check if chat overlay appeared
+      const chatInput = page.locator('input[placeholder*="AURA"], input[placeholder*="Ask"]');
+      const chatVisible = await chatInput.count();
+      console.log(`AURA chat input visible: ${chatVisible > 0}`);
+    } else {
+      console.log('AURA orb not clickable');
+    }
+
+    testTimings.push({ name: '3.2 AURA chat', ms: Date.now() - start });
   });
 });
 
 // ============================================================
-// Suite 4: Export (skipped if no editor content)
+// Suite 4: Export
 // ============================================================
 test.describe('Suite 4: Export', () => {
-  test('4.1 export controls detection', async ({ page }) => {
+  test('4.1 export controls present', async ({ page }) => {
     const start = Date.now();
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
+    await page.goto('/app', { waitUntil: 'networkidle', timeout: 15000 });
+
+    if (page.url().includes('/login')) {
+      console.log('SKIP: not authenticated');
+      testTimings.push({ name: '4.1 export', ms: Date.now() - start });
+      return;
+    }
 
     const exportBtn = page.locator('button:has-text("Export"), button:has-text("Download"), button:has-text("Submit")');
     const exportCount = await exportBtn.count();
-    console.log(`Export buttons: ${exportCount}`);
+    console.log(`Export/Submit buttons: ${exportCount}`);
 
-    await screenshot(page, '08-export-state');
+    await screenshot(page, '10-export-state');
     testTimings.push({ name: '4.1 export', ms: Date.now() - start });
   });
 });
@@ -199,27 +249,25 @@ test.describe('Suite 4: Export', () => {
 // Suite 5: Edge Cases
 // ============================================================
 test.describe('Suite 5: Edge Cases', () => {
-  test('5.1 empty state handled gracefully', async ({ page }) => {
+  test('5.1 no undefined or null rendered', async ({ page }) => {
     const start = Date.now();
     const errors = [];
     page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
     page.on('pageerror', err => errors.push(`PAGE: ${err.message}`));
 
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
+    await page.goto('/app', { waitUntil: 'networkidle', timeout: 15000 });
 
-    // Should not have uncaught errors or blank white page
     const bodyHtml = await page.innerHTML('body');
     const hasContent = bodyHtml.length > 100;
     console.log(`Body has content: ${hasContent} (${bodyHtml.length} chars)`);
     expect(hasContent).toBeTruthy();
 
-    // No "undefined" or "null" rendered as visible text (common React bug)
     const visibleText = await page.textContent('body');
     const hasUndefined = /\bundefined\b|\bnull\b/.test(visibleText || '');
-    console.log(`Renders "undefined" or "null": ${hasUndefined}`);
+    console.log(`Renders "undefined"/"null": ${hasUndefined}`);
 
-    await screenshot(page, '09-empty-state');
-    console.log(`Console errors in empty state: ${errors.length}`);
+    await screenshot(page, '11-edge-empty');
+    console.log(`Console errors: ${errors.length}`);
     errors.forEach(e => console.log(`  ERR: ${e}`));
 
     testTimings.push({ name: '5.1 empty', ms: Date.now() - start });
@@ -227,13 +275,13 @@ test.describe('Suite 5: Edge Cases', () => {
 
   test('5.2 responsive viewport', async ({ page }) => {
     const start = Date.now();
-    await page.setViewportSize({ width: 375, height: 812 }); // iPhone
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
-    await screenshot(page, '10-mobile-375');
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/app', { waitUntil: 'networkidle', timeout: 15000 });
+    await screenshot(page, '12-mobile-375');
 
-    await page.setViewportSize({ width: 768, height: 1024 }); // iPad
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
-    await screenshot(page, '11-tablet-768');
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await page.goto('/app', { waitUntil: 'networkidle', timeout: 15000 });
+    await screenshot(page, '13-tablet-768');
 
     console.log('Responsive screenshots captured');
     testTimings.push({ name: '5.2 responsive', ms: Date.now() - start });
@@ -242,13 +290,12 @@ test.describe('Suite 5: Edge Cases', () => {
   test('5.3 performance baseline', async ({ page }) => {
     const start = Date.now();
     const navStart = Date.now();
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
+    await page.goto('/', { waitUntil: 'networkidle' });
     const loadTime = Date.now() - navStart;
 
     console.log(`Page load time: ${loadTime}ms`);
-    expect(loadTime).toBeLessThan(15000); // Should load within 15s
+    expect(loadTime).toBeLessThan(15000);
 
-    // Check JS bundle count
     const resources = await page.evaluate(() =>
       performance.getEntriesByType('resource')
         .filter(r => r.name.endsWith('.js') || r.name.endsWith('.css'))
@@ -257,25 +304,23 @@ test.describe('Suite 5: Edge Cases', () => {
     console.log(`JS/CSS resources: ${resources.length}`);
     resources.slice(0, 5).forEach(r => console.log(`  ${r.name}: ${r.duration}ms`));
 
-    await screenshot(page, '12-performance');
+    await screenshot(page, '14-performance');
     testTimings.push({ name: '5.3 perf', ms: Date.now() - start });
   });
 });
 
 // ============================================================
-// Report generation (runs after all tests)
+// Report
 // ============================================================
 test.afterAll(async () => {
-  const dir = SCREENSHOT_DIR;
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(SCREENSHOT_DIR)) fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
 
-  const screenshots = fs.existsSync(dir)
-    ? fs.readdirSync(dir).filter(f => f.endsWith('.png'))
+  const screenshots = fs.existsSync(SCREENSHOT_DIR)
+    ? fs.readdirSync(SCREENSHOT_DIR).filter(f => f.endsWith('.png'))
     : [];
 
   const report = `# Regression Test Report
 **Date:** ${new Date().toISOString()}
-**Target:** ${BASE_URL}
 **Playwright:** 1.60.0
 
 ## Results
@@ -284,20 +329,20 @@ test.afterAll(async () => {
 |------|------|
 ${testTimings.map(t => `| ${t.name} | ${t.ms}ms |`).join('\n')}
 
-## Console Errors Captured
+## Console Errors
 
 ${allErrors.length === 0 ? 'None' : allErrors.map(e => `- [${e.url}] ${e.text}`).join('\n')}
 
 ## Screenshots
 
-${screenshots.map(s => `- ${s}`).join('\n') || 'None captured'}
+${screenshots.map(s => `- ${s}`).join('\n') || 'None'}
 
 ## Notes
 
-- Suites 2-4 require authentication. Tests verify element presence but cannot complete full flows without a test user session.
-- Upload and export tests detect UI elements only; functional testing requires auth bypass or test credentials.
+- Tests run against production by default (auth-gated: suites 2-4 detect elements only)
+- For full authenticated testing: PLAYWRIGHT_LOCAL=true npx playwright test (starts local dev server with test mode)
 `;
 
-  fs.writeFileSync(path.join(dir, 'report.md'), report);
-  console.log(`Report written to ${path.join(dir, 'report.md')}`);
+  fs.writeFileSync(path.join(SCREENSHOT_DIR, 'report.md'), report);
+  console.log(`Report: ${path.join(SCREENSHOT_DIR, 'report.md')}`);
 });

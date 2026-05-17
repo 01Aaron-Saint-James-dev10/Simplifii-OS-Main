@@ -6,13 +6,36 @@ const log = createLogger('AuthContext');
 
 const AuthContext = createContext();
 
+// Test mode: bypass auth for Playwright regression tests.
+// SAFETY: requires BOTH REACT_APP_TEST_MODE=true AND non-production NODE_ENV.
+// Vercel production builds always set NODE_ENV=production, so this is dead code in prod.
+const IS_TEST_MODE =
+  process.env.REACT_APP_TEST_MODE === 'true' &&
+  process.env.NODE_ENV !== 'production';
+
+const TEST_USER = IS_TEST_MODE ? {
+  id: process.env.REACT_APP_TEST_USER_ID || 'test-user-00000000-0000-0000-0000-000000000001',
+  email: process.env.REACT_APP_TEST_USER_EMAIL || 'qa@simplifii-test.com',
+  app_metadata: { provider: 'test' },
+  user_metadata: { display_name: 'QA Tester' },
+  aud: 'authenticated',
+  role: 'authenticated',
+  created_at: new Date().toISOString(),
+} : null;
+
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [session, setSession] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(IS_TEST_MODE ? TEST_USER : null);
+  const [session, setSession] = useState(IS_TEST_MODE ? { user: TEST_USER, access_token: 'test-token' } : null);
+  const [loading, setLoading] = useState(!IS_TEST_MODE);
   const [authError, setAuthError] = useState(null);
 
   useEffect(() => {
+    // In test mode, skip all Supabase auth. User is already set.
+    if (IS_TEST_MODE) {
+      log.info('TEST MODE ACTIVE: using mock user', TEST_USER.email);
+      return;
+    }
+
     const handleSession = ({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
@@ -87,6 +110,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signOut = async () => {
+    if (IS_TEST_MODE) { log.info('TEST MODE: signOut is a no-op'); return; }
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   };
