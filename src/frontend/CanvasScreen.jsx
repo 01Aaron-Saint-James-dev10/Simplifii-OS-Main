@@ -42,9 +42,17 @@ import FirstLookCard from './components/FirstLookCard';
 import AssessmentSwitcher from './components/AssessmentSwitcher';
 import SubmitModal from './components/SubmitModal';
 import CanvasHelpOverlay from './components/CanvasHelpOverlay';
-import { appendEvent } from '../core/HistoryOfThought';
-import { startIdleDetection, stopIdleDetection } from '../core/ExecutiveSpine';
 import { determinePhase, checkPhaseTransition } from '../core/TaskLifecycleManager';
+
+// Lazy-loaded to avoid init order issues with crypto/PBKDF2 in HistoryOfThought
+let _appendEvent = null;
+let _startIdle = null;
+let _stopIdle = null;
+const getHoT = () => { if (!_appendEvent) { const m = require('../core/HistoryOfThought'); _appendEvent = m.appendEvent; } return _appendEvent; };
+const getIdle = () => { if (!_startIdle) { const m = require('../core/ExecutiveSpine'); _startIdle = m.startIdleDetection; _stopIdle = m.stopIdleDetection; } return { startIdleDetection: _startIdle, stopIdleDetection: _stopIdle }; };
+const appendEvent = (...args) => { try { return getHoT()(...args); } catch { return Promise.resolve(); } };
+const startIdleDetection = (...args) => { try { getIdle().startIdleDetection(...args); } catch {} };
+const stopIdleDetection = () => { try { getIdle().stopIdleDetection(); } catch {} };
 import './CanvasScreen.css';
 
 /**
