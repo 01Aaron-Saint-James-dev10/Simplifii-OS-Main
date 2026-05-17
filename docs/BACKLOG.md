@@ -551,3 +551,39 @@ without passing activeQuestion from CanvasScreen to AuraChatOverlay.
 Requires: CanvasScreen refactor to emit activeQuestion via event or context.
 Defer to: next session after CanvasScreen is confirmed stable.
 
+
+---
+
+## SPRINT: Special Interest Personalisation
+**Priority:** P1 (high value, not blocking)
+**Estimated effort:** 8-12 hours
+
+### Summary
+Every AURA response, UDL transformation, joke, encouragement message, and analogy should draw from the learner's declared special interests.
+
+### Required Changes
+
+1. **Onboarding:** add "What do you love?" question
+   - Store as `profile.specialInterests: string[]`
+   - Up to 5 interests, free text
+   - Editable from Settings
+
+2. **Supabase:** add `special_interests TEXT[]` column to profiles table
+
+3. **api/_aura-prompt.js:** inject special interests into system prompt context
+
+4. **api/represent.js:** pass interests to UDL transformation prompts
+
+5. **api/joke.js:** generate jokes in interest domain
+
+6. **TaskLifecycleManager:** pass interests to milestone acknowledgement messages
+
+7. **Dashboard greeting:** reference interests and cognitive style in welcome message
+
+### Acceptance Criteria
+- A student who lists "Dragon Ball Z" gets DBZ analogies from AURA, a DBZ joke, and DBZ-framed encouragement
+- A student who lists "marine biology" gets ocean analogies and marine examples in UDL output
+- A student with no interests set gets universally accessible generic examples (graceful fallback)
+- Interests are editable from Settings at any time
+
+### Status: NOT STARTED. Logged for future sprint.
