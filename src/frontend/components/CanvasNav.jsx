@@ -108,7 +108,7 @@ export default function CanvasNav({ courseName, assessmentTitle, saveStatus, las
           </span>
           <span style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_FAINT }}>/</span>
           <span style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600, color: TEXT_PRIMARY }}>
-            {assessmentTitle || 'Assessment'}
+            {stripMarkdown(assessmentTitle) || 'Assessment'}
           </span>
         </div>
       </div>
