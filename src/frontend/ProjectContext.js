@@ -249,6 +249,24 @@ export const ProjectProvider = ({ children }) => {
   useEffect(() => { localStorage.setItem('simplifii_courses_v1', JSON.stringify(courses)); }, [courses]);
   useEffect(() => { localStorage.setItem('simplifii_activeCourseId', activeCourseId); }, [activeCourseId]);
 
+  // Fetch courses from Supabase on login (source of truth when localStorage is empty)
+  useEffect(() => {
+    if (!user?.id) return;
+    if (courses && Object.keys(courses).length > 0) return; // already have local data
+    (async () => {
+      try {
+        const { data: rows } = await supabase.from('courses').select('*').eq('user_id', user.id);
+        if (rows && rows.length > 0) {
+          const hydrated = {};
+          for (const row of rows) {
+            hydrated[row.id] = { name: row.name, code: row.code, tier: row.tier, term: row.term ? { year: row.term_year, code: row.term_code } : null, extractionData: row.extraction_data || {} };
+          }
+          setCourses(hydrated);
+        }
+      } catch { /* Supabase unavailable, use whatever is in localStorage */ }
+    })();
+  }, [user?.id]); // eslint-disable-line
+
   // Roadmap legacy purge. One-time: any course whose roadmap exactly matches
   // the pre-purge defaults gets wiped to nulls so the cockpit shows empty
   // state on first reload after upgrade. Flag prevents the loop from re-
