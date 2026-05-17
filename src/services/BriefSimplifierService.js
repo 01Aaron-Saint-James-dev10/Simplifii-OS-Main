@@ -87,12 +87,8 @@ export async function runBriefSimplifier({ assessmentBrief, courseContext }) {
     const data = await resp.json();
 
     if (data.success && data.plan) {
-      // The serverless endpoint returns markdown; wrap as weekly plan
       result = {
-        weeklyTasks: [{ week: 1, tasks: [data.plan] }],
-        rubricAlignment: [],
-        jargonDecoded: [],
-        hiddenCurriculum: [],
+        scaffold: data.scaffold || null,
         rawPlan: data.plan,
       };
       source = 'api';
@@ -116,8 +112,8 @@ export async function runBriefSimplifier({ assessmentBrief, courseContext }) {
         source,
         latencyMs: source === 'api' ? latencyMs : undefined,
         error: error || undefined,
-        weekCount: result.weeklyTasks?.length || 0,
-        jargonCount: result.jargonDecoded?.length || 0,
+        hasScaffold: !!result.scaffold,
+        sectionCount: result.scaffold?.suggestedStructure?.length || 0,
       },
     });
   } catch { /* vault may be locked */ }
