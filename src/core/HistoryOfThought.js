@@ -238,9 +238,14 @@ const newEventId = () => {
 // Cloud sync helpers
 // ============================================================
 
-const getLocalUserId = () => __cloudUserId || 'local';
+const hashValue = async (str) => {
+  if (!isCryptoAvailable() || !str) return null;
+  const enc = new TextEncoder().encode(str);
+  const buf = await window.crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+};
 
-const pushToCloud = async (event) => {
+const pushToCloud = async (event, payload = {}) => {
   if (!__cloudSyncEnabled || !__cloudUserId) return;
   try {
     const { supabase: sb } = await import(/* webpackChunkName: "supabase" */ '../lib/supabaseClient');
@@ -248,23 +253,25 @@ const pushToCloud = async (event) => {
       log.debug('Supabase client not available, skipping cloud sync');
       return;
     }
-    const { error } = await sb.from('history_of_thought_events').insert({
-      user_id: __cloudUserId,
-      event_id: event.event_id,
+    const userHash = await hashValue(__cloudUserId);
+    if (!userHash) return;
+    const titleHash = payload?.assessmentTitle
+      ? await hashValue(payload.assessmentTitle)
+      : null;
+
+    const { error } = await sb.from('simplifii_telemetry_events').insert({
+      user_id_hash: userHash,
       event_type: event.event_type,
-      stream_id: event.stream_id,
-      payload_encrypted: event.payload_encrypted,
-      device_signature_sha256: event.device_signature_sha256,
-      schema_version: event.schema_version,
-      timestamp_iso: event.timestamp_iso
+      assessment_title_hash: titleHash,
+      course_code: payload?.courseCode || payload?.courseId || null,
+      tier: payload?.tier || null,
+      schema_version: 1,
     });
-    if (error && typeof console !== 'undefined') {
-      log.warn(' cloud sync insert failed:', error.message);
+    if (error) {
+      log.warn('telemetry insert failed:', error.message);
     }
   } catch (err) {
-    if (typeof console !== 'undefined') {
-      log.warn(' cloud sync error:', err.message);
-    }
+    log.warn('telemetry sync error:', err.message);
   }
 };
 
@@ -323,7 +330,7 @@ export const appendEvent = async ({ user_id = 'local', stream_id = 'tertiary', e
   });
 
   if (__cloudSyncEnabled && __cloudUserId) {
-    pushToCloud(event);
+    pushToCloud(event, payload);
   }
 
   return result;
