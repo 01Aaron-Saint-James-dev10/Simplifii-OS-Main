@@ -22,20 +22,31 @@ export async function persistCourseToSupabase({ name, code, tier, term, assessme
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  // Truncate rawText to 12KB to stay within Supabase JSONB size limits
-  const truncatedRaw = rawText ? rawText.slice(0, 12000) : null;
-
   // Build the data JSONB payload (everything AURA needs on reload)
   const dataPayload = {
     code: code || null,
     tier: tier || null,
     term: term || null,
-    rawText: truncatedRaw,
   };
-  // Store minimal extractionData (exclude rawText since it's stored separately)
+
+  // Store typed documents array if available (structured per-document data)
+  if (extractionData?.documents) {
+    // Cap each document's text to 3KB for JSONB size limits
+    dataPayload.documents = extractionData.documents.map(d => ({
+      ...d,
+      text: d.text ? d.text.slice(0, 3000) : '',
+    }));
+  }
+
+  // Store minimal extractionData (exclude rawText blobs, keep metadata)
   if (extractionData) {
-    const { rawText: _discard, primaryRawText: _discard2, ...rest } = extractionData;
+    const { rawText: _discard, primaryRawText: _discard2, documents: _discard3, ...rest } = extractionData;
     dataPayload.extractionData = rest;
+  }
+
+  // Fallback: store truncated rawText for legacy courses without typed documents
+  if (rawText && !extractionData?.documents) {
+    dataPayload.rawText = rawText.slice(0, 12000);
   }
 
   const courseId = localId || uuidv4();

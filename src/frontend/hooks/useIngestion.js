@@ -543,11 +543,29 @@ export function useIngestion({
     }
   };
 
-  // Ingest user-uploaded PDF Files from a file picker. Mirrors the
-  // handleIngestGrounding flow but accepts raw File objects instead of
-  // fetching from the grounding folder. Each file is extracted via
-  // processDocumentWithGCP (sovereign pdfjs path), grouped by unit code,
-  // and fed through handleSprintCreation to create courses.
+  // Classify a single document's extracted text using pattern matching.
+  // Returns one of: course_outline, brief, rubric, exam_paper, reading, unknown
+  const classifyText = (text, filename) => {
+    const snippet = (text || '').slice(0, 1500);
+    const nameLower = (filename || '').toLowerCase();
+    // Filename hints first
+    if (/outline|course[ _-]?info|unit[ _-]?guide|subject[ _-]?outline/i.test(nameLower)) return 'course_outline';
+    if (/rubric|criteria|marking[ _-]?guide/i.test(nameLower)) return 'rubric';
+    if (/brief|assess|task|instruction/i.test(nameLower)) return 'brief';
+    if (/exam|paper|test|quiz/i.test(nameLower)) return 'exam_paper';
+    // Content patterns
+    if (/\b(Question\s+\d|Section\s+[I|II|III|IV|A-D]|\(\d+\s*marks?\)|\bexam\b.*\bpaper\b|HSC|VCE|QCE|WACE|ATAR)\b/i.test(snippet)) return 'exam_paper';
+    if (/\b(criteria|band\s+[1-6]|high\s+distinction|distinction|credit|pass|fail|marking\s+guide|rubric|expected\s+qualities)\b/i.test(snippet)) return 'rubric';
+    if (/\b(assessment\s+task|due\s+date|word\s+count|submission|weighting|learning\s+outcome|submit\s+via)\b/i.test(snippet)) return 'brief';
+    if (/\b(course\s+outline|unit\s+guide|subject\s+description|teaching\s+staff|lecture\s+schedule|weekly\s+topic)\b/i.test(snippet)) return 'course_outline';
+    if (/\b(abstract|doi:|journal|vol\.\s*\d|pp\.\s*\d|et\s+al|published\s+in)\b/i.test(snippet)) return 'reading';
+    return 'unknown';
+  };
+
+  // Ingest user-uploaded PDF Files from a file picker.
+  // INGESTION CONTRACT: Each file is classified individually. Documents are
+  // stored typed (not merged into one rawText blob). AURA receives structured
+  // context per document type.
   const handleUploadedFiles = async (fileList) => {
     if (ingesting || !fileList || fileList.length === 0) return;
     setIngesting(true);
@@ -572,36 +590,46 @@ export function useIngestion({
       for (const code of codes) {
         const groupFiles = fileGroups[code];
         let resolvedCode = code;
-        let aggregated = {
-          unitCode: code,
-          level: profile.level,
-          theme: 'General',
-          sourceFiles: groupFiles.map(f => f.name)
-        };
+
+        // Per-file extraction and classification (INGESTION CONTRACT)
+        const typedDocuments = []; // { type, filename, text, deepData }
         let primaryRawText = null;
+
         for (const file of groupFiles) {
           setIngestStatus(`Extracting ${file.name}...`);
           try {
             const processDocumentWithGCP = await loadDocumentAI();
             const text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
-            // If code is still 'UNTITLED', try to find a course code in the extracted text
+            if (!text || text.trim().length === 0) continue;
+
+            // Try to find course code in content if filename had none
             if (resolvedCode === 'UNTITLED' && text) {
               const contentMatch = text.match(COURSE_CODE_RE);
               if (contentMatch) {
                 resolvedCode = contentMatch[1].toUpperCase();
-                aggregated.unitCode = resolvedCode;
               }
             }
+
+            // Classify this specific document
+            const docType = classifyText(text, file.name);
             const deepData = extractDeepCourseData(text);
-            aggregated = mergeExtractionData(aggregated, { ...deepData, rawText: text });
+
+            typedDocuments.push({
+              type: docType,
+              filename: file.name,
+              text: text,
+              deepData: deepData,
+            });
+
             if (primaryRawText === null) primaryRawText = text;
-            // Log ingestion event for accuracy tracking
+
+            // Log ingestion event
             if (user?.id) {
               logIngestionEvent({
                 userId: user.id,
-                docId: code,
+                docId: resolvedCode,
                 docFilename: file.name,
-                docType: deepData.documentType || 'unknown',
+                docType: docType,
                 extractionMethod: detectExtractionMethod(file, text),
                 rawTextLength: text?.length || 0,
                 extractedFields: {
@@ -617,8 +645,44 @@ export function useIngestion({
             log.warn(' skipped', file.name, err && err.message);
           }
         }
+
+        if (typedDocuments.length === 0) continue;
+
+        // Build structured extraction data from typed documents (not a merged blob)
+        const outlineDocs = typedDocuments.filter(d => d.type === 'course_outline');
+        const briefDocs = typedDocuments.filter(d => d.type === 'brief');
+        const rubricDocs = typedDocuments.filter(d => d.type === 'rubric');
+        const examDocs = typedDocuments.filter(d => d.type === 'exam_paper');
+        const readingDocs = typedDocuments.filter(d => d.type === 'reading');
+        const unknownDocs = typedDocuments.filter(d => d.type === 'unknown');
+
+        // Merge deep data from all documents (for assessment titles, dates, etc.)
+        let aggregated = { unitCode: resolvedCode, level: profile.level, theme: 'General', sourceFiles: groupFiles.map(f => f.name) };
+        for (const doc of typedDocuments) {
+          aggregated = mergeExtractionData(aggregated, { ...doc.deepData, rawText: doc.text });
+        }
         if (primaryRawText) aggregated.primaryRawText = primaryRawText;
-        setIngestStatus(`Creating ${code} cockpit...`);
+
+        // Store typed documents array so AURA can read structured context
+        aggregated.documents = typedDocuments.map(d => ({
+          type: d.type,
+          filename: d.filename,
+          text: d.text.slice(0, 5000), // Cap per-doc to 5KB for storage
+          title: d.deepData.assessmentTitle || d.deepData.courseName || d.filename,
+          rubricCriteria: d.deepData.rubricCriteria || [],
+          rubricBands: d.deepData.rubricBands || [],
+          words: d.deepData.words || 0,
+          weighting: d.deepData.weighting || 0,
+          dueDate: d.deepData.assessmentDates?.[0]?.parsed?.toISOString() || null,
+        }));
+
+        // Document type for the course (most important document's type)
+        if (examDocs.length > 0) aggregated.documentType = 'exam_paper';
+        else if (briefDocs.length > 0) aggregated.documentType = 'brief';
+        else if (rubricDocs.length > 0) aggregated.documentType = 'rubric';
+        else if (outlineDocs.length > 0) aggregated.documentType = 'course_outline';
+
+        setIngestStatus(`Creating ${resolvedCode} cockpit...`);
         lastCourseId = await handleSprintCreation(aggregated);
       }
 

@@ -271,6 +271,7 @@ export const ProjectProvider = ({ children }) => {
             }));
             const extractionData = {
               ...(d.extractionData || {}),
+              documents: d.documents || null,
               rawText: d.rawText || '',
               assessmentBriefs: assessmentBriefs.length > 0 ? assessmentBriefs : (d.extractionData?.assessmentBriefs || []),
             };

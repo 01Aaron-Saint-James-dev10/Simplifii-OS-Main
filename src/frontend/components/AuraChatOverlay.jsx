@@ -72,33 +72,43 @@ export default function AuraChatOverlay({ open, onClose }) {
     return parts.length > 0 ? parts.join('\n') : '';
   }, [activeAssessmentTitle, activeWeight, activeDueDate, allDocs, rubricCriteria]);
 
-  // Build document context for AURA from extractionData
-  // Priority: rawText (full concatenated text) > assessmentBriefs[].body > primaryRawText
+  // Build structured document context for AURA (INGESTION CONTRACT)
+  // Priority: typed documents[] > assessmentBriefs[].body > rawText fallback
   const activeBriefText = useMemo(() => {
     const ext = activeCourse?.extractionData;
     if (!ext) return '';
 
-    // rawText contains ALL uploaded document text concatenated (best source)
-    const rawText = ext.rawText || ext.primaryRawText || '';
+    // Best case: typed documents array from per-file classification
+    const typedDocs = ext.documents;
+    if (typedDocs && typedDocs.length > 0) {
+      const parts = [];
+      for (const doc of typedDocs.slice(0, 5)) {
+        const header = `[${doc.type.toUpperCase()}: ${doc.title || doc.filename}]`;
+        const meta = [];
+        if (doc.weighting) meta.push(`Weight: ${doc.weighting}%`);
+        if (doc.words) meta.push(`Word count: ${doc.words}`);
+        if (doc.dueDate) meta.push(`Due: ${doc.dueDate}`);
+        if (doc.rubricCriteria?.length > 0) meta.push(`Rubric criteria: ${doc.rubricCriteria.join('; ')}`);
+        const metaLine = meta.length > 0 ? `\n${meta.join(' | ')}` : '';
+        const content = doc.text ? doc.text.slice(0, 600) : '';
+        parts.push(`${header}${metaLine}\n${content}`);
+      }
+      return parts.join('\n\n---\n\n').slice(0, 3200);
+    }
 
-    // If we have structured briefs with bodies, use those for labelled context
+    // Fallback: structured briefs with bodies
     const docsWithBodies = allDocs.filter(d => d.body && d.body.length > 20);
     if (docsWithBodies.length > 0) {
       const labelled = docsWithBodies
         .slice(0, 4)
         .map((doc, i) => `[${doc.title || `Document ${i + 1}`}]\n${doc.body.slice(0, 800)}`)
         .join('\n\n---\n\n');
-      // Append remaining raw text if available and labelled text is short
-      if (labelled.length < 2000 && rawText.length > labelled.length) {
-        return `${labelled}\n\n---\n\n[ADDITIONAL CONTENT]\n${rawText.slice(labelled.length, 3200)}`.slice(0, 3200);
-      }
       return labelled.slice(0, 3200);
     }
 
-    // No bodies in briefs: use raw text directly (this is the common case for multi-doc uploads)
-    if (rawText) {
-      return rawText.slice(0, 3200);
-    }
+    // Last resort: raw text blob (legacy courses)
+    const rawText = ext.rawText || ext.primaryRawText || '';
+    if (rawText) return rawText.slice(0, 3200);
 
     return '';
   }, [allDocs, activeCourse]);
