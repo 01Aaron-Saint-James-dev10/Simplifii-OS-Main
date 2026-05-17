@@ -116,7 +116,7 @@ export default function EnergyOrbs({ userId }) {
         ...(clusterPos ? { left: clusterPos.x, top: clusterPos.y } : { bottom: 20, left: 16 }),
         zIndex: 80,
         display: 'flex',
-        flexDirection: 'column-reverse',
+        flexDirection: 'column',
         gap: 4,
         alignItems: 'center',
         cursor: 'grab',
@@ -148,21 +148,33 @@ export default function EnergyOrbs({ userId }) {
       aria-valuemax={total}
       aria-valuenow={remaining}
     >
-      {/* Orbs stack: click to set active energy level, wraps to 0 */}
+      {/* + button: increase active energy */}
+      <button
+        type="button"
+        aria-label="Increase energy level"
+        onClick={() => setSpent(s => Math.max(0, s - 1))}
+        style={{ minHeight: 44, minWidth: 44, background: 'none', border: `1px solid ${ACCENT_PULSE}`, borderRadius: BORDER_RADIUS, cursor: 'pointer', fontSize: 18, color: ACCENT_PULSE, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      >+</button>
+
+      {/* Count display */}
+      <span style={{ fontFamily: FONT_SYSTEM, fontSize: 11, color: ACCENT_PULSE, textAlign: 'center' }}>
+        {remaining}
+      </span>
+
+      {/* Orbs stack: display only */}
       {Array.from({ length: total }, (_, i) => (
-        <button
-          key={i}
-          type="button"
-          aria-label={`Set energy to ${i + 1}`}
-          onClick={() => {
-            const newRemaining = (i + 1 === remaining) ? 0 : i + 1;
-            setSpent(total - newRemaining);
-          }}
-          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}
-        >
+        <div key={i} aria-hidden="true" style={{ display: 'flex' }}>
           <OrbSVG filled={i < remaining} size={24} />
-        </button>
+        </div>
       ))}
+
+      {/* - button: decrease active energy */}
+      <button
+        type="button"
+        aria-label="Decrease energy level"
+        onClick={() => setSpent(s => Math.min(total, s + 1))}
+        style={{ minHeight: 44, minWidth: 44, background: 'none', border: `1px solid ${ACCENT_PULSE}`, borderRadius: BORDER_RADIUS, cursor: 'pointer', fontSize: 18, color: ACCENT_PULSE, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      >-</button>
 
       {/* Tooltip */}
       {showTooltip && (
