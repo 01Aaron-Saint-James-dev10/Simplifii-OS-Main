@@ -236,6 +236,32 @@ export default function AuraChatOverlay({ open, onClose }) {
     return () => window.removeEventListener('simplifii:aura-inject', handler);
   }, []);
 
+  // Detect new documents added mid-session and proactively acknowledge
+  const prevDocCountRef = useRef(allDocs.length);
+  useEffect(() => {
+    const prevCount = prevDocCountRef.current;
+    const newCount = allDocs.length;
+    if (newCount > prevCount && prevCount > 0) {
+      // A new document was added mid-session
+      const newest = allDocs[allDocs.length - 1];
+      const docType = newest?.type || activeDocType || 'document';
+      const docTitle = newest?.title || 'a new document';
+      const actionMap = {
+        brief: `decode the requirements and build you a scaffold`,
+        rubric: `decode the rubric into plain language actions`,
+        exam_paper: `break down the questions and create a practice plan`,
+        course_outline: `extract your assessments and due dates`,
+        reading: `summarise the key points`,
+      };
+      const action = actionMap[docType] || 'help you work with it';
+      setMessages(prev => [...prev, {
+        role: 'tutor',
+        text: `I can see you added ${docTitle} (${docType}). Want me to ${action}? [TOOL:${docType === 'rubric' ? 'rubric' : docType === 'exam_paper' ? 'pastqs' : 'simplify'}]`,
+      }]);
+    }
+    prevDocCountRef.current = newCount;
+  }, [allDocs.length]);
+
   // ESC to close
   useEffect(() => {
     if (!open) return;
