@@ -541,3 +541,13 @@ Extracted from Sprint HH as standalone feature. Aggregate ALL Australian scholar
 ## Sprint KK — Institutional Sales Mode (40 hours)
 
 B2B dashboard for schools/unis. Bulk student licence management. Admin reporting on Authenticity Report aggregates. SSO integration (SAML, OAuth via institutional providers). Procurement-friendly billing (POs, ABN invoicing, annual contracts). Target customers: Aria Learning, UNSW Equitable Learning Services, disability service providers, NDIS-funded learning support orgs. Priority: post-tester, post-Sprint FF.
+
+## AURA Active Question Context (deferred)
+
+AURA should know which question the learner is on (e.g. Question 25)
+and respond about that specific question. Currently not possible
+without passing activeQuestion from CanvasScreen to AuraChatOverlay.
+
+Requires: CanvasScreen refactor to emit activeQuestion via event or context.
+Defer to: next session after CanvasScreen is confirmed stable.
+

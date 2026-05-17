@@ -239,26 +239,8 @@ export const ProjectProvider = ({ children }) => {
     return result.sort((a, b) => b.year - a.year || (a.code || '').localeCompare(b.code || ''));
   }, [courses]);
 
-  // Auto-pick activeTerm when none is set and courses have terms.
-  useEffect(() => {
-    if (activeTerm || terms.length === 0) return;
-    // Pick the term with the most courses created in the last 90 days.
-    const now = Date.now();
-    const NINETY_DAYS = 90 * 24 * 60 * 60 * 1000;
-    const counts = {};
-    for (const [id, course] of Object.entries(courses || {})) {
-      const t = course.term || course.extractionData?.term;
-      if (!t || !t.year) continue;
-      const key = `${t.year}-${t.code || ''}`;
-      const created = parseInt(id.replace('course_', ''), 10) || 0;
-      if (now - created < NINETY_DAYS) counts[key] = (counts[key] || 0) + 1;
-    }
-    const best = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-    if (best) {
-      const [y, c] = best[0].split('-');
-      setActiveTerm({ year: parseInt(y, 10), code: c || null });
-    }
-  }, [terms, activeTerm, courses]);
+  // Default: show All courses (no term filter). User can manually filter.
+  // Previously auto-picked a term which hid courses from other terms.
 
   useEffect(() => { localStorage.setItem('simplifii_active_term', JSON.stringify(activeTerm)); }, [activeTerm]);
 

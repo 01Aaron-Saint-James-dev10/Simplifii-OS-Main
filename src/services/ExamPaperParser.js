@@ -94,10 +94,17 @@ export const parseExamPaper = (rawText) => {
   const mcSection = sectionI ? (sectionI.title || `Section ${sectionI.number}`) : 'Section I: Multiple Choice';
 
   // Match numbered items: "1." or "1 " at start of line, with question text
+  // Exclude sub-questions (1a, 1b) and mark annotations ((3 marks))
   const mcRe = /^(\d{1,2})[\.\s]\s*(\S.{4,})/gm;
   const mcMatches = [...mcSectionText.matchAll(mcRe)].filter(m => {
     const num = parseInt(m[1], 10);
-    return num >= 1 && num <= 40;
+    if (num < 1 || num > 40) return false;
+    // Skip if followed by a letter (sub-question like "1a")
+    const afterNum = mcSectionText.slice(m.index + m[1].length, m.index + m[1].length + 2);
+    if (/^[a-z]/i.test(afterNum.replace(/[\.\s]/, ''))) return false;
+    // Skip if the "question text" is just marks annotation
+    if (/^\(\d+\s*marks?\)/i.test(m[2].trim())) return false;
+    return true;
   });
 
   for (let idx = 0; idx < mcMatches.length; idx++) {

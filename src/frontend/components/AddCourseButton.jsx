@@ -70,7 +70,7 @@ export default function AddCourseButton() {
         type="button"
         onClick={handleClick}
         disabled={ingesting}
-        aria-label={ingesting ? 'Uploading' : 'Add subject'}
+        aria-label={ingesting ? 'Uploading' : 'Add work'}
         style={{
           fontFamily: FONT_SYSTEM,
           fontSize: 10,
@@ -92,7 +92,7 @@ export default function AddCourseButton() {
         onFocus={e => { e.currentTarget.style.boxShadow = `0 0 0 2px ${FOCUS_RING}`; }}
         onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
       >
-        {ingesting ? 'Uploading...' : '+ Add subject'}
+        {ingesting ? 'Uploading...' : '+ Add work'}
       </button>
       <input
         ref={inputRef}
