@@ -942,30 +942,28 @@ When student opens Phase 1 (Understand), AURA proactively shows relevant communi
 
 ---
 
-## B10: Raw markdown in document classification card
+## B10: Raw markdown in document classification card — RESOLVED (false positive)
 
-**Priority:** P1 (student-facing, degrades first impression)
-**Location:** The classification modal/card that appears after document upload
-**Issue:** "__Actually it's something else__" renders as literal underscores and text instead of a styled interactive element. stripMarkdown or render fix needed.
-**Fix:** Apply stripMarkdown to classification card text, or replace markdown-formatted strings with proper JSX elements.
-
----
-
-## B11: No document type options after classification card
-
-**Priority:** P1 (student cannot proceed if classification is wrong)
-**Location:** Same classification card — "Open canvas" button leads to no further options rendered
-**Issue:** After clicking Open canvas from the classification card, no alternative document type choices appear. Student cannot correct a misclassification.
-**Fix:** Add document type override UI after classification card, allowing student to select correct type before proceeding.
+**Priority:** Resolved
+**Location:** src/frontend/components/DocumentClassifiedModal.jsx
+**Resolution:** Investigated. Classification card text is clean JSX. "Actually it's something else" at line 88 is a plain string. suggestedActions from api/classify-document.js are hardcoded English strings with no markdown. No raw markdown present in this component.
 
 ---
 
-## B12: __BABS1201__ raw markdown in canvas breadcrumb
+## B11: onOverride dismisses modal without re-classifying
 
-**Priority:** P1
-**Location:** Canvas title/breadcrumb at top of CanvasScreen
-**Issue:** Course code renders with double underscores as __BABS1201__ instead of styled text. Same class as B9. stripMarkdown not applied to this display surface.
-**Fix:** Apply stripMarkdown to the breadcrumb course code display surface.
+**Priority:** P1 (student cannot correct misclassification)
+**Location:** CanvasScreen.jsx:661
+**Root cause:** `onOverride={() => setDocClassification(null)}` just dismisses the modal. When the student selects a different document type via the override UI in DocumentClassifiedModal, the new type is passed to `onOverride(newType)` but CanvasScreen ignores it.
+**Fix:** onOverride handler must accept the new type string, update course.extractionData.documentType, and trigger re-extraction with the corrected type.
+
+---
+
+## B12: __BABS1201__ raw markdown in canvas breadcrumb — RESOLVED
+
+**Priority:** Resolved
+**Location:** src/frontend/components/CanvasNav.jsx:107
+**Resolution:** Fixed in commit ef5d9edc. `stripMarkdown(courseName)` applied to breadcrumb display. Deployed and live.
 
 ---
 
@@ -984,3 +982,18 @@ When student opens Phase 1 (Understand), AURA proactively shows relevant communi
 **Location:** Writing analysis panel (right tool rail)
 **Issue:** "Grade 13" reading level shown as live metric while student writes. This is anxiety-inducing for neurodivergent students and creates performance pressure mid-composition. Conflicts with trauma-informed design.
 **Fix:** Move reading level to post-session summary only, not live during writing.
+
+---
+
+## Sprint 10: Document Library + mid-session ingestion
+
+**Priority:** Sprint 10
+**Location:** New DocLibrary.jsx + useIngestion.js extension + _aura-prompt.js
+**Issue:** Ingestion is one-time. Students receive documents throughout a semester. No document library exists. Students cannot view originals, add documents mid-session, or see what has been uploaded.
+**Fix:**
+1. DocLibrary.jsx — slide-out drawer. All uploaded docs as cards. File name, classification, upload date, extraction status. Click to preview original PDF. Add new document button accessible from canvas at any time.
+2. Mid-session ingestion — new document uploaded mid-canvas: classify + extract nodes + merge into course.extractionData.nodes + fire document_added EventBus event. No canvas restart required.
+3. AURA document awareness — after document_added event, AURA acknowledges new doc on next prompt and offers to use it.
+**Surfaces:** DocLibrary.jsx (new), useIngestion.js extension, _aura-prompt.js awareness block
+**Depends on:** B10/B11/B12 fixes
+**Loop:** Closes Loop 1 permanently — ingestion becomes ongoing not one-time
