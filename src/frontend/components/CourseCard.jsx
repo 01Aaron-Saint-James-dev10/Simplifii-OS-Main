@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { getTaskStatus } from '../../services/StatusService';
 import StatusPill from './StatusPill';
 import PhaseIndicator from './PhaseIndicator';
@@ -77,8 +77,11 @@ function findNextDue(course, now) {
 export default function CourseCard({ course, courseId, density = 'standard', onOpen, now: nowProp }) {
   const now = nowProp || new Date();
   const isCompact = density === 'compact';
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState('');
 
   const name = course.name || 'Untitled Course';
+  const needsRename = /^UPLOAD$|^[A-Z_\-]{3,}$|\.pdf$/i.test(name);
   const term = course.term || course.extractionData?.term;
   const termLabel = term?.label || (term?.code ? `${term.code} ${term.year}` : null);
   const briefs = course.extractionData?.assessmentBriefs || [];
@@ -107,19 +110,35 @@ export default function CourseCard({ course, courseId, density = 'standard', onO
       {/* Header: name + pill */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
         <div style={{ minWidth: 0 }}>
-          <h3 style={{
-            fontFamily: FONT_BODY,
-            fontSize: isCompact ? 14 : 15,
-            fontWeight: 700,
-            color: TEXT_PRIMARY,
-            margin: 0,
-            lineHeight: 1.3,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}>
-            {name}
-          </h3>
+          {editing ? (
+            <input
+              type="text"
+              autoFocus
+              value={editName}
+              onChange={e => setEditName(e.target.value)}
+              onBlur={() => { if (editName.trim()) { course.name = editName.trim(); try { const c = JSON.parse(localStorage.getItem('simplifii_courses_v1') || '{}'); if (c[courseId]) { c[courseId].name = editName.trim(); localStorage.setItem('simplifii_courses_v1', JSON.stringify(c)); } } catch {} } setEditing(false); }}
+              onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); }}
+              style={{ fontFamily: FONT_BODY, fontSize: isCompact ? 14 : 15, fontWeight: 700, color: TEXT_PRIMARY, margin: 0, background: 'transparent', border: '1px solid #10b981', borderRadius: 3, padding: '2px 6px', width: '100%', outline: 'none' }}
+            />
+          ) : (
+            <h3
+              onClick={(e) => { if (needsRename) { e.stopPropagation(); setEditName(name === 'UPLOAD' ? '' : name); setEditing(true); } }}
+              style={{
+                fontFamily: FONT_BODY,
+                fontSize: isCompact ? 14 : 15,
+                fontWeight: 700,
+                color: TEXT_PRIMARY,
+                margin: 0,
+                lineHeight: 1.3,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                cursor: needsRename ? 'pointer' : 'default',
+              }}>
+              {name}
+              {needsRename && <span style={{ fontSize: 9, color: '#71717a', marginLeft: 6, fontWeight: 400 }}>Tap to rename</span>}
+            </h3>
+          )}
           <span style={{
             fontFamily: FONT_SYSTEM,
             fontSize: 9,

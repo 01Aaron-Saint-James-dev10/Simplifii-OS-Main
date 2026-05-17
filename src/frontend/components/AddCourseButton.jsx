@@ -64,36 +64,9 @@ export default function AddCourseButton() {
     e.target.value = '';
   };
 
+  // No visible button - only the hidden file input + event listener
   return (
     <>
-      <button
-        type="button"
-        onClick={handleClick}
-        disabled={ingesting}
-        aria-label={ingesting ? 'Uploading' : 'Add work'}
-        style={{
-          fontFamily: FONT_SYSTEM,
-          fontSize: 10,
-          fontWeight: 700,
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase',
-          color: ingesting ? TEXT_MUTED : ACCENT_PULSE,
-          background: 'transparent',
-          border: `1px solid ${ingesting ? TEXT_MUTED : ACCENT_BORDER}`,
-          borderRadius: BORDER_RADIUS,
-          padding: '6px 14px',
-          cursor: ingesting ? 'wait' : 'pointer',
-          minHeight: 44,
-          minWidth: 44,
-          outline: 'none',
-          transition: 'all 150ms ease',
-          opacity: ingesting ? 0.6 : 1,
-        }}
-        onFocus={e => { e.currentTarget.style.boxShadow = `0 0 0 2px ${FOCUS_RING}`; }}
-        onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
-      >
-        {ingesting ? 'Uploading...' : '+ Add work'}
-      </button>
       <input
         ref={inputRef}
         type="file"

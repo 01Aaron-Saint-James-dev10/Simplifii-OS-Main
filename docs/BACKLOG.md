@@ -587,3 +587,13 @@ Every AURA response, UDL transformation, joke, encouragement message, and analog
 - Interests are editable from Settings at any time
 
 ### Status: NOT STARTED. Logged for future sprint.
+
+---
+
+## Multi-doc Ingestion Redesign (deferred)
+
+Course outline, brief, and rubric need to be parsed as separate linked
+documents that each contribute their own data to the assessment record.
+Currently all merge into rawText. Fix requires ingestion pipeline redesign.
+
+Separate sprint. Not blocking current functionality.
