@@ -3,6 +3,7 @@ import { useRouter } from '../../contexts/RouterContext';
 import { useProject } from '../ProjectContext';
 import { useIngestion } from '../hooks/useIngestion';
 import ExportMenu from './ExportMenu';
+import stripMarkdown from '../../utils/stripMarkdown';
 import {
   SURFACE_BASE, SURFACE_CARD_SOLID,
   SURFACE_RAISED,
@@ -103,7 +104,7 @@ export default function CanvasNav({ courseName, assessmentTitle, saveStatus, las
             onClick={onCourseName}
             onKeyDown={onCourseName ? (e) => { if (e.key === 'Enter') onCourseName(); } : undefined}
             style={{ fontFamily: FONT_SYSTEM, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: TEXT_FAINT, cursor: onCourseName ? 'pointer' : 'default', textDecoration: onCourseName ? 'underline' : 'none', textUnderlineOffset: 3 }}>
-            {courseName || 'Course'}
+            {stripMarkdown(courseName) || 'Course'}
           </span>
           <span style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_FAINT }}>/</span>
           <span style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600, color: TEXT_PRIMARY }}>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useRouter } from '../../contexts/RouterContext';
+import stripMarkdown from '../../utils/stripMarkdown';
 import {
   SURFACE_CARD, SURFACE_RAISED,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
@@ -48,7 +49,7 @@ export default function AssessmentListView({ courseId, courseName, briefs, onBac
       </button>
 
       <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 22, color: TEXT_PRIMARY, margin: '0 0 4px' }}>
-        {courseName}
+        {stripMarkdown(courseName)}
       </h1>
       <p style={{ fontFamily: FONT_SYSTEM, fontSize: 11, color: TEXT_MUTED, margin: '0 0 24px', letterSpacing: '0.04em' }}>
         {briefs.length} assessment{briefs.length === 1 ? '' : 's'}
