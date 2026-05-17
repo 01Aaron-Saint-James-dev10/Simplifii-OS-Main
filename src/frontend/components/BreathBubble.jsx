@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   SURFACE_CARD,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
-  ACCENT_PULSE, ACCENT_GLASS, ACCENT_BORDER, ACCENT_FOCUS,
+  ACCENT_PULSE, ACCENT_GLASS, ACCENT_BORDER, ACCENT_FOCUS, ACCENT_GLOW_60,
   GLASS_BORDER,
   FONT_DISPLAY, FONT_SYSTEM,
   BORDER_RADIUS, FOCUS_RING,
@@ -95,7 +95,7 @@ export default function BreathBubble() {
           </div>
 
           {/* Phase countdown number (neon green, prominent) */}
-          <p style={{ fontFamily: FONT_DISPLAY, fontSize: 48, fontWeight: 800, color: ACCENT_PULSE, margin: 0, lineHeight: 1, textShadow: '0 0 12px rgba(16,185,129,0.6)' }} aria-live="polite">
+          <p style={{ fontFamily: FONT_DISPLAY, fontSize: 48, fontWeight: 800, color: ACCENT_PULSE, margin: 0, lineHeight: 1, textShadow: `0 0 12px ${ACCENT_GLOW_60}` }} aria-live="polite">
             {(() => {
               const cyclePos = elapsed % CYCLE_MS;
               let acc = 0;

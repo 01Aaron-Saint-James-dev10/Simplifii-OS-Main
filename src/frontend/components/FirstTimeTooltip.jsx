@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import {
-  SURFACE_CARD,
+  SURFACE_CARD, SHADOW_CARD,
   TEXT_PRIMARY,
   ACCENT_PULSE, ACCENT_BORDER,
   FONT_BODY,
@@ -59,7 +59,7 @@ export default function FirstTimeTooltip({ id, text, position = 'bottom', delay 
             width: 200,
             zIndex: 500,
             cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            boxShadow: `0 4px 12px ${SHADOW_CARD}`,
           }}
           role="tooltip"
         >

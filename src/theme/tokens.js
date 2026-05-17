@@ -23,6 +23,7 @@ export const SHADOW_FAINT    = 'rgba(0,0,0,0.06)';  // Subtle border/divider
 export const SHADOW_LIGHT    = 'rgba(0,0,0,0.1)';   // Light shadow
 export const SHADOW_MEDIUM   = 'rgba(0,0,0,0.25)';  // Medium shadow
 export const SHADOW_CARD     = 'rgba(0,0,0,0.3)';   // Card drop shadow, floating panels
+export const SHADOW_HEAVY    = 'rgba(0,0,0,0.4)';   // Dense drop shadow, overlays
 export const OVERLAY_RULER   = 'rgba(0,0,0,0.15)';  // Reading ruler mask bands
 export const OVERLAY_MEDIUM  = 'rgba(0,0,0,0.5)';   // Modal backdrop, overlay
 export const OVERLAY_HEAVY   = 'rgba(0,0,0,0.8)';   // Dense overlay
@@ -30,9 +31,10 @@ export const OVERLAY_GAME    = 'rgba(9,9,11,0.85)';  // Game over screen backdro
 export const OVERLAY_BACKDROP = 'rgba(7,8,13,0.94)'; // Full-screen backdrop
 
 // White tint ramp
-export const WHITE_TINT_FAINT = 'rgba(255,255,255,0.04)'; // Subtle hover fill
-export const WHITE_TINT       = 'rgba(255,255,255,0.1)';  // Border, light fill
-export const WHITE_FILL       = 'rgba(255,255,255,0.9)';  // Near-opaque fill
+export const WHITE_TINT_FAINT  = 'rgba(255,255,255,0.04)'; // Subtle hover fill
+export const WHITE_TINT        = 'rgba(255,255,255,0.1)';  // Border, light fill
+export const WHITE_TINT_BRIGHT = 'rgba(255,255,255,0.25)'; // SVG inner glow, highlight
+export const WHITE_FILL        = 'rgba(255,255,255,0.9)';  // Near-opaque fill
 
 // ============================================================
 // Text tokens
@@ -104,7 +106,9 @@ export const COLOUR_ORANGE_BORDER = 'rgba(249,115,22,0.12)'; // Orange status bo
 export const COLOUR_DANGER        = '#f43f5e'; // Rose 500
 export const COLOUR_DANGER_GLASS  = 'rgba(239,68,68,0.06)';  // Error fill
 export const COLOUR_DANGER_TINT   = 'rgba(244,63,94,0.06)';  // Rose faintest fill
+export const COLOUR_DANGER_FAINT  = 'rgba(239,68,68,0.1)';   // Listening state fill
 export const COLOUR_DANGER_BORDER = 'rgba(239,68,68,0.2)';   // Error border
+export const COLOUR_DANGER_BORDER_STRONG = 'rgba(239,68,68,0.3)'; // Listening state border
 export const COLOUR_DANGER_BORDER_ALT = 'rgba(244,63,94,0.2)'; // Rose border
 export const COLOUR_DANGER_GLOW   = 'rgba(244,63,94,0.5)';   // Rose glow, game accent
 export const COLOUR_DANGER_SOLID  = 'rgba(244,63,94,1)';     // Full opacity danger

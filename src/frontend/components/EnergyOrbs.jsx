@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSettings } from '../SettingsContext';
 import {
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
-  ACCENT_PULSE,
+  ACCENT_PULSE, WHITE_TINT_BRIGHT,
   FONT_SYSTEM, FONT_BODY,
   BORDER_RADIUS,
 } from '../../theme/tokens';
@@ -33,7 +33,7 @@ function OrbSVG({ filled, size = 28 }) {
       {/* Sphere */}
       <circle cx="16" cy="16" r="14" fill={filled ? '#f97316' : '#27272a'} stroke={filled ? '#fb923c' : '#3f3f46'} strokeWidth="1.5" />
       {/* Inner glow */}
-      {filled && <circle cx="13" cy="12" r="4" fill="rgba(255,255,255,0.25)" />}
+      {filled && <circle cx="13" cy="12" r="4" fill={WHITE_TINT_BRIGHT} />}
       {/* Star (DBZ style) */}
       <path
         d="M16 8 L17.5 13.5 L23 14 L18.5 17.5 L20 23 L16 19.5 L12 23 L13.5 17.5 L9 14 L14.5 13.5 Z"

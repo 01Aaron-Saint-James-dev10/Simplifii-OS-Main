@@ -3,6 +3,7 @@ import {
   SURFACE_RAISED,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
   ACCENT_PULSE, ACCENT_GLASS, ACCENT_BORDER,
+  COLOUR_WARN, COLOUR_WARN_TINT,
   FONT_SYSTEM, FONT_BODY,
   BORDER_RADIUS,
 } from '../../theme/tokens';
@@ -153,8 +154,8 @@ export default function StructuredRubric({ rubricData }) {
                 {criterion.selfAssessmentQuestion && (() => {
                   const saKey = `sa_${ci}`;
                   return (
-                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 6, cursor: 'pointer', padding: '6px 8px', background: 'rgba(245,158,11,0.06)', borderLeft: '2px solid #f59e0b', borderRadius: 2 }}>
-                      <input type="checkbox" checked={!!checkedItems[saKey]} onChange={() => toggle(saKey)} style={{ marginTop: 2, accentColor: '#f59e0b' }} />
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 6, cursor: 'pointer', padding: '6px 8px', background: COLOUR_WARN_TINT, borderLeft: `2px solid ${COLOUR_WARN}`, borderRadius: 2 }}>
+                      <input type="checkbox" checked={!!checkedItems[saKey]} onChange={() => toggle(saKey)} style={{ marginTop: 2, accentColor: COLOUR_WARN }} />
                       <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_PRIMARY, lineHeight: 1.4, textDecoration: checkedItems[saKey] ? 'line-through' : 'none', opacity: checkedItems[saKey] ? 0.5 : 1 }}>
                         {criterion.selfAssessmentQuestion}
                       </span>

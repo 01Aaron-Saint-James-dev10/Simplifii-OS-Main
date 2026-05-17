@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   SURFACE_RAISED,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
-  ACCENT_PULSE, ACCENT_GLASS, ACCENT_BORDER,
+  ACCENT_PULSE, ACCENT_GLASS, ACCENT_GLASS_SUBTLE, ACCENT_BORDER,
   FONT_SYSTEM, FONT_BODY,
   BORDER_RADIUS,
 } from '../../theme/tokens';
@@ -94,7 +94,7 @@ export default function StructuredScaffold({ scaffold }) {
             )}
 
             {section.starterSentence && (
-              <div style={{ padding: '6px 8px', background: 'rgba(16,185,129,0.06)', borderLeft: `2px solid ${ACCENT_PULSE}`, borderRadius: 2, margin: '6px 0' }}>
+              <div style={{ padding: '6px 8px', background: ACCENT_GLASS_SUBTLE, borderLeft: `2px solid ${ACCENT_PULSE}`, borderRadius: 2, margin: '6px 0' }}>
                 <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, color: TEXT_FAINT, display: 'block', marginBottom: 2 }}>Starter sentence</span>
                 <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_PRIMARY, lineHeight: 1.4 }}>{section.starterSentence}</span>
               </div>

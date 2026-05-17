@@ -17,6 +17,7 @@ import {
   SURFACE_CARD, SURFACE_RAISED,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
   ACCENT_PULSE, ACCENT_GLASS, ACCENT_BORDER,
+  SHADOW_HEAVY, COLOUR_DANGER_FAINT, COLOUR_DANGER_BORDER_STRONG,
   OVERLAY_BACKDROP,
   FONT_SYSTEM, FONT_BODY,
   BORDER_RADIUS, FOCUS_RING,
@@ -518,7 +519,7 @@ export default function AuraChatOverlay({ open, onClose }) {
         flexDirection: 'column',
         background: SURFACE_CARD,
         borderRadius: 12,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 48px rgba(16,185,129,0.1)',
+        boxShadow: `0 8px 32px ${SHADOW_HEAVY}, 0 0 48px ${ACCENT_GLASS}`,
         overflow: 'hidden',
         transition: 'max-height 180ms ease',
       }}
@@ -752,8 +753,8 @@ export default function AuraChatOverlay({ open, onClose }) {
             aria-label={isListening ? 'Stop listening' : 'Voice input'}
             style={{
               fontFamily: FONT_SYSTEM, fontSize: 14, color: isListening ? '#ef4444' : ACCENT_PULSE,
-              background: isListening ? 'rgba(239,68,68,0.1)' : ACCENT_GLASS,
-              border: `1px solid ${isListening ? 'rgba(239,68,68,0.3)' : ACCENT_BORDER}`,
+              background: isListening ? COLOUR_DANGER_FAINT : ACCENT_GLASS,
+              border: `1px solid ${isListening ? COLOUR_DANGER_BORDER_STRONG : ACCENT_BORDER}`,
               borderRadius: BORDER_RADIUS + 2, padding: '0 10px',
               cursor: 'pointer', outline: 'none', minHeight: 36, minWidth: 36,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
