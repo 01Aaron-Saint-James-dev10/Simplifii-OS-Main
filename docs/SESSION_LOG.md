@@ -1,3 +1,14 @@
+## Design Token Migration
+**Date:** 2026-05-18
+
+### Commits
+
+| SHA | Change |
+|-----|--------|
+| `b1c9c7c1` | design-token-migration: all 16 raw rgba() violations replaced with named tokens (9 eliminated, 7 remain as allow-style exemptions) |
+
+---
+
 ## Sprint 12.5: A/B/C Variants for AURA Responses
 **Date:** 2026-05-18
 
