@@ -3,12 +3,22 @@
  *
  * Computes work provenance data from HistoryOfThought events.
  * Sessions = consecutive text_edit events within 30 minutes.
+ * Milestones = AI interactions, tier transitions, phase advances.
  * Read-only from HistoryOfThought. Never writes or modifies events.
  */
 
 import { listEvents } from '../core/HistoryOfThought';
 
 const SESSION_GAP_MS = 30 * 60 * 1000; // 30 minutes
+
+// Event types that appear as milestones in the timeline
+const MILESTONE_TYPES = {
+  pre_write_accepted: { label: 'AI scaffold accepted', type: 'ai_accepted' },
+  ai_assist_invoked: { label: 'Asked AURA', type: 'ai_query' },
+  tier_transition: { label: 'Moved to', type: 'tier_move' },
+  phase_advanced: { label: 'Advanced to Phase', type: 'phase_move' },
+  pre_write_generated: { label: 'AI scaffold generated', type: 'ai_generated' },
+};
 
 /**
  * Build sessions from text_edit events for a given course + assessment.
@@ -77,6 +87,71 @@ export async function buildSessions(courseId, assessmentTitle) {
 }
 
 /**
+ * Build milestone events (AI interactions, tier moves, phase advances).
+ */
+export async function buildMilestones(courseId, assessmentTitle) {
+  let events;
+  try {
+    events = await listEvents({ limit: 5000 });
+  } catch { return []; }
+
+  const milestoneTypeKeys = Object.keys(MILESTONE_TYPES);
+
+  return (events || [])
+    .filter(e =>
+      milestoneTypeKeys.includes(e.event_type) &&
+      (e.payload?.courseId === courseId ||
+       e.payload?.assessmentTitle === assessmentTitle)
+    )
+    .sort((a, b) => {
+      const tsA = a.payload?.timestamp || new Date(a.timestamp_iso).getTime();
+      const tsB = b.payload?.timestamp || new Date(b.timestamp_iso).getTime();
+      return tsA - tsB;
+    })
+    .map((e, i) => {
+      const meta = MILESTONE_TYPES[e.event_type];
+      let label = meta.label;
+      if (e.event_type === 'tier_transition' && e.payload?.toTier) {
+        label = `Moved to ${e.payload.toTier}`;
+      }
+      if (e.event_type === 'phase_advanced' && e.payload?.phase) {
+        label = `Advanced to Phase ${e.payload.phase}`;
+      }
+      return {
+        id: `milestone_${i}`,
+        timestamp: e.payload?.timestamp || new Date(e.timestamp_iso).getTime(),
+        eventType: e.event_type,
+        displayType: meta.type,
+        label,
+      };
+    });
+}
+
+/**
+ * Compute AI assistance ratio.
+ * Formula: ai_accepted / (ai_accepted + text_edit) as percentage.
+ * Framed positively: "AI assisted N% of writing process."
+ */
+export async function computeAiRatio(courseId, assessmentTitle) {
+  let events;
+  try {
+    events = await listEvents({ limit: 5000 });
+  } catch { return { ratio: 0, aiAccepted: 0, textEdits: 0 }; }
+
+  const relevant = (events || []).filter(e =>
+    (e.event_type === 'pre_write_accepted' || e.event_type === 'text_edit') &&
+    (e.payload?.courseId === courseId || e.payload?.assessmentTitle === assessmentTitle)
+  );
+
+  const aiAccepted = relevant.filter(e => e.event_type === 'pre_write_accepted').length;
+  const textEdits = relevant.filter(e => e.event_type === 'text_edit').length;
+  const total = aiAccepted + textEdits;
+  const ratio = total > 0 ? Math.round((aiAccepted / total) * 100) : 0;
+
+  return { ratio, aiAccepted, textEdits };
+}
+
+/**
  * Compute summary stats from sessions.
  */
 export function computeSummary(sessions) {
@@ -97,10 +172,12 @@ export function computeSummary(sessions) {
  */
 export async function generateProvenanceExport({ courseId, courseName, courseCode, term, assessmentTitle }) {
   const sessions = await buildSessions(courseId, assessmentTitle);
+  const milestones = await buildMilestones(courseId, assessmentTitle);
+  const aiRatio = await computeAiRatio(courseId, assessmentTitle);
   const summary = computeSummary(sessions);
 
   const exportData = {
-    version: 1,
+    version: 2,
     exported_at: new Date().toISOString(),
     course: { code: courseCode || courseName, name: courseName, term: term || null },
     assessment: assessmentTitle,
@@ -108,6 +185,7 @@ export async function generateProvenanceExport({ courseId, courseName, courseCod
       total_sessions: summary.totalSessions,
       total_words: summary.totalWords,
       total_minutes: summary.totalMinutes,
+      ai_assistance_percentage: aiRatio.ratio,
     },
     sessions: sessions.map(s => ({
       index: s.index,
@@ -119,6 +197,11 @@ export async function generateProvenanceExport({ courseId, courseName, courseCod
       words_end: s.wordsEnd,
       words_net: s.wordsNet,
       average_pause_ms: s.averagePauseMs,
+    })),
+    milestones: milestones.map(m => ({
+      timestamp: new Date(m.timestamp).toISOString(),
+      type: m.displayType,
+      label: m.label,
     })),
   };
 
