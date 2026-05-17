@@ -1,14 +1,10 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useProject } from './ProjectContext';
 import { useSettings } from './SettingsContext';
+import { detectSuspectedCitations } from '../services/CitationStyleService';
+import { verifyFromSources } from '../services/CitationService';
 import { useRouter } from '../contexts/RouterContext';
 import { supabase } from '../lib/supabaseClient';
-
-// Lazy-loaded services to avoid init-order crash
-let _detectSuspectedCitations = null;
-let _verifyFromSources = null;
-const detectSuspectedCitations = (...args) => { if (!_detectSuspectedCitations) _detectSuspectedCitations = require('../services/CitationStyleService').detectSuspectedCitations; return _detectSuspectedCitations(...args); };
-const verifyFromSources = (...args) => { if (!_verifyFromSources) _verifyFromSources = require('../services/CitationService').verifyFromSources; return _verifyFromSources(...args); };
 import CanvasNav from './components/CanvasNav';
 import CanvasEditor from './components/CanvasEditor';
 import SectionEditor from './components/SectionEditor';
@@ -29,39 +25,21 @@ import BibliographyView from './components/BibliographyView';
 import BottomStrip from './components/BottomStrip';
 import ReentryOverlay from './components/ReentryOverlay';
 import CanvasSettingsOverlay from './components/CanvasSettingsOverlay';
-const NoBriefPrompt = React.lazy(() => import('./components/NoBriefPrompt'));
+import NoBriefPrompt from './components/NoBriefPrompt';
 import AffirmationBanner from './components/AffirmationBanner';
 import AnnouncementBanner from './components/AnnouncementBanner';
-let _getSensoryCSSVars = null, _getSensoryProfile = null;
-const getSensoryCSSVars = (...args) => { if (!_getSensoryCSSVars) { const m = require('../theme/sensoryProfiles'); _getSensoryCSSVars = m.getSensoryCSSVars; _getSensoryProfile = m.getSensoryProfile; } return _getSensoryCSSVars(...args); };
-const getSensoryProfile = (...args) => { if (!_getSensoryProfile) { const m = require('../theme/sensoryProfiles'); _getSensoryCSSVars = m.getSensoryCSSVars; _getSensoryProfile = m.getSensoryProfile; } return _getSensoryProfile(...args); };
+import { getSensoryCSSVars, getSensoryProfile } from '../theme/sensoryProfiles';
 import FidgetZone from './components/FidgetZone';
 import MultimodalCanvas from './components/MultimodalCanvas';
 import QuestionNav from './components/QuestionNav';
-let _parseExamPaper = null;
-const parseExamPaper = (...args) => { if (!_parseExamPaper) _parseExamPaper = require('../services/ExamPaperParser').parseExamPaper; return _parseExamPaper(...args); };
+import { parseExamPaper } from '../services/ExamPaperParser';
 import { startAmbient, stopAmbient } from './services/AmbientSound';
 import ReadingRuler from './components/ReadingRuler';
 import WritingAnalysis from './components/WritingAnalysis';
 import ComprehensionBreak from './components/ComprehensionBreak';
 import PreWritePanel from './components/PreWritePanel';
 import FirstLookCard from './components/FirstLookCard';
-import AssessmentSwitcher from './components/AssessmentSwitcher';
-import SubmitModal from './components/SubmitModal';
-import CanvasHelpOverlay from './components/CanvasHelpOverlay';
-let _determinePhase = null, _checkPhaseTransition = null;
-const determinePhase = (...args) => { if (!_determinePhase) { const m = require('../core/TaskLifecycleManager'); _determinePhase = m.determinePhase; _checkPhaseTransition = m.checkPhaseTransition; } return _determinePhase(...args); };
-const checkPhaseTransition = (...args) => { if (!_checkPhaseTransition) { const m = require('../core/TaskLifecycleManager'); _determinePhase = m.determinePhase; _checkPhaseTransition = m.checkPhaseTransition; } return _checkPhaseTransition(...args); };
-
-// Lazy-loaded to avoid init order issues with crypto/PBKDF2 in HistoryOfThought
-let _appendEvent = null;
-let _startIdle = null;
-let _stopIdle = null;
-const getHoT = () => { if (!_appendEvent) { const m = require('../core/HistoryOfThought'); _appendEvent = m.appendEvent; } return _appendEvent; };
-const getIdle = () => { if (!_startIdle) { const m = require('../core/ExecutiveSpine'); _startIdle = m.startIdleDetection; _stopIdle = m.stopIdleDetection; } return { startIdleDetection: _startIdle, stopIdleDetection: _stopIdle }; };
-const appendEvent = (...args) => { try { return getHoT()(...args); } catch { return Promise.resolve(); } };
-const startIdleDetection = (...args) => { try { getIdle().startIdleDetection(...args); } catch {} };
-const stopIdleDetection = () => { try { getIdle().stopIdleDetection(); } catch {} };
+import { appendEvent } from '../core/HistoryOfThought';
 import './CanvasScreen.css';
 
 /**
@@ -75,32 +53,9 @@ import './CanvasScreen.css';
  */
 
 export default function CanvasScreen() {
-  const { courseId, assessmentTitle, navigateToAssessments, navigateToCanvas } = useRouter();
-  const { courses, activeCourse, projectSources, upgradeCourseExtraction } = useProject();
+  const { courseId, assessmentTitle, navigateToAssessments } = useRouter();
+  const { courses, activeCourse, projectSources } = useProject();
   const { reducedMotion, isZenMode, theme, autismFirstEnabled, sensoryLevel, isLiteralMode, ambientPreference } = useSettings();
-
-  // Idle detection: start on canvas mount, stop on unmount
-  useEffect(() => {
-    startIdleDetection({ thresholdMs: 120_000 }); // 2 min idle threshold
-    return () => stopIdleDetection();
-  }, []);
-
-  // AURA proactive greeting: emit canvas-ready after data loads
-  useEffect(() => {
-    if (!courseId || !course?.name) return;
-    const brief0 = briefs[0];
-    const timer = setTimeout(() => {
-      window.dispatchEvent(new CustomEvent('aura:canvas-ready', {
-        detail: {
-          courseId,
-          assessmentTitle: brief0?.title || course.name,
-          weight: brief0?.weight || '',
-          dueDate: brief0?.dueDate || '',
-        },
-      }));
-    }, 2000); // 2s delay: let canvas render first
-    return () => clearTimeout(timer);
-  }, [courseId, course?.name]); // eslint-disable-line
 
   // Ambient sound: start/stop when preference changes
   useEffect(() => {
@@ -112,8 +67,6 @@ export default function CanvasScreen() {
     return () => stopAmbient();
   }, [autismFirstEnabled, ambientPreference]);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [submitOpen, setSubmitOpen] = useState(false);
-  const [helpOpen, setHelpOpen] = useState(false);
 
   // Supabase fallback: if localStorage has no course for this courseId,
   // fetch course + assessments from Supabase and rebuild extractionData.
@@ -156,23 +109,6 @@ export default function CanvasScreen() {
       return display === assessmentTitle || b.title === assessmentTitle;
     }) || briefs[0] || null;
   }, [briefs, assessmentTitle]);
-
-  // Task lifecycle phase detection: fires AURA messages at phase boundaries
-  const phaseRef = useRef(determinePhase(course));
-  useEffect(() => {
-    const newPhase = determinePhase(course);
-    if (newPhase !== phaseRef.current) {
-      const topBrief = briefs[0];
-      checkPhaseTransition(courseId, phaseRef.current, newPhase, {
-        title: topBrief?.title || courseName,
-        rubricCount: course.extractionData?.rubricCriteria?.length || briefs.length,
-        paretoStep1: course.extractionData?.paretoSteps?.[0] || '',
-        topCriterion: course.extractionData?.rubricCriteria?.[0]?.criterion || '',
-        topWeight: course.extractionData?.rubricCriteria?.[0]?.weight || '',
-      });
-      phaseRef.current = newPhase;
-    }
-  }, [course, courseId, courseName, briefs]);
 
   // Document classification: use value baked in during ingestion if present.
   const preClassifiedType = course.extractionData?.documentType || null;
@@ -258,26 +194,6 @@ export default function CanvasScreen() {
   const [sectionsLoading, setSectionsLoading] = useState(false);
   const [activeSection, setActiveSection] = useState('introduction');
   const compileFnRef = useRef(null);
-  const addDocsRef = useRef(null);
-
-  // Add-docs handler: upload additional PDFs to the current course
-  const handleAddDocs = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-    e.target.value = '';
-    for (const file of files) {
-      try {
-        const { processDocumentWithGCP } = await import('../services/DocumentAIService');
-        const text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
-        if (text && text.length > 0) {
-          const existingRaw = course.extractionData?.rawText || '';
-          upgradeCourseExtraction(courseId, {
-            extractionData: { rawText: existingRaw + '\n\n' + text },
-          });
-        }
-      } catch { /* non-blocking */ }
-    }
-  };
   const lastDocTypeRef = useRef(null);
 
   // Use sections pre-generated during ingestion when available, otherwise
@@ -413,7 +329,7 @@ export default function CanvasScreen() {
         />
       </div>
       <div style={{ display: activePanel === 'tutor' ? 'contents' : 'none' }}>
-        <TutorPanel assessmentTitle={currentTitle} briefText={briefOrText} documentType={effectiveDocType} courseId={courseId} pendingMessage={pendingTutorMessage} onPendingConsumed={() => setPendingTutorMessage(null)} />
+        <TutorPanel assessmentTitle={currentTitle} briefText={briefOrText} documentType={effectiveDocType} pendingMessage={pendingTutorMessage} onPendingConsumed={() => setPendingTutorMessage(null)} />
       </div>
       <div style={{ display: activePanel === 'preview' ? 'contents' : 'none' }}>
         <PreviewPanel draftText={compileFnRef.current ? compileFnRef.current() : draftText} wordCount={wordCount} />
@@ -511,9 +427,6 @@ export default function CanvasScreen() {
         courseId={courseId}
         onOpenSettings={() => setSettingsOpen(true)}
         onCourseName={briefs.length > 1 ? () => navigateToAssessments(courseId) : undefined}
-        onAddDocs={() => addDocsRef.current?.click()}
-        onSubmit={() => setSubmitOpen(true)}
-        onHelp={() => setHelpOpen(true)}
       />
 
       <NextStepBanner
@@ -527,27 +440,7 @@ export default function CanvasScreen() {
         onSelectPanel={setActivePanelWithLog}
       />
 
-
-      {/* Hidden file input for Add Docs */}
-      <input
-        ref={addDocsRef}
-        type="file"
-        accept=".pdf"
-        multiple
-        onChange={handleAddDocs}
-        style={{ display: 'none' }}
-        aria-hidden="true"
-      />
-
       <div className="canvas-body">
-        {/* Assessment switcher (shows if course has multiple assessments) */}
-        {briefs.length > 1 && (
-          <AssessmentSwitcher
-            assessments={briefs}
-            activeTitle={currentTitle}
-            onSelect={(title) => navigateToCanvas(courseId, title)}
-          />
-        )}
         {/* Left rail: Tier 1 Pre-Write (essay) or nothing (exam: QuestionNav handles it) */}
         {!isExamPaper && !leftCollapsed && (
           <PreWritePanel
@@ -555,7 +448,6 @@ export default function CanvasScreen() {
             briefText={briefOrText}
             sectionType={activeSection}
             tier={course.extractionData?.detectedLevel || 'tertiary'}
-            courseId={courseId}
             onInsert={(text) => {
               window.dispatchEvent(new CustomEvent('simplifii:voice-transcript', { detail: { text: ' ' + text } }));
               appendEvent({ event_type: 'tier_transition', payload: { from: 1, to: 3, trigger: 'pre_write_insert' } }).catch(() => {});
@@ -586,7 +478,7 @@ export default function CanvasScreen() {
               <span style={{ fontFamily: 'var(--font-system, system-ui)', fontSize: 9, color: 'var(--text-faint)', opacity: 0.5 }}>Use the starter (left) to begin, the tutor (right) to develop your thinking</span> {/* allow-style */}
             </div>
           )}
-          {briefs.length === 0 && !extractedText && <React.Suspense fallback={null}><NoBriefPrompt courseId={courseId} /></React.Suspense>}
+          {briefs.length === 0 && !extractedText && <NoBriefPrompt courseId={courseId} />}
 
           {/* First Look: auto-generated document summary on first visit */}
           {(briefOrText && briefOrText.length > 50) && (
@@ -647,23 +539,6 @@ export default function CanvasScreen() {
         <ComprehensionBreak onCheckRequest={() => setActivePanel('check')} />
       )}
       {showSaveAffirmation && <AffirmationBanner trigger="save_event" visible={true} />}
-
-      {/* What should I do next? - primary entry for overwhelmed users */}
-      <button
-        type="button"
-        onClick={() => window.dispatchEvent(new CustomEvent('aura:canvas-ready', { detail: { courseId, assessmentTitle: currentTitle } }))}
-        style={{
-          position: 'fixed', bottom: 44, left: '50%', transform: 'translateX(-50%)',
-          padding: '8px 20px', borderRadius: 20, fontFamily: "'Inter', sans-serif",
-          fontSize: 12, fontWeight: 600, color: '#09090b', background: '#10b981',
-          border: 'none', cursor: 'pointer', zIndex: 90,
-          boxShadow: '0 2px 12px rgba(16,185,129,0.3)',
-        }}
-        aria-label="Ask AURA what to do next"
-      >
-        What should I do next?
-      </button>
-
       <BottomStrip wordCount={wordCount} targetWords={targetWords} />
 
       <ReentryOverlay
@@ -681,23 +556,9 @@ export default function CanvasScreen() {
         <CanvasSettingsOverlay onClose={() => setSettingsOpen(false)} />
       )}
 
-      {helpOpen && <CanvasHelpOverlay onClose={() => setHelpOpen(false)} />}
-
-      {submitOpen && (
-        <SubmitModal
-          courseId={courseId}
-          assessmentTitle={currentTitle}
-          wordCount={wordCount}
-          targetWords={targetWords}
-          authenticitySplit={{ human_percent: 85, ai_percent: 15 }}
-          onSubmitted={() => { setSubmitOpen(false); }}
-          onClose={() => setSubmitOpen(false)}
-        />
-      )}
-
       <JokeOverlay />
 
-      {docClassification && docClassification.suggested_actions && !sessionStorage.getItem(`simplifii_classified_${courseId}`) && (
+      {docClassification && (
         <DocumentClassifiedModal
           type={docClassification.type}
           confidence={docClassification.confidence}
@@ -708,18 +569,10 @@ export default function CanvasScreen() {
             if (docClassification.type === 'rubric') toolMap[0] = 'rubric';
             const panel = toolMap[i];
             if (panel) setActivePanelWithLog(panel);
-            sessionStorage.setItem(`simplifii_classified_${courseId}`, 'true');
-            setDocClassification({ type: docClassification.type, confidence: docClassification.confidence });
+            setDocClassification(null);
           }}
-          onOverride={(newType) => {
-            upgradeCourseExtraction(courseId, { extractionData: { documentType: newType } });
-            sessionStorage.setItem(`simplifii_classified_${courseId}`, 'true');
-            setDocClassification({ type: newType, confidence: 1 });
-          }}
-          onDismiss={() => {
-            sessionStorage.setItem(`simplifii_classified_${courseId}`, 'true');
-            setDocClassification({ type: docClassification.type, confidence: docClassification.confidence });
-          }}
+          onOverride={() => setDocClassification(null)}
+          onDismiss={() => setDocClassification(null)}
         />
       )}
     </div>
