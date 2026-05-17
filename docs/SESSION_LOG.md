@@ -1,3 +1,61 @@
+## B9 Fix + Extraction Robustness (D2 Resolution)
+**Date:** 2026-05-17
+
+### What was fixed
+
+**B9: Raw markdown in breadcrumb and assessment heading**
+- `CanvasNav.jsx:106`: `stripMarkdown(courseName)` in breadcrumb
+- `AssessmentListView.jsx:51`: `stripMarkdown(courseName)` in heading
+- Course names stored with markdown formatting (e.g. `__BABS1201__`) now render clean
+
+**D2: Rubric truncation (resolved via intelligent chunking)**
+- Root cause: `DocumentNodeService.js` hardcoded `doc.text.slice(0, 4000)` and `api/extract-nodes.js` applied a redundant second truncation
+- Multi-page rubrics were silently truncated; AURA told students "instructions appear cut off"
+
+### What was built
+
+**DocumentNodeService.js (full rewrite):**
+- `chunkDocument(text, maxChunkSize)`: splits at paragraph breaks; rubrics get 6000 char chunks, briefs/outlines get 4000
+- Sequential chunk loop: calls `/api/extract-nodes` once per chunk with `chunkIndex`/`totalChunks`
+- `mergeChunkNodes()`: YN1/YN2 get JSON array merge (parse, concat, re-stringify); all other nodes get string-concatenation with 2000 char cap; confidence is `Math.max` across chunks
+- Returns `truncationWarning`, `originalLength`, `documentChunks` when doc exceeds single chunk
+
+**api/extract-nodes.js (enhanced):**
+- Removed redundant `text.slice(0, 4000)` (service owns chunking now)
+- Added format-agnostic preamble to system prompt: handles PDF artefacts, linearised columns, table rows, varied formats
+- Added `chunkContext` note for multi-chunk documents so Claude knows it is seeing a partial
+- Enhanced node descriptions: XN1 (clearer task extraction), XN5 (inference from verbs/format signals), YN1 (unspecified weightings), YN3 (exact institutional labels), YN4 (hidden curriculum specifics), Z5 (scattered policy sections)
+
+### Files changed
+
+| File | Type | Summary |
+|---|---|---|
+| `src/frontend/components/CanvasNav.jsx` | Modified | stripMarkdown on courseName breadcrumb (B9) |
+| `src/frontend/components/AssessmentListView.jsx` | Modified | stripMarkdown on courseName heading (B9) |
+| `src/services/DocumentNodeService.js` | Rewritten | Intelligent chunking, merge logic, truncation flags |
+| `api/extract-nodes.js` | Modified | Removed double truncation, format-agnostic prompt, chunkContext |
+
+### Commit SHAs
+
+| SHA | Description |
+|---|---|
+| `ef5d9edc` | fix(markdown): strip markdown from breadcrumb and assessment list heading |
+| `de1b3d97` | feat(extraction): intelligent chunking + universal prompt |
+
+### Tests
+
+Build: passing (zero errors). Regression: 12/12 passed.
+
+### Important note for next session
+
+After this deploys, BABS1201 rubric needs a fresh re-upload to trigger chunked extraction. Existing Supabase nodes are from the old truncated extraction. New uploads will use robust chunking automatically.
+
+### Next session constraints
+
+Sprint 6: Authenticity Report. Wire unlockWithUserId() in AppShell. Wire startIdleDetection() in ProjectContext. Basic report renders from HistoryOfThought log.
+
+---
+
 ## P0 Bug Fix: B6, B7, B8 (Markdown Leak)
 **Date:** 2026-05-17
 
