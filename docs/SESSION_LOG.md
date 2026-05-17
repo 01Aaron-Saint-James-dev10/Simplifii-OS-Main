@@ -58,11 +58,43 @@ Suite 6 skips gracefully when not in test mode.
 
 ---
 
+## Assessment Scaffolder Port
+
+**Commit:** `27e13a1d`
+**Source:** `reference-builds/Emergent_AI_Simplifii-beta_MVP_Build-main/backend/routes/tools.py:748`
+**Target:** `api/simplify-brief.js`
+
+### What changed in api/simplify-brief.js
+
+**Before:** System prompt requested a JSON schema with 7 fields per section (`sectionName`, `wordCount`, `keyQuestion`, `starterSentence`, `commonMistakes`, `rubricCriteriaLink`, `bloomsPrompt`) and 5 top-level fields (`beforeYouStart`, `timeEstimate`, `normalisingMessage`, `hiddenExpectations`, `rubricAlignment`).
+
+**After:** Same 7 per-section fields preserved (renderer already handles them), plus 2 new per-section fields (`purpose`, `tipForThisSection`) and 4 new top-level fields (`overallGuidance`, `higherOrderScaffolding`, `workforceReadiness`, `successTips`). `timeEstimate` gained a `total` field. `normalisingMessage` rule updated: must acknowledge neurodivergent, time-poor, or returning-to-study students; never a productivity tip; speaks to the student who has been told they cannot do this. System prompt adds: "The student may be neurodivergent, time-poor, returning to study after a break, or carrying the weight of past educational harm."
+
+Exam paper and rubric routing paths unchanged.
+
+### What changed in StructuredScaffold.jsx
+
+6 new render blocks added:
+1. `overallGuidance`: "What this assessment is really asking" card (after normalising message)
+2. `purpose`: one-sentence purpose below each section name
+3. `tipForThisSection`: actionable tip per section in accent colour
+4. `successTips[]`: "What separates the top band" card with accent left border
+5. `higherOrderScaffolding[]`: "Push your thinking further" in italic
+6. `workforceReadiness`: "Why this matters beyond the grade"
+
+All existing rendering preserved. No fields renamed or removed.
+
+### Test Results
+
+12/12 regression tests pass against production. Build compiles clean.
+
+---
+
 ## Next Session Constraint
 
-Port Assessment Scaffolder prompt from reference build:
-- Source: docs/REFERENCE_BUILD_AUDIT.md, Tool 1
-- From: `backend/routes/tools.py:748`
-- To: `api/simplify-brief.js`
-- Focus: structured JSON output with sections, starter sentences, rubric mapping, Bloom's prompts
-- Note: this was already partially ported in commit `918b59c2` but may need verification against the reference build
+Port Rubric Simplifier from reference build:
+- Source: docs/REFERENCE_BUILD_AUDIT.md, Tool 2
+- From: `backend/routes/tools.py:253`
+- To: `api/decode-rubric.js`
+- Focus: structured JSON with grade bands using EXACT labels from rubric, micro-task checklists, self-assessment questions
+- Renderer: `src/frontend/components/StructuredRubric.jsx` (already exists, verify field alignment)
