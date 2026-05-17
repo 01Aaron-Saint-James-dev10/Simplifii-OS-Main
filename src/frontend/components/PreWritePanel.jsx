@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabaseClient';
 import SentenceStarters from './SentenceStarters';
 import IdeaToSentence from './IdeaToSentence';
 import { appendEvent } from '../../core/HistoryOfThought';
+import stripMarkdown from '../../utils/stripMarkdown';
 import {
   SURFACE_RAISED, SURFACE_CARD,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
@@ -116,13 +117,13 @@ export default function PreWritePanel({ assessmentTitle, briefText, sectionType,
 
   const handleInsertScaffold = () => {
     if (!scaffold) return;
-    onInsert?.(scaffold);
+    onInsert?.(stripMarkdown(scaffold));
     setAccepted(true);
     appendEvent({ event_type: 'pre_write_accepted', payload: { assessmentTitle, sectionType, scaffoldLength: scaffold.length } }).catch(() => {});
   };
 
   const handleInsertFromChild = (text) => {
-    onInsert?.(text);
+    onInsert?.(stripMarkdown(text));
     appendEvent({ event_type: 'pre_write_accepted', payload: { assessmentTitle, sectionType, source: activeTab } }).catch(() => {});
   };
 
@@ -228,7 +229,7 @@ export default function PreWritePanel({ assessmentTitle, briefText, sectionType,
                   whiteSpace: 'pre-wrap',
                   wordBreak: 'break-word',
                 }}>
-                  {scaffold}
+                  {stripMarkdown(scaffold)}
                 </div>
 
                 {accepted ? (

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../SettingsContext';
+import stripMarkdown from '../../utils/stripMarkdown';
 import {
   TEXT_MUTED, TEXT_FAINT,
   ACCENT_PULSE, ACCENT_GLASS_FAINT,
@@ -75,7 +76,7 @@ export default function AffirmationBanner({ trigger = 'dashboard', visible = tru
         margin: 0,
         fontStyle: trigger === 'dashboard' ? 'italic' : 'normal',
       }}>
-        {copy}
+        {stripMarkdown(copy)}
       </p>
     </div>
   );
