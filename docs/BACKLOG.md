@@ -939,3 +939,21 @@ When student opens Phase 1 (Understand), AURA proactively shows relevant communi
 **Location:** AccessibilityVault.js, SettingsContext.js
 **Issue:** Both options exist in settings UI but are not applied globally to AURA output or editor content.
 **Fix:** Apply both via CSS class on root element when enabled in settings.
+
+---
+
+## B10: Raw markdown in document classification card
+
+**Priority:** P1 (student-facing, degrades first impression)
+**Location:** The classification modal/card that appears after document upload
+**Issue:** "__Actually it's something else__" renders as literal underscores and text instead of a styled interactive element. stripMarkdown or render fix needed.
+**Fix:** Apply stripMarkdown to classification card text, or replace markdown-formatted strings with proper JSX elements.
+
+---
+
+## B11: No document type options after classification card
+
+**Priority:** P1 (student cannot proceed if classification is wrong)
+**Location:** Same classification card — "Open canvas" button leads to no further options rendered
+**Issue:** After clicking Open canvas from the classification card, no alternative document type choices appear. Student cannot correct a misclassification.
+**Fix:** Add document type override UI after classification card, allowing student to select correct type before proceeding.

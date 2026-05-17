@@ -39,6 +39,7 @@ import ReadingRuler from './components/ReadingRuler';
 import WritingAnalysis from './components/WritingAnalysis';
 import ComprehensionBreak from './components/ComprehensionBreak';
 import PreWritePanel from './components/PreWritePanel';
+import SocraticPanel from './components/SocraticPanel';
 import FirstLookCard from './components/FirstLookCard';
 import { appendEvent } from '../core/HistoryOfThought';
 import TaskPhaseBar from './components/TaskPhaseBar';
@@ -134,6 +135,7 @@ export default function CanvasScreen() {
   const rubricBands = course.extractionData?.rubricBands || [];
   const rubricDetected = course.extractionData?.rubricDetected || false;
   const sourceFiles = course.extractionData?.sourceFiles || [];
+  const nodes = course.extractionData?.nodes || [];
 
   // Sprint 5: task sequence phase bar
   const taskSequence = course.extractionData?.taskSequence || null;
@@ -520,6 +522,16 @@ export default function CanvasScreen() {
             style={{ position: 'absolute', left: leftCollapsed ? 4 : 228, top: 56, zIndex: 20, width: 20, height: 20, borderRadius: 10, background: 'var(--sov-line-dim, rgba(16,185,129,0.18))', border: 'none', color: 'var(--sov-line, #10b981)', cursor: 'pointer', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}> {/* allow-style */}
             {leftCollapsed ? '\u203A' : '\u2039'}
           </button>
+        )}
+
+        {/* Tier 2: Socratic thinking panel */}
+        {!isExamPaper && currentTitle && (
+          <SocraticPanel
+            assessmentTitle={currentTitle}
+            courseId={courseId}
+            currentPhase={currentPhase}
+            nodes={nodes}
+          />
         )}
 
         {/* Exam paper: show question nav instead of section rail */}
