@@ -720,3 +720,13 @@ Tools recommend the next tool on completion. Rubric decode -> Brief simplify -> 
 **Issue:** The `[TOOL:simplify]` tag from AURA tool surfacing is appearing as visible text in the canvas editor. This tag is meant for AuraChatOverlay message rendering only and should never reach the editor content.
 **Investigate:** Trace how PreWritePanel inserts text into the editor (likely via `simplifii:voice-transcript` event). Check if AURA responses containing [TOOL:] tags are being passed through to the insert path without stripping.
 **Fix:** Strip `[TOOL:\w+]` tags from any text before inserting into the Tier 3 editor.
+
+---
+
+## A1: Assessments have no stable ID — matched by title string only
+
+**Priority:** Architecture (not blocking, but fragile)
+**Location:** AuraChatOverlay.jsx:42-47, ProjectContext.js ingestion path, CanvasScreen.jsx:107-109
+**Issue:** Assessments are identified by title string throughout the app. AuraChatOverlay filters documents by title match. CanvasScreen finds the active brief by title match. RouterContext passes `assessmentTitle` (string) not an ID. If two assessments share a title (e.g. "Assessment Task 1" across different courses), scoping breaks. If a title is renamed after ingestion, the link breaks.
+**Fix:** When the document node tree is built (Sprint 4), every assessment must be assigned a UUID at ingestion time. AuraChatOverlay, CanvasScreen, and ProjectContext should then scope by ID not title. Requires: UUID field on assessmentBriefs[], RouterContext passing assessmentId, Supabase assessments.id used as the canonical key.
+**Constraint:** Deferred to Sprint 4 (document node tree architecture).

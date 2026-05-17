@@ -38,14 +38,26 @@ export default function AuraChatOverlay({ open, onClose }) {
   const { courseId, assessmentTitle: routerAssessment } = useRouter();
   const { learnerContext } = useLearnerContext();
 
-  // Derive active task context from ALL uploaded documents (not just [0])
+  // Derive active task context
   const activeCourse = courseId ? courses?.[courseId] : null;
-  // Try multiple possible keys for document storage
-  const allDocs = activeCourse?.extractionData?.assessmentBriefs
-    || activeCourse?.extractionData?.documents
-    || activeCourse?.extractionData?.files
-    || [];
+  // All documents for this course (stable ref for downstream useMemo)
+  const allCourseDocs = useMemo(() => {
+    const ext = activeCourse?.extractionData;
+    if (!ext) return [];
+    return ext.assessmentBriefs || ext.documents || ext.files || [];
+  }, [activeCourse?.extractionData]);
   const activeDocType = activeCourse?.extractionData?.documentType || '';
+
+  // Scope to active assessment: filter by routerAssessment title if set.
+  // Fallback to all docs if no match found (backwards compatible).
+  const allDocs = useMemo(() => {
+    if (!routerAssessment || allCourseDocs.length <= 1) return allCourseDocs;
+    const matched = allCourseDocs.filter(d => {
+      const display = d.weight ? `${d.title} (${d.weight})` : d.title;
+      return display === routerAssessment || d.title === routerAssessment;
+    });
+    return matched.length > 0 ? matched : allCourseDocs;
+  }, [routerAssessment, allCourseDocs]);
 
   // Use highest-priority doc for primary title (assessment brief > rubric > other)
   const primaryDoc = allDocs.find(d => d.source === 'explicit' || d.weight) || allDocs[0];
