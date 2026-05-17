@@ -161,7 +161,7 @@ export default function HomeScreen() {
   return (
     <div className={`home-root ${reducedMotion ? 'home-no-motion' : ''}`}>
       {/* Hidden AddCourseButton: provides file picker + simplifii:trigger-add-work listener */}
-      <div style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0, pointerEvents: 'none' }} aria-hidden="true"><AddCourseButton /></div>
+      <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden', clip: 'rect(0,0,0,0)', clipPath: 'inset(50%)' }} aria-hidden="true"><AddCourseButton /></div>
       {/* Top nav */}
       <nav className="home-nav" role="navigation" aria-label="Home navigation">
         <div className="home-nav-brand">

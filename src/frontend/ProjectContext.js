@@ -222,7 +222,8 @@ export const ProjectProvider = ({ children }) => {
   }, []);
 
   // Active term filter for Home screen. Persisted to localStorage.
-  const [activeTerm, setActiveTerm] = useState(() => loadJSON('simplifii_active_term', null));
+  // Default to null (All courses shown). User can manually filter by term.
+  const [activeTerm, setActiveTerm] = useState(null);
 
   // Computed: unique terms across all courses, deduped by year+code.
   const terms = useMemo(() => {
