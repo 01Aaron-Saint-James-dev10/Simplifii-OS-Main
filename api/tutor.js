@@ -29,7 +29,7 @@ export default async function handler(req, res) {
   const quota = await checkQuota(userId);
   if (quota.exceeded) return res.status(402).json({ success: false, error: quota.error });
 
-  const { messages, assessmentTitle, tier, homeLanguage, easyRead, briefText, documentType, sensoryLevel, accessibilityProfile, systemOverride } = req.body || {};
+  const { messages, assessmentTitle, tier, homeLanguage, easyRead, briefText, documentType, sensoryLevel, accessibilityProfile, systemOverride, variantSuffix } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
   if (!apiKey) {
@@ -153,6 +153,11 @@ export default async function handler(req, res) {
   // Allow callers to bypass the full AURA prompt with a custom system prompt
   if (systemOverride) {
     systemPrompt = systemOverride;
+  }
+
+  // A/B/C variant suffix: appended to system prompt to steer response style
+  if (variantSuffix) {
+    systemPrompt += `\n\n${variantSuffix}`;
   }
 
   try {
