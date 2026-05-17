@@ -29,7 +29,7 @@ export default async function handler(req, res) {
   const quota = await checkQuota(userId);
   if (quota.exceeded) return res.status(402).json({ success: false, error: quota.error });
 
-  const { messages, assessmentTitle, tier, homeLanguage, easyRead, briefText, documentType, sensoryLevel, accessibilityProfile } = req.body || {};
+  const { messages, assessmentTitle, tier, homeLanguage, easyRead, briefText, documentType, sensoryLevel, accessibilityProfile, systemOverride } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
   if (!apiKey) {
@@ -148,6 +148,11 @@ export default async function handler(req, res) {
     if (/sounds? (like )?ai|ai detect|turnitin|robotic|not human|too formal|sounds? weird|does this sound real/i.test(msgLower)) {
       systemPrompt += `\n\nAI DETECTION CONCERN: The learner is worried their writing sounds AI-generated. Acknowledge the concern without judgement. Suggest they can use the Humaniser tool to adjust their writing style. End your response with [TOOL:humanise]`;
     }
+  }
+
+  // Allow callers to bypass the full AURA prompt with a custom system prompt
+  if (systemOverride) {
+    systemPrompt = systemOverride;
   }
 
   try {

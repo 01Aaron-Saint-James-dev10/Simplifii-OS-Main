@@ -294,6 +294,7 @@ export const EVENT_TYPES = Object.freeze([
   'tier_transition',
   'pre_write_generated',
   'pre_write_accepted',
+  'tier_2_response',
 ]);
 
 // ============================================================
