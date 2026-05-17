@@ -58,7 +58,7 @@ import './CanvasScreen.css';
 
 export default function CanvasScreen() {
   const { courseId, assessmentTitle, navigateToAssessments } = useRouter();
-  const { courses, activeCourse, projectSources } = useProject();
+  const { courses, activeCourse, projectSources, upgradeCourseExtraction } = useProject();
   const { reducedMotion, isZenMode, theme, autismFirstEnabled, sensoryLevel, isLiteralMode, ambientPreference } = useSettings();
 
   // Ambient sound: start/stop when preference changes
@@ -658,7 +658,10 @@ export default function CanvasScreen() {
             if (panel) setActivePanelWithLog(panel);
             setDocClassification(null);
           }}
-          onOverride={() => setDocClassification(null)}
+          onOverride={(newType) => {
+            upgradeCourseExtraction(courseId, { extractionData: { documentType: newType } });
+            setDocClassification(null);
+          }}
           onDismiss={() => setDocClassification(null)}
         />
       )}
