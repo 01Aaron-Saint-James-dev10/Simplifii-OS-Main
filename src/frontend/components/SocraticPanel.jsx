@@ -49,7 +49,7 @@ export default function SocraticPanel({ assessmentTitle, courseId, currentPhase,
   const xn1 = nodes?.find(n => n.nodeType === 'XN1');
 
   const generateQuestions = useCallback(async () => {
-    if (!xn1?.content && !assessmentTitle) return;
+    if (!assessmentTitle) return;
     setLoading(true);
     setError('');
     try {
@@ -88,7 +88,7 @@ Australian English. No em-dashes. No markdown.`,
   }, [assessmentTitle, xn1, currentPhase, isLiteralMode, accessibilityProfile]);
 
   useEffect(() => {
-    if (questions.length === 0 && xn1?.content) {
+    if (questions.length === 0 && assessmentTitle) {
       generateQuestions();
     }
   }, [xn1?.content, currentPhase?.id]);
