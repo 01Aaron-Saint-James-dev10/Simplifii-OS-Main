@@ -70,7 +70,7 @@ export default function AuraChatOverlay({ open, onClose }) {
   const currentPhase = useMemo(() => {
     if (!taskPhases.length || !courseId || !activeAssessmentTitle) return null;
     return getCurrentPhase(buildAssessmentKey(courseId, activeAssessmentTitle), taskPhases);
-  }, [courseId, activeAssessmentTitle, taskPhases]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [courseId, activeAssessmentTitle, taskPhases]); // eslint-disable-line
   const activeDueDate = primaryDoc?.dueDate || '';
   const rubricCriteria = activeCourse?.extractionData?.rubricCriteria || [];
 

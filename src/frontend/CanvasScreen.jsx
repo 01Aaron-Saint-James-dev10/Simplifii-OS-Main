@@ -138,7 +138,7 @@ export default function CanvasScreen() {
     if (assessmentKey && taskPhases.length > 0) {
       setActivePhaseId(prev => prev || getCurrentPhaseId(assessmentKey, taskPhases));
     }
-  }, [assessmentKey, taskPhases.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [assessmentKey, taskPhases.length]); // eslint-disable-line
   const currentPhase = taskPhases.find(p => p.id === activePhaseId) || null;
 
   // Raw extracted text: fallback for tools when structured brief is empty.
