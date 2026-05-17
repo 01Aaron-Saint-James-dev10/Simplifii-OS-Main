@@ -26,33 +26,9 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ success: false, error: 'API key not configured.' });
   if (!rubricText || rubricText.length < 10) return res.status(400).json({ success: false, error: 'rubricText required.' });
 
-  let systemPrompt = `You are a rubric decoder inside Simplifii-OS. Australian English. No em-dashes.
+  const levelLabel = tier === 'secondary' ? 'Year 10-12' : tier === 'postgrad' ? 'postgraduate' : 'undergraduate';
 
-Take each rubric criterion and translate it into THREE things:
-
-1. **What it actually means** (plain English, max 2 sentences)
-2. **What a top-band response looks like** (specific, concrete example)
-3. **Common mistake to avoid** (what students lose marks for)
-
-Format EXACTLY like this:
-
-### Criterion: [original criterion text]
-
-**What this means:** [plain English translation]
-
-**Top response:** [what markers want to see, with example]
-
-**Avoid:** [common mistake]
-
----
-
-Repeat for every criterion in the rubric.
-
-RULES:
-- Use ${tier === 'secondary' ? 'Year 10-12' : tier === 'postgrad' ? 'postgraduate' : 'undergraduate'} appropriate language
-- Be specific. "Analyse effectively" means nothing. "Use 2-3 quotes per paragraph and explain how the language technique creates meaning" is useful.
-- If a criterion says "demonstrates understanding", explain WHAT understanding looks like in practice
-- Honest. If a criterion is genuinely vague, say so: "This criterion is broad. Focus on..."`;
+  let systemPrompt = `You are a rubric translator inside Simplifii-OS. Your job is to read any rubric and translate it into a clear action plan students can follow. Handle ANY grade scale: HD/D/C/P, Excellent/Very Good/Satisfactory, numeric, percentage, or custom bands. Australian English. No em-dashes. Return ONLY valid JSON.`;
 
   if (literalMode) systemPrompt += '\n\nLITERAL MODE: No metaphors, no idioms, no ambiguity. Use concrete, specific language only.';
   if (accessibilityProfile && accessibilityProfile !== 'standard') systemPrompt += `\n\nAdapt output for ${accessibilityProfile} accessibility profile.`;
@@ -63,7 +39,7 @@ RULES:
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, system: systemPrompt, messages: [{ role: 'user', content: `Assessment: "${assessmentTitle || 'Untitled'}"\n\nRubric:\n${rubricText.slice(0, 4000)}` }] }),
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2500, system: systemPrompt, messages: [{ role: 'user', content: `Read this rubric for a ${levelLabel} assessment "${assessmentTitle || 'Untitled'}" and extract every criterion.\n\nRubric:\n${rubricText.slice(0, 5000)}\n\nReturn ONLY a JSON object:\n{\n  "criteria": [\n    {\n      "name": "exact criterion name from rubric",\n      "gradeBands": [\n        {"label": "exact grade level from rubric", "description": "what student must do", "evidence": "specific evidence marker looks for"}\n      ],\n      "microTaskChecklist": ["specific action 1", "action 2", "action 3"],\n      "selfAssessmentQuestion": "one question the student asks themselves to check this criterion"\n    }\n  ],\n  "normalisingMessage": "warm paragraph acknowledging rubrics are confusing",\n  "scaleDetected": "the grading scale found (e.g. HD/D/C/P or Excellent/Good/Satisfactory)"\n}\n\nRULES:\n- Extract EVERY criterion. Do not skip any.\n- For each criterion include EVERY grade band using EXACT labels from the rubric.\n- microTaskChecklist: 3-4 specific actions per criterion.\n- Do NOT rename grade bands. Use what the rubric says.\n- Australian English. Return ONLY the JSON.` }] }),
     });
 
     if (!response.ok) return res.status(502).json({ success: false, error: 'AI service unavailable. Try again.' });
@@ -72,8 +48,11 @@ RULES:
       tokensIn: data?.usage?.input_tokens || 0,
       tokensOut: data?.usage?.output_tokens || 0,
     });
-    return res.status(200).json({ success: true, decoded: data?.content?.[0]?.text || '' });
-  } catch (err) {
-    return res.status(500).json({ success: false, error: err.message });
+    const rawText = data?.content?.[0]?.text || '';
+    let rubricData = null;
+    try { const m = rawText.match(/\{[\s\S]*\}/); if (m) rubricData = JSON.parse(m[0]); } catch { /* fallback to raw */ }
+    return res.status(200).json({ success: true, decoded: rawText, rubricData });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Something went wrong. Try again.' });
   }
 }
