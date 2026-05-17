@@ -19,8 +19,9 @@ const log = createLogger('coursePersistence');
  * Returns { courseId, assessmentIds } on success.
  */
 export async function persistCourseToSupabase({ name, code, tier, term, assessments, rawText, extractionData, localId }) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+  const { data: { user }, error: authErr } = await supabase.auth.getUser();
+  if (authErr) { log.warn('auth check failed:', authErr.message); return null; }
+  if (!user) { log.warn('no authenticated user, skipping persist'); return null; }
 
   // Build the data JSONB payload (everything AURA needs on reload)
   const dataPayload = {
@@ -50,17 +51,20 @@ export async function persistCourseToSupabase({ name, code, tier, term, assessme
   }
 
   const courseId = localId || uuidv4();
-  const { error: courseErr } = await supabase.from('courses').upsert({
+  log.info('persisting course:', courseId, 'name:', name, 'user:', user.id);
+  const { data: upsertResult, error: courseErr } = await supabase.from('courses').upsert({
     id: courseId,
     user_id: user.id,
     name: name || 'Untitled Course',
     local_id: localId || courseId,
     data: dataPayload,
+    updated_at: new Date().toISOString(),
   }, { onConflict: 'id' });
   if (courseErr) {
-    log.warn('course upsert failed:', courseErr.message);
+    log.warn('course upsert failed:', courseErr.message, courseErr.details, courseErr.hint);
     throw courseErr;
   }
+  log.info('course upserted OK:', courseId);
 
   const assessmentIds = [];
   const briefs = Array.isArray(assessments) ? assessments : [];
