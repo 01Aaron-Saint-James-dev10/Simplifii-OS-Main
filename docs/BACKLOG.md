@@ -910,3 +910,32 @@ When student opens Phase 1 (Understand), AURA proactively shows relevant communi
 **Priority:** Deferred
 **Depends on:** Knowledge Sprint C, Sprint 5 (done)
 **Summary:** At Phase 3 entry (Gather), AURA surfaces 1 to 2 anonymised corpus patterns from students who completed a similar assessment. Framing: "Students who completed a similar assessment found this useful. Want to see it?" Never comparative. Always opt-in.
+
+---
+
+## CRAFT-A1: LiteralMode.js transformer orphaned
+
+**Priority:** Sprint 8
+**Location:** src/core/LiteralMode.js
+**Issue:** The render-time vocab transformer that post-processes AI output text is never imported or called anywhere. The isLiteralMode boolean flag IS wired to AI prompts (AI is told to use plain language) but the transformer that would catch missed jargon at render time is unused.
+**Fix:** Import LiteralMode.js in AuraChatOverlay.jsx and PreWritePanel.jsx. Apply transformer to AI response text before display and before insertion into Tier 3 editor. This is the second-pass safety net for plain language.
+**Depends on:** Nothing. Can build immediately.
+
+---
+
+## CRAFT-A2: No Tier 2 Socratic panel exists
+
+**Priority:** Sprint 9 (single most important remaining build target per architecture constitution)
+**Location:** CanvasScreen.jsx (missing middle panel)
+**Issue:** The three-tier canvas has Tier 1 (PreWritePanel) and Tier 3 (editor) but no Tier 2 (Socratic prompts panel). The Grit dial IS fully wired to AURA. The Socratic behaviour exists. But there is no dedicated surface where the student answers thinking prompts before writing. This is the integrity engine the whole product is built around. Without it the Authenticity Report has no Socratic thinking to log.
+**Fix:** Build SocraticPanel.jsx as the centre panel of the three-tier canvas. AURA generates questions based on XN1 node + current phase. Student answers. Answers are logged to HistoryOfThought as tier_2_response events.
+**Depends on:** Sprint 4 nodes (done), Sprint 5 phases (done).
+
+---
+
+## CRAFT-A3: BionicText + OpenDyslexic not applied globally
+
+**Priority:** Sprint 8
+**Location:** AccessibilityVault.js, SettingsContext.js
+**Issue:** Both options exist in settings UI but are not applied globally to AURA output or editor content.
+**Fix:** Apply both via CSS class on root element when enabled in settings.

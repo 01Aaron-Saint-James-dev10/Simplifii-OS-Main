@@ -140,7 +140,6 @@ export default function AppShell() {
     if (user?.id) {
       unlockWithUserId(user.id).then(() => {
         enableCloudSync(user.id);
-        if (typeof console !== 'undefined') console.log('[HistoryOfThought] vault unlocked, cloud sync enabled');
       }).catch(() => { /* non-blocking: vault may already be unlocked */ });
     }
     return () => endSession();
