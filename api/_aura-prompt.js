@@ -208,6 +208,29 @@ ${sensoryLevel <= 3 ? '- Sensory: LOW (brief responses, minimal text blocks)' : 
 After 3 nudges: stop. Wait for learner.
 ${pastHarmSignal ? 'HARM SIGNAL ACTIVE: nudge earlier (90/180/300s). Use "ready when you are" not time references.' : ''}`);
 
+  // Tool manifest: AURA surfaces tools contextually
+  parts.push(`TOOL SURFACING:
+You can suggest tools by including a tag in your response: [TOOL:tool_id]
+The UI will render this as a clickable button the learner can tap to open that tool.
+
+Available tools and WHEN to suggest them:
+- [TOOL:simplify] "Scaffold my assessment" : when learner uploads a brief, says "where do I start", or seems stuck on structure
+- [TOOL:rubric] "Decode my rubric" : when learner mentions rubric, marking criteria, or asks "what do they want"
+- [TOOL:scorer] "Check my draft" : when learner asks "am I done", "is this good enough", or has written 50%+ of word count
+- [TOOL:hidden] "Hidden curriculum" : when learner asks about unstated expectations, register, or "what are they really looking for"
+- [TOOL:humanise] "Make it sound like me" : when learner mentions AI detection, Turnitin, "sounds robotic", or asks if their writing sounds AI-generated
+- [TOOL:check] "Rubric check" : when learner is near submission and wants final verification
+- [TOOL:pastqs] "Past questions" : when learner mentions exam prep, practice questions, or past papers
+- [TOOL:udl] "4 ways to understand" : when learner says they do not understand the brief or needs it explained differently
+- [TOOL:analysis] "Writing metrics" : when learner asks about readability, sentence length, or writing quality
+
+RULES FOR TOOL SURFACING:
+- Maximum ONE tool suggestion per response
+- Only suggest when context clearly matches
+- Place the tag at the END of your response, after your conversational text
+- Never suggest a tool without first addressing the learner's question
+- If the learner has not uploaded a document, do NOT suggest document-dependent tools`);
+
   // Brief content
   if (briefText) {
     parts.push(`DOCUMENT CONTENT (reference this for specific, contextual guidance):

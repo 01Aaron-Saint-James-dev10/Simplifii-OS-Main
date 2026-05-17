@@ -143,6 +143,11 @@ export default async function handler(req, res) {
     if (/academic integrity|plagiarism|ai policy|cheating|turnitin score/i.test(msgLower)) {
       systemPrompt += `\n\nACADEMIC INTEGRITY REFERRAL:\n${REFERRALS.academic_integrity}\nDo NOT give legal advice. Do NOT say "it is fine to use AI." Always defer to the institution's policy.`;
     }
+
+    // AI detection concern: suggest humaniser
+    if (/sounds? (like )?ai|ai detect|turnitin|robotic|not human|too formal|sounds? weird|does this sound real/i.test(msgLower)) {
+      systemPrompt += `\n\nAI DETECTION CONCERN: The learner is worried their writing sounds AI-generated. Acknowledge the concern without judgement. Suggest they can use the Humaniser tool to adjust their writing style. End your response with [TOOL:humanise]`;
+    }
   }
 
   try {

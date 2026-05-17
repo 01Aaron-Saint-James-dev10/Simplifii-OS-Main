@@ -306,9 +306,21 @@ export default function CanvasScreen() {
   const [pendingTutorMessage, setPendingTutorMessage] = useState(null);
 
   const [leftCollapsed, setLeftCollapsed] = useState(() => localStorage.getItem('simplifii_left_collapsed') === 'true');
-  const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [railVisible, setRailVisible] = useState(false);
   const toggleLeft = () => { const next = !leftCollapsed; setLeftCollapsed(next); localStorage.setItem('simplifii_left_collapsed', String(next)); };
-  const toggleRight = () => setRightCollapsed(!rightCollapsed);
+
+  // Listen for AURA tool suggestions: open the rail to a specific panel
+  useEffect(() => {
+    const handler = (e) => {
+      const toolId = e.detail?.toolId;
+      if (toolId) {
+        setRailVisible(true);
+        setActivePanelWithLog(toolId);
+      }
+    };
+    window.addEventListener('simplifii:open-tool', handler);
+    return () => window.removeEventListener('simplifii:open-tool', handler);
+  }, [setActivePanelWithLog]);
 
   // Each panel is always mounted (preserves local state like chat messages
   // and check results) but hidden via display:none when not active. Only
@@ -404,6 +416,16 @@ export default function CanvasScreen() {
           buttonLabel="Decode hidden curriculum"
           buildPayload={(brief, rubric, draft, s) => ({ briefText: brief, assessmentTitle: s.assessmentTitle, tier: s.tier, literalMode: s.literalMode, accessibilityProfile: s.accessibilityProfile, learnerContext: s.learnerContext })}
           briefText={briefOrText} rubricText="" draftText="" assessmentTitle={currentTitle} courseId={courseId}
+        />
+      </div>
+      {/* Humaniser: AURA-triggered only, not in PanelRail tabs */}
+      <div style={{ display: activePanel === 'humanise' ? 'contents' : 'none' }}>
+        <ToolPanel
+          toolId="humaniser" title="Humaniser" endpoint="/api/humanise" resultKey="humanisedText"
+          description="Rewrite your draft to sound like you wrote it. Reduces AI detection markers."
+          buttonLabel="Make it sound like me"
+          buildPayload={(brief, rubric, draft, s) => ({ draftText: draft, assessmentTitle: s.assessmentTitle, tier: s.tier, literalMode: s.literalMode, accessibilityProfile: s.accessibilityProfile, learnerContext: s.learnerContext })}
+          briefText="" rubricText="" draftText={draftText} assessmentTitle={currentTitle} courseId={courseId}
         />
       </div>
       {/* BreathBubble relocated to CanvasSettingsOverlay > Wellbeing */}
@@ -525,11 +547,25 @@ export default function CanvasScreen() {
           <BibliographyView />
         </div>
 
-        <PanelRail
-          activePanel={activePanel}
-          onSelectPanel={setActivePanelWithLog}
-          panelContent={panelContent}
-        />
+        {/* Minimal UI: rail hidden by default, AURA surfaces tools contextually */}
+        {railVisible ? (
+          <PanelRail
+            activePanel={activePanel}
+            onSelectPanel={setActivePanelWithLog}
+            panelContent={panelContent}
+            onHideRail={() => { setRailVisible(false); setActivePanelWithLog(null); }}
+          />
+        ) : (
+          <button
+            type="button"
+            aria-label="Open tools"
+            title="Open tools panel"
+            onClick={() => setRailVisible(true)}
+            style={{ position: 'absolute', right: 8, top: 56, zIndex: 20, width: 32, height: 32, borderRadius: 16, background: 'var(--sov-line-dim, rgba(16,185,129,0.18))', border: 'none', color: 'var(--sov-line, #10b981)', cursor: 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            T
+          </button>
+        )}
       </div>
 
       <AnnouncementBanner />

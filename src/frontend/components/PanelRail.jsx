@@ -58,7 +58,7 @@ const PANELS = [
     info: 'Shows reading level, average sentence length, passive voice percentage, filler words, and word repetition as you write. Helps you tighten your prose.' },
 ];
 
-export default function PanelRail({ activePanel, onSelectPanel, panelContent }) {
+export default function PanelRail({ activePanel, onSelectPanel, panelContent, onHideRail }) {
   const [showInfo, setShowInfo] = useState(false);
   // Show labels by default on first visit, collapse after user has explored
   const [expanded, setExpanded] = useState(() => {
@@ -104,6 +104,34 @@ export default function PanelRail({ activePanel, onSelectPanel, panelContent }) 
         role="tablist"
         aria-label="Canvas panels"
       >
+        {/* Hide rail button */}
+        {onHideRail && (
+          <button
+            type="button"
+            aria-label="Hide tools panel"
+            title="Hide tools"
+            onClick={onHideRail}
+            style={{
+              width: expanded ? '100%' : 36,
+              height: 22,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              outline: 'none',
+              fontFamily: FONT_SYSTEM,
+              fontSize: 9,
+              color: TEXT_FAINT,
+              marginBottom: 2,
+              alignSelf: 'center',
+            }}
+          >
+            {expanded ? '\u2715 hide tools' : '\u2715'}
+          </button>
+        )}
+
         {/* Collapse/expand toggle */}
         <button
           type="button"

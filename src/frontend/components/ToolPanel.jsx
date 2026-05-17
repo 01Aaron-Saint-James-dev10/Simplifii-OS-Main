@@ -6,6 +6,8 @@ import { supabase } from '../../lib/supabaseClient';
 import AsciiLoader from './AsciiLoader';
 import { announceAction } from '../services/PredictabilityService';
 import ResponseFeedback from './ResponseFeedback';
+import StructuredScaffold from './StructuredScaffold';
+import StructuredRubric from './StructuredRubric';
 import {
   SURFACE_RAISED,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
@@ -44,6 +46,7 @@ export default function ToolPanel({
   const { learnerContext } = useLearnerContext();
   const { user } = useAuth();
   const [result, setResult] = useState('');
+  const [structuredData, setStructuredData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -85,6 +88,10 @@ export default function ToolPanel({
       if (data.success) {
         const content = data[resultKey] || '';
         setResult(content);
+        // Store structured JSON if present (scaffold for brief, rubricData for rubric)
+        if (data.scaffold) setStructuredData({ type: 'scaffold', data: data.scaffold });
+        else if (data.rubricData) setStructuredData({ type: 'rubric', data: data.rubricData });
+        else setStructuredData(null);
         // Persist to Supabase
         if (user && courseId && content) {
           supabase.from('assessment_representations').upsert({
@@ -154,17 +161,23 @@ export default function ToolPanel({
       {error && <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: COLOUR_WARN, margin: 0 }}>{error}</p>}
 
       {result && (
-        <div style={{ maxHeight: 400, overflowY: 'auto', border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS, padding: '12px 14px' }}>
+        <div style={{ maxHeight: 500, overflowY: 'auto', border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS, padding: '12px 14px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
             <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 700, color: ACCENT_PULSE, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{title}</span>
-            <button type="button" onClick={() => { setResult(''); run(); }}
+            <button type="button" onClick={() => { setResult(''); setStructuredData(null); run(); }}
               style={{ fontFamily: FONT_SYSTEM, fontSize: 8, color: TEXT_FAINT, background: 'none', border: `1px solid ${SURFACE_RAISED}`, borderRadius: 3, padding: '2px 6px', cursor: 'pointer' }}>
               Regenerate
             </button>
           </div>
-          <pre style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_PRIMARY, margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-            {cleanMarkdown(result)}
-          </pre>
+          {structuredData?.type === 'scaffold' ? (
+            <StructuredScaffold scaffold={structuredData.data} />
+          ) : structuredData?.type === 'rubric' ? (
+            <StructuredRubric rubricData={structuredData.data} />
+          ) : (
+            <pre style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_PRIMARY, margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+              {cleanMarkdown(result)}
+            </pre>
+          )}
           <ResponseFeedback toolName={toolId} context={{ assessmentTitle, courseId }} />
         </div>
       )}

@@ -392,7 +392,13 @@ export default function AuraChatOverlay({ open, onClose }) {
 
       {/* Messages */}
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {messages.map((m, i) => (
+        {messages.map((m, i) => {
+          // Parse [TOOL:id] tags from AURA responses
+          const toolMatch = m.role === 'tutor' ? m.text.match(/\[TOOL:(\w+)\]/) : null;
+          const displayText = toolMatch ? m.text.replace(/\s*\[TOOL:\w+\]\s*/g, '').trim() : m.text;
+          const toolLabels = { simplify: 'Scaffold my assessment', rubric: 'Decode my rubric', scorer: 'Check my draft', hidden: 'Hidden curriculum', humanise: 'Make it sound like me', check: 'Rubric check', pastqs: 'Past questions', udl: '4 ways to understand', analysis: 'Writing metrics' };
+
+          return (
           <div key={i} style={{
             alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
             maxWidth: '85%',
@@ -403,8 +409,24 @@ export default function AuraChatOverlay({ open, onClose }) {
             position: 'relative',
           }}>
             <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_PRIMARY, margin: 0, lineHeight: 1.5 }}>
-              {m.text}
+              {displayText}
             </p>
+            {toolMatch && (
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('simplifii:open-tool', { detail: { toolId: toolMatch[1] } }))}
+                style={{
+                  marginTop: 8, display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '7px 12px', fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700,
+                  letterSpacing: '0.04em', color: ACCENT_PULSE, background: ACCENT_GLASS,
+                  border: `1px solid ${ACCENT_BORDER}`, borderRadius: BORDER_RADIUS + 2,
+                  cursor: 'pointer', outline: 'none',
+                }}
+              >
+                <span style={{ fontSize: 12 }}>{'\u2192'}</span>
+                {toolLabels[toolMatch[1]] || toolMatch[1]}
+              </button>
+            )}
             {m.role === 'tutor' && i > 0 && (
               <button
                 type="button"
@@ -419,7 +441,8 @@ export default function AuraChatOverlay({ open, onClose }) {
               </button>
             )}
           </div>
-        ))}
+          );
+        })}
         {loading && (
           <div style={{ alignSelf: 'flex-start', padding: '8px 10px', border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS + 4 }}>
             <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_FAINT, margin: 0 }}>...</p>
@@ -427,10 +450,13 @@ export default function AuraChatOverlay({ open, onClose }) {
         )}
       </div>
 
-      {/* Quick-reply chips (show when no courses loaded and only greeting exists) */}
-      {messages.length <= 1 && !activeAssessmentTitle && (
+      {/* Contextual quick-reply chips */}
+      {messages.length <= 1 && (
         <div style={{ padding: '4px 12px 8px', display: 'flex', gap: 6, overflowX: 'auto', borderTop: `1px solid ${SURFACE_RAISED}` }}>
-          {['I am not sure where to start', 'I have an assignment due soon', 'I want to understand my rubric', 'I am feeling overwhelmed', 'Show me what this tool does'].map(chip => (
+          {(activeAssessmentTitle
+            ? ['Where do I start with this?', 'Decode my rubric', 'What are the hidden expectations?', 'I am feeling overwhelmed']
+            : ['I am not sure where to start', 'I have an assignment due soon', 'I want to understand my rubric', 'I am feeling overwhelmed']
+          ).map(chip => (
             <button key={chip} type="button" onClick={() => { if (sendRef.current) sendRef.current(chip); }}
               style={{ flexShrink: 0, padding: '5px 10px', fontFamily: FONT_SYSTEM, fontSize: 11, color: TEXT_MUTED, background: 'transparent', border: `1px solid ${SURFACE_RAISED}`, borderRadius: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>
               {chip}
