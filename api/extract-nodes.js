@@ -4,7 +4,7 @@
  * Typed document node extraction via Claude. Receives classified
  * document text and returns structured nodes (Z, XN, YN schema).
  *
- * POST { text, documentType, filename, user_id }
+ * POST { text, documentType, filename, user_id, chunkIndex?, totalChunks? }
  * Returns { success, nodes: [{nodeType, nodeId, content, confidence}], extractionError }
  *
  * Env: ANTHROPIC_API_KEY
@@ -15,26 +15,40 @@ import { checkQuota, recordUsage } from './_quota.js';
 
 const SYSTEM_PROMPT = `You are a document node extractor inside Simplifii-OS. Your job is to read a classified academic document and extract typed sections as structured nodes. Each node is a self-contained piece of information that downstream tools (scaffolder, rubric decoder, AURA tutor) can address individually.
 
+This text may be extracted from a PDF and may contain formatting artefacts, truncated tables, or linearised columns. Extract semantic meaning regardless of presentation format. If the text appears to be a partial extract from a longer document, extract what is available and set confidence accordingly.
+
+Format variance you may encounter:
+- Criteria as table rows (text may be garbled from column linearisation)
+- Criteria as bullet points or numbered lists
+- Criteria embedded in prose paragraphs
+- Grade bands as column headers in a table
+- Grade bands as inline descriptors
+- Weightings as percentages, fractions, or mark counts
+
+In all cases: extract the semantic content. Do not require a specific format to be present.
+
 Australian English. No em-dashes. No markdown. Return ONLY valid JSON.`;
 
-function buildUserMessage(documentType, text, filename) {
-  const snippet = text.slice(0, 4000);
+function buildUserMessage(documentType, text, filename, chunkIndex, totalChunks) {
+  const chunkContext = (chunkIndex !== undefined && totalChunks > 1)
+    ? `\n\nNOTE: This is chunk ${chunkIndex + 1} of ${totalChunks} from the same document. Extract only what is present in this chunk. Some nodes may be absent or incomplete because they appear in other chunks. Set confidence accordingly.`
+    : '';
 
   if (documentType === 'rubric') {
-    return `Extract typed nodes from this MARKING RUBRIC.
+    return `Extract typed nodes from this MARKING RUBRIC.${chunkContext}
 
 Filename: ${filename || 'unknown'}
 
 Document:
-${snippet}
+${text}
 
 Return ONLY a JSON object:
 {
   "nodes": [
-    { "nodeType": "YN1", "nodeId": "YN1", "content": "criteria list with weightings. Format as a JSON array: [{${'"'}criterion${'"'}: ${'"'}name${'"'}, ${'"'}weighting${'"'}: ${'"'}25%${'"'}}]. Use JSON.stringify format with escaped quotes.", "confidence": 0.9 },
+    { "nodeType": "YN1", "nodeId": "YN1", "content": "criteria list with weightings. Format as a JSON array: [{${'"'}criterion${'"'}: ${'"'}name${'"'}, ${'"'}weighting${'"'}: ${'"'}25%${'"'}}]. If weighting is not stated, set it as 'not specified'. Use JSON.stringify format with escaped quotes.", "confidence": 0.9 },
     { "nodeType": "YN2", "nodeId": "YN2", "content": "grade band descriptors per criterion using EXACT labels from rubric. Format as a JSON array: [{${'"'}criterion${'"'}: ${'"'}name${'"'}, ${'"'}bands${'"'}: [{${'"'}label${'"'}: ${'"'}HD${'"'}, ${'"'}descriptor${'"'}: ${'"'}what this level looks like${'"'}}]}]. Use JSON.stringify format.", "confidence": 0.9 },
-    { "nodeType": "YN3", "nodeId": "YN3", "content": "scale detected: the grading scale used (e.g. HD/D/C/P, Excellent/Good/Satisfactory, 1-7 numeric, percentage)", "confidence": 0.9 },
-    { "nodeType": "YN4", "nodeId": "YN4", "content": "hidden curriculum in rubric language: what markers actually reward that the rubric implies but does not state plainly", "confidence": 0.9 }
+    { "nodeType": "YN3", "nodeId": "YN3", "content": "scale detected: the grading scale used (e.g. HD/D/C/P, Excellent/Good/Satisfactory, 1-7 numeric, percentage, A-F, custom institutional labels). Use EXACT labels from the document. Never rename them.", "confidence": 0.9 },
+    { "nodeType": "YN4", "nodeId": "YN4", "content": "hidden curriculum in rubric language: the gap between what the rubric says and what markers actually reward. Look for: vague verbs that imply higher order thinking, implicit citation requirements, assumed disciplinary knowledge, structural expectations not stated as criteria.", "confidence": 0.9 }
   ]
 }
 
@@ -50,12 +64,12 @@ RULES:
   }
 
   if (documentType === 'course_outline' || documentType === 'outline') {
-    return `Extract typed nodes from this COURSE OUTLINE.
+    return `Extract typed nodes from this COURSE OUTLINE.${chunkContext}
 
 Filename: ${filename || 'unknown'}
 
 Document:
-${snippet}
+${text}
 
 Return ONLY a JSON object:
 {
@@ -64,7 +78,7 @@ Return ONLY a JSON object:
     { "nodeType": "Z2", "nodeId": "Z2", "content": "learning outcomes list: each LO verbatim from the document", "confidence": 0.9 },
     { "nodeType": "Z3", "nodeId": "Z3", "content": "weekly schedule or topic list: week number and topic for each teaching week", "confidence": 0.9 },
     { "nodeType": "Z4", "nodeId": "Z4", "content": "assessment overview: each assessment name, weighting, due date, and brief description", "confidence": 0.9 },
-    { "nodeType": "Z5", "nodeId": "Z5", "content": "policies: late submission penalty, AI use policy, extension process, special consideration", "confidence": 0.9 }
+    { "nodeType": "Z5", "nodeId": "Z5", "content": "policies: late submission penalty, AI use policy, extension process, special consideration. May be scattered across multiple sections (Submissions, Academic Integrity, Special Consideration). Combine all policy content into one node.", "confidence": 0.9 }
   ]
 }
 
@@ -78,21 +92,21 @@ RULES:
   }
 
   // Default: brief (also handles 'unknown' type as brief extraction)
-  return `Extract typed nodes from this ASSESSMENT BRIEF.
+  return `Extract typed nodes from this ASSESSMENT BRIEF.${chunkContext}
 
 Filename: ${filename || 'unknown'}
 
 Document:
-${snippet}
+${text}
 
 Return ONLY a JSON object:
 {
   "nodes": [
-    { "nodeType": "XN1", "nodeId": "XN1", "content": "what the student must produce: the core task description in plain language (max 2000 chars)", "confidence": 0.9 },
+    { "nodeType": "XN1", "nodeId": "XN1", "content": "The core task: what the student must produce. May be stated as a title, a verb phrase ('Write a 2000-word...'), or embedded in context. Extract the clearest statement of what is required.", "confidence": 0.9 },
     { "nodeType": "XN2", "nodeId": "XN2", "content": "format requirements: word count, file type, referencing style, submission method", "confidence": 0.9 },
     { "nodeType": "XN3", "nodeId": "XN3", "content": "due date as ISO string (e.g. 2025-06-15) or the exact date text if ambiguous", "confidence": 0.9 },
     { "nodeType": "XN4", "nodeId": "XN4", "content": "learning outcomes this task maps to: list each LO verbatim from the document", "confidence": 0.9 },
-    { "nodeType": "XN5", "nodeId": "XN5", "content": "hidden curriculum: implicit expectations the brief does not state but markers reward", "confidence": 0.9 }
+    { "nodeType": "XN5", "nodeId": "XN5", "content": "hidden curriculum: expectations the brief implies but does not state. Infer from: verbs used (critically analyse vs describe), source type requirements (primary research only), format signals (Harvard referencing implies academic tone), and discipline conventions.", "confidence": 0.9 }
   ]
 }
 
@@ -116,12 +130,12 @@ export default async function handler(req, res) {
   const quota = await checkQuota(userId);
   if (quota.exceeded) return res.status(402).json({ success: false, error: quota.error });
 
-  const { text, documentType, filename } = req.body || {};
+  const { text, documentType, filename, chunkIndex, totalChunks } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ success: false, error: 'API key not configured.' });
   if (!text || text.length < 20) return res.status(400).json({ success: false, error: 'text required (min 20 chars).' });
 
-  const userMsg = buildUserMessage(documentType || 'brief', text, filename);
+  const userMsg = buildUserMessage(documentType || 'brief', text, filename, chunkIndex, totalChunks);
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
