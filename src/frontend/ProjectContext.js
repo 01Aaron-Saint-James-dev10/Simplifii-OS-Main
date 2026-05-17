@@ -298,9 +298,12 @@ export const ProjectProvider = ({ children }) => {
             // Reconstruct course-level nodes from JSONB
             const nodes = d.nodes || d.extractionData?.nodes || null;
 
+            const sourceFiles = d.sourceFiles || d.extractionData?.sourceFiles || [];
+
             const extractionData = {
               ...(d.extractionData || {}),
               documents: documents,
+              sourceFiles: sourceFiles,
               nodes: nodes,
               rawText: d.rawText || d.extractionData?.rawText || '',
               assessmentBriefs: finalBriefs,
