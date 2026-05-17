@@ -1,3 +1,18 @@
+## Sprint 12.5: A/B/C Variants for AURA Responses
+**Date:** 2026-05-18
+
+### Commits
+
+| SHA | Feature |
+|-----|---------|
+| `3edd2057` | abc-variants: three parallel AURA responses A/B/C, student picks preferred style, logged to HistoryOfThought |
+
+### Test Results
+
+12/12 regression tests pass. Build compiles clean.
+
+---
+
 ## Sprint 12 (Partial): Exam Paper QN Extraction + DocLibrary Hydration Fix
 **Date:** 2026-05-18
 
