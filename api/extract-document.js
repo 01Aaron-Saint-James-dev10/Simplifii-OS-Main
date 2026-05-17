@@ -52,7 +52,7 @@ Return ONLY a JSON object:
   "courseName": "e.g. Molecules Cells and Organisms or null",
   "documentType": "one of: brief, rubric, course_outline, exam_paper, reading",
   "assessmentTitle": "exact assessment name or null",
-  "weight": null or number (e.g. 25 for 25%),
+  "weight": null or number (e.g. 25 for 25%). Extract the weight for the specific assessment described in this brief only. If multiple assessments are listed, extract only the weight matching the title or task at the top of the document. Return only the number without the % symbol,
   "dueDate": "ISO date string or null",
   "wordCount": null or number,
   "rubricCriteria": ["criterion 1", "criterion 2"] or [],
