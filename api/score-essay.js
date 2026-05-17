@@ -77,8 +77,79 @@ ${draftText.slice(0, 6000)}`;
       tokensIn: data?.usage?.input_tokens || 0,
       tokensOut: data?.usage?.output_tokens || 0,
     });
-    return res.status(200).json({ success: true, feedback: data?.content?.[0]?.text || '', disclaimer: 'This is formative feedback from an AI tool, not a mark from your teacher.' });
-  } catch (err) {
-    return res.status(500).json({ success: false, error: err.message });
+    // Compute AI Risk Score (text analysis, no LLM needed)
+    const aiRisk = computeAIRiskScore(draftText);
+
+    return res.status(200).json({
+      success: true,
+      feedback: data?.content?.[0]?.text || '',
+      disclaimer: 'This is formative feedback from an AI tool, not a mark from your teacher.',
+      aiRiskScore: aiRisk.score,
+      aiRiskLabel: aiRisk.label,
+      aiRiskBreakdown: aiRisk.breakdown,
+      humanisingSuggestions: aiRisk.suggestions,
+    });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Something went wrong. Try again.' });
   }
+}
+
+/**
+ * AI Risk Score: computes 0-100 likelihood of triggering AI detection.
+ * Ported from Emergent build (tools.py:25-100).
+ */
+function computeAIRiskScore(text) {
+  if (!text || !text.trim()) return { score: 50, label: 'Medium', breakdown: {}, suggestions: [] };
+
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 3);
+  const totalSents = Math.max(sentences.length, 1);
+  const words = text.split(/\s+/);
+  const totalWords = Math.max(words.length, 1);
+  const textLower = text.toLowerCase();
+
+  // 1. Passive voice
+  const passiveHits = (text.match(/\b(?:was|were|is|are|been|being|be)\s+\w+(?:ed|en|ised|ized|ated)\b/gi) || []).length;
+  const passiveRatio = Math.min(passiveHits / totalSents, 1.0);
+
+  // 2. Sentence length uniformity
+  const sentLengths = sentences.map(s => s.trim().split(/\s+/).length);
+  let uniformity = 0.5;
+  if (sentLengths.length > 2) {
+    const mean = sentLengths.reduce((s, l) => s + l, 0) / sentLengths.length;
+    const variance = sentLengths.reduce((s, l) => s + (l - mean) ** 2, 0) / sentLengths.length;
+    uniformity = Math.max(0, Math.min(1, 1 - Math.sqrt(variance) / 8));
+  }
+
+  // 3. Transition word density
+  const transitions = ['however', 'furthermore', 'moreover', 'therefore', 'additionally', 'consequently', 'nevertheless', 'in conclusion', 'in contrast', 'as a result'];
+  const transCount = transitions.filter(t => textLower.includes(t)).length;
+  const transDensity = Math.min(transCount / totalSents, 1.0);
+
+  // 4. Formal phrase density
+  const formalPhrases = ['it is important to note', 'this essay will examine', 'in conclusion', 'it can be argued', 'it is evident that', 'one must consider', 'the findings suggest', 'in order to', 'play a crucial role'];
+  const formalCount = formalPhrases.filter(p => textLower.includes(p)).length;
+  const formalDensity = Math.min(formalCount / Math.max(totalSents / 3, 1), 1.0);
+
+  // 5. First-person absence (AI rarely uses I/my/we)
+  const fpCount = (text.match(/\b(?:I|my|me|we|our|myself)\b/g) || []).length;
+  const fpAbsence = 1 - Math.min(fpCount / (totalWords * 0.02), 1.0);
+
+  // Weighted score
+  const raw = (passiveRatio * 15) + (uniformity * 25) + (transDensity * 20) + (formalDensity * 20) + (fpAbsence * 20);
+  const score = Math.round(Math.min(100, Math.max(0, raw)));
+  const label = score <= 30 ? 'Low' : score <= 60 ? 'Medium' : 'High';
+
+  const suggestions = [];
+  if (passiveRatio > 0.3) suggestions.push('Reduce passive voice. Write "I analysed..." instead of "It was analysed..."');
+  if (uniformity > 0.7) suggestions.push('Vary your sentence lengths. Mix short punchy sentences with longer complex ones.');
+  if (transDensity > 0.5) suggestions.push('Reduce transition words like "furthermore" and "moreover". Use simpler connectors.');
+  if (formalDensity > 0.3) suggestions.push('Remove overly formal phrases. Write how you would explain it to a classmate.');
+  if (fpAbsence > 0.8) suggestions.push('Add first-person voice. Use "I argue" or "In my analysis" where appropriate.');
+
+  return {
+    score,
+    label,
+    breakdown: { passiveVoice: Math.round(passiveRatio * 100), sentenceUniformity: Math.round(uniformity * 100), transitionDensity: Math.round(transDensity * 100), formalPhrases: Math.round(formalDensity * 100), firstPersonAbsence: Math.round(fpAbsence * 100) },
+    suggestions,
+  };
 }
