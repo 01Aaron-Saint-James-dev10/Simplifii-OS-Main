@@ -34,6 +34,7 @@ import MultimodalCanvas from './components/MultimodalCanvas';
 import QuestionNav from './components/QuestionNav';
 import { parseExamPaper } from '../services/ExamPaperParser';
 import { startAmbient, stopAmbient } from './services/AmbientSound';
+import { startIdleDetection, stopIdleDetection } from '../core/ExecutiveSpine';
 import ReadingRuler from './components/ReadingRuler';
 import WritingAnalysis from './components/WritingAnalysis';
 import ComprehensionBreak from './components/ComprehensionBreak';
@@ -68,6 +69,14 @@ export default function CanvasScreen() {
     }
     return () => stopAmbient();
   }, [autismFirstEnabled, ambientPreference]);
+
+  // Wire idle detection so AURA can nudge after 3 minutes of inactivity
+  useEffect(() => {
+    if (!courseId) return;
+    startIdleDetection({ thresholdMs: 180_000 });
+    return () => stopIdleDetection();
+  }, [courseId]);
+
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Supabase fallback: if localStorage has no course for this courseId,
