@@ -130,3 +130,43 @@ Port Exam Paper structured output:
 - Current: returns raw text practice plan only, no structured JSON
 - Target: structured JSON with section breakdown (MCQ, short answer, essay), time allocation per section, question type identification, what each question type is actually testing, approach sequence, worked example format per question type
 - Renderer: needs new component or extension of StructuredScaffold.jsx for exam mode
+
+---
+
+## Assessment-Scoped AURA Context
+
+**Commit:** `30eaf694`
+**File:** `src/frontend/components/AuraChatOverlay.jsx`
+
+### What changed
+
+**Before:** `allDocs` was derived inline from `activeCourse.extractionData.assessmentBriefs` (or `.documents` or `.files`). This loaded ALL documents for the entire course into AURA context regardless of which assessment the student had open.
+
+**After:** Two-stage derivation:
+1. `allCourseDocs` (useMemo): stable reference to all course documents, depends only on `activeCourse.extractionData`
+2. `allDocs` (useMemo): filters `allCourseDocs` by `routerAssessment` title. Matches both raw title and `title (weight)` display format. Falls back to all docs when no match or no router assessment.
+
+All downstream context (`primaryDoc`, `activeAssessmentTitle`, `activeBriefText`, `assessmentSummary`, `docInventory`) automatically scopes because they derive from `allDocs`.
+
+### Backwards compatibility
+
+Confirmed. Three fallback paths:
+- `routerAssessment` is null (dashboard view): returns all docs
+- Only 1 document in course: returns it regardless
+- No title match found: returns all docs
+
+No ProjectContext or CanvasScreen changes required.
+
+### Bugs logged
+
+- A1: Assessments have no stable ID, matched by title string only. Deferred to Sprint 4.
+
+### Test Results
+
+12/12 regression tests pass against production. Build compiles clean. No failures.
+
+---
+
+## Next Session Constraint
+
+Surface activeAssessmentId in the Pillar Gallery card so tapping an assessment card opens its scoped canvas directly (not the course-level canvas). Requires: assessment cards in HomeScreen/PillarGallery to call `navigateToCanvas(courseId, assessmentTitle)` with the specific assessment title.
