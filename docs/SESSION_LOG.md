@@ -1,3 +1,34 @@
+## Sprint 13.5: Socratic Greeting + Composite Progress + Email Capture + Keyboard Tests
+**Date:** 2026-05-18
+
+### Commits
+
+| SHA | Change |
+|-----|--------|
+| `bbe7d794` | fix-aura-greeting: Socratic-first opening replaces assistant-first |
+| `d733339f` | composite-progress: three-factor progress bar (words+thinking+scaffold) |
+| `04bfe181` | wire-progress-keys: SocraticPanel and PreWritePanel write localStorage |
+| `05531145` | email-capture: waitlist table + EmailCapture.jsx on landing page |
+| `bb3e18fb` | keyboard-nav-tests: Suite 7 Tab/Enter/Escape (15 tests total) |
+
+### Summary
+
+1. **AURA Socratic-first**: greeting now asks "what do you already know?" grounded in task, never "what would you like to start with?"
+2. **Composite progress**: BottomStrip shows words (50%) + thinking (25%) + scaffold (25%) capped at 100%
+3. **localStorage writers**: SocraticPanel increments tier2-count, PreWritePanel sets scaffold-accepted
+4. **Email capture**: waitlist table (RLS: public insert, service select), EmailCapture component on landing footer
+5. **Keyboard nav tests**: ArrowRight between tabs, Enter activates, Escape closes AURA
+
+### Test Results
+
+15/15 regression tests pass. Build compiles clean.
+
+### Known Gap
+
+Composite progress thinking/scaffold components show 0% until a student actually answers Tier 2 questions or accepts a scaffold. The localStorage keys are written correctly but require user interaction.
+
+---
+
 ## Design Token Migration
 **Date:** 2026-05-18
 
