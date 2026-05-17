@@ -32,7 +32,7 @@ import {
 const PANELS = [
   { id: 'brief',      icon: 'B', label: 'Brief', tip: 'Your assessment criteria and due dates',
     info: 'Shows the criteria, due dates, and key requirements extracted from your uploaded assessment. This is your reference point for what the marker expects.' },
-  { id: 'tutor',      icon: 'T', label: 'Tutor', tip: 'AI tutor: asks questions to develop your thinking',
+  { id: 'tutor',      icon: 'T', label: 'Tutor', tip: 'Ask questions about your work. Type a question about your assessment. AURA responds here.',
     info: 'A Socratic AI tutor powered by Claude. It asks you questions to sharpen your thinking. It will never write content for you. Adapts to your year level and accessibility settings.' },
   { id: 'preview',    icon: 'P', label: 'Preview', tip: 'Preview: compile all sections',
     info: 'Compiles all your sections into one document preview. See exactly what your submission will look like before you export it.' },

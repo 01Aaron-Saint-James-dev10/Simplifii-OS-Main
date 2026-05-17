@@ -337,6 +337,8 @@ export default function CanvasScreen() {
   const [railVisible, setRailVisible] = useState(false);
   const toggleLeft = () => { const next = !leftCollapsed; setLeftCollapsed(next); localStorage.setItem('simplifii_left_collapsed', String(next)); };
   const [canvasTab, setCanvasTab] = useState('write'); // 'think' | 'ideas' | 'write'
+  const [hasThinkContent, setHasThinkContent] = useState(false);
+  const [hasIdeasContent, setHasIdeasContent] = useState(false);
 
   // Listen for AURA tool suggestions: open the rail to a specific panel
   useEffect(() => {
@@ -520,9 +522,9 @@ export default function CanvasScreen() {
           {!isExamPaper && (
             <div style={{ display: 'flex', borderBottom: `1px solid var(--sov-line-dim, rgba(16,185,129,0.12))`, padding: '0 16px' }}> {/* allow-style */}
               {[
-                { id: 'think', label: '1. Think First' },
-                { id: 'ideas', label: '2. Get Ideas' },
-                { id: 'write', label: '3. Write' },
+                { id: 'think', label: '1. Think First', hasDot: hasThinkContent },
+                { id: 'ideas', label: '2. Get Ideas', hasDot: hasIdeasContent },
+                { id: 'write', label: '3. Write', hasDot: false },
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -544,6 +546,7 @@ export default function CanvasScreen() {
                   }}
                 >
                   {tab.label}
+                  {tab.hasDot && <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--sov-line, #10b981)', display: 'inline-block', marginLeft: 5 }} aria-label="Content ready" />} {/* allow-style */}
                 </button>
               ))}
             </div>
@@ -557,6 +560,7 @@ export default function CanvasScreen() {
                 courseId={courseId}
                 currentPhase={currentPhase}
                 nodes={nodes}
+                onContentReady={() => setHasThinkContent(true)}
               />
             )}
           </div>
@@ -573,6 +577,7 @@ export default function CanvasScreen() {
                 appendEvent({ event_type: 'tier_transition', payload: { from: 1, to: 3, trigger: 'pre_write_insert' } }).catch(() => {});
                 setCanvasTab('write');
               }}
+              onContentReady={() => setHasIdeasContent(true)}
               courseId={courseId}
             />
           </div>

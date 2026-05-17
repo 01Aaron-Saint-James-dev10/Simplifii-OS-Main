@@ -336,17 +336,28 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
           position: 'fixed',
           bottom: 24,
           right: 80,
-          width: 56,
-          height: 56,
-          borderRadius: '50%',
-          background: 'radial-gradient(circle at 30% 30%, #ef9f27, #10b981)',
-          border: '2px solid rgba(16,185,129,0.3)',
-          boxShadow: '0 0 24px rgba(239,159,39,0.4), 0 0 48px rgba(16,185,129,0.2)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 4,
+          background: 'none',
+          border: 'none',
           cursor: 'pointer',
           zIndex: 100,
           outline: 'none',
         }}
-      />
+      >
+        <span style={{
+          width: 56,
+          height: 56,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle at 30% 30%, #ef9f27, #10b981)', /* allow-style */
+          border: '2px solid rgba(16,185,129,0.3)', /* allow-style */
+          boxShadow: '0 0 24px rgba(239,159,39,0.4), 0 0 48px rgba(16,185,129,0.2)', /* allow-style */
+          display: 'block',
+        }} />
+        <span style={{ fontFamily: 'var(--font-system, system-ui)', fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--sov-line, #10b981)', whiteSpace: 'nowrap' }}>Ask AURA for help</span>
+      </button>
     );
   }
 
@@ -359,10 +370,12 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
         bottom: position.bottom,
         right: position.right,
         width: 64,
-        height: 64,
         zIndex: 100,
         cursor: 'pointer',
         pointerEvents: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
       }}
       onClick={handleClick}
       role="button"
@@ -370,6 +383,7 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
       aria-label="Open AURA assistant"
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleClick(); }}
     >
+      <span style={{ fontFamily: 'var(--font-system, system-ui)', fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--sov-line, #10b981)', whiteSpace: 'nowrap', marginTop: 66, pointerEvents: 'none' }}>Ask AURA for help</span>
       <Canvas
         camera={{ position: [0, 0, 3], fov: 45 }}
         gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}

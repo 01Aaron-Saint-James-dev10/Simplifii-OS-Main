@@ -45,7 +45,7 @@ const TIER_LABEL_STYLE = {
   justifyContent: 'space-between',
 };
 
-export default function PreWritePanel({ assessmentTitle, briefText, sectionType, tier, onInsert, courseId }) {
+export default function PreWritePanel({ assessmentTitle, briefText, sectionType, tier, onInsert, courseId, onContentReady }) {
   const { isLiteralMode, accessibilityProfile, sensoryLevel, autismFirstEnabled } = useSettings();
   const { user } = useAuth();
   const [scaffold, setScaffold] = useState('');
@@ -95,6 +95,7 @@ export default function PreWritePanel({ assessmentTitle, briefText, sectionType,
       if (data.success) {
         const scaffoldText = isLiteralMode ? literalise(data.reply) : data.reply;
         setScaffold(scaffoldText);
+        onContentReady?.();
         appendEvent({ event_type: 'pre_write_generated', payload: { assessmentTitle, sectionType } }).catch(() => {});
         // Persist to Supabase
         if (user && courseId && data.reply) {

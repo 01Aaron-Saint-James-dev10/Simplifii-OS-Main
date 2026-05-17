@@ -1027,3 +1027,30 @@ When student opens Phase 1 (Understand), AURA proactively shows relevant communi
 5. Feed into AURA secondary prompt as grounded examples
 **Tool:** firecrawl-mcp skill (already installed)
 **Depends on:** Sprint 11
+
+---
+
+## CRAFT-T4: Progress % correct formula, wrong default target
+
+**Priority:** Sprint 11 (Secondary tier build)
+**Location:** BottomStrip.jsx:34, CheckPanel.jsx:39
+**Issue:** Formula (wordCount/targetWords)*100 is correct but targetWords defaults to 1500 (university scale). Year 10-12 students writing 300-word responses will always show under 20%. Wrong signal for Secondary tier.
+**Fix:** targetWords should read from XN1 node word count requirement when available. Default to tier-appropriate value: Secondary=400, University=1500, Postgrad=3000.
+
+---
+
+## CRAFT-T5: Progress only measures words, not thinking
+
+**Priority:** Sprint 11
+**Location:** BottomStrip.jsx, CheckPanel.jsx
+**Issue:** A student who has answered all Tier 2 Socratic questions and accepted a scaffold shows 5% progress because they have only 75 words. Their thinking work is invisible in the progress metric.
+**Fix:** Progress bar should be composite: word count (50%) + Tier 2 answers logged (25%) + Tier 1 scaffold accepted (25%). Authentic progress, not just word count.
+
+---
+
+## B13: Course names with underscores dirty in Supabase
+
+**Priority:** P2
+**Location:** Supabase courses table, courseName field
+**Issue:** B12 fixed display via stripMarkdown but existing records still store __BABS1201__ raw. Students who created courses before the fix have dirty underlying data.
+**Fix:** Sanitise courseName on write in course creation flow. Strip markdown before saving to Supabase.

@@ -38,7 +38,7 @@ const TIER_LABEL_STYLE = {
   justifyContent: 'space-between',
 };
 
-export default function SocraticPanel({ assessmentTitle, courseId, currentPhase, nodes }) {
+export default function SocraticPanel({ assessmentTitle, courseId, currentPhase, nodes, onContentReady }) {
   const { isLiteralMode, accessibilityProfile } = useSettings();
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
@@ -77,6 +77,7 @@ Australian English. No em-dashes. No markdown.`,
           .map(l => l.trim())
           .filter(l => l.length > 10 && l.includes('?'));
         setQuestions(parsed.length > 0 ? parsed.slice(0, 3) : [data.reply]);
+        onContentReady?.();
       } else {
         setError('Could not generate questions. Try again.');
       }
