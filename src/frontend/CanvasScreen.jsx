@@ -1,10 +1,14 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useProject } from './ProjectContext';
 import { useSettings } from './SettingsContext';
-import { detectSuspectedCitations } from '../services/CitationStyleService';
-import { verifyFromSources } from '../services/CitationService';
 import { useRouter } from '../contexts/RouterContext';
 import { supabase } from '../lib/supabaseClient';
+
+// Lazy-loaded services to avoid init-order crash
+let _detectSuspectedCitations = null;
+let _verifyFromSources = null;
+const detectSuspectedCitations = (...args) => { if (!_detectSuspectedCitations) _detectSuspectedCitations = require('../services/CitationStyleService').detectSuspectedCitations; return _detectSuspectedCitations(...args); };
+const verifyFromSources = (...args) => { if (!_verifyFromSources) _verifyFromSources = require('../services/CitationService').verifyFromSources; return _verifyFromSources(...args); };
 import CanvasNav from './components/CanvasNav';
 import CanvasEditor from './components/CanvasEditor';
 import SectionEditor from './components/SectionEditor';
@@ -25,14 +29,17 @@ import BibliographyView from './components/BibliographyView';
 import BottomStrip from './components/BottomStrip';
 import ReentryOverlay from './components/ReentryOverlay';
 import CanvasSettingsOverlay from './components/CanvasSettingsOverlay';
-import NoBriefPrompt from './components/NoBriefPrompt';
+const NoBriefPrompt = React.lazy(() => import('./components/NoBriefPrompt'));
 import AffirmationBanner from './components/AffirmationBanner';
 import AnnouncementBanner from './components/AnnouncementBanner';
-import { getSensoryCSSVars, getSensoryProfile } from '../theme/sensoryProfiles';
+let _getSensoryCSSVars = null, _getSensoryProfile = null;
+const getSensoryCSSVars = (...args) => { if (!_getSensoryCSSVars) { const m = require('../theme/sensoryProfiles'); _getSensoryCSSVars = m.getSensoryCSSVars; _getSensoryProfile = m.getSensoryProfile; } return _getSensoryCSSVars(...args); };
+const getSensoryProfile = (...args) => { if (!_getSensoryProfile) { const m = require('../theme/sensoryProfiles'); _getSensoryCSSVars = m.getSensoryCSSVars; _getSensoryProfile = m.getSensoryProfile; } return _getSensoryProfile(...args); };
 import FidgetZone from './components/FidgetZone';
 import MultimodalCanvas from './components/MultimodalCanvas';
 import QuestionNav from './components/QuestionNav';
-import { parseExamPaper } from '../services/ExamPaperParser';
+let _parseExamPaper = null;
+const parseExamPaper = (...args) => { if (!_parseExamPaper) _parseExamPaper = require('../services/ExamPaperParser').parseExamPaper; return _parseExamPaper(...args); };
 import { startAmbient, stopAmbient } from './services/AmbientSound';
 import ReadingRuler from './components/ReadingRuler';
 import WritingAnalysis from './components/WritingAnalysis';
@@ -42,7 +49,9 @@ import FirstLookCard from './components/FirstLookCard';
 import AssessmentSwitcher from './components/AssessmentSwitcher';
 import SubmitModal from './components/SubmitModal';
 import CanvasHelpOverlay from './components/CanvasHelpOverlay';
-import { determinePhase, checkPhaseTransition } from '../core/TaskLifecycleManager';
+let _determinePhase = null, _checkPhaseTransition = null;
+const determinePhase = (...args) => { if (!_determinePhase) { const m = require('../core/TaskLifecycleManager'); _determinePhase = m.determinePhase; _checkPhaseTransition = m.checkPhaseTransition; } return _determinePhase(...args); };
+const checkPhaseTransition = (...args) => { if (!_checkPhaseTransition) { const m = require('../core/TaskLifecycleManager'); _determinePhase = m.determinePhase; _checkPhaseTransition = m.checkPhaseTransition; } return _checkPhaseTransition(...args); };
 
 // Lazy-loaded to avoid init order issues with crypto/PBKDF2 in HistoryOfThought
 let _appendEvent = null;
@@ -577,7 +586,7 @@ export default function CanvasScreen() {
               <span style={{ fontFamily: 'var(--font-system, system-ui)', fontSize: 9, color: 'var(--text-faint)', opacity: 0.5 }}>Use the starter (left) to begin, the tutor (right) to develop your thinking</span> {/* allow-style */}
             </div>
           )}
-          {briefs.length === 0 && !extractedText && <NoBriefPrompt courseId={courseId} />}
+          {briefs.length === 0 && !extractedText && <React.Suspense fallback={null}><NoBriefPrompt courseId={courseId} /></React.Suspense>}
 
           {/* First Look: auto-generated document summary on first visit */}
           {(briefOrText && briefOrText.length > 50) && (
