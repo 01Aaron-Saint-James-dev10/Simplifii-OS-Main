@@ -9,6 +9,7 @@ import { useSpeechToText } from '../hooks/useSpeechToText';
 import { useAuraVoice } from '../hooks/useAuraVoice';
 import { checkDocumentStaleness, logResponseFlag } from '../../services/AccuracyLogger';
 import { getQueuedAuraMessages } from '../../core/TaskLifecycleManager';
+import { buildAssessmentKey, getCurrentPhase } from '../../core/TaskSequenceManager';
 import { loadLastSession } from '../../services/SessionSummaryService';
 import {
   SURFACE_CARD, SURFACE_RAISED,
@@ -63,6 +64,13 @@ export default function AuraChatOverlay({ open, onClose }) {
   const primaryDoc = allDocs.find(d => d.source === 'explicit' || d.weight) || allDocs[0];
   const activeAssessmentTitle = routerAssessment || primaryDoc?.title || '';
   const activeWeight = primaryDoc?.weight || '';
+
+  // Sprint 5: current task phase for AURA context
+  const taskPhases = activeCourse?.extractionData?.taskSequence?.phases || [];
+  const currentPhase = useMemo(() => {
+    if (!taskPhases.length || !courseId || !activeAssessmentTitle) return null;
+    return getCurrentPhase(buildAssessmentKey(courseId, activeAssessmentTitle), taskPhases);
+  }, [courseId, activeAssessmentTitle, taskPhases]); // eslint-disable-line react-hooks/exhaustive-deps
   const activeDueDate = primaryDoc?.dueDate || '';
   const rubricCriteria = activeCourse?.extractionData?.rubricCriteria || [];
 
@@ -390,6 +398,7 @@ export default function AuraChatOverlay({ open, onClose }) {
             blocks_completed: lastSession.blocks_completed,
           } : undefined,
           user_id: user?.id || null,
+          currentPhase: currentPhase || undefined,
         }),
       });
       const data = await response.json();
