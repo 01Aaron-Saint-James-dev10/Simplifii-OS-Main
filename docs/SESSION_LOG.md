@@ -1,3 +1,80 @@
+## Sprint 9 Complete: Tier 2 Socratic Panel
+**Date:** 2026-05-17
+
+### What was built
+
+**Three-tier canvas now complete:**
+- Tier 1: PreWritePanel (AI pre-write scaffolds)
+- Tier 2: SocraticPanel (thinking before writing) — NEW
+- Tier 3: SectionEditor (learner writing)
+
+**fix(api): systemOverride in tutor.js**
+- `/api/tutor.js` now reads `systemOverride` from request body
+- If present, bypasses full AURA prompt build and uses custom system prompt
+- Fixes orphaned systemOverride calls in PreWritePanel, FirstLookCard, MultimodalCanvas
+
+**tier_2_response added to EVENT_TYPES**
+- HistoryOfThought.js EVENT_TYPES array now includes `tier_2_response`
+- Authenticity Report can now log Socratic thinking events
+
+**SocraticPanel.jsx created (230 lines)**
+- Calls /api/tutor with systemOverride for Socratic question generation
+- Grounded in XN1 node content + current task phase
+- Student types answers in textarea per question
+- Each answer logged via appendEvent as `tier_2_response`
+- Payload: { question, answer, phase, assessmentTitle, courseId }
+- Design tokens only, no raw hex. Obsidian aesthetic.
+- 240px width, collapsible. Header: "THINK FIRST"
+
+**SocraticPanel wired into CanvasScreen**
+- Renders between PreWritePanel and canvas-centre
+- Guarded: `!isExamPaper && currentTitle`
+- Props: currentTitle, courseId, currentPhase, nodes
+
+**Backlog entries logged:**
+- B10: Raw markdown in classification card
+- B11: No document type options after classification
+- B12: __BABS1201__ raw markdown in canvas breadcrumb
+- CRAFT-T1: AURA default opening is assistant-first (not Socratic)
+- CRAFT-T2: Reading level displayed live (anxiety-inducing)
+
+### Loop 1 fully closed
+
+The integrity engine is now architecturally complete. Every AI contribution (Tier 1) is separated from the student's thinking (Tier 2) and their writing (Tier 3). The Authenticity Report can now render a timeline showing: what AI provided, what the student thought about it, and what they wrote.
+
+### Files changed
+
+| File | Type | Summary |
+|---|---|---|
+| `api/tutor.js` | Modified | systemOverride support added |
+| `src/core/HistoryOfThought.js` | Modified | tier_2_response event type added |
+| `src/frontend/components/SocraticPanel.jsx` | New | Tier 2 Socratic panel (230 lines) |
+| `src/frontend/CanvasScreen.jsx` | Modified | Import SocraticPanel, wire between Tier 1 and Tier 3 |
+| `docs/BACKLOG.md` | Modified | B10, B11, B12, CRAFT-T1, CRAFT-T2 logged |
+
+### Commit SHAs
+
+| SHA | Description |
+|---|---|
+| `77ae2f9c` | feat(canvas): SocraticPanel Tier 2 wired into CanvasScreen (CRAFT-A2) |
+| `77ae2f9c` | (includes SocraticPanel.jsx + B10/B11/B12/CRAFT-T1/T2 backlog) |
+| Prior this session: `64595d47` | feat(accessibility): LiteralMode (CRAFT-A1) |
+| Prior this session: `8a22ba36` | feat(accessibility): BionicText + OpenDyslexic (CRAFT-A3) |
+| `77ae2f9c` (parent): `77ae2f9c` | fix(api): systemOverride + tier_2_response |
+
+### Tests
+
+Build: passing (zero errors). Regression: 12/12 passed.
+
+### Next session constraints
+
+B10 + B11 + B12 fixes:
+- B10: raw markdown in classification card
+- B11: no document type options after classification
+- B12: __BABS1201__ raw markdown in canvas breadcrumb
+
+---
+
 ## Sprint 8 Complete: Accessibility Features Wired Globally
 **Date:** 2026-05-17
 

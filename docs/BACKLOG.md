@@ -957,3 +957,30 @@ When student opens Phase 1 (Understand), AURA proactively shows relevant communi
 **Location:** Same classification card — "Open canvas" button leads to no further options rendered
 **Issue:** After clicking Open canvas from the classification card, no alternative document type choices appear. Student cannot correct a misclassification.
 **Fix:** Add document type override UI after classification card, allowing student to select correct type before proceeding.
+
+---
+
+## B12: __BABS1201__ raw markdown in canvas breadcrumb
+
+**Priority:** P1
+**Location:** Canvas title/breadcrumb at top of CanvasScreen
+**Issue:** Course code renders with double underscores as __BABS1201__ instead of styled text. Same class as B9. stripMarkdown not applied to this display surface.
+**Fix:** Apply stripMarkdown to the breadcrumb course code display surface.
+
+---
+
+## CRAFT-T1: AURA default opening is assistant-first
+
+**Priority:** P2 (core pedagogy principle)
+**Location:** api/_aura-prompt.js — opening question logic
+**Issue:** AURA opens with "What would you like to start with?" which is an assistant opener, not Socratic. Per CRAFT teaching principles, default should surface the student's thinking before offering help.
+**Suggested fix:** Change default opening to a Socratic question grounded in XN1 node + current phase. Example: "Before we start — what do you already know about this topic from your lectures or readings?"
+
+---
+
+## CRAFT-T2: Reading level displayed live during writing
+
+**Priority:** P2
+**Location:** Writing analysis panel (right tool rail)
+**Issue:** "Grade 13" reading level shown as live metric while student writes. This is anxiety-inducing for neurodivergent students and creates performance pressure mid-composition. Conflicts with trauma-informed design.
+**Fix:** Move reading level to post-session summary only, not live during writing.
