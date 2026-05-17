@@ -791,3 +791,45 @@ Can build before Sprint 4 using raw text inputs. Upgrade to typed node inputs wh
 **Issue:** Text input to /api/extract-nodes is capped at 4000 characters. Exam papers longer than 4000 chars will have nodes truncated, potentially missing questions in later sections.
 **Fix:** Split long documents into sections before extraction, or increase cap to 8000 for exam type only.
 **Constraint:** Deferred until exam paper sprint.
+
+---
+
+## Community Sprint A: Course Community Boards
+
+Node-attached questions per assessment. Anonymous by default. New Supabase table: `community_posts` (postId, courseCode, nodeRef, assessmentTitle, question, authorId anonymised, upvotes, verified, answers[]). Every question is attached to a specific node (XN1, YN1, etc.) so answers are contextually grounded. AURA can surface relevant community answers when a new student opens the same assessment.
+
+**Depends on:** Sprint 4 (done), Sprint 6 (Authenticity Report).
+
+---
+
+## Community Sprint B: Peer Expert Verification
+
+Students opt in after completing an assessment. Verified badge on answers. No grade visible to peers. Contribution count visible in Authenticity Report (useful for portfolios and job applications). Peer Experts can only answer questions attached to assessments they have completed.
+
+**Depends on:** Community A, Sprint 6.
+
+---
+
+## Community Sprint C: Contribution Credits + reciprocity nudge
+
+3 free questions per week. Question 4+ shows nudge to answer one question first. Never blocks. Neurodivergent-aware: graceful exit always available ("not now"). Credits never expire, never rank students against each other.
+
+**Depends on:** Community A live and stable.
+
+---
+
+## Community Sprint D: Group Assessment Accountability
+
+Shared canvas for group work. Contribution bars visible to members (not scores, bars). AURA nudges individuals privately when behind (never in group channel). Optional marker sharing at submission. No contribution bar ever goes red or shows deficit framing.
+
+**Depends on:** Sprint 6 (HistoryOfThought), Community A.
+
+---
+
+## Community Sprint E: AURA surfaces community posts in canvas
+
+When student opens Phase 1 (Understand), AURA proactively shows relevant community questions from previous students on the same assessment. "3 students had questions about this brief last semester."
+
+**Depends on:** Community A, Sprint 5 (Task Guidance Engine).
+
+**All five community sprints deferred until Sprint 6 (Authenticity Report) is complete. Do not build before then.**

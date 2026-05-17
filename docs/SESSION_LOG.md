@@ -244,5 +244,54 @@ Task Guidance Engine added to BACKLOG.md. Five phases per task (Understand, Plan
 
 Sprint 4: Document Node Tree. Build the typed extraction layer. Every uploaded document becomes addressable typed nodes (Z, XN, YN schema). Foundation for Task Guidance Engine, Homework Decoder, UDL Transform, and LiteralMode wiring.
 
-New files: `api/extract-nodes.js`, `src/services/DocumentNodeService.js`
-Modified: `useIngestion.js`, `ProjectContext.js`, `AuraChatOverlay.jsx`
+---
+
+## Sprint 4: Document Node Tree (COMPLETE)
+
+**Date:** 2026-05-17
+
+### Commits
+
+| SHA | Description |
+|-----|-------------|
+| `04598caa` | `/api/extract-nodes` + `DocumentNodeService` — typed node extraction |
+| `a1ec51fa` | Wire node extraction into ingestion — `useIngestion.js` + `ProjectContext.js` + `coursePersistence.js` |
+| `ef2ab47c` | AURA context from typed nodes — `AuraChatOverlay.jsx` |
+
+### What was built
+
+**`api/extract-nodes.js`** (new, 179 lines): Typed node extraction via Claude. Three document type branches:
+- Brief: XN1 (task description), XN2 (format requirements), XN3 (due date), XN4 (learning outcomes), XN5 (hidden curriculum)
+- Rubric: YN1 (criteria + weightings), YN2 (grade band descriptors), YN3 (scale detected), YN4 (rubric hidden curriculum)
+- Outline: Z1 (metadata), Z2 (learning outcomes), Z3 (schedule), Z4 (assessment overview), Z5 (policies)
+
+YN1/YN2 validated via JSON.parse() — confidence downgraded to 0.1 if not valid array. All content capped at 2000 chars. Rate limit 15/min. Exam papers excluded (deferred to E1).
+
+**`src/services/DocumentNodeService.js`** (new, 59 lines): Non-blocking extraction service. Calls `/api/extract-nodes`. Returns `{ nodes[], extractionError }`. Never throws.
+
+**`useIngestion.js`** (modified): Dynamic import for `DocumentNodeService`. After Claude structured extraction, calls `extractNodes()` per document. Each document carries `nodes[]`. Course-level `aggregated.nodes` = flatMap of all document nodes.
+
+**`coursePersistence.js`** (modified): Persists `extractionData.nodes` as top-level `dataPayload.nodes` in Supabase JSONB. Excluded from rest spread to prevent duplication.
+
+**`ProjectContext.js`** (modified): Reconstructs `nodes` from `d.nodes || d.extractionData?.nodes` on Supabase hydration. Round-trip complete.
+
+**`AuraChatOverlay.jsx`** (modified): Typed nodes are the highest-priority context source. Assembles labelled sections (`[TASK DESCRIPTION]`, `[RUBRIC CRITERIA]`, `[HIDDEN CURRICULUM]`, etc.) from nodes with confidence > 0. Falls back to existing typed docs, assessmentBriefs, rawText for courses without nodes.
+
+### Architecture
+
+Fallback chain: `nodes[] → typed documents[] → assessmentBriefs[].body → rawText`. All existing courses continue working without nodes. Additive only — no existing fields replaced.
+
+### Bugs and backlog logged
+
+- E1: extract-nodes 4000 char input cap (exam papers truncated). Deferred.
+- Community Sprints A-E: Course boards, peer experts, contribution credits, group accountability, AURA surfacing. All deferred until Sprint 6.
+
+### Test Results
+
+12/12 regression tests pass. Build compiles clean. No failures.
+
+---
+
+## Next Session Constraint
+
+Sprint 5: Task Guidance Engine. Build `api/generate-task-sequence.js` using XN1 + YN1 node content as inputs. Build `TaskPhaseBar.jsx`. Build `src/core/TaskSequenceManager.js`. Wire into canvas and AURA context. Five phases per task: Understand, Plan, Gather, Draft, Review.
