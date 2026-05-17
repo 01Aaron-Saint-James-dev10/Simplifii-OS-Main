@@ -1,3 +1,51 @@
+## Sprint 8 Complete: Accessibility Features Wired Globally
+**Date:** 2026-05-17
+
+### What was built
+
+**CRAFT-A1: LiteralMode transformer wired**
+- `AuraChatOverlay.jsx`: imports `literalise` from LiteralMode.js. After markdown strip, applies `literalise(clean)` when `isLiteralMode` is true. AURA responses now have academic jargon transformed to plain English at render time.
+- `PreWritePanel.jsx`: imports `literalise`. AI scaffold text is transformed before setting state when `isLiteralMode` is true.
+- This is the second-pass safety net: even if the AI prompt instruction fails to produce plain language, the transformer catches remaining jargon.
+
+**CRAFT-A3: BionicText + OpenDyslexic applied globally**
+- `SettingsContext.js`: new `fontPreference` state synced from `localStorage('simplifii_editor_font')` via `simplifii:font-change` event listener. Root div now carries `data-bionic` and `data-font` attributes.
+- `src/index.css`: global CSS rules for `[data-font="opendyslexic"]` (forces OpenDyslexic on all text surfaces) and `[data-bionic="true"]` (bold emphasis at weight 700).
+- Both settings now affect AURA chat, scaffold panel, and all text surfaces (not just the editor).
+
+**Also this session:**
+- Removed benign console.log from AppShell (security hygiene)
+- CRAFT-A1/A2/A3 logged to BACKLOG.md for tracking
+
+### Files changed
+
+| File | Type | Summary |
+|---|---|---|
+| `src/frontend/components/AuraChatOverlay.jsx` | Modified | Import literalise, apply to AURA response |
+| `src/frontend/components/PreWritePanel.jsx` | Modified | Import literalise, apply to scaffold text |
+| `src/frontend/SettingsContext.js` | Modified | fontPreference state, font-change listener, root data attributes |
+| `src/index.css` | Modified | Global CSS for OpenDyslexic and BionicText |
+| `src/frontend/AppShell.jsx` | Modified | Remove console.log |
+| `docs/BACKLOG.md` | Modified | CRAFT-A1/A2/A3 entries added |
+
+### Commit SHAs
+
+| SHA | Description |
+|---|---|
+| `1202f3b7` | fix(security): remove console.log + CRAFT entries to BACKLOG |
+| `64595d47` | feat(accessibility): wire LiteralMode transformer (CRAFT-A1) |
+| `8a22ba36` | feat(accessibility): BionicText + OpenDyslexic globally (CRAFT-A3) |
+
+### Tests
+
+Build: passing (zero errors). Regression: 12/12 passed.
+
+### Next session constraints
+
+Sprint 9: Tier 2 Socratic panel. Build SocraticPanel.jsx as centre panel of three-tier canvas. AURA generates questions from XN1 node + current phase. Student answers. Answers logged to HistoryOfThought as tier_2_response events. This is the integrity engine the architecture is built around.
+
+---
+
 ## Sprint 6B Complete: Anonymised Cloud Telemetry
 **Date:** 2026-05-17
 
