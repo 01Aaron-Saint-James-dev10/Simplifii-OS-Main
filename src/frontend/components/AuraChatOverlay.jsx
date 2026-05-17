@@ -11,6 +11,7 @@ import { checkDocumentStaleness, logResponseFlag } from '../../services/Accuracy
 import { getQueuedAuraMessages } from '../../core/TaskLifecycleManager';
 import { buildAssessmentKey, getCurrentPhase } from '../../core/TaskSequenceManager';
 import { loadLastSession } from '../../services/SessionSummaryService';
+import { literalise } from '../../core/LiteralMode';
 import {
   SURFACE_CARD, SURFACE_RAISED,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
@@ -411,10 +412,11 @@ export default function AuraChatOverlay({ open, onClose }) {
           .replace(/_(.+?)_/g, '$1')
           .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
           .replace(/^#{1,4}\s+/gm, '');
+        const finalReply = isLiteralMode ? literalise(clean) : clean;
         dispatchAuraState('speaking');
-        setMessages(prev => [...prev, { role: 'tutor', text: clean, toolSuggestion: data.toolSuggestion || null }]);
+        setMessages(prev => [...prev, { role: 'tutor', text: finalReply, toolSuggestion: data.toolSuggestion || null }]);
         // Speak response if voice mode is on OR if the user used any voice input
-        if (voiceMode || isListeningContinuous || isListening) speak(clean);
+        if (voiceMode || isListeningContinuous || isListening) speak(finalReply);
         // Return to idle after a short display period
         setTimeout(() => dispatchAuraState('idle'), 2000);
       } else {

@@ -6,6 +6,7 @@ import SentenceStarters from './SentenceStarters';
 import IdeaToSentence from './IdeaToSentence';
 import { appendEvent } from '../../core/HistoryOfThought';
 import stripMarkdown from '../../utils/stripMarkdown';
+import { literalise } from '../../core/LiteralMode';
 import {
   SURFACE_RAISED, SURFACE_CARD,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
@@ -92,7 +93,8 @@ export default function PreWritePanel({ assessmentTitle, briefText, sectionType,
       });
       const data = await res.json();
       if (data.success) {
-        setScaffold(data.reply);
+        const scaffoldText = isLiteralMode ? literalise(data.reply) : data.reply;
+        setScaffold(scaffoldText);
         appendEvent({ event_type: 'pre_write_generated', payload: { assessmentTitle, sectionType } }).catch(() => {});
         // Persist to Supabase
         if (user && courseId && data.reply) {
