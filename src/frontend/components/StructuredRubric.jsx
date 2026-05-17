@@ -40,7 +40,7 @@ function getBandColour(label) {
 
 export default function StructuredRubric({ rubricData }) {
   const [checkedItems, setCheckedItems] = useState({});
-  const [expandedCriterion, setExpandedCriterion] = useState(null);
+  const [expandedCriterion, setExpandedCriterion] = useState(0); // First criterion expanded by default
 
   if (!rubricData || !rubricData.criteria) return null;
 
@@ -55,11 +55,11 @@ export default function StructuredRubric({ rubricData }) {
         </div>
       )}
 
-      {/* Scale detected */}
+      {/* Scale detected badge */}
       {rubricData.scaleDetected && (
-        <div style={{ fontFamily: FONT_SYSTEM, fontSize: 9, color: TEXT_FAINT, letterSpacing: '0.06em' }}>
-          Scale detected: {rubricData.scaleDetected}
-        </div>
+        <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 700, color: ACCENT_PULSE, letterSpacing: '0.06em', padding: '3px 8px', background: ACCENT_GLASS, border: `1px solid ${ACCENT_BORDER}`, borderRadius: 10, alignSelf: 'flex-start' }}>
+          Scale: {rubricData.scaleDetected}
+        </span>
       )}
 
       {/* Criteria cards */}

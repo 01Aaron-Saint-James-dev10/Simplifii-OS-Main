@@ -33,13 +33,11 @@ export default function StructuredScaffold({ scaffold }) {
       {scaffold.timeEstimate && (
         <div style={{ padding: '8px 12px', border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS }}>
           <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_PULSE }}>Time estimate</span>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
-            {Object.entries(scaffold.timeEstimate).map(([k, v]) => (
-              <span key={k} style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_MUTED, padding: '3px 8px', background: ACCENT_GLASS, borderRadius: 10 }}>
-                {k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}: {v}
-              </span>
-            ))}
-          </div>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_MUTED, margin: '6px 0 0', lineHeight: 1.5 }}>
+            {Object.entries(scaffold.timeEstimate).map(([k, v]) =>
+              `${k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}: ${v}`
+            ).join(' | ')}
+          </p>
         </div>
       )}
 
@@ -52,6 +50,7 @@ export default function StructuredScaffold({ scaffold }) {
               const key = `bys_${i}`;
               return (
                 <label key={key} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, cursor: 'pointer' }}>
+                  <span style={{ fontFamily: FONT_SYSTEM, fontSize: 11, fontWeight: 700, color: ACCENT_PULSE, minWidth: 16 }}>{i + 1}.</span>
                   <input type="checkbox" checked={!!checkedItems[key]} onChange={() => toggle(key)} style={{ marginTop: 2, accentColor: ACCENT_PULSE }} />
                   <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_PRIMARY, lineHeight: 1.4 }}>{step}</span>
                 </label>
@@ -102,13 +101,16 @@ export default function StructuredScaffold({ scaffold }) {
 
       {/* Hidden expectations */}
       {scaffold.hiddenExpectations?.length > 0 && (
-        <div style={{ padding: '8px 12px', border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS }}>
+        <div style={{ padding: '8px 12px', border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS, borderLeft: '3px solid #f59e0b' }}>
           <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#f59e0b' }}>Hidden expectations</span>
-          <ul style={{ margin: '6px 0 0', paddingLeft: 16 }}>
+          <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
             {scaffold.hiddenExpectations.map((exp, i) => (
-              <li key={i} style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_PRIMARY, lineHeight: 1.5, marginBottom: 2 }}>{exp}</li>
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                <span style={{ color: '#f59e0b', fontSize: 12, lineHeight: 1.4 }}>{'\u26A0'}</span>
+                <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_PRIMARY, lineHeight: 1.5 }}>{exp}</span>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
       )}
 

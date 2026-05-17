@@ -89,9 +89,26 @@ export default function ToolPanel({
         const content = data[resultKey] || '';
         setResult(content);
         // Store structured JSON if present (scaffold for brief, rubricData for rubric)
-        if (data.scaffold) setStructuredData({ type: 'scaffold', data: data.scaffold });
-        else if (data.rubricData) setStructuredData({ type: 'rubric', data: data.rubricData });
-        else setStructuredData(null);
+        if (data.scaffold) {
+          setStructuredData({ type: 'scaffold', data: data.scaffold });
+        } else if (data.rubricData) {
+          setStructuredData({ type: 'rubric', data: data.rubricData });
+        } else {
+          // Fallback: try parsing the raw result text as JSON (Claude may have
+          // returned JSON that the API endpoint failed to extract separately)
+          let parsed = null;
+          try {
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+          } catch { /* not valid JSON, show as text */ }
+          if (parsed && parsed.suggestedStructure) {
+            setStructuredData({ type: 'scaffold', data: parsed });
+          } else if (parsed && parsed.criteria) {
+            setStructuredData({ type: 'rubric', data: parsed });
+          } else {
+            setStructuredData(null);
+          }
+        }
         // Persist to Supabase
         if (user && courseId && content) {
           supabase.from('assessment_representations').upsert({
@@ -174,9 +191,15 @@ export default function ToolPanel({
           ) : structuredData?.type === 'rubric' ? (
             <StructuredRubric rubricData={structuredData.data} />
           ) : (
-            <pre style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_PRIMARY, margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-              {cleanMarkdown(result)}
-            </pre>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_PRIMARY, margin: 0, lineHeight: 1.6 }}>
+              {cleanMarkdown(result).split('\n').filter(line => {
+                // Never show raw JSON to students: strip lines that are pure JSON syntax
+                const trimmed = line.trim();
+                return trimmed && !/^[{}\[\]",:]$/.test(trimmed) && !/^"[a-zA-Z]+":/.test(trimmed);
+              }).map((para, i) => (
+                <p key={i} style={{ margin: '0 0 8px' }}>{para}</p>
+              ))}
+            </div>
           )}
           <ResponseFeedback toolName={toolId} context={{ assessmentTitle, courseId }} />
         </div>
