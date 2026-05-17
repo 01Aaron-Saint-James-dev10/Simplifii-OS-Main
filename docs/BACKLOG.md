@@ -781,3 +781,13 @@ Tool rail filters to `toolsForThisPhase` for the current phase (e.g. during Gath
 - `CanvasScreen.jsx` — render TaskPhaseBar, filter tool rail
 
 Can build before Sprint 4 using raw text inputs. Upgrade to typed node inputs when Sprint 4 lands.
+
+---
+
+## E1: extract-nodes text input capped at 4000 chars
+
+**Priority:** Not blocking
+**Location:** api/extract-nodes.js, DocumentNodeService.js
+**Issue:** Text input to /api/extract-nodes is capped at 4000 characters. Exam papers longer than 4000 chars will have nodes truncated, potentially missing questions in later sections.
+**Fix:** Split long documents into sections before extraction, or increase cap to 8000 for exam type only.
+**Constraint:** Deferred until exam paper sprint.
