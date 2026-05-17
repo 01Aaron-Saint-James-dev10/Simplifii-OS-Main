@@ -37,15 +37,14 @@ export function useAuraVoice() {
         body: JSON.stringify({ text }),
       });
 
-      // Check if we got audio or a fallback JSON response
-      const contentType = response.headers.get('content-type') || '';
-      if (contentType.includes('audio')) {
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
+      const data = await response.json();
+
+      // ElevenLabs: play base64 audio directly
+      if (data.provider === 'elevenlabs' && data.audio) {
+        const audio = new Audio(`data:audio/mp3;base64,${data.audio}`);
         audioRef.current = audio;
 
-        // Connect to analyser for waveform data
+        // Connect to analyser for waveform data (drives orb distortion)
         try {
           if (!audioContextRef.current) audioContextRef.current = new AudioContext();
           const ctx = audioContextRef.current;
@@ -61,7 +60,6 @@ export function useAuraVoice() {
         audio.onended = () => {
           setIsSpeaking(false);
           setAudioLevel(0);
-          URL.revokeObjectURL(url);
           window.dispatchEvent(new CustomEvent('simplifii:aura-state', { detail: { state: 'idle' } }));
         };
         await audio.play();

@@ -1,11 +1,12 @@
 /**
  * /api/tts
  *
- * Text-to-speech via ElevenLabs API. Returns audio stream.
+ * Text-to-speech via ElevenLabs API. Returns base64 audio.
  * Used by the AURA voice mode for natural spoken output.
  *
  * POST { text, voiceId? }
- * Returns: audio/mpeg stream
+ * Returns: { audio: base64, format: 'mp3', provider: 'elevenlabs' }
+ *      or: { provider: 'browser' } (fallback when no key)
  *
  * Env: ELEVENLABS_API_KEY
  */
@@ -22,15 +23,15 @@ export default async function handler(req, res) {
   if (limited) return res.status(429).json({ success: false, error: limited.error });
 
   const { text, voiceId } = req.body || {};
-  const apiKey = process.env.ELEVENLABS_API_KEY;
-
-  if (!apiKey) {
-    // Fallback: return empty so client uses browser TTS
-    return res.status(200).json({ success: false, fallback: true, error: 'TTS not configured. Using browser voice.' });
-  }
 
   if (!text || text.length < 2) {
     return res.status(400).json({ success: false, error: 'Text required.' });
+  }
+
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey) {
+    // No key: client falls back to browser SpeechSynthesis
+    return res.status(200).json({ provider: 'browser' });
   }
 
   // Cap text length (ElevenLabs charges per character)
@@ -46,27 +47,22 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         text: cleanText,
-        model_id: 'eleven_multilingual_v2',
+        model_id: 'eleven_turbo_v2',
         voice_settings: {
           stability: 0.5,
           similarity_boost: 0.75,
-          style: 0.3,
-          use_speaker_boost: true,
         },
       }),
     });
 
     if (!response.ok) {
-      return res.status(200).json({ success: false, fallback: true, error: 'TTS service unavailable.' });
+      return res.status(200).json({ provider: 'browser', error: 'ElevenLabs unavailable.' });
     }
 
-    // Stream audio back to client
-    res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Cache-Control', 'no-cache');
-
-    const arrayBuffer = await response.arrayBuffer();
-    res.status(200).send(Buffer.from(arrayBuffer));
+    const audioBuffer = await response.arrayBuffer();
+    const base64 = Buffer.from(audioBuffer).toString('base64');
+    return res.status(200).json({ audio: base64, format: 'mp3', provider: 'elevenlabs' });
   } catch {
-    return res.status(200).json({ success: false, fallback: true, error: 'TTS failed.' });
+    return res.status(200).json({ provider: 'browser', error: 'TTS failed.' });
   }
 }
