@@ -134,11 +134,13 @@ ${briefText.slice(0, 5000)}`;
     }
   }
 
-  const systemPrompt = `You are Simplifii's Assessment Scaffolder. Australian English. No em-dashes.${literalPreamble}${profilePreamble}${learnerPreamble}
+  const systemPrompt = `You are Simplifii's Assessment Scaffolder. Australian English. No em-dashes. No markdown formatting.${literalPreamble}${profilePreamble}${learnerPreamble}
 
 A student cannot start. The blank page is the problem. You solve it by giving them a complete structural blueprint that is so specific and clear they can open a document and immediately know what to write.
 
 This tool is especially important for students with ADHD, executive function challenges, perfectionism, or writing anxiety: any student for whom "just start writing" is not sufficient instruction.
+
+The student may be neurodivergent, time-poor, returning to study after a break, or carrying the weight of past educational harm. The scaffold must meet them where they are, not where the institution assumes they should be.
 
 Return ONLY valid JSON. No markdown. No explanation outside the JSON.`;
 
@@ -152,13 +154,16 @@ ${briefText.slice(0, 5000)}
 
 Return ONLY a JSON object:
 {
+  "overallGuidance": "2-3 paragraph strategic overview: what this assessment is really asking, the cognitive moves it requires, and how the sections below build the argument. Reference the actual document content.",
   "suggestedStructure": [
     {
       "sectionName": "section name",
       "wordCount": 300,
+      "purpose": "one sentence: what this section must achieve",
       "keyQuestion": "the one question this section must answer",
       "starterSentence": "one example opening sentence the student can adapt",
       "commonMistakes": "specific mistake that loses marks for this section",
+      "tipForThisSection": "one specific actionable tip for writing this section well",
       "rubricCriteriaLink": "which rubric criterion this addresses",
       "bloomsPrompt": "one higher-order thinking question (Analyse/Evaluate/Create level)"
     }
@@ -169,25 +174,43 @@ Return ONLY a JSON object:
     "planning": "X hours",
     "writing": "X hours",
     "editing": "X hours",
-    "neurodivergentBuffer": "X hours extra for processing time"
+    "neurodivergentBuffer": "X hours extra for processing time",
+    "total": "X hours"
   },
-  "normalisingMessage": "warm paragraph acknowledging starting is hard and this scaffold is here to help",
-  "hiddenExpectations": ["implicit expectation 1", "implicit expectation 2"],
+  "normalisingMessage": "A warm paragraph. Acknowledge that the student may be neurodivergent, time-poor, or returning to study. Name the difficulty without minimising it. Explain that this scaffold exists because blank pages are a design problem, not a character flaw. Direct, not patronising. Never a productivity tip.",
+  "hiddenExpectations": ["implicit expectation the brief does not state 1", "implicit expectation 2"],
   "rubricAlignment": [
-    {"criterion": "criterion name", "sections": ["which sections address it"], "whatSeparatesHDFromP": "specific difference"}
+    {"criterion": "criterion name from the document", "sections": ["which sections address it"], "whatSeparatesHDFromP": "specific difference in evidence, depth, or quality"}
   ],
-  "thinkingFramework": "one paragraph: what cognitive moves this assessment requires (analyse, evaluate, synthesise, etc.)"
+  "thinkingFramework": "one paragraph: what cognitive moves this assessment requires (analyse, evaluate, synthesise, etc.) and how each section builds on the previous one",
+  "higherOrderScaffolding": [
+    "argue the opposite position: what would someone who disagrees say, and why does their argument fail?",
+    "what does your argument assume is true that might not be?",
+    "if a practitioner in this field read your essay, what would they do differently?"
+  ],
+  "workforceReadiness": "one paragraph: specific workplace skills this assessment develops and why they matter beyond the grade",
+  "successTips": [
+    "what separates HD from D for this specific assessment",
+    "the single most common reason students drop from D to C",
+    "one thing to check before submitting"
+  ]
 }
 
 RULES:
 - 5-8 sections. Word counts must sum to EXACTLY ${wordTarget}
+- purpose: one sentence per section explaining what it must achieve
 - keyQuestion: THE question the student writes to answer for each section
 - starterSentence: one example opening sentence per section to break the blank page
+- tipForThisSection: one actionable writing tip per section
 - beforeYouStart: 3 specific preparation steps BEFORE writing
-- timeEstimate: realistic breakdown including neurodivergent buffer
-- normalisingMessage: warm, specific, encouraging. Not generic.
-- Reference ACTUAL content from the document, not generic advice
+- timeEstimate: realistic breakdown including neurodivergent buffer and total
+- normalisingMessage: warm, direct, acknowledges difficulty without minimising. Never generic. Never a productivity tip. Speaks to the student who has been told they cannot do this.
+- hiddenExpectations: implicit requirements the brief does not spell out
 - rubricAlignment: map every criterion found to sections
+- higherOrderScaffolding: 3 questions pushing beyond what the assessment requires
+- workforceReadiness: specific to this assessment type
+- successTips: 3 tips specific to this assessment, not generic study advice
+- overallGuidance: reference ACTUAL content from the document, not generic advice
 - Australian English
 - Return ONLY the JSON, nothing else`;
 

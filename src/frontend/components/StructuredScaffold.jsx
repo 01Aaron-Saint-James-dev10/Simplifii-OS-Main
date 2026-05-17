@@ -29,6 +29,16 @@ export default function StructuredScaffold({ scaffold }) {
         </div>
       )}
 
+      {/* Overall guidance */}
+      {scaffold.overallGuidance && (
+        <div style={{ padding: '10px 12px', border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS }}>
+          <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_PULSE }}>What this assessment is really asking</span>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_PRIMARY, margin: '6px 0 0', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+            {scaffold.overallGuidance}
+          </p>
+        </div>
+      )}
+
       {/* Time estimate */}
       {scaffold.timeEstimate && (
         <div style={{ padding: '8px 12px', border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS }}>
@@ -71,6 +81,12 @@ export default function StructuredScaffold({ scaffold }) {
               </span>
             </div>
 
+            {section.purpose && (
+              <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_MUTED, margin: '0 0 4px' }}>
+                {section.purpose}
+              </p>
+            )}
+
             {section.keyQuestion && (
               <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_MUTED, margin: '0 0 4px', fontStyle: 'italic' }}>
                 Key question: {section.keyQuestion}
@@ -82,6 +98,12 @@ export default function StructuredScaffold({ scaffold }) {
                 <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, color: TEXT_FAINT, display: 'block', marginBottom: 2 }}>Starter sentence</span>
                 <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_PRIMARY, lineHeight: 1.4 }}>{section.starterSentence}</span>
               </div>
+            )}
+
+            {section.tipForThisSection && (
+              <p style={{ fontFamily: FONT_BODY, fontSize: 10, color: ACCENT_PULSE, margin: '4px 0 0' }}>
+                Tip: {section.tipForThisSection}
+              </p>
             )}
 
             {section.bloomsPrompt && (
@@ -130,6 +152,43 @@ export default function StructuredScaffold({ scaffold }) {
               </div>
             ))}
           </div>
+        </div>
+      )}
+      {/* Success tips */}
+      {scaffold.successTips?.length > 0 && (
+        <div style={{ padding: '8px 12px', border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS, borderLeft: `3px solid ${ACCENT_PULSE}` }}>
+          <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_PULSE }}>What separates the top band</span>
+          <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {scaffold.successTips.map((tip, i) => (
+              <p key={i} style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_PRIMARY, margin: 0, lineHeight: 1.5 }}>
+                {tip}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Higher-order scaffolding */}
+      {scaffold.higherOrderScaffolding?.length > 0 && (
+        <div style={{ padding: '8px 12px', border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS }}>
+          <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: TEXT_MUTED }}>Push your thinking further</span>
+          <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {scaffold.higherOrderScaffolding.map((q, i) => (
+              <p key={i} style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_MUTED, margin: 0, lineHeight: 1.5, fontStyle: 'italic' }}>
+                {q}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Workforce readiness */}
+      {scaffold.workforceReadiness && (
+        <div style={{ padding: '8px 12px', border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS }}>
+          <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: TEXT_MUTED }}>Why this matters beyond the grade</span>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_MUTED, margin: '6px 0 0', lineHeight: 1.5 }}>
+            {scaffold.workforceReadiness}
+          </p>
         </div>
       )}
     </div>
