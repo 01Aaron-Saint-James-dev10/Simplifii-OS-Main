@@ -730,3 +730,54 @@ Tools recommend the next tool on completion. Rubric decode -> Brief simplify -> 
 **Issue:** Assessments are identified by title string throughout the app. AuraChatOverlay filters documents by title match. CanvasScreen finds the active brief by title match. RouterContext passes `assessmentTitle` (string) not an ID. If two assessments share a title (e.g. "Assessment Task 1" across different courses), scoping breaks. If a title is renamed after ingestion, the link breaks.
 **Fix:** When the document node tree is built (Sprint 4), every assessment must be assigned a UUID at ingestion time. AuraChatOverlay, CanvasScreen, and ProjectContext should then scope by ID not title. Requires: UUID field on assessmentBriefs[], RouterContext passing assessmentId, Supabase assessments.id used as the canonical key.
 **Constraint:** Deferred to Sprint 4 (document node tree architecture).
+
+---
+
+## Sprint 5: Task Guidance Engine — per-task instruction sequences
+
+**Priority:** P0 architecture — this is the sprint that makes Simplifii an OS, not a tool collection
+**Status:** NOT STARTED
+**Depends on:** B5 fix (done), assessment context scoping (done)
+
+Every assessment node needs a `taskSequence` generated at ingestion and stored in Supabase. Five phases per task:
+
+1. **Understand** — decode the brief, identify what is being asked
+2. **Plan** — structure the response, map rubric criteria to sections
+3. **Gather** — find sources, build evidence corpus
+4. **Draft** — write with AI scaffold and Socratic support
+5. **Review** — rubric check, formative feedback, Authenticity split
+
+Each phase has:
+- `instruction`: what the student does in this phase
+- `whyThisPhase`: one-sentence rationale
+- `auraOpeningPrompt`: the question AURA asks when this phase begins
+- `toolsForThisPhase`: which canvas tools are relevant (e.g. Plan phase = simplify + rubric)
+- `completionSignal`: what triggers phase advancement (e.g. "3 sources added" or "draft > 500 words")
+- `estimatedMinutes`: realistic time estimate including neurodivergent buffer
+- `lockedUntil`: optional prerequisite phase ID (prevents skipping ahead)
+
+### Canvas integration
+
+`TaskPhaseBar.jsx`: horizontal phase progress bar at top of canvas. Current phase highlighted. Time estimate visible. Clicking a phase shows its instruction.
+
+AURA receives `currentPhase` in contextPacket, uses `auraOpeningPrompt` as opening question when the student enters a phase.
+
+Tool rail filters to `toolsForThisPhase` for the current phase (e.g. during Gather phase, only show Sources + Tutor, hide Brief Simplifier).
+
+`ExecutiveSpine` monitors `completionSignals` and advances `currentPhaseId` when criteria are met.
+
+### New files
+
+- `api/generate-task-sequence.js` — generates the 5-phase sequence from brief + rubric text
+- `src/frontend/components/TaskPhaseBar.jsx` — phase progress renderer
+- `src/core/TaskSequenceManager.js` — phase state management, signal monitoring, advancement logic
+
+### Modified files
+
+- `useIngestion.js` — call generate-task-sequence after ingestion
+- `ProjectContext.js` — store taskSequence per assessment
+- `api/_aura-prompt.js` — inject currentPhase into AURA context
+- `AuraChatOverlay.jsx` — pass currentPhase in API payload
+- `CanvasScreen.jsx` — render TaskPhaseBar, filter tool rail
+
+Can build before Sprint 4 using raw text inputs. Upgrade to typed node inputs when Sprint 4 lands.

@@ -181,12 +181,15 @@ export default async function handler(req, res) {
       tokensOut: data?.usage?.output_tokens || 0,
     });
 
-    const reply = data.content[0].text.trim();
+    const rawReply = data.content[0].text.trim();
+    const toolTagMatch = rawReply.match(/\[TOOL:(\w+)\]/);
+    const toolSuggestion = toolTagMatch ? toolTagMatch[1] : null;
+    const reply = rawReply.replace(/\s*\[TOOL:\w+\]\s*/g, '').trim();
     if (!reply) {
       return res.status(502).json({ success: false, error: 'AI returned an empty response. Try again.' });
     }
 
-    return res.status(200).json({ success: true, reply });
+    return res.status(200).json({ success: true, reply, toolSuggestion });
   } catch {
     return res.status(500).json({ success: false, error: 'Something went wrong. Try again.' });
   }

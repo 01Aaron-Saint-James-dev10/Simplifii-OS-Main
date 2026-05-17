@@ -283,9 +283,11 @@ export default function AuraChatOverlay({ open, onClose }) {
         reading: `summarise the key points`,
       };
       const action = actionMap[docType] || 'help you work with it';
+      const suggestedTool = docType === 'rubric' ? 'rubric' : docType === 'exam_paper' ? 'pastqs' : 'simplify';
       setMessages(prev => [...prev, {
         role: 'tutor',
-        text: `I can see you added ${docTitle} (${docType}). Want me to ${action}? [TOOL:${docType === 'rubric' ? 'rubric' : docType === 'exam_paper' ? 'pastqs' : 'simplify'}]`,
+        text: `I can see you added ${docTitle} (${docType}). Want me to ${action}?`,
+        toolSuggestion: suggestedTool,
       }]);
     }
     prevDocCountRef.current = newCount;
@@ -373,7 +375,7 @@ export default function AuraChatOverlay({ open, onClose }) {
           .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
           .replace(/^#{1,4}\s+/gm, '');
         dispatchAuraState('speaking');
-        setMessages(prev => [...prev, { role: 'tutor', text: clean }]);
+        setMessages(prev => [...prev, { role: 'tutor', text: clean, toolSuggestion: data.toolSuggestion || null }]);
         // Speak response if voice mode is on OR if the user used any voice input
         if (voiceMode || isListeningContinuous || isListening) speak(clean);
         // Return to idle after a short display period
@@ -470,9 +472,9 @@ export default function AuraChatOverlay({ open, onClose }) {
       {/* Messages */}
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {messages.map((m, i) => {
-          // Parse [TOOL:id] tags from AURA responses
-          const toolMatch = m.role === 'tutor' ? m.text.match(/\[TOOL:(\w+)\]/) : null;
-          const displayText = toolMatch ? m.text.replace(/\s*\[TOOL:\w+\]\s*/g, '').trim() : m.text;
+          // Tool suggestion from API (separated server-side, never in m.text)
+          const toolMatch = m.toolSuggestion ? [null, m.toolSuggestion] : null;
+          const displayText = m.text;
           const toolLabels = { simplify: 'Scaffold my assessment', rubric: 'Decode my rubric', scorer: 'Check my draft', hidden: 'Hidden curriculum', humanise: 'Make it sound like me', check: 'Rubric check', pastqs: 'Past questions', udl: '4 ways to understand', analysis: 'Writing metrics' };
 
           return (
