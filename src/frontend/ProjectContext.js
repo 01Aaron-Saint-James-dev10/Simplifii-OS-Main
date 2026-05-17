@@ -7,6 +7,7 @@ import { hydrate as hydrateStream, applyTheme as applyStreamTheme, streamFromLev
 import { startEventBus, stopEventBus } from '../core/EventBus';
 import { configureSpine } from '../core/ExecutiveSpine';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabaseClient';
 import { enableCloudSync, isCloudSyncEnabled } from '../core/HistoryOfThought';
 import {
   listSources,
@@ -255,11 +256,31 @@ export const ProjectProvider = ({ children }) => {
     if (courses && Object.keys(courses).length > 0) return; // already have local data
     (async () => {
       try {
-        const { data: rows } = await supabase.from('courses').select('*').eq('user_id', user.id);
+        const { data: rows } = await supabase.from('courses').select('*, assessments(*)').eq('user_id', user.id);
         if (rows && rows.length > 0) {
           const hydrated = {};
           for (const row of rows) {
-            hydrated[row.id] = { name: row.name, code: row.code, tier: row.tier, term: row.term ? { year: row.term_year, code: row.term_code } : null, extractionData: row.extraction_data || {} };
+            const d = row.data || {};
+            // Reconstruct extractionData from JSONB + assessments
+            const assessmentBriefs = (row.assessments || []).map(a => ({
+              title: a.title,
+              body: a.brief_text || '',
+              dueDate: a.due_date || null,
+              weight: '',
+              source: 'supabase',
+            }));
+            const extractionData = {
+              ...(d.extractionData || {}),
+              rawText: d.rawText || '',
+              assessmentBriefs: assessmentBriefs.length > 0 ? assessmentBriefs : (d.extractionData?.assessmentBriefs || []),
+            };
+            hydrated[row.id] = {
+              name: row.name,
+              code: d.code || null,
+              tier: d.tier || null,
+              term: d.term || null,
+              extractionData,
+            };
           }
           setCourses(hydrated);
         }
