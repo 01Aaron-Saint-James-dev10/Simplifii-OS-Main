@@ -262,6 +262,30 @@ Guidance for when to invoke skills under `.claude/skills/`. Descriptive, not enf
 
 If a trigger fires and the relevant skill cannot be applied (missing context, ambiguous request), surface the gap to the learner rather than guessing.
 
+---
+
+## UI Philosophy: Minimal Surface, AURA Surfaces Tools
+
+The canvas must be visually minimal by default. The student sees only: their writing, AURA orb, and a single collapsed tools button.
+
+Tools are NOT visible by default. AURA surfaces them contextually:
+
+- Student uploads brief: AURA offers Brief Simplifier
+- Student starts writing intro: AURA offers Starter Ideas
+- Student asks "am I done?": AURA offers Rubric Check
+- Student asks "does this sound AI?": AURA offers Humaniser
+- Student seems stuck: AURA offers Hint or Next Step
+- Student has low energy orbs: AURA offers a break prompt
+
+Rules for every future feature:
+1. Default state: hidden
+2. AURA surfaces it when context matches
+3. Student can find it manually via collapsed Tools button
+4. Never add a visible button without AURA trigger logic
+5. If it cannot be triggered by AURA context, question whether it should exist
+
+This principle is non-negotiable. It is the difference between Simplifii and every other tool.
+
 ## Source of Truth Documents (Read Before Touching AURA)
 
 Before writing, editing, or reviewing any code related to AURA, the chat overlay,
