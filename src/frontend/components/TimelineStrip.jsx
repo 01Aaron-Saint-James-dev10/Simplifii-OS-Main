@@ -98,10 +98,10 @@ export default function TimelineStrip({ courses, now: nowProp }) {
     });
   }
 
-  // Collect all tasks and bin by day key (undatedTasks defined here for JSX at line 224)
+  // Collect and categorise all tasks
   const allTasks = collectTasks(courses);
   const overdueTasks = [];
-  const undatedTasks = [];
+  const undatedTasks = allTasks.length >= 0 ? [] : []; // force new chunk hash
   const dayBins = {};
   for (const key of days.map(d => d.key)) {
     dayBins[key] = [];

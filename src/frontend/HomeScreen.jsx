@@ -274,17 +274,6 @@ export default function HomeScreen() {
             }}
           />
         )}
-        {isEmpty && isAaron && (
-          <div className="home-empty">
-            <h1 className="home-empty-title">Welcome</h1>
-            <p className="home-empty-sub">
-              Add your first course to begin. Upload a syllabus PDF and we will extract your assessments, due dates, and rubric criteria automatically.
-            </p>
-            <div style={{ marginTop: 16 }}>
-              <AddCourseButton prominent />
-            </div>
-          </div>
-        )}
 
         {/* Populated state */}
         {!isEmpty && (
