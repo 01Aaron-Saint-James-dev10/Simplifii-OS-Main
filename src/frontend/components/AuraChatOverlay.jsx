@@ -85,12 +85,40 @@ export default function AuraChatOverlay({ open, onClose }) {
   }, [activeAssessmentTitle, activeWeight, activeDueDate, allDocs, rubricCriteria]);
 
   // Build structured document context for AURA (INGESTION CONTRACT)
-  // Priority: typed documents[] > assessmentBriefs[].body > rawText fallback
+  // Priority: typed nodes[] > typed documents[] > assessmentBriefs[].body > rawText fallback
   const activeBriefText = useMemo(() => {
     const ext = activeCourse?.extractionData;
     if (!ext) return '';
 
-    // Best case: typed documents array from per-file classification
+    // Highest priority: typed nodes (XN, YN, Z schema from Sprint 4)
+    const nodes = ext.nodes;
+    if (nodes && nodes.length > 0) {
+      const findNode = (type) => nodes.find(n => n.nodeType === type && n.content && n.confidence > 0);
+      const parts = [];
+      const xn1 = findNode('XN1');
+      if (xn1) parts.push(`[TASK DESCRIPTION]\n${xn1.content}`);
+      const xn2 = findNode('XN2');
+      if (xn2) parts.push(`[FORMAT REQUIREMENTS]\n${xn2.content}`);
+      const xn3 = findNode('XN3');
+      if (xn3) parts.push(`[DUE DATE] ${xn3.content}`);
+      const xn4 = findNode('XN4');
+      if (xn4) parts.push(`[LEARNING OUTCOMES]\n${xn4.content}`);
+      const xn5 = findNode('XN5');
+      if (xn5) parts.push(`[HIDDEN CURRICULUM]\n${xn5.content}`);
+      const yn1 = findNode('YN1');
+      if (yn1) parts.push(`[RUBRIC CRITERIA]\n${yn1.content}`);
+      const yn2 = findNode('YN2');
+      if (yn2) parts.push(`[GRADE BANDS]\n${yn2.content}`);
+      const yn4 = findNode('YN4');
+      if (yn4) parts.push(`[RUBRIC HIDDEN CURRICULUM]\n${yn4.content}`);
+      const z1 = findNode('Z1');
+      if (z1) parts.push(`[COURSE METADATA]\n${z1.content}`);
+      const z5 = findNode('Z5');
+      if (z5) parts.push(`[POLICIES]\n${z5.content}`);
+      if (parts.length > 0) return parts.join('\n\n').slice(0, 3200);
+    }
+
+    // Second priority: typed documents array from per-file classification
     const typedDocs = ext.documents;
     if (typedDocs && typedDocs.length > 0) {
       const parts = [];
