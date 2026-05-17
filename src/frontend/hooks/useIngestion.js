@@ -5,6 +5,18 @@ import { mapToWorkspace, deriveRoadmapFromAssessments, extractDeepCourseData, me
 const log = createLogger('useIngestion');
 // Dynamic import to avoid circular dependency with DocumentAIService -> UDLAuditService
 const loadDocumentAI = () => import('../../services/DocumentAIService').then(m => m.processDocumentWithGCP);
+// Claude-powered structured extraction (called after pdfjs raw text extraction)
+const extractStructured = async (text, filename, userId) => {
+  try {
+    const res = await fetch('/api/extract-document', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text.slice(0, 4000), filename, user_id: userId }),
+    });
+    const data = await res.json();
+    return data.success ? data.extraction : null;
+  } catch { return null; }
+};
 import { fetchGroundingPdfs, listGroundingPdfs } from '../../utils/GroundingLoader';
 import { listUploadedPdfs } from '../../services/IndexedDBService';
 import { nameCourse, getProviderName, extractAssessmentBriefs, REASONING_START_EVENT, REASONING_END_EVENT } from '../../services/RewriteService';
@@ -517,10 +529,8 @@ export function useIngestion({
           setIngestStatus(`Scanning ${code}: ${file.name}`);
           log.info(' processing', file.name, 'group=', code, 'class=', classifyGroundingFile(file));
           try {
-            // PDF bridge: swap mock_jwt_token_xyz123 for a real Supabase
-            // session token once src/lib/supabaseClient.js auth is complete.
-            const processDocumentWithGCP = await loadDocumentAI();
-            const text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
+            const processDocument = await loadDocumentAI();
+            const text = await processDocument(file);
             const deepData = extractDeepCourseData(text);
             aggregated = mergeExtractionData(aggregated, { ...deepData, rawText: text });
             if (primaryRawText === null) primaryRawText = text;
@@ -599,8 +609,8 @@ export function useIngestion({
         for (const file of groupFiles) {
           setIngestStatus(`Extracting ${file.name}...`);
           try {
-            const processDocumentWithGCP = await loadDocumentAI();
-            const text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
+            const processDocument = await loadDocumentAI();
+            const text = await processDocument(file);
             if (!text || text.trim().length === 0) continue;
 
             // Try to find course code in content if filename had none
@@ -611,12 +621,26 @@ export function useIngestion({
               }
             }
 
-            // Classify this specific document
+            // Classify this specific document (pattern matching first)
             const docType = classifyText(text, file.name);
             const deepData = extractDeepCourseData(text);
 
+            // Claude structured extraction (enriches regex-based deepData)
+            const claudeExtraction = await extractStructured(text, file.name, user?.id).catch(() => null);
+            if (claudeExtraction) {
+              // Use Claude's extraction to fill gaps in regex-based deepData
+              if (claudeExtraction.courseCode && resolvedCode === 'UNTITLED') resolvedCode = claudeExtraction.courseCode.toUpperCase();
+              if (claudeExtraction.assessmentTitle && !deepData.assessmentTitle) deepData.assessmentTitle = claudeExtraction.assessmentTitle;
+              if (claudeExtraction.weight && !deepData.weighting) deepData.weighting = claudeExtraction.weight;
+              if (claudeExtraction.dueDate && !deepData.assessmentDates?.length) deepData.assessmentDates = [{ raw: claudeExtraction.dueDate, parsed: new Date(claudeExtraction.dueDate), type: 'absolute' }];
+              if (claudeExtraction.wordCount && !deepData.words) deepData.words = claudeExtraction.wordCount;
+              if (claudeExtraction.rubricCriteria?.length > 0 && !deepData.rubricCriteria?.length) deepData.rubricCriteria = claudeExtraction.rubricCriteria;
+              if (claudeExtraction.documentType) deepData.documentType = claudeExtraction.documentType;
+              if (claudeExtraction.courseName) deepData.courseName = claudeExtraction.courseName;
+            }
+
             typedDocuments.push({
-              type: docType,
+              type: claudeExtraction?.documentType || docType,
               filename: file.name,
               text: text,
               deepData: deepData,

@@ -1,10 +1,9 @@
 /**
  * DocumentAIService.js
  *
- * Three-tier PDF extraction with graceful fallback:
- *   1. GCP Document AI (when an OAuth token is present in localStorage).
- *   2. Local pdfjs-dist parse (sovereign / privacy-first; PDF stays in the browser).
- *   3. Canned mock (only if both above paths fail; keeps UI alive in dev).
+ * PDF text extraction via pdfjs-dist (sovereign, privacy-first, runs in browser).
+ * No GCP dependency. No external API calls for extraction.
+ * The raw text is then classified and structured by /api/extract-document (Claude).
  */
 
 import { createLogger } from '../utils/logger';
@@ -12,10 +11,6 @@ import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf';
 
 const log = createLogger('DocumentAI');
 import { auditCurriculum } from './UDLAuditService';
-
-const PROJECT_ID = process.env.REACT_APP_GCP_PROJECT_ID || 'simplifii-os-production';
-const LOCATION = 'us';
-const PROCESSOR_ID = process.env.REACT_APP_DOCUMENT_AI_PROCESSOR_ID || 'c79a8ed226a1576e';
 
 // PDF.js worker. Served from the cockpit's own origin. The copy script
 // (scripts/copy-pdf-worker.js) emits one of two filenames depending on
@@ -109,43 +104,6 @@ const extractWithPdfJs = async (fileBlob) => {
   return combined;
 };
 
-const callGcpDocumentAi = async (fileBlob, liveToken) => {
-  const endpoint = `https://${LOCATION}-documentai.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/processors/${PROCESSOR_ID}:process`;
-
-  const base64String = await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result.split(',')[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(fileBlob);
-  });
-
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${liveToken}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      rawDocument: { content: base64String, mimeType: fileBlob.type || 'application/pdf' }
-    })
-  });
-
-  if (response.status === 401) {
-    // Clear the stale token so subsequent uploads skip the GCP path
-    // entirely and go straight to local pdfjs. Without this, every
-    // Grounding upload attempt produces three 401 round-trips and
-    // three duplicate 're-authenticate' speech messages.
-    try { localStorage.removeItem('gcp_access_token'); } catch { /* storage unavailable */ }
-    throw new Error('Document AI: 401 Unauthorized. Token expired or invalid.');
-  }
-  if (!response.ok) {
-    throw new Error(`Document AI: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  return data.document.text;
-};
-
 export class PdfExtractionError extends Error {
   constructor(message, cause) {
     super(message);
@@ -154,36 +112,17 @@ export class PdfExtractionError extends Error {
   }
 }
 
-export const processDocumentWithGCP = async (fileBlob, authToken) => {
-  const stored = (() => {
-    try { return localStorage.getItem('gcp_access_token'); } catch { return null; }
-  })();
-  // Reject obvious mock tokens. The legacy onboarding code passes
-  // 'mock_jwt_token_xyz123' as authToken, which used to drive every
-  // upload through GCP and produce three 401 round-trips per file.
-  // We only try GCP when localStorage has a non-empty real token.
-  const isMock = (t) => !t || /^mock[_-]/i.test(t) || t.length < 20;
-  const liveToken = !isMock(stored) ? stored : (!isMock(authToken) ? authToken : null);
-
-  // Tier 1: GCP Document AI when authenticated.
-  if (liveToken) {
-    try {
-      log.info(' Using live GCP OAuth token.');
-      return await callGcpDocumentAi(fileBlob, liveToken);
-    } catch (gcpErr) {
-      log.warn(' GCP path failed, falling back to local pdfjs:', gcpErr);
-      // fall through to pdfjs
-    }
-  }
-
-  // Tier 2: Sovereign local parse via pdfjs-dist. No silent mock fallback.
-  // If pdfjs cannot extract real text (corrupt file, scan-only PDF without an
-  // OCR layer), throw a typed error the UI can surface to the student.
-  // We log the underlying error to console so the student can self-diagnose
-  // when the surface message is too generic; the worker version mismatch
-  // and 'PasswordException' both surface as distinct console traces.
+/**
+ * Extract text from a PDF file using pdfjs-dist (runs entirely in browser).
+ * No GCP, no external API calls. The raw text can then be sent to
+ * /api/extract-document for Claude-powered structured extraction.
+ *
+ * @param {File|Blob} fileBlob - PDF file to extract
+ * @returns {string} Extracted text
+ */
+export const processDocumentWithGCP = async (fileBlob) => {
   try {
-    log.info(' Sovereign mode: parsing PDF locally with pdfjs-dist.');
+    log.info(' Extracting PDF locally with pdfjs-dist.');
     const text = await extractWithPdfJs(fileBlob);
     if (!text || text.trim().length === 0) {
       throw new PdfExtractionError(
