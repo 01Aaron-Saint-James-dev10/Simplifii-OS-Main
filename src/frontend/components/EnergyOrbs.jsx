@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSettings } from '../SettingsContext';
 import {
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
   ACCENT_PULSE,
@@ -46,6 +47,13 @@ function OrbSVG({ filled, size = 28 }) {
 }
 
 export default function EnergyOrbs({ userId }) {
+  const { setGritLevel } = useSettings();
+  const [clusterPos, setClusterPos] = useState(() => {
+    try {
+      const stored = localStorage.getItem('simplifii:dragon-position');
+      return stored ? JSON.parse(stored) : null;
+    } catch { return null; }
+  });
   const [total, setTotal] = useState(() => {
     try {
       return parseInt(localStorage.getItem(`${STORAGE_KEY_PREFIX}total_${userId}`) || '7', 10);
@@ -87,6 +95,13 @@ export default function EnergyOrbs({ userId }) {
     return () => window.removeEventListener('simplifii:energy-spend', handler);
   }, [total]);
 
+  // Map remaining orb count to grit level in SettingsContext
+  useEffect(() => {
+    if (remaining >= 6) setGritLevel('socratic');
+    else if (remaining >= 3) setGritLevel('balanced');
+    else setGritLevel('literal');
+  }, [remaining]); // eslint-disable-line
+
   // Dispatch AURA message when energy is depleted
   useEffect(() => {
     if (remaining === 0 && spent > 0) {
@@ -98,13 +113,32 @@ export default function EnergyOrbs({ userId }) {
     <div
       style={{
         position: 'fixed',
-        bottom: 20,
-        left: 16,
+        ...(clusterPos ? { left: clusterPos.x, top: clusterPos.y } : { bottom: 20, left: 16 }),
         zIndex: 80,
         display: 'flex',
         flexDirection: 'column-reverse',
         gap: 4,
         alignItems: 'center',
+        cursor: 'grab',
+      }}
+      onMouseDown={(e) => {
+        if (e.target.closest('button')) return;
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const startLeft = rect.left;
+        const startTop = rect.top;
+        const onMove = (me) => {
+          const newPos = { x: startLeft + (me.clientX - startX), y: startTop + (me.clientY - startY) };
+          setClusterPos(newPos);
+          try { localStorage.setItem('simplifii:dragon-position', JSON.stringify(newPos)); } catch { /* ok */ }
+        };
+        const onUp = () => {
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+        };
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
       }}
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
@@ -114,9 +148,20 @@ export default function EnergyOrbs({ userId }) {
       aria-valuemax={total}
       aria-valuenow={remaining}
     >
-      {/* Orbs stack */}
+      {/* Orbs stack: click to set active energy level, wraps to 0 */}
       {Array.from({ length: total }, (_, i) => (
-        <OrbSVG key={i} filled={i < remaining} size={24} />
+        <button
+          key={i}
+          type="button"
+          aria-label={`Set energy to ${i + 1}`}
+          onClick={() => {
+            const newRemaining = (i + 1 === remaining) ? 0 : i + 1;
+            setSpent(total - newRemaining);
+          }}
+          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}
+        >
+          <OrbSVG filled={i < remaining} size={24} />
+        </button>
       ))}
 
       {/* Tooltip */}

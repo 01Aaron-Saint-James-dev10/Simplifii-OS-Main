@@ -223,6 +223,13 @@ export default function AuraChatOverlay({ open, onClose }) {
 
   const { speak, stopSpeaking, isSpeaking, startContinuousListening, stopContinuousListening, isListeningContinuous } = useAuraVoice();
   const [voiceMode, setVoiceMode] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [overlayPos, setOverlayPos] = useState(() => {
+    try {
+      const stored = localStorage.getItem('simplifii:aura-position');
+      return stored ? JSON.parse(stored) : null;
+    } catch { return null; }
+  });
 
   const [messages, setMessages] = useState(() => {
     try {
@@ -438,32 +445,55 @@ export default function AuraChatOverlay({ open, onClose }) {
     <div
       style={{
         position: 'fixed',
-        bottom: 92,
-        right: 20,
+        ...(overlayPos ? { left: overlayPos.x, top: overlayPos.y } : { bottom: 92, right: 20 }),
         width: 360,
         maxWidth: 'calc(100vw - 40px)',
-        maxHeight: 480,
+        maxHeight: collapsed ? 44 : 480,
         zIndex: 200,
         display: 'flex',
         flexDirection: 'column',
         background: SURFACE_CARD,
-        border: `1px solid ${ACCENT_BORDER}`,
         borderRadius: 12,
         boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 48px rgba(16,185,129,0.1)',
         overflow: 'hidden',
+        transition: 'max-height 180ms ease',
       }}
       role="dialog"
       aria-modal="true"
       aria-label="AURA assistant"
     >
       {/* Header */}
-      <div style={{
-        padding: '12px 16px',
-        borderBottom: `1px solid ${SURFACE_RAISED}`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-      }}>
+      <div
+        style={{
+          padding: '12px 16px',
+          borderBottom: collapsed ? 'none' : `1px solid ${SURFACE_RAISED}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          cursor: 'grab',
+          userSelect: 'none',
+          flexShrink: 0,
+        }}
+        onMouseDown={(e) => {
+          if (e.target.closest('button')) return;
+          const startX = e.clientX;
+          const startY = e.clientY;
+          const rect = e.currentTarget.parentElement.getBoundingClientRect();
+          const startLeft = rect.left;
+          const startTop = rect.top;
+          const onMove = (me) => {
+            const newPos = { x: startLeft + (me.clientX - startX), y: startTop + (me.clientY - startY) };
+            setOverlayPos(newPos);
+            try { localStorage.setItem('simplifii:aura-position', JSON.stringify(newPos)); } catch { /* ok */ }
+          };
+          const onUp = () => {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+          };
+          document.addEventListener('mousemove', onMove);
+          document.addEventListener('mouseup', onUp);
+        }}
+      >
         <div>
           <span style={{ fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: ACCENT_PULSE }}>
             AURA
@@ -499,6 +529,14 @@ export default function AuraChatOverlay({ open, onClose }) {
           </button>
           <button
             type="button"
+            onClick={() => setCollapsed(c => !c)}
+            aria-label={collapsed ? 'Expand AURA' : 'Collapse AURA'}
+            style={{ background: 'none', border: 'none', color: TEXT_FAINT, cursor: 'pointer', fontSize: 10, padding: 4, minHeight: 28, minWidth: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            {collapsed ? '\u25B2' : '\u25BC'}
+          </button>
+          <button
+            type="button"
             onClick={onClose}
             aria-label="Close AURA"
             style={{ background: 'none', border: 'none', color: TEXT_FAINT, cursor: 'pointer', fontSize: 16, padding: 4, minHeight: 28, minWidth: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -507,6 +545,9 @@ export default function AuraChatOverlay({ open, onClose }) {
           </button>
         </div>
       </div>
+
+      {!collapsed && (
+      <>
 
       {/* Messages */}
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -640,6 +681,9 @@ export default function AuraChatOverlay({ open, onClose }) {
           {loading ? '...' : 'Send'}
         </button>
       </div>
+
+      </>
+      )}
     </div>,
     document.body
   );
