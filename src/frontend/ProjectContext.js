@@ -566,8 +566,9 @@ export const ProjectProvider = ({ children }) => {
 
   // CourseManager API
   const addCourse = (name = 'New Course') => {
-    const id = `course_${Date.now()}`;
-    setCourses(prev => ({ ...prev, [id]: makeEmptyCourse(name) }));
+    const id = crypto.randomUUID();
+    const cleanName = name.replace(/_{1,2}([^_]+)_{1,2}/g, '$1');
+    setCourses(prev => ({ ...prev, [id]: makeEmptyCourse(cleanName) }));
     setActiveCourseId(id);
     return id;
   };
@@ -579,8 +580,9 @@ export const ProjectProvider = ({ children }) => {
   // fire against the previous activeCourseId before setActiveCourseId
   // commits on the next tick.
   const addCourseWithData = (name = 'New Course', payload = {}) => {
-    const id = `course_${Date.now()}`;
-    const base = makeEmptyCourse(name);
+    const id = crypto.randomUUID();
+    const cleanName = name.replace(/_{1,2}([^_]+)_{1,2}/g, '$1');
+    const base = makeEmptyCourse(cleanName);
     const merged = {
       ...base,
       ...payload,
