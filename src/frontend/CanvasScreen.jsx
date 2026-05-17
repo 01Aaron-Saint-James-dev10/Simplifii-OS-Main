@@ -336,6 +336,7 @@ export default function CanvasScreen() {
   const [leftCollapsed, setLeftCollapsed] = useState(() => localStorage.getItem('simplifii_left_collapsed') === 'true');
   const [railVisible, setRailVisible] = useState(false);
   const toggleLeft = () => { const next = !leftCollapsed; setLeftCollapsed(next); localStorage.setItem('simplifii_left_collapsed', String(next)); };
+  const [canvasTab, setCanvasTab] = useState('write'); // 'think' | 'ideas' | 'write'
 
   // Listen for AURA tool suggestions: open the rail to a specific panel
   useEffect(() => {
@@ -504,36 +505,6 @@ export default function CanvasScreen() {
       />
 
       <div className="canvas-body">
-        {/* Left rail: Tier 1 Pre-Write (essay) or nothing (exam: QuestionNav handles it) */}
-        {!isExamPaper && !leftCollapsed && (
-          <PreWritePanel
-            assessmentTitle={currentTitle}
-            briefText={briefOrText}
-            sectionType={activeSection}
-            tier={course.extractionData?.detectedLevel || 'tertiary'}
-            onInsert={(text) => {
-              window.dispatchEvent(new CustomEvent('simplifii:voice-transcript', { detail: { text: ' ' + text } }));
-              appendEvent({ event_type: 'tier_transition', payload: { from: 1, to: 3, trigger: 'pre_write_insert' } }).catch(() => {});
-            }}
-          />
-        )}
-        {!isExamPaper && (
-          <button type="button" onClick={toggleLeft} title={leftCollapsed ? 'Show Starter Ideas' : 'Hide Starter Ideas'}
-            style={{ position: 'absolute', left: leftCollapsed ? 4 : 228, top: 56, zIndex: 20, width: 20, height: 20, borderRadius: 10, background: 'var(--sov-line-dim, rgba(16,185,129,0.18))', border: 'none', color: 'var(--sov-line, #10b981)', cursor: 'pointer', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}> {/* allow-style */}
-            {leftCollapsed ? '\u203A' : '\u2039'}
-          </button>
-        )}
-
-        {/* Tier 2: Socratic thinking panel */}
-        {!isExamPaper && currentTitle && (
-          <SocraticPanel
-            assessmentTitle={currentTitle}
-            courseId={courseId}
-            currentPhase={currentPhase}
-            nodes={nodes}
-          />
-        )}
-
         {/* Exam paper: show question nav instead of section rail */}
         {isExamPaper && examData?.questions?.length > 0 && (
           <QuestionNav
@@ -545,13 +516,70 @@ export default function CanvasScreen() {
         )}
 
         <div className="canvas-centre">
+          {/* Three-tier tab bar (essay mode only) */}
           {!isExamPaper && (
-            <div style={{ padding: '4px 16px', borderBottom: '1px solid var(--sov-line-dim, rgba(16,185,129,0.12))', display: 'flex', alignItems: 'center', gap: 8 }}> {/* allow-style */}
-              <span style={{ fontFamily: 'var(--font-system, system-ui)', fontSize: 9, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--sov-line, #10b981)', opacity: 0.7 }}>Your Writing</span> {/* allow-style */}
-              <span style={{ fontFamily: 'var(--font-system, system-ui)', fontSize: 9, color: 'var(--text-faint)', opacity: 0.5 }}>Use the starter (left) to begin, the tutor (right) to develop your thinking</span> {/* allow-style */}
+            <div style={{ display: 'flex', borderBottom: `1px solid var(--sov-line-dim, rgba(16,185,129,0.12))`, padding: '0 16px' }}> {/* allow-style */}
+              {[
+                { id: 'think', label: '1. Think First' },
+                { id: 'ideas', label: '2. Get Ideas' },
+                { id: 'write', label: '3. Write' },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setCanvasTab(tab.id)}
+                  style={{
+                    background: canvasTab === tab.id ? 'var(--sov-line-dim, rgba(16,185,129,0.12))' : 'none', /* allow-style */
+                    border: 'none',
+                    borderBottom: canvasTab === tab.id ? '2px solid var(--sov-line, #10b981)' : '2px solid transparent', /* allow-style */
+                    color: canvasTab === tab.id ? 'var(--sov-line, #10b981)' : 'var(--text-faint)', /* allow-style */
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-system, system-ui)',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    padding: '8px 14px',
+                    transition: 'background 0.15s',
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
           )}
-          {briefs.length === 0 && !extractedText && <NoBriefPrompt courseId={courseId} />}
+
+          {/* Tab: Think First (Tier 2 Socratic) */}
+          <div style={{ display: !isExamPaper && canvasTab === 'think' ? 'flex' : 'none', flex: 1, overflow: 'auto' }}>
+            {currentTitle && (
+              <SocraticPanel
+                assessmentTitle={currentTitle}
+                courseId={courseId}
+                currentPhase={currentPhase}
+                nodes={nodes}
+              />
+            )}
+          </div>
+
+          {/* Tab: Get Ideas (Tier 1 Pre-Write) */}
+          <div style={{ display: !isExamPaper && canvasTab === 'ideas' ? 'flex' : 'none', flex: 1, overflow: 'auto' }}>
+            <PreWritePanel
+              assessmentTitle={currentTitle}
+              briefText={briefOrText}
+              sectionType={activeSection}
+              tier={course.extractionData?.detectedLevel || 'tertiary'}
+              onInsert={(text) => {
+                window.dispatchEvent(new CustomEvent('simplifii:voice-transcript', { detail: { text: ' ' + text } }));
+                appendEvent({ event_type: 'tier_transition', payload: { from: 1, to: 3, trigger: 'pre_write_insert' } }).catch(() => {});
+                setCanvasTab('write');
+              }}
+              courseId={courseId}
+            />
+          </div>
+
+          {/* Tab: Write (Tier 3 editor, always mounted, display-toggled) */}
+          <div style={{ display: !isExamPaper && canvasTab === 'write' ? 'flex' : 'none', flexDirection: 'column', flex: 1 }}>
+            {briefs.length === 0 && !extractedText && <NoBriefPrompt courseId={courseId} />}
 
           {/* First Look: auto-generated document summary on first visit */}
           {(briefOrText && briefOrText.length > 50) && (
@@ -596,6 +624,7 @@ export default function CanvasScreen() {
           />
           )}
           <BibliographyView />
+          </div>
         </div>
 
         {/* Minimal UI: rail hidden by default, AURA surfaces tools contextually */}

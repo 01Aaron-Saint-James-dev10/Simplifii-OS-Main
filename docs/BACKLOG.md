@@ -997,3 +997,33 @@ When student opens Phase 1 (Understand), AURA proactively shows relevant communi
 **Surfaces:** DocLibrary.jsx (new), useIngestion.js extension, _aura-prompt.js awareness block
 **Depends on:** B10/B11/B12 fixes
 **Loop:** Closes Loop 1 permanently — ingestion becomes ongoing not one-time
+
+---
+
+## Sprint 11: Secondary tier — HSC and homework support
+
+**Priority:** Sprint 11 (tester feedback defines exact spec)
+**Location:** SovereignRouter tier routing, AURA prompt variants, ingestion pipeline
+**Issue:** Product is calibrated for university students. Year 10-12 students have different needs: short-answer questions not essay briefs, HSC syllabus alignment, exam technique guidance, shorter word targets.
+**Fix:**
+1. Secondary ingestion mode — detect HSC question format on upload (multiple choice, extended response, short answer, calculation, diagram-based)
+2. AURA secondary prompt variant — exam technique language, mark-allocation awareness, dot-point structure guidance
+3. Word count targets adjusted for Secondary tier
+4. "4 Ways" UDL tool verified and extended — four simultaneous representations of any question: plain language, visual breakdown, worked example scaffold, audio-ready version
+**Depends on:** SovereignRouter tier routing (Secondary tier must be selectable at login)
+
+---
+
+## Sprint 12: Firecrawl HSC corpus
+
+**Priority:** Sprint 12
+**Location:** New firecrawl pipeline + AURA secondary prompt grounding
+**Issue:** No real HSC question data to train AURA's secondary-tier guidance or validate UDL transformations.
+**Fix:**
+1. Firecrawl crawl of NESA past HSC papers (publicly available PDFs)
+2. Classify by subject, year, question type, mark value
+3. Tag inaccessibility patterns — passive voice, implicit instructions, assumed prior knowledge
+4. Build transformation patterns for each inaccessibility type
+5. Feed into AURA secondary prompt as grounded examples
+**Tool:** firecrawl-mcp skill (already installed)
+**Depends on:** Sprint 11
