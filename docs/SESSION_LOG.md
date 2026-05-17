@@ -1,3 +1,34 @@
+## Sprint 12 (Partial): Exam Paper QN Extraction + DocLibrary Hydration Fix
+**Date:** 2026-05-18
+
+### Commits
+
+| SHA | Fix |
+|-----|-----|
+| `1d0ea500` | fix-doclibrary-hydration: promote sourceFiles into extractionData |
+| `3e4d51f2` | exam-question-extraction: QN node extraction for exam papers |
+
+### Summary
+
+1. **DocLibrary hydration fix**: Pre-Sprint-10 courses stored `sourceFiles` at course root level. Hydration now promotes `d.sourceFiles` into reconstructed extractionData so DocLibrary shows documents for all courses.
+
+2. **QN node extraction**: DocumentNodeService now handles `exam_paper` type documents locally via regex (no API call). Splits on "Question N" or numbered patterns, extracts marks from "(X marks)" pattern, detects question_type (multiple_choice, short_answer, extended_response). Returns QN-prefixed nodes.
+
+### Deferred (BACKLOG)
+
+- **Firecrawl NESA HSC corpus crawl**: Crawl educationstandards.nsw.edu.au past papers, populate `past_papers` and `past_questions` tables. Deferred to post-tester session.
+- `past_questions` Supabase schema already exists and is ready for population.
+
+### Test Results
+
+12/12 regression tests pass. Build compiles clean. No failures.
+
+### Next Session Constraint
+
+Tester feedback defines Sprint 11 scope. Firecrawl NESA crawl is Sprint 12 continuation post-tester.
+
+---
+
 ## Sprint 10.5: Six-Fix Pass (SHARP/FORGE/CRAFT)
 **Date:** 2026-05-18
 
