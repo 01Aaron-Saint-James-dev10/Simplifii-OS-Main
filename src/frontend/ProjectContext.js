@@ -289,6 +289,54 @@ export const ProjectProvider = ({ children }) => {
     })();
   }, [user?.id]); // eslint-disable-line
 
+  // Deduplicate courses: merge courses with the same code/name, keep the one
+  // with the most data. Runs once per login session.
+  useEffect(() => {
+    if (!user?.id) return;
+    try {
+      if (sessionStorage.getItem('simplifii_dedup_done') === 'true') return;
+      sessionStorage.setItem('simplifii_dedup_done', 'true');
+    } catch { return; }
+
+    setCourses(prev => {
+      const entries = Object.entries(prev);
+      if (entries.length <= 1) return prev;
+      const groups = {};
+      for (const [id, c] of entries) {
+        const key = (c.code || c.name || '').toUpperCase().trim();
+        if (!key) continue;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push([id, c]);
+      }
+      let changed = false;
+      const next = { ...prev };
+      const toDeleteFromSupabase = [];
+      for (const group of Object.values(groups)) {
+        if (group.length <= 1) continue;
+        // Keep the one with the most extractionData
+        group.sort(([, a], [, b]) => {
+          const aLen = JSON.stringify(a.extractionData || {}).length;
+          const bLen = JSON.stringify(b.extractionData || {}).length;
+          return bLen - aLen;
+        });
+        // Delete duplicates (keep first)
+        for (let i = 1; i < group.length; i++) {
+          const [dupId] = group[i];
+          delete next[dupId];
+          toDeleteFromSupabase.push(dupId);
+          changed = true;
+        }
+      }
+      // Fire-and-forget Supabase cleanup
+      if (toDeleteFromSupabase.length > 0) {
+        supabase.from('courses').delete().in('id', toDeleteFromSupabase).then(() => {
+          log.info('Cleaned up', toDeleteFromSupabase.length, 'duplicate courses');
+        }).catch(() => {});
+      }
+      return changed ? next : prev;
+    });
+  }, [user?.id]);
+
   // Roadmap legacy purge. One-time: any course whose roadmap exactly matches
   // the pre-purge defaults gets wiped to nulls so the cockpit shows empty
   // state on first reload after upgrade. Flag prevents the loop from re-

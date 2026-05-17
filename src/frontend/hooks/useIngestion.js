@@ -200,11 +200,12 @@ export function useIngestion({
     // Term: use extracted term, fall back to active term, else null
     draftPayload.term = data.term || null;
 
-    // Dedup: if a course with the same unitCode already exists, upgrade it
-    // instead of creating a duplicate.
+    // Dedup: if a course with the same code already exists, upgrade it
+    // instead of creating a duplicate. Match by code field OR name.
     const existingId = Object.entries(courses || {}).find(([, c]) => {
-      const existingCode = (c.name || '').toUpperCase().trim();
-      return existingCode === draftName.toUpperCase().trim();
+      const existingCode = (c.code || c.name || '').toUpperCase().trim();
+      const incomingCode = (data.unitCode || draftName).toUpperCase().trim();
+      return existingCode === incomingCode || (c.name || '').toUpperCase().trim() === draftName.toUpperCase().trim();
     })?.[0];
 
     let courseId;
