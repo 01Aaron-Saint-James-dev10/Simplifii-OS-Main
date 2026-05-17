@@ -11,3 +11,14 @@
     color: var(--sov-ink, white);
   }
 }
+
+/* Global accessibility: OpenDyslexic font override */
+[data-font="opendyslexic"] * {
+  font-family: 'OpenDyslexic', 'Comic Sans MS', sans-serif !important;
+}
+
+/* Global accessibility: BionicText bold emphasis */
+[data-bionic="true"] strong,
+[data-bionic="true"] b {
+  font-weight: 700;
+}

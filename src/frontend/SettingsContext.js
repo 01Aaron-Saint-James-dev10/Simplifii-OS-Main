@@ -47,6 +47,7 @@ export const SettingsProvider = ({ children }) => {
   const [isRulerActive, setIsRulerActive] = useState(localStorage.getItem('isRulerActive') === 'true');
   const [isBionicActive, setIsBionicActive] = useState(localStorage.getItem('isBionicActive') === 'true');
   const [bionicIntensity, setBionicIntensity] = useState(Number(localStorage.getItem('bionicIntensity')) || 3); // 1 to 5
+  const [fontPreference, setFontPreference] = useState(localStorage.getItem('simplifii_editor_font') || 'inter');
   const [isDriveAttached, setIsDriveAttached] = useState(localStorage.getItem('isDriveAttached') === 'true');
 
   // Cockpit layout flags (lifted from MasterDashboard so any view can react)
@@ -129,6 +130,14 @@ export const SettingsProvider = ({ children }) => {
     }));
   }, [gritLevel, scaffoldingLevel, isLiteralMode]);
 
+  // Sync font preference when CanvasSettingsOverlay changes it
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handler = (e) => setFontPreference(e.detail?.font || 'inter');
+    window.addEventListener('simplifii:font-change', handler);
+    return () => window.removeEventListener('simplifii:font-change', handler);
+  }, []);
+
   useEffect(() => {
     localStorage.setItem('mode', mode);
     localStorage.setItem('eduLevel', eduLevel);
@@ -205,12 +214,14 @@ export const SettingsProvider = ({ children }) => {
       ambientPreference, setAmbientPreference,
       activeRules: rules[mode]
     }}>
-      <div 
-        style={{ 
+      <div
+        style={{
           fontFamily: rules[mode].font,
           lineHeight: rules[mode].lineHeight,
           letterSpacing: rules[mode].letterSpacing
         }}
+        data-bionic={isBionicActive ? 'true' : 'false'}
+        data-font={fontPreference}
         className={`${highContrast ? 'contrast-125 saturate-150' : ''} ${reducedMotion ? 'motion-reduce' : ''} ${!darkMode ? 'invert hue-rotate-180' : ''} h-full transition-all duration-500`}
       >
         {children}
