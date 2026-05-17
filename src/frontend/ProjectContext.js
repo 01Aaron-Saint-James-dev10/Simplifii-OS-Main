@@ -261,20 +261,50 @@ export const ProjectProvider = ({ children }) => {
           const hydrated = {};
           for (const row of rows) {
             const d = row.data || {};
-            // Reconstruct extractionData from JSONB + assessments
-            const assessmentBriefs = (row.assessments || []).map(a => ({
-              title: a.title,
-              body: a.brief_text || '',
-              dueDate: a.due_date || null,
-              weight: '',
-              source: 'supabase',
-            }));
+            const jsonBriefs = d.extractionData?.assessmentBriefs || [];
+
+            // Reconstruct assessmentBriefs: merge table rows with JSONB metadata
+            // Table has: title, brief_text, due_date. JSONB has: weight, wordCountGoal, rubricCriteria.
+            const assessmentBriefs = (row.assessments || []).map(a => {
+              // Find matching JSONB brief by title for extra metadata
+              const jsonMatch = jsonBriefs.find(jb => jb.title === a.title) || {};
+              return {
+                title: a.title,
+                body: a.brief_text || jsonMatch.body || '',
+                dueDate: a.due_date || jsonMatch.dueDate || null,
+                weight: jsonMatch.weight || jsonMatch.weighting || '',
+                wordCountGoal: jsonMatch.wordCountGoal || jsonMatch.words || 0,
+                rubricCriteria: jsonMatch.rubricCriteria || [],
+                source: 'supabase',
+              };
+            });
+
+            // If no assessments in table but JSONB has briefs, use those (camelCase normalised)
+            const finalBriefs = assessmentBriefs.length > 0
+              ? assessmentBriefs
+              : jsonBriefs.map(jb => ({
+                  title: jb.title || '',
+                  body: jb.body || jb.brief_text || '',
+                  dueDate: jb.dueDate || jb.due_date || null,
+                  weight: jb.weight || jb.weighting || '',
+                  wordCountGoal: jb.wordCountGoal || jb.words || 0,
+                  rubricCriteria: jb.rubricCriteria || [],
+                  source: 'supabase',
+                }));
+
+            // Reconstruct documents array from JSONB (typed per-document data)
+            const documents = d.documents || d.extractionData?.documents || null;
+
             const extractionData = {
               ...(d.extractionData || {}),
-              documents: d.documents || null,
-              rawText: d.rawText || '',
-              assessmentBriefs: assessmentBriefs.length > 0 ? assessmentBriefs : (d.extractionData?.assessmentBriefs || []),
+              documents: documents,
+              rawText: d.rawText || d.extractionData?.rawText || '',
+              assessmentBriefs: finalBriefs,
+              documentType: d.extractionData?.documentType || null,
+              rubricCriteria: d.extractionData?.rubricCriteria || [],
+              rubricBands: d.extractionData?.rubricBands || [],
             };
+
             hydrated[row.id] = {
               name: row.name,
               code: d.code || null,
