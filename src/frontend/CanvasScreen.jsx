@@ -40,6 +40,8 @@ import ComprehensionBreak from './components/ComprehensionBreak';
 import PreWritePanel from './components/PreWritePanel';
 import FirstLookCard from './components/FirstLookCard';
 import { appendEvent } from '../core/HistoryOfThought';
+import TaskPhaseBar from './components/TaskPhaseBar';
+import { buildAssessmentKey, getCurrentPhaseId, setCurrentPhaseId } from '../core/TaskSequenceManager';
 import './CanvasScreen.css';
 
 /**
@@ -123,6 +125,21 @@ export default function CanvasScreen() {
   const rubricBands = course.extractionData?.rubricBands || [];
   const rubricDetected = course.extractionData?.rubricDetected || false;
   const sourceFiles = course.extractionData?.sourceFiles || [];
+
+  // Sprint 5: task sequence phase bar
+  const taskSequence = course.extractionData?.taskSequence || null;
+  const taskPhases = taskSequence?.phases || [];
+  const assessmentKey = useMemo(
+    () => (courseId && currentTitle) ? buildAssessmentKey(courseId, currentTitle) : null,
+    [courseId, currentTitle]
+  );
+  const [activePhaseId, setActivePhaseId] = useState(null);
+  useEffect(() => {
+    if (assessmentKey && taskPhases.length > 0) {
+      setActivePhaseId(prev => prev || getCurrentPhaseId(assessmentKey, taskPhases));
+    }
+  }, [assessmentKey, taskPhases.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  const currentPhase = taskPhases.find(p => p.id === activePhaseId) || null;
 
   // Raw extracted text: fallback for tools when structured brief is empty.
   // This ensures tools work even for non-brief PDFs (exam papers, notes, etc).
@@ -450,6 +467,19 @@ export default function CanvasScreen() {
         onOpenSettings={() => setSettingsOpen(true)}
         onCourseName={briefs.length > 1 ? () => navigateToAssessments(courseId) : undefined}
       />
+
+      {taskPhases.length > 0 && (
+        <div style={{ padding: '0 16px' }}>
+          <TaskPhaseBar
+            phases={taskPhases}
+            currentPhaseId={activePhaseId}
+            onSelectPhase={(phaseId) => {
+              setActivePhaseId(phaseId);
+              if (assessmentKey) setCurrentPhaseId(assessmentKey, phaseId, taskPhases);
+            }}
+          />
+        </div>
+      )}
 
       <NextStepBanner
         briefText={briefOrText}
