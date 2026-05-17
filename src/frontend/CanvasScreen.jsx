@@ -1,6 +1,9 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useProject } from './ProjectContext';
 import { useSettings } from './SettingsContext';
+import { useAuth } from '../contexts/AuthContext';
+import { processDocumentWithGCP } from '../services/DocumentAIService';
+import { classifyDocumentText } from './hooks/useIngestion';
 import { detectSuspectedCitations } from '../services/CitationStyleService';
 import { verifyFromSources } from '../services/CitationService';
 import { useRouter } from '../contexts/RouterContext';
@@ -40,6 +43,7 @@ import WritingAnalysis from './components/WritingAnalysis';
 import ComprehensionBreak from './components/ComprehensionBreak';
 import PreWritePanel from './components/PreWritePanel';
 import SocraticPanel from './components/SocraticPanel';
+import DocLibrary from './components/DocLibrary';
 import FirstLookCard from './components/FirstLookCard';
 import { appendEvent } from '../core/HistoryOfThought';
 import TaskPhaseBar from './components/TaskPhaseBar';
@@ -59,6 +63,7 @@ import './CanvasScreen.css';
 export default function CanvasScreen() {
   const { courseId, assessmentTitle, navigateToAssessments } = useRouter();
   const { courses, activeCourse, projectSources, upgradeCourseExtraction } = useProject();
+  const { user } = useAuth();
   const { reducedMotion, isZenMode, theme, autismFirstEnabled, sensoryLevel, isLiteralMode, ambientPreference } = useSettings();
 
   // Ambient sound: start/stop when preference changes
@@ -339,6 +344,61 @@ export default function CanvasScreen() {
   const [canvasTab, setCanvasTab] = useState('write'); // 'think' | 'ideas' | 'write'
   const [hasThinkContent, setHasThinkContent] = useState(false);
   const [hasIdeasContent, setHasIdeasContent] = useState(false);
+  const [docLibOpen, setDocLibOpen] = useState(false);
+  const [midIngest, setMidIngest] = useState(false);
+  const [midIngestStatus, setMidIngestStatus] = useState('');
+
+  // Mid-session ingestion: adds a new document to the active course without
+  // restarting the canvas. Classifies, extracts nodes, and merges into
+  // extractionData. Fires document_added EventBus event on completion.
+  const handleMidSessionIngest = async (fileList) => {
+    if (!courseId) return;
+    setMidIngest(true);
+    setMidIngestStatus('Reading document...');
+    try {
+      for (const file of Array.from(fileList)) {
+        const text = await processDocumentWithGCP(file);
+        if (!text || text.trim().length === 0) continue;
+        setMidIngestStatus('Extracting structure...');
+        const extractNodes = await import('../services/DocumentNodeService').then(m => m.extractNodes);
+        const classified = classifyDocumentText(text, file.name);
+        const { nodes } = await extractNodes(
+          { type: classified, text, filename: file.name },
+          user?.id || 'local'
+        );
+        const newDoc = {
+          filename: file.name,
+          type: classified,
+          text: text.slice(0, 5000),
+          nodes: nodes || [],
+        };
+        const course = courses?.[courseId] || activeCourse || {};
+        const existing = course?.extractionData?.documents || [];
+        upgradeCourseExtraction(courseId, {
+          extractionData: {
+            documents: [...existing, newDoc],
+            nodes: [
+              ...(course.extractionData?.nodes || []),
+              ...(nodes || []),
+            ],
+            sourceFiles: [
+              ...(course.extractionData?.sourceFiles || []),
+              file.name,
+            ],
+          },
+        });
+        window.dispatchEvent(new CustomEvent('simplifii:document-added', {
+          detail: { courseId, filename: file.name, type: classified },
+        }));
+        setMidIngestStatus(`Added: ${file.name}`);
+      }
+    } catch (err) {
+      setMidIngestStatus('Could not add document. Try again.');
+    } finally {
+      setMidIngest(false);
+      setTimeout(() => setMidIngestStatus(''), 3000);
+    }
+  };
 
   // Listen for AURA tool suggestions: open the rail to a specific panel
   useEffect(() => {
@@ -481,6 +541,33 @@ export default function CanvasScreen() {
         onOpenSettings={() => setSettingsOpen(true)}
         onCourseName={briefs.length > 1 ? () => navigateToAssessments(courseId) : undefined}
       />
+
+      {/* Docs button: opens DocLibrary drawer */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '2px 16px 0' }}>
+        <button
+          type="button"
+          aria-label="Open document library"
+          onClick={() => setDocLibOpen(true)}
+          style={{
+            background: 'transparent',
+            border: '1px solid var(--theme-border, #27272a)',
+            borderRadius: 3,
+            color: 'var(--text-faint, #71717a)',
+            fontFamily: 'var(--font-system, system-ui)',
+            fontSize: 9,
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            padding: '0 10px',
+            minHeight: 44,
+            cursor: 'pointer',
+            outline: 'none',
+          }}
+          onFocus={e => { e.currentTarget.style.outline = '2px solid #f4f4f5'; }} /* allow-style */
+          onBlur={e => { e.currentTarget.style.outline = 'none'; }}
+        >
+          Docs
+        </button>
+      </div>
 
       {taskPhases.length > 0 && (
         <div style={{ padding: '0 16px' }}>
@@ -699,6 +786,16 @@ export default function CanvasScreen() {
           onDismiss={() => setDocClassification(null)}
         />
       )}
+
+      <DocLibrary
+        isOpen={docLibOpen}
+        onClose={() => setDocLibOpen(false)}
+        documents={activeCourse?.extractionData?.documents || []}
+        sourceFiles={activeCourse?.extractionData?.sourceFiles || []}
+        onAddFiles={handleMidSessionIngest}
+        ingesting={midIngest}
+        ingestStatus={midIngestStatus}
+      />
     </div>
   );
 }

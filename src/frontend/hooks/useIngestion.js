@@ -49,6 +49,30 @@ import { logIngestionEvent, detectExtractionMethod } from '../../services/Accura
  * Returns:
  *   { handleGroupedIngest, handleIngestGrounding, ingesting, ingestStatus, groundingCount }
  */
+
+/**
+ * Classify a single document's extracted text using pattern matching.
+ * Exported so CanvasScreen can use it for mid-session ingestion without
+ * importing the full hook.
+ * Returns one of: course_outline, brief, rubric, exam_paper, reading, unknown
+ */
+export function classifyDocumentText(text, filename) {
+  const snippet = (text || '').slice(0, 1500);
+  const nameLower = (filename || '').toLowerCase();
+  // Filename hints first
+  if (/outline|course[ _-]?info|unit[ _-]?guide|subject[ _-]?outline/i.test(nameLower)) return 'course_outline';
+  if (/rubric|criteria|marking[ _-]?guide/i.test(nameLower)) return 'rubric';
+  if (/brief|assess|task|instruction/i.test(nameLower)) return 'brief';
+  if (/exam|paper|test|quiz/i.test(nameLower)) return 'exam_paper';
+  // Content patterns
+  if (/\b(Question\s+\d|Section\s+[I|II|III|IV|A-D]|\(\d+\s*marks?\)|\bexam\b.*\bpaper\b|HSC|VCE|QCE|WACE|ATAR)\b/i.test(snippet)) return 'exam_paper';
+  if (/\b(criteria|band\s+[1-6]|high\s+distinction|distinction|credit|pass|fail|marking\s+guide|rubric|expected\s+qualities)\b/i.test(snippet)) return 'rubric';
+  if (/\b(assessment\s+task|due\s+date|word\s+count|submission|weighting|learning\s+outcome|submit\s+via)\b/i.test(snippet)) return 'brief';
+  if (/\b(course\s+outline|unit\s+guide|subject\s+description|teaching\s+staff|lecture\s+schedule|weekly\s+topic)\b/i.test(snippet)) return 'course_outline';
+  if (/\b(abstract|doi:|journal|vol\.\s*\d|pp\.\s*\d|et\s+al|published\s+in)\b/i.test(snippet)) return 'reading';
+  return 'unknown';
+}
+
 export function useIngestion({
   profile,
   activeCourseId,
@@ -586,24 +610,9 @@ export function useIngestion({
     }
   };
 
-  // Classify a single document's extracted text using pattern matching.
-  // Returns one of: course_outline, brief, rubric, exam_paper, reading, unknown
-  const classifyText = (text, filename) => {
-    const snippet = (text || '').slice(0, 1500);
-    const nameLower = (filename || '').toLowerCase();
-    // Filename hints first
-    if (/outline|course[ _-]?info|unit[ _-]?guide|subject[ _-]?outline/i.test(nameLower)) return 'course_outline';
-    if (/rubric|criteria|marking[ _-]?guide/i.test(nameLower)) return 'rubric';
-    if (/brief|assess|task|instruction/i.test(nameLower)) return 'brief';
-    if (/exam|paper|test|quiz/i.test(nameLower)) return 'exam_paper';
-    // Content patterns
-    if (/\b(Question\s+\d|Section\s+[I|II|III|IV|A-D]|\(\d+\s*marks?\)|\bexam\b.*\bpaper\b|HSC|VCE|QCE|WACE|ATAR)\b/i.test(snippet)) return 'exam_paper';
-    if (/\b(criteria|band\s+[1-6]|high\s+distinction|distinction|credit|pass|fail|marking\s+guide|rubric|expected\s+qualities)\b/i.test(snippet)) return 'rubric';
-    if (/\b(assessment\s+task|due\s+date|word\s+count|submission|weighting|learning\s+outcome|submit\s+via)\b/i.test(snippet)) return 'brief';
-    if (/\b(course\s+outline|unit\s+guide|subject\s+description|teaching\s+staff|lecture\s+schedule|weekly\s+topic)\b/i.test(snippet)) return 'course_outline';
-    if (/\b(abstract|doi:|journal|vol\.\s*\d|pp\.\s*\d|et\s+al|published\s+in)\b/i.test(snippet)) return 'reading';
-    return 'unknown';
-  };
+  // classifyText is defined at module level (exported below) so it can be
+  // called by CanvasScreen mid-session ingest without importing the full hook.
+  const classifyText = classifyDocumentText;
 
   // Ingest user-uploaded PDF Files from a file picker.
   // INGESTION CONTRACT: Each file is classified individually. Documents are
