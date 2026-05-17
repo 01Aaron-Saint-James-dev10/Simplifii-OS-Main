@@ -182,7 +182,7 @@ export function useIngestion({
     // has content to transform. Written once per ingest; overwritten if the
     // student imports a newer document in the same session.
     try { if (data.rawText) localStorage.setItem('simplifii_last_raw_text', data.rawText); } catch { /* storage unavailable */ }
-    const draftName = data.unitCode || 'New Course';
+    const draftName = (data.unitCode && data.unitCode !== 'UNTITLED') ? data.unitCode : 'Tap to name this';
 
     setInstitutionalData({
       learningOutcomes: data.learningOutcomes || [],
@@ -223,6 +223,9 @@ export function useIngestion({
       tier: data.level || null,
       term: data.term?.label || data.term?.code || null,
       assessments: draft.reconciledBriefs,
+      rawText: data.rawText || null,
+      extractionData: draftPayload.extractionData || null,
+      localId: courseId,
     }).catch(err => {
       log.warn(' Supabase persist failed:', err?.message);
     });
@@ -558,7 +561,7 @@ export function useIngestion({
       const fileGroups = {};
       for (const file of sorted) {
         const match = (file.name || '').match(codeRegex);
-        const code = (match ? match[1] : 'UPLOAD').toUpperCase().trim();
+        const code = (match ? match[1] : 'Untitled').toUpperCase().trim();
         if (!fileGroups[code]) fileGroups[code] = [];
         fileGroups[code].push(file);
       }
@@ -568,6 +571,7 @@ export function useIngestion({
 
       for (const code of codes) {
         const groupFiles = fileGroups[code];
+        let resolvedCode = code;
         let aggregated = {
           unitCode: code,
           level: profile.level,
@@ -580,6 +584,14 @@ export function useIngestion({
           try {
             const processDocumentWithGCP = await loadDocumentAI();
             const text = await processDocumentWithGCP(file, 'mock_jwt_token_xyz123');
+            // If code is still 'UNTITLED', try to find a course code in the extracted text
+            if (resolvedCode === 'UNTITLED' && text) {
+              const contentMatch = text.match(COURSE_CODE_RE);
+              if (contentMatch) {
+                resolvedCode = contentMatch[1].toUpperCase();
+                aggregated.unitCode = resolvedCode;
+              }
+            }
             const deepData = extractDeepCourseData(text);
             aggregated = mergeExtractionData(aggregated, { ...deepData, rawText: text });
             if (primaryRawText === null) primaryRawText = text;
