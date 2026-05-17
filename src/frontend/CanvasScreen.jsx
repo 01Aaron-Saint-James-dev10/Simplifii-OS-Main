@@ -731,7 +731,7 @@ export default function CanvasScreen() {
               <MultimodalCanvas
                 question={examData.questions.find(q => q.number === activeQuestionNum) || examData.questions[0]}
                 documentId={courseId}
-                onAskTutor={(text) => { setPendingTutorMessage(text); setActivePanelWithLog('tutor'); }}
+                onAskTutor={(text) => { setPendingTutorMessage(text); setRailVisible(true); setActivePanelWithLog('tutor'); }}
               />
             ) : (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', fontFamily: 'var(--font-system, system-ui)', fontSize: 12 }}> {/* allow-style */}
@@ -782,7 +782,7 @@ export default function CanvasScreen() {
       <FidgetZone />
       <ReadingRuler />
       {!isExamPaper && (
-        <ComprehensionBreak onCheckRequest={() => setActivePanel('check')} />
+        <ComprehensionBreak onCheckRequest={() => { setRailVisible(true); setActivePanel('check'); }} />
       )}
       {showSaveAffirmation && <AffirmationBanner trigger="save_event" visible={true} />}
       <BottomStrip wordCount={wordCount} targetWords={targetWords} />
@@ -792,9 +792,9 @@ export default function CanvasScreen() {
         assessmentTitle={currentTitle}
         onDismiss={() => {}}
         onChoice={(choiceId) => {
-          if (choiceId === 'lost-flow') setActivePanelWithLog('tutor');
-          else if (choiceId === 'overwhelmed') setActivePanelWithLog('check');
-          else if (choiceId === 'forgot') setActivePanelWithLog('brief');
+          if (choiceId === 'lost-flow') { setRailVisible(true); setActivePanelWithLog('tutor'); }
+          else if (choiceId === 'overwhelmed') { setRailVisible(true); setActivePanelWithLog('check'); }
+          else if (choiceId === 'forgot') { setRailVisible(true); setActivePanelWithLog('brief'); }
         }}
       />
 
@@ -814,7 +814,7 @@ export default function CanvasScreen() {
             if (docClassification.type === 'exam_paper') toolMap[0] = 'pastqs';
             if (docClassification.type === 'rubric') toolMap[0] = 'rubric';
             const panel = toolMap[i];
-            if (panel) setActivePanelWithLog(panel);
+            if (panel) { setRailVisible(true); setActivePanelWithLog(panel); }
             setDocClassification(null);
           }}
           onOverride={(newType) => {
