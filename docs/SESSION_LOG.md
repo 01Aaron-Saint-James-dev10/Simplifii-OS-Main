@@ -1,3 +1,36 @@
+## Sprint 10.5: Six-Fix Pass (SHARP/FORGE/CRAFT)
+**Date:** 2026-05-18
+
+### Commits
+
+| SHA | Fix |
+|-----|-----|
+| `8cb588ae` | fix-voice-default: voice TTS on by default with mute tooltip |
+| `a7ec891d` | fix-stt-cleanup: abort SpeechRecognition on unmount |
+| `b9a20e97` | fix-scaffold-button: ensure rail visible before panel activation |
+| `79fc32b5` | fix-assessment-title: strip markdown from assessment title in nav |
+| `a62da8f8` | fix-tier2-blooms: Socratic questions use Bloom's taxonomy 4-6 |
+| `d297a744` | fix-dragon-controls: replace orb clicks with +/- buttons |
+
+### Summary
+
+1. **Voice TTS default on**: voiceMode initialises true; tooltip clarifies mute action.
+2. **STT cleanup**: IdeaToSentence aborts SpeechRecognition on unmount, preventing AURA STT conflicts.
+3. **Scaffold button rail visible**: all paths that open a panel (DocumentClassifiedModal, ReentryOverlay, ComprehensionBreak, onAskTutor) now call setRailVisible(true) first.
+4. **Assessment title**: stripMarkdown() applied to assessmentTitle in CanvasNav breadcrumb.
+5. **Tier 2 Bloom's 4-6**: Socratic prompt replaced with six TYPE A-F question patterns (Analyse, Evaluate, Create), task-grounded, trauma-informed, exactly 3 questions.
+6. **Dragon Ball +/- controls**: orbs display-only (aria-hidden), dedicated + and - buttons (minHeight 44, accessible), count display in ACCENT_PULSE.
+
+### Test Results
+
+12/12 regression tests pass. Build compiles clean. No failures.
+
+### Next Session Constraint
+
+Tester feedback defines Sprint 11 scope.
+
+---
+
 ## Sprint 9 Complete: Tier 2 Socratic Panel
 **Date:** 2026-05-17
 
