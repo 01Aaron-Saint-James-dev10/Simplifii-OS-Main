@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useSettings } from '../SettingsContext';
 import useLearnerContext from '../hooks/useLearnerContext';
 import { announceAction } from '../services/PredictabilityService';
@@ -32,6 +32,10 @@ export default function IdeaToSentence({ onInsert, assessmentTitle, tier }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const recognitionRef = useRef(null);
+
+  useEffect(() => {
+    return () => { if (recognitionRef.current) recognitionRef.current.abort(); };
+  }, []);
 
   const startListening = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
