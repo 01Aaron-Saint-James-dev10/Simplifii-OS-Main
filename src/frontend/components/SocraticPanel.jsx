@@ -126,6 +126,12 @@ Australian English. No em-dashes.`,
       },
     }).catch(() => {});
     setSubmitted(prev => ({ ...prev, [index]: true }));
+    // Track answer count for composite progress
+    if (assessmentTitle) {
+      const key = `simplifii:tier2-count-${assessmentTitle}`;
+      const current = parseInt(localStorage.getItem(key) || '0', 10);
+      localStorage.setItem(key, String(current + 1));
+    }
   };
 
   return (

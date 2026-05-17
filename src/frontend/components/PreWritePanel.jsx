@@ -123,6 +123,8 @@ export default function PreWritePanel({ assessmentTitle, briefText, sectionType,
     onInsert?.(stripMarkdown(scaffold));
     setAccepted(true);
     appendEvent({ event_type: 'pre_write_accepted', payload: { assessmentTitle, sectionType, scaffoldLength: scaffold.length } }).catch(() => {});
+    // Track scaffold acceptance for composite progress
+    if (assessmentTitle) localStorage.setItem(`simplifii:scaffold-accepted-${assessmentTitle}`, 'true');
   };
 
   const handleInsertFromChild = (text) => {
