@@ -113,6 +113,23 @@ export default function AuraChatOverlay({ open, onClose }) {
     return '';
   }, [allDocs, activeCourse]);
 
+  // Dashboard context: when no canvas is active, give AURA awareness of all courses
+  const dashboardContext = useMemo(() => {
+    if (courseId) return ''; // Inside a canvas, not needed
+    const entries = Object.entries(courses || {});
+    if (entries.length === 0) return '';
+    const lines = entries.slice(0, 8).map(([, c]) => {
+      const briefs = c.extractionData?.assessmentBriefs || [];
+      const primary = briefs[0];
+      const code = c.code || c.name || 'Untitled';
+      const title = primary?.title || 'Assessment';
+      const due = primary?.dueDate || 'date unknown';
+      const weight = primary?.weight || '?';
+      return `${code}: ${title} due ${due} (${weight}%)`;
+    });
+    return `DASHBOARD VIEW - Student's current workload:\n${lines.join('\n')}\n\nThe student is on the dashboard, not inside a specific assessment. Respond with awareness of their full workload. If they ask what to work on next, look at due dates and suggest the most urgent assessment.`;
+  }, [courseId, courses]);
+
   // Document inventory for AURA context
   const docInventory = useMemo(() => {
     if (allDocs.length === 0) return '';
@@ -293,8 +310,10 @@ export default function AuraChatOverlay({ open, onClose }) {
       // Detect overwhelm signal from quick-reply chips
       const isOverwhelmed = text.trim().toLowerCase().includes('overwhelm');
 
-      const hasDocContext = activeBriefText && activeBriefText.length >= 100;
-      const hasPartialContext = activeBriefText && activeBriefText.length > 0 && activeBriefText.length < 100;
+      // Use dashboard context when no canvas is active, otherwise use brief text
+      const effectiveBriefText = activeBriefText || dashboardContext || '';
+      const hasDocContext = effectiveBriefText && effectiveBriefText.length >= 100;
+      const hasPartialContext = effectiveBriefText && effectiveBriefText.length > 0 && effectiveBriefText.length < 100;
       const response = await fetch('/api/tutor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -304,12 +323,12 @@ export default function AuraChatOverlay({ open, onClose }) {
             : updated.slice(1),
           assessmentTitle: activeAssessmentTitle || undefined,
           assessmentSummary: assessmentSummary || undefined,
-          briefText: hasDocContext ? activeBriefText.slice(0, 3200) : undefined,
+          briefText: hasDocContext ? effectiveBriefText.slice(0, 3200) : undefined,
           documentType: activeDocType || undefined,
-          documentCount: allDocs.length,
+          documentCount: allDocs.length || Object.keys(courses || {}).length,
           documentInventory: docInventory || undefined,
           overwhelmSignal: isOverwhelmed || undefined,
-          documentContextAvailable: allDocs.length > 0 && hasDocContext,
+          documentContextAvailable: hasDocContext,
           documentContextPartial: hasPartialContext,
           voiceMode: isListening || false,
           tier: activeTier || 'tertiary',
@@ -357,7 +376,7 @@ export default function AuraChatOverlay({ open, onClose }) {
     } finally {
       setLoading(false);
     }
-  }, [messages, loading, activeTier, isLiteralMode, accessibilityProfile, learnerContext, user, isListening, stopVoice, activeAssessmentTitle, activeBriefText, activeDocType]);
+  }, [messages, loading, activeTier, isLiteralMode, accessibilityProfile, learnerContext, user, isListening, stopVoice, activeAssessmentTitle, activeBriefText, activeDocType, dashboardContext, courses]);
   sendRef.current = send;
 
   if (!open) return null;
