@@ -204,23 +204,23 @@ export default function AuraChatOverlay({ open, onClose }) {
     if (lastSession && lastSession.days_ago > 0 && lastSession.tasks_touched?.length > 0) {
       return `Welcome back. Last session you worked on ${lastSession.tasks_touched[0]}. Want to continue, or start something new?`;
     }
-    if (!activeAssessmentTitle) return 'What are you working on? Tap "+ Add work" to upload your assignment, or just tell me what you need help with.';
+    if (!activeAssessmentTitle) return 'What is the one thing you are most uncertain about right now?';
 
-    // Contextual greeting with specific next action
+    // Socratic-first greeting grounded in the task
     const details = [activeWeight, activeDueDate ? `due ${activeDueDate}` : ''].filter(Boolean).join(', ');
     const hasContent = activeBriefText && activeBriefText.length > 100;
     const paretoStep = activeCourse?.extractionData?.paretoSteps?.[0] || '';
 
     if (!hasContent) {
       // No documents loaded yet
-      return `Working on "${activeAssessmentTitle}"${details ? ` (${details})` : ''}. To get started, tap "Add docs" to upload your assignment brief or rubric. I will build your plan from there.`;
+      return `You are working on "${activeAssessmentTitle}"${details ? ` (${details})` : ''}. Before we start: what do you already know about this from your lectures or readings? Even one thing. (Tap "Add docs" when you have your brief ready.)`;
     }
     if (paretoStep) {
       // Documents loaded, has Pareto steps
-      return `Working on "${activeAssessmentTitle}"${details ? ` (${details})` : ''}. Your first focus is: ${paretoStep}. Tap "Starters" on the left when you are ready, or ask me anything.`;
+      return `Before we dive into "${activeAssessmentTitle}": what do you already know about ${paretoStep}? Even a rough idea helps me pitch this at the right level.`;
     }
     // Documents loaded, no Pareto
-    return `Working on "${activeAssessmentTitle}"${details ? ` (${details})` : ''}. I have your documents loaded. What would you like to start with?`;
+    return `Before we start on "${activeAssessmentTitle}"${details ? ` (${details})` : ''}: what do you already know about this from your lectures or readings? Even one thing.`;
   }, [activeAssessmentTitle, activeWeight, activeDueDate, activeBriefText, activeCourse, lastSession]);
 
   const { speak, stopSpeaking, isSpeaking, startContinuousListening, stopContinuousListening, isListeningContinuous } = useAuraVoice();
