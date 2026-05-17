@@ -636,3 +636,46 @@ Replace the 13-tab canvas with a visible 5-stage learning journey spine. Student
 - Growth signals shown across sessions
 
 ### Status: NOT STARTED. Logged for future sprint.
+
+---
+
+## SPRINT: Pedagogical Spine
+**Priority:** P0 - this is the product
+**Status:** NOT STARTED - architecture work required
+**Prerequisite:** Full design session before any code
+
+The canvas tools exist but have no pedagogical logic connecting them. Missing:
+
+### 1. Task decomposition with rationale
+
+AURA explains WHY each step matters, not just what to do.
+
+### 2. Bloom's taxonomy scaffolding
+
+Questions tied to rubric criterion and cognitive level, building upward.
+
+### 3. Hidden curriculum decoder wired to canvas
+
+Surfaces implicit expectations per section as student writes each part.
+
+### 4. Session memory
+
+HistoryOfThought vault unlocked. AURA knows what was done last session. Adapts support based on demonstrated capability.
+
+### 5. Thinking before writing
+
+AURA asks 3 questions before student writes a single word. Forces concept clarity before prose.
+
+### 6. Normalising layer in every response
+
+Quiet counter-narrative for students who have been told they cannot do this.
+
+### 7. Transition support module
+
+Year 12 to uni expectations explained. Hidden curriculum of tertiary education. What markers actually reward.
+
+### 8. Tool sequencing
+
+Tools recommend the next tool on completion. Rubric decode -> Brief simplify -> Starter ideas -> Write -> Check -> Submit. Each tool knows what came before and after.
+
+**DO NOT BUILD YET.** This is architecture work. Requires a full session to design properly.
