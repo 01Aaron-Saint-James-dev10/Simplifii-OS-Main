@@ -161,6 +161,7 @@ export function buildAuraPrompt({
   sensoryLevel = 5,
   pastHarmSignal = false,
   voiceMode = false,
+  currentPhase = null,
 } = {}) {
   const parts = [];
 
@@ -182,7 +183,10 @@ export function buildAuraPrompt({
 - Voice mode: ${voiceMode ? 'ON (no markdown, max 3 sentences, confirm before acting)' : 'OFF'}
 ${decisionSkeleton ? '- Decision skeleton: ON (max 2 options with cognitive load labels)' : ''}
 ${specialInterests.length > 0 ? `- Special interests: ${specialInterests.join(', ')}` : ''}
-${sensoryLevel <= 3 ? '- Sensory: LOW (brief responses, minimal text blocks)' : ''}`);
+${sensoryLevel <= 3 ? '- Sensory: LOW (brief responses, minimal text blocks)' : ''}
+${currentPhase ? `- Current task phase: ${currentPhase.label} (${currentPhase.id})
+- Phase instruction: ${currentPhase.instruction}
+- Phase opening prompt: ${currentPhase.auraOpeningPrompt}` : ''}`);
 
   // Current dials
   parts.push(`CURRENT DIALS: Persona=${persona} | Scaffolding=${scaffolding} | Grit=${grit} | LOD=${lod}`);

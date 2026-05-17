@@ -401,6 +401,36 @@ export function useIngestion({
               assessmentBriefs: finalBriefs,
             },
           });
+
+          // Sprint 5: generate task sequence for the primary assessment.
+          // Fire-and-forget. Uses XN1 typed node if available, falls back
+          // to the enriched brief body and rubric criteria from the document.
+          (async () => {
+            try {
+              const xn1 = (data.nodes || []).find(n => n.nodeType === 'XN1' && n.content);
+              const yn1 = (data.nodes || []).find(n => n.nodeType === 'YN1' && n.content);
+              const briefForSeq = xn1?.content || finalBriefs[0]?.body || rawText.slice(0, 4000);
+              const rubricForSeq = yn1?.content || (data.rubricCriteria || []).join('\n');
+              if (briefForSeq && briefForSeq.length > 50) {
+                const seqRes = await fetch('/api/generate-task-sequence', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    briefText: briefForSeq.slice(0, 4000),
+                    rubricText: rubricForSeq.slice(0, 3000),
+                    assessmentTitle: draftTaskName,
+                    tier: data.level || 'tertiary',
+                    user_id: userId,
+                  }),
+                }).then(r => r.json()).catch(() => null);
+                if (seqRes?.success && seqRes.taskSequence) {
+                  upgradeCourseExtraction(courseId, {
+                    extractionData: { taskSequence: seqRes.taskSequence },
+                  });
+                }
+              }
+            } catch { /* non-blocking */ }
+          })();
         } catch (err) {
           log.warn(' cloud enhancement failed:', err?.message);
           upgradeCourseExtraction(courseId, { extractionData: { shadow: false } });
