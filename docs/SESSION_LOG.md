@@ -90,11 +90,43 @@ All existing rendering preserved. No fields renamed or removed.
 
 ---
 
+## Rubric Simplifier Port
+
+**Commit:** `0db6288a`
+**Source:** `reference-builds/Emergent_AI_Simplifii-beta_MVP_Build-main/backend/routes/tools.py:253`
+**Target:** `api/decode-rubric.js`
+
+### What changed in api/decode-rubric.js
+
+**Before:** System prompt was a single inline string. User message was embedded in the JSON.stringify call as a concatenated string. JSON schema had 3 per-criterion fields (`name`, `gradeBands[].{label, description, evidence}`, `microTaskChecklist[]`, `selfAssessmentQuestion`) and 2 top-level fields (`normalisingMessage`, `scaleDetected`). max_tokens: 2500.
+
+**After:** System prompt expanded with neurodivergent/returning-to-study acknowledgement and "rubrics are written for markers, not students" framing. User message extracted into readable `userMsg` variable. 4 new schema fields: `overallStrategy` (how to approach rubric as a whole), `criteria[].weighting` (marks/percentage), `criteria[].plainEnglish` (one-sentence translation), `criteria[].topBandSecret` (what separates highest from second-highest). `selfAssessmentQuestion` rule: must start with "I have..." for checkbox use. Scale detection: auto-detect, never assume HD/D/C/P. max_tokens: 3000.
+
+### What changed in StructuredRubric.jsx
+
+Renderer already existed. 4 new render blocks added:
+1. `overallStrategy`: "How to approach this rubric" card after scale badge
+2. `weighting`: badge on criterion header (e.g. "25%")
+3. `plainEnglish`: prominent bold text at top of expanded criterion, before grade bands
+4. `topBandSecret`: "Top band secret" callout with accent left border
+5. `selfAssessmentQuestion`: converted from static italic text to interactive checkbox with amber accent, strikethrough on check, tracked via useState
+
+### Bugs logged
+
+- D1-CONFIRMED: CanvasScreen.jsx:399 passes criteria names not full rubric text to decoder
+- B4: AURA markdown still rendering in chat despite no-markdown rule
+- B5: [TOOL:simplify] tag leaking into canvas editor content
+
+### Test Results
+
+12/12 regression tests pass against production. Build compiles clean. No failures.
+
+---
+
 ## Next Session Constraint
 
-Port Rubric Simplifier from reference build:
-- Source: docs/REFERENCE_BUILD_AUDIT.md, Tool 2
-- From: `backend/routes/tools.py:253`
-- To: `api/decode-rubric.js`
-- Focus: structured JSON with grade bands using EXACT labels from rubric, micro-task checklists, self-assessment questions
-- Renderer: `src/frontend/components/StructuredRubric.jsx` (already exists, verify field alignment)
+Port Exam Paper structured output:
+- Location: `api/simplify-brief.js` exam_paper routing path (lines 35-94)
+- Current: returns raw text practice plan only, no structured JSON
+- Target: structured JSON with section breakdown (MCQ, short answer, essay), time allocation per section, question type identification, what each question type is actually testing, approach sequence, worked example format per question type
+- Renderer: needs new component or extension of StructuredScaffold.jsx for exam mode

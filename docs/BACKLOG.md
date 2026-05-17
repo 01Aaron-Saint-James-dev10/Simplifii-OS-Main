@@ -700,3 +700,23 @@ Tools recommend the next tool on completion. Rubric decode -> Brief simplify -> 
 **Root cause:** CanvasScreen.jsx:400 uses `rubricCriteria` (regex-extracted names) as the rubric source. The full rubric text is available as `briefOrText` but is passed as the `briefText` prop, not `rubricText`.
 **Fix:** Change CanvasScreen.jsx:399 `buildPayload` to pass `rubricText: brief` (full document text) instead of `rubricText: rubric` (criteria names only). Requires touching CanvasScreen.jsx (currently constrained).
 **Constraint:** DO NOT fix until CanvasScreen.jsx constraint is lifted.
+
+---
+
+## B4: AURA markdown still rendering in chat despite no-markdown rule
+
+**Priority:** Degrading (user-facing)
+**Location:** api/_aura-prompt.js (rule 2), src/frontend/components/AuraChatOverlay.jsx (cleanMarkdown)
+**Issue:** Bold text (**text**) still visible in production AURA chat at BABS1201 Literature Review, despite no-markdown language rule added in commit `81142494`. Two possible causes: (1) Claude ignores the rule intermittently, (2) cleanMarkdown() regex has edge cases (e.g. bold spanning newlines, nested formatting).
+**Investigate:** Test cleanMarkdown() against multi-line bold, nested bold+italic, bold with parentheses. Check if cached sessionStorage responses from before the rule was added are leaking.
+**Fix:** Strengthen cleanMarkdown() regex. Consider clearing sessionStorage AURA cache on deploy version change.
+
+---
+
+## B5: [TOOL:simplify] tag leaking into canvas editor content
+
+**Priority:** Degrading (user-facing)
+**Location:** Starter Ideas tool output (PreWritePanel or similar) inserting into Tier 3 editor
+**Issue:** The `[TOOL:simplify]` tag from AURA tool surfacing is appearing as visible text in the canvas editor. This tag is meant for AuraChatOverlay message rendering only and should never reach the editor content.
+**Investigate:** Trace how PreWritePanel inserts text into the editor (likely via `simplifii:voice-transcript` event). Check if AURA responses containing [TOOL:] tags are being passed through to the insert path without stripping.
+**Fix:** Strip `[TOOL:\w+]` tags from any text before inserting into the Tier 3 editor.
