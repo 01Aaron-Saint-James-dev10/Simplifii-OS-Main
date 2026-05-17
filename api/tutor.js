@@ -59,6 +59,11 @@ export default async function handler(req, res) {
 
   let systemPrompt = '';
 
+  // Overwhelm signal: learner indicated they feel overwhelmed
+  if (req.body?.overwhelmSignal) {
+    systemPrompt += 'OVERWHELM SIGNAL: The learner has indicated they feel overwhelmed. Respond with warmth and calm first. Acknowledge their feeling in one sentence. Then gently ask what would help most right now. Do not immediately redirect to tasks. Do not minimise. Do not say "you have got this."\n\n';
+  }
+
   // Structured assessment data (always inject if available, regardless of rawText)
   const assessmentSummary = req.body?.assessmentSummary || '';
   if (assessmentSummary) {

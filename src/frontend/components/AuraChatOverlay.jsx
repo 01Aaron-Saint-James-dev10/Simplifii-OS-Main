@@ -244,6 +244,9 @@ export default function AuraChatOverlay({ open, onClose }) {
         }
       }
 
+      // Detect overwhelm signal from quick-reply chips
+      const isOverwhelmed = text.trim().toLowerCase().includes('overwhelm');
+
       const hasDocContext = activeBriefText && activeBriefText.length >= 100;
       const hasPartialContext = activeBriefText && activeBriefText.length > 0 && activeBriefText.length < 100;
       const response = await fetch('/api/tutor', {
@@ -259,6 +262,7 @@ export default function AuraChatOverlay({ open, onClose }) {
           documentType: activeDocType || undefined,
           documentCount: allDocs.length,
           documentInventory: docInventory || undefined,
+          overwhelmSignal: isOverwhelmed || undefined,
           documentContextAvailable: allDocs.length > 0 && hasDocContext,
           documentContextPartial: hasPartialContext,
           voiceMode: isListening || false,
@@ -422,6 +426,18 @@ export default function AuraChatOverlay({ open, onClose }) {
           </div>
         )}
       </div>
+
+      {/* Quick-reply chips (show when no courses loaded and only greeting exists) */}
+      {messages.length <= 1 && !activeAssessmentTitle && (
+        <div style={{ padding: '4px 12px 8px', display: 'flex', gap: 6, overflowX: 'auto', borderTop: `1px solid ${SURFACE_RAISED}` }}>
+          {['I am not sure where to start', 'I have an assignment due soon', 'I want to understand my rubric', 'I am feeling overwhelmed', 'Show me what this tool does'].map(chip => (
+            <button key={chip} type="button" onClick={() => { if (sendRef.current) sendRef.current(chip); }}
+              style={{ flexShrink: 0, padding: '5px 10px', fontFamily: FONT_SYSTEM, fontSize: 11, color: TEXT_MUTED, background: 'transparent', border: `1px solid ${SURFACE_RAISED}`, borderRadius: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              {chip}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Voice interim indicator */}
       {isListening && interimTranscript && (
