@@ -202,3 +202,47 @@ Two paths call `/api/simplify-brief`:
 ## Next Session Constraint
 
 Fix B5: strip `[TOOL:tag]` from rendered output before it reaches the canvas editor or AURA chat display. Location: PreWritePanel insert path and AuraChatOverlay message rendering.
+
+---
+
+## B5 Fix: [TOOL:tag] stripped from user-facing output
+
+**Commit:** `84dae71a`
+**Files:** `api/tutor.js`, `src/frontend/components/AuraChatOverlay.jsx`, `docs/BACKLOG.md`
+
+### Root cause
+
+`[TOOL:]` tags were embedded in Claude's reply string by the AURA system prompt (TOOL SURFACING manifest in `api/_aura-prompt.js`). The tag leaked to two user-facing surfaces:
+1. Canvas editor: PreWritePanel called `/api/tutor`, received `data.reply` with `[TOOL:simplify]` in the text, inserted it verbatim into the Tiptap editor via `onInsert()`.
+2. TTS: AuraChatOverlay stored the raw reply (with tag) in `m.text`, then passed it to `speak()`. AURA would say "[TOOL:simplify]" out loud.
+
+The tag was also visible in AURA chat messages until the render-time parse at line 474 stripped it and rendered a button instead. But cached messages in sessionStorage retained the raw tag.
+
+### Fix
+
+**Server-side separation (api/tutor.js:184-189):** Before returning the reply, extract `[TOOL:\w+]` via regex, store as `toolSuggestion` (string or null), strip the tag from `reply`. Return `{ reply (clean), toolSuggestion }` as two separate fields. All downstream consumers now receive clean text automatically — no frontend stripping needed anywhere.
+
+**AuraChatOverlay.jsx:** Message objects now store `{ text (clean), toolSuggestion }`. Render-time button reads from `m.toolSuggestion` instead of parsing `m.text`. Proactive doc-added messages also use the `toolSuggestion` field instead of embedding tags in text.
+
+**PreWritePanel.jsx:** No changes needed. `data.reply` from tutor.js is now clean at the source.
+
+### Pattern established
+
+Machine signals (tool suggestions) are separated from human-readable text at the API boundary. The `toolSuggestion` field is the canonical routing signal. `m.text` is always clean.
+
+### Sprint 5 logged
+
+Task Guidance Engine added to BACKLOG.md. Five phases per task (Understand, Plan, Gather, Draft, Review). Depends on B5 fix (done) and assessment context scoping (done).
+
+### Test Results
+
+12/12 regression tests pass. Build compiles clean. No failures.
+
+---
+
+## Next Session Constraint
+
+Sprint 4: Document Node Tree. Build the typed extraction layer. Every uploaded document becomes addressable typed nodes (Z, XN, YN schema). Foundation for Task Guidance Engine, Homework Decoder, UDL Transform, and LiteralMode wiring.
+
+New files: `api/extract-nodes.js`, `src/services/DocumentNodeService.js`
+Modified: `useIngestion.js`, `ProjectContext.js`, `AuraChatOverlay.jsx`
