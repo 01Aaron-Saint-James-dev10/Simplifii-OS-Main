@@ -1,3 +1,61 @@
+## Sprint 6B Complete: Anonymised Cloud Telemetry
+**Date:** 2026-05-17
+
+### What was built
+
+**New Supabase migration: `simplifii_telemetry_events`**
+- File: `supabase/migrations/20260517120000_telemetry_events.sql`
+- Fields: `id`, `user_id_hash` (SHA-256), `event_type`, `assessment_title_hash` (SHA-256), `course_code`, `tier`, `schema_version`, `created_at`
+- Never stores: raw user_id, payload content, encrypted data, device signatures
+- RLS: INSERT for authenticated (hash-verified), SELECT for service_role only
+- Append-only: no UPDATE/DELETE policies
+- pgcrypto extension enabled for server-side SHA-256 in RLS check
+
+**HistoryOfThought.js: pushToCloud rewritten**
+- New `hashValue(str)` utility: SHA-256 via crypto.subtle
+- `pushToCloud(event, payload)` now targets `simplifii_telemetry_events`
+- Emits only: `user_id_hash`, `event_type`, `assessment_title_hash`, `course_code`, `tier`, `schema_version`
+- Never emits: raw user_id, payload_encrypted, stream_id, device_signature, event_id
+- Removed unused `getLocalUserId`
+- `appendEvent` passes raw payload (pre-encryption) to pushToCloud for hash extraction
+
+**AppShell.jsx: enableCloudSync wired**
+- Called after `unlockWithUserId` succeeds in the auth useEffect
+- Passes `user.id` to set module-scoped cloud sync flags
+
+### MANUAL STEP REQUIRED BEFORE TELEMETRY ACTIVATES
+
+Apply the migration to the Supabase project:
+1. Go to: Supabase dashboard > SQL Editor
+2. Paste and run: `supabase/migrations/20260517120000_telemetry_events.sql`
+
+Until this is done, `enableCloudSync` will activate but inserts will fail silently (RLS or missing table). Cloud telemetry will not flow.
+
+### Files changed
+
+| File | Type | Summary |
+|---|---|---|
+| `supabase/migrations/20260517120000_telemetry_events.sql` | New | Anonymised telemetry table with hashed identifiers |
+| `src/core/HistoryOfThought.js` | Modified | pushToCloud rewritten for anonymised emission |
+| `src/frontend/AppShell.jsx` | Modified | enableCloudSync wired after vault unlock |
+
+### Commit SHAs
+
+| SHA | Description |
+|---|---|
+| `9e38601b` | feat(telemetry): anonymised cloud emission to simplifii_telemetry_events |
+| `dd82772a` | feat(telemetry): wire enableCloudSync in AppShell after auth |
+
+### Tests
+
+Build: passing (zero errors). Regression: 12/12 passed.
+
+### Next session constraints
+
+Sprint 7: AI Risk Score port from reference build. Read reference build first, identify AI reliance tracking components, port to Simplifii-OS canvas without breaking existing tools.
+
+---
+
 ## Sprint 6 (Partial): Authenticity Report
 **Date:** 2026-05-17
 
