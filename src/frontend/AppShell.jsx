@@ -21,7 +21,7 @@ import CanvasSettingsOverlay from './components/CanvasSettingsOverlay';
 import BetaBanner from './components/BetaBanner';
 import MatrixRain from './components/MatrixRain';
 import { startSession, endSession } from '../core/StudyPatternTracker';
-import { unlockWithUserId } from '../core/HistoryOfThought';
+import { unlockWithUserId, enableCloudSync } from '../core/HistoryOfThought';
 import {
   SURFACE_BASE, SURFACE_RAISED,
   TEXT_MUTED, FONT_BODY,
@@ -139,7 +139,8 @@ export default function AppShell() {
     // Unlock HistoryOfThought vault so appendEvent calls succeed
     if (user?.id) {
       unlockWithUserId(user.id).then(() => {
-        if (typeof console !== 'undefined') console.log('[HistoryOfThought] vault unlocked for', user.id);
+        enableCloudSync(user.id);
+        if (typeof console !== 'undefined') console.log('[HistoryOfThought] vault unlocked, cloud sync enabled');
       }).catch(() => { /* non-blocking: vault may already be unlocked */ });
     }
     return () => endSession();
