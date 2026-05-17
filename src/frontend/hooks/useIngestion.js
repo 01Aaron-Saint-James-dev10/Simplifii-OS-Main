@@ -5,6 +5,8 @@ import { mapToWorkspace, deriveRoadmapFromAssessments, extractDeepCourseData, me
 const log = createLogger('useIngestion');
 // Dynamic import to avoid circular dependency with DocumentAIService -> UDLAuditService
 const loadDocumentAI = () => import('../../services/DocumentAIService').then(m => m.processDocumentWithGCP);
+// Typed node extraction (called after classification)
+const loadNodeService = () => import('../../services/DocumentNodeService').then(m => m.extractNodes);
 // Claude-powered structured extraction (called after pdfjs raw text extraction)
 const extractStructured = async (text, filename, userId) => {
   try {
@@ -639,11 +641,21 @@ export function useIngestion({
               if (claudeExtraction.courseName) deepData.courseName = claudeExtraction.courseName;
             }
 
+            // Typed node extraction (XN, YN, Z schema)
+            const resolvedDocType = claudeExtraction?.documentType || docType;
+            let docNodes = [];
+            try {
+              const extractNodesFn = await loadNodeService();
+              const nodeResult = await extractNodesFn({ type: resolvedDocType, text, filename: file.name }, user?.id);
+              if (nodeResult.nodes?.length > 0) docNodes = nodeResult.nodes;
+            } catch { /* node extraction failed, non-blocking */ }
+
             typedDocuments.push({
-              type: claudeExtraction?.documentType || docType,
+              type: resolvedDocType,
               filename: file.name,
               text: text,
               deepData: deepData,
+              nodes: docNodes,
             });
 
             if (primaryRawText === null) primaryRawText = text;
@@ -699,7 +711,11 @@ export function useIngestion({
           words: d.deepData.words || 0,
           weighting: d.deepData.weighting || 0,
           dueDate: d.deepData.assessmentDates?.[0]?.parsed?.toISOString() || null,
+          nodes: d.nodes || [],
         }));
+
+        // Aggregate all nodes across documents for course-level access
+        aggregated.nodes = typedDocuments.flatMap(d => d.nodes || []);
 
         // Document type for the course (most important document's type)
         if (examDocs.length > 0) aggregated.documentType = 'exam_paper';

@@ -295,9 +295,13 @@ export const ProjectProvider = ({ children }) => {
             // Reconstruct documents array from JSONB (typed per-document data)
             const documents = d.documents || d.extractionData?.documents || null;
 
+            // Reconstruct course-level nodes from JSONB
+            const nodes = d.nodes || d.extractionData?.nodes || null;
+
             const extractionData = {
               ...(d.extractionData || {}),
               documents: documents,
+              nodes: nodes,
               rawText: d.rawText || d.extractionData?.rawText || '',
               assessmentBriefs: finalBriefs,
               documentType: d.extractionData?.documentType || null,

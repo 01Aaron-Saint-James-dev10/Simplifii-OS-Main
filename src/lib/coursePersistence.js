@@ -39,9 +39,14 @@ export async function persistCourseToSupabase({ name, code, tier, term, assessme
     }));
   }
 
+  // Store course-level nodes if available
+  if (extractionData?.nodes) {
+    dataPayload.nodes = extractionData.nodes;
+  }
+
   // Store minimal extractionData (exclude rawText blobs, keep metadata)
   if (extractionData) {
-    const { rawText: _discard, primaryRawText: _discard2, documents: _discard3, ...rest } = extractionData;
+    const { rawText: _discard, primaryRawText: _discard2, documents: _discard3, nodes: _discard4, ...rest } = extractionData;
     dataPayload.extractionData = rest;
   }
 
