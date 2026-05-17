@@ -286,6 +286,32 @@ Rules for every future feature:
 
 This principle is non-negotiable. It is the difference between Simplifii and every other tool.
 
+## Ingestion Contract (Non-Negotiable)
+
+When a student uploads documents, the pipeline must:
+
+1. CLASSIFY each document individually:
+   - course_outline: extracts course code, course name, topics, schedule
+   - brief: extracts title, weight, due date, word count, requirements
+   - rubric: extracts criteria[], grade bands[], mark allocations
+   - exam_paper: extracts questions[], marks[], sections[]
+   - reading: stores as source material
+
+2. STORE each type in its own field (courses.data JSONB):
+   - documents[]: typed array with { type, filename, text, title, rubricCriteria, words, weighting, dueDate }
+   - assessments table: title, brief_text, due_date per assessment
+
+3. PASS to AURA as structured context, not raw blob:
+   "[BRIEF: title] Weight: X% | Word count: Y | Due: Z
+    [content excerpt]"
+
+4. NEVER merge multiple documents into one rawText blob.
+   Each document has a type and a home.
+
+5. If no course code found: show "Tap to name this" (never "UPLOAD").
+
+6. If extraction confidence is low, show what was found and ask the student to confirm.
+
 ## Source of Truth Documents (Read Before Touching AURA)
 
 Before writing, editing, or reviewing any code related to AURA, the chat overlay,
