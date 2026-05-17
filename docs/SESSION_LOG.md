@@ -1,3 +1,52 @@
+## Sprint 5 Complete: Task Guidance Engine
+**Date:** 2026-05-17
+
+### What was built
+
+Sprint 5 turns Simplifii from a tool collection into a guided OS. Every assessment now has a 5-phase task sequence (Understand, Plan, Gather, Draft, Review) generated from the actual brief and rubric content. AURA knows which phase the student is in and opens each phase with an assessment-specific question.
+
+### Files changed
+
+| File | Type | Summary |
+|---|---|---|
+| `api/generate-task-sequence.js` | New | Generates 5-phase task sequence from XN1 brief and YN1 rubric. 25% neurodivergent buffer on estimatedMinutes. calibrationWarning when inputs are thin. Rate limit: 10/min. |
+| `src/frontend/components/TaskPhaseBar.jsx` | New | Horizontal 5-phase progress bar. Accessible chip UI. Expandable phase instruction on click. Graceful absence when no sequence exists. Design token compliant. |
+| `src/core/TaskSequenceManager.js` | New | Per-assessment phase state persisted to localStorage. advancePhase(), getCurrentPhase(), getCurrentPhaseId(), resetPhase(). Dispatches simplifii:phase-advanced on transitions. |
+| `src/frontend/hooks/useIngestion.js` | Modified | Fire-and-forget call to /api/generate-task-sequence after cloud enhancement. Prefers XN1/YN1 typed nodes, falls back to enriched brief body + rubricCriteria. |
+| `api/_aura-prompt.js` | Modified | Adds currentPhase param to buildAuraPrompt. Injects phase label, instruction, and auraOpeningPrompt into RUNTIME CONTEXT. Backwards compatible. |
+| `src/frontend/components/AuraChatOverlay.jsx` | Modified | Derives currentPhase from extractionData.taskSequence. Passes currentPhase in /api/tutor payload. |
+| `src/frontend/CanvasScreen.jsx` | Modified | Renders TaskPhaseBar between CanvasNav and NextStepBanner. Phase state via useState + useEffect, persisted via TaskSequenceManager. Graceful absence guard. |
+| `docs/BACKLOG.md` | Modified | Added B6, B7, B8, D2-confirmed, Knowledge Sprints A-E. |
+
+### Commit SHAs
+
+| SHA | Description |
+|---|---|
+| `fc26b1b0` | Add api/generate-task-sequence.js, TaskSequenceManager.js, TaskPhaseBar.jsx |
+| `7e65c147` | Wire task sequence into ingestion pipeline and AURA prompt |
+| `61fcbc16` | Wire TaskPhaseBar into CanvasScreen |
+| `8b75a3af` | Wire currentPhase into AuraChatOverlay |
+| `0a28349c` | Fix eslint-disable comments (unknown react-hooks plugin) |
+
+### Tests
+
+Build: passing. Regression: 12/12 passed.
+
+### Known issues logged this session
+
+B6: Raw markdown in Tier 1 Starter Ideas output (PreWritePanel rendering).
+B7: Raw markdown inserted into Tier 3 editor on scaffold accept (PreWritePanel onInsert).
+B8: Footer raw markdown link visible on dashboard.
+D2-confirmed: AURA "instructions cut off" on BABS1201 Literature Review. XN1 truncation at 4000 chars. Tracked as E1.
+
+### Next session constraints
+
+Fix P0 bugs B6, B7, B8 first. All three are in or near PreWritePanel.
+
+Then Sprint 6: Authenticity Report. Wire unlockWithUserId() in AppShell. Wire startIdleDetection() in ProjectContext. Basic report renders from HistoryOfThought log.
+
+---
+
 # Session Log: B1/B2/B3 Verification + Test Infrastructure
 **Date:** 2026-05-17
 

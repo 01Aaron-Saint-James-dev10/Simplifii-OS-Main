@@ -833,3 +833,80 @@ When student opens Phase 1 (Understand), AURA proactively shows relevant communi
 **Depends on:** Community A, Sprint 5 (Task Guidance Engine).
 
 **All five community sprints deferred until Sprint 6 (Authenticity Report) is complete. Do not build before then.**
+
+---
+
+## B6: Raw markdown in Tier 1 Starter Ideas panel
+
+**Priority:** P0 degrading (user-facing)
+**Location:** PreWritePanel scaffold output rendering
+**Issue:** Bold asterisks visible to student instead of rendered bold. The scaffold output from the AI is inserted as raw markdown text. Student sees `**bold**` instead of bold text.
+**Fix:** Strip or render markdown in the output display within PreWritePanel. Either parse markdown to HTML before rendering, or strip formatting markers entirely if plain text is the target.
+
+---
+
+## B7: Raw markdown inserted into Tier 3 editor on scaffold accept
+
+**Priority:** P0 degrading (user-facing)
+**Location:** PreWritePanel onInsert path
+**Issue:** When the student accepts a Starter Ideas scaffold, raw markdown (`**bold**`, `_italic_`) is inserted directly into the Tier 3 editor. Students see markup in their writing space.
+**Fix:** Strip markdown formatting from the text before dispatching the `simplifii:voice-transcript` insert event. A plain-text strip (remove `**`, `_`, `#` etc.) is sufficient. Do not convert to HTML as the editor handles its own rich text state.
+
+---
+
+## B8: Footer raw markdown link on dashboard
+
+**Priority:** Degrading (user-facing)
+**Location:** Footer component or AURA footer text
+**Issue:** `__[Learn more](url)__` raw markdown syntax is visible in the dashboard footer instead of a rendered link.
+**Fix:** Find the footer component or the string that contains `__[...]()__` and replace with a plain JSX `<a>` tag, or strip the markdown link syntax and render as plain text.
+
+---
+
+## D2-confirmed: AURA reports "instructions appear cut off" on BABS1201 Literature Review
+
+**Priority:** P1 data quality
+**Location:** api/extract-nodes.js, DocumentNodeService.js, XN1 node for BABS1201 Literature Review
+**Issue:** AURA is reporting that the task instructions appear cut off mid-sentence on the BABS1201 Literature Review assessment. XN1 node extraction is incomplete. Most likely cause: the 4000 character cap on text input to `/api/extract-nodes` truncates long briefs before the node extractor sees the full content.
+**Investigate:** Check `confidence` field on the XN1 node for this course in Supabase. Compare XN1 `content` length against the raw brief text length. If truncated, the fix is in `/api/extract-nodes.js` and `DocumentNodeService.js` as noted in backlog item E1.
+**Constraint:** Deferred to E1 resolution (extend cap to 8000 for brief type, or implement chunked extraction).
+
+---
+
+## Knowledge Sprint A: Course tagging and Z1 auto-suggest
+
+**Priority:** Can build after Sprint 5
+**Depends on:** Sprint 5 (done)
+**Summary:** When a Z1 node is extracted during ingestion, auto-suggest an `institutionTag` on the course object. Schema: `institutionId`, `officialCode`, `faculty`, `year`, `term`, `verifiedAt`. Enables all downstream Knowledge Sprints and the Educator dashboard.
+
+---
+
+## Knowledge Sprint B: Educator login and aggregate dashboard
+
+**Priority:** Deferred
+**Depends on:** Sprint 6, Knowledge Sprint A
+**Summary:** Educator tier claims a course via institution email verification. Dashboard shows: student count, phase completion rates, sticking points per rubric criterion, timeline bell curve. Never shows individual identities, writing, or Authenticity Reports.
+
+---
+
+## Knowledge Sprint C: Assessment fingerprinting and completion corpus
+
+**Priority:** Deferred
+**Depends on:** Sprint 6, minimum 100 students
+**Summary:** Hash XN1 content to create `assessmentFingerprint`. AURA queries anonymised structural patterns when student reaches Phase 3 (Gather). Minimum threshold: 20 completions before patterns are surfaced. Derived patterns only, never raw student writing.
+
+---
+
+## Knowledge Sprint D: Multi-representation solution engine
+
+**Priority:** Deferred
+**Depends on:** Sprint 4 (done), UDL Transform Sprint 9
+**Summary:** 4 representations per concept: sequential steps, visual analogy, worked example, plain language. Student processing style preference determines display order. All 4 always available on demand.
+
+---
+
+## Knowledge Sprint E: AURA surfaces corpus patterns in canvas
+
+**Priority:** Deferred
+**Depends on:** Knowledge Sprint C, Sprint 5 (done)
+**Summary:** At Phase 3 entry (Gather), AURA surfaces 1 to 2 anonymised corpus patterns from students who completed a similar assessment. Framing: "Students who completed a similar assessment found this useful. Want to see it?" Never comparative. Always opt-in.
