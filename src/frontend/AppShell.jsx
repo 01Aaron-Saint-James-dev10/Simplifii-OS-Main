@@ -92,6 +92,21 @@ export default function AppShell() {
     return () => window.removeEventListener('aura:canvas-ready', handler);
   }, []);
 
+  // AURA ask: open chat and inject a proactive message (e.g. from DecisionButton)
+  useEffect(() => {
+    const handler = (e) => {
+      const msg = e.detail?.message;
+      if (!msg) return;
+      setAuraChatOpen(true);
+      // Inject as a queued AURA message via TaskLifecycleManager pattern
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('simplifii:aura-inject', { detail: { message: msg } }));
+      }, 300);
+    };
+    window.addEventListener('simplifii:aura-ask', handler);
+    return () => window.removeEventListener('simplifii:aura-ask', handler);
+  }, []);
+
   useEffect(() => {
     if (!user) return;
     (async () => {

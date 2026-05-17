@@ -226,6 +226,16 @@ export default function AuraChatOverlay({ open, onClose }) {
     }
   }, [open]);
 
+  // Listen for injected AURA messages (from DecisionButton, proactive triggers)
+  useEffect(() => {
+    const handler = (e) => {
+      const msg = e.detail?.message;
+      if (msg) setMessages(prev => [...prev, { role: 'tutor', text: msg }]);
+    };
+    window.addEventListener('simplifii:aura-inject', handler);
+    return () => window.removeEventListener('simplifii:aura-inject', handler);
+  }, []);
+
   // ESC to close
   useEffect(() => {
     if (!open) return;

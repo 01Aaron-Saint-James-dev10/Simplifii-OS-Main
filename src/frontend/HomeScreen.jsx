@@ -341,23 +341,22 @@ export default function HomeScreen() {
             <section className="home-section" aria-label="Decision helper">
               <DecisionButton
                 onDecide={() => {
-                  // Find most urgent course: overdue first, then soonest due
+                  // Find most urgent assessment for context
                   const entries = Object.entries(courses || {});
-                  if (entries.length === 0) return;
-                  let best = entries[0];
+                  let assessmentName = 'your current assessment';
                   let bestDays = Infinity;
-                  for (const [id, c] of entries) {
+                  for (const [, c] of entries) {
                     const briefs = c.extractionData?.assessmentBriefs || [];
                     for (const b of briefs) {
                       if (!b.dueDate) continue;
                       const days = Math.floor((new Date(b.dueDate) - new Date()) / (1000*60*60*24));
-                      if (days < bestDays) { bestDays = days; best = [id, c]; }
+                      if (days < bestDays) { bestDays = days; assessmentName = b.title || assessmentName; }
                     }
                   }
-                  const [cId, c] = best;
-                  const cBriefs = c.extractionData?.assessmentBriefs || [];
-                  if (cBriefs.length > 1) navigateToAssessments(cId);
-                  else navigateToCanvas(cId, null);
+                  // Open AURA and ask the student where they are at
+                  window.dispatchEvent(new CustomEvent('simplifii:aura-ask', {
+                    detail: { message: `Where are you up to with ${assessmentName}? Have you started, are you in the middle of it, or are you stuck on something specific?` }
+                  }));
                 }}
               />
             </section>
