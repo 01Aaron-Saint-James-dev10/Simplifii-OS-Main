@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useRouter } from '../../contexts/RouterContext';
+import { useProject } from '../ProjectContext';
+import { useIngestion } from '../hooks/useIngestion';
 import ExportMenu from './ExportMenu';
 import {
   SURFACE_BASE, SURFACE_CARD_SOLID,
@@ -32,6 +34,23 @@ import {
 
 export default function CanvasNav({ courseName, assessmentTitle, saveStatus, lastSavedAgo, tiptapDoc, htmlContent, courseId, onOpenSettings, onCourseName, onAddDocs, onSubmit, onHelp }) {
   const { navigateHome } = useRouter();
+  const { profile, activeCourseId, courses, addCourseWithData, upgradeCourseExtraction, setInstitutionalData } = useProject();
+  const { handleUploadedFiles } = useIngestion({
+    profile, activeCourseId: courseId || activeCourseId, courses,
+    addCourseWithData, upgradeCourseExtraction, setInstitutionalData, onCoursesReady: () => {},
+  });
+  const fileInputRef = useRef(null);
+
+  // Internal file picker for Add docs (fallback when onAddDocs prop not passed)
+  const handleAddDocsClick = () => {
+    if (onAddDocs) { onAddDocs(); return; }
+    fileInputRef.current?.click();
+  };
+  const handleFilesSelected = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) handleUploadedFiles(files);
+    e.target.value = '';
+  };
 
   return (
     <nav
@@ -112,7 +131,7 @@ export default function CanvasNav({ courseName, assessmentTitle, saveStatus, las
         </div>
         <button
           type="button"
-          onClick={onAddDocs}
+          onClick={handleAddDocsClick}
           aria-label="Add documents to this course"
           style={{
             fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 700,
@@ -184,6 +203,16 @@ export default function CanvasNav({ courseName, assessmentTitle, saveStatus, las
           </svg>
         </button>
       </div>
+      {/* Hidden file input for Add docs (used when onAddDocs prop not provided) */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,.docx,.doc,.txt"
+        multiple
+        onChange={handleFilesSelected}
+        style={{ display: 'none' }}
+        aria-hidden="true"
+      />
     </nav>
   );
 }

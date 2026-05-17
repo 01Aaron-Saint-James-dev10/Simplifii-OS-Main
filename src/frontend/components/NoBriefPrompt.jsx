@@ -40,6 +40,7 @@ export default function NoBriefPrompt({ courseId }) {
     e.target.value = '';
   };
 
+
   return (
     <div style={{
       padding: '24px 20px', marginBottom: 16,
