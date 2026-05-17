@@ -222,7 +222,7 @@ export default function AuraChatOverlay({ open, onClose }) {
   }, [activeAssessmentTitle, activeWeight, activeDueDate, activeBriefText, activeCourse, lastSession]);
 
   const { speak, stopSpeaking, isSpeaking, startContinuousListening, stopContinuousListening, isListeningContinuous } = useAuraVoice();
-  const [voiceMode, setVoiceMode] = useState(false);
+  const [voiceMode, setVoiceMode] = useState(true);
   const [collapsed, setCollapsed] = useState(false);
   const [overlayPos, setOverlayPos] = useState(() => {
     try {
@@ -516,7 +516,7 @@ export default function AuraChatOverlay({ open, onClose }) {
               }
             }}
             aria-label={voiceMode ? 'Exit voice mode' : 'Enter voice mode'}
-            title={voiceMode ? 'Voice mode ON' : 'Voice mode OFF'}
+            title={voiceMode ? 'Voice on: click to mute' : 'Voice off: click to unmute'}
             style={{
               background: voiceMode ? ACCENT_GLASS : 'none',
               border: voiceMode ? `1px solid ${ACCENT_BORDER}` : '1px solid transparent',
