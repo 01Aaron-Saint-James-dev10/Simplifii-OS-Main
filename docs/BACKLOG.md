@@ -679,3 +679,12 @@ Year 12 to uni expectations explained. Hidden curriculum of tertiary education. 
 Tools recommend the next tool on completion. Rubric decode -> Brief simplify -> Starter ideas -> Write -> Check -> Submit. Each tool knows what came before and after.
 
 **DO NOT BUILD YET.** This is architecture work. Requires a full session to design properly.
+
+---
+
+## D5: weight field empty after Supabase round-trip
+
+**Priority:** Degrading (not blocking)
+**Location:** ProjectContext.js:275
+**Issue:** `weight` field on assessmentBriefs is empty after Supabase round-trip if JSONB `extractionData` did not include it. The assessments table has no `weight` column, so weight only survives if the JSONB extractionData.assessmentBriefs stored it. Low impact: weight is cosmetic on dashboard, not used for sorting or AURA context.
+**Fix:** Address when porting Assessment Scaffolder prompt (docs/REFERENCE_BUILD_AUDIT.md, Tool 1).

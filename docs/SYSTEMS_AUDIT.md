@@ -139,11 +139,11 @@
 
 ### BLOCKING (nothing works without this)
 
-| Priority | Issue | Location | Impact |
+| Priority | Issue | Location | Status |
 |----------|-------|----------|--------|
-| B1 | `dueDate` vs `due_date` camelCase mismatch on Supabase hydration | ProjectContext.js:262 | All due dates show as undefined after sign-out/in. Dashboard sorting broken. |
-| B2 | `documents` array not reconstructed from Supabase | ProjectContext.js:258-286 | AURA blind to document context after sign-out/in. All tools produce generic output. |
-| B3 | `assessmentBriefs[].body` never set on Supabase hydration (only `brief_text`) | ProjectContext.js:270 | AURA activeBriefText fallback finds no body, falls to empty rawText. |
+| B1 | `dueDate` vs `due_date` camelCase mismatch on Supabase hydration | ProjectContext.js:274 | **RESOLVED** in `2d8a4acb`. Line 274 maps `a.due_date` to `dueDate`. Line 288 does the same for JSONB fallback. |
+| B2 | `documents` array not reconstructed from Supabase | ProjectContext.js:296 | **RESOLVED** in `2d8a4acb`. Line 296 reads `d.documents \|\| d.extractionData?.documents`. Line 300 stores in extractionData. |
+| B3 | `assessmentBriefs[].body` never set on Supabase hydration (only `brief_text`) | ProjectContext.js:273 | **RESOLVED** in `2d8a4acb`. Line 273 maps `a.brief_text` to `body`. Line 287 does the same for JSONB fallback. |
 
 ### DEGRADING (works but produces wrong output)
 
