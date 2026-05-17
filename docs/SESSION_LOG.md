@@ -1,3 +1,42 @@
+## P0 Bug Fix: B6, B7, B8 (Markdown Leak)
+**Date:** 2026-05-17
+
+### What was fixed
+
+Three P0 bugs where AI-generated markdown formatting leaked into plain-text surfaces:
+
+- **B6:** Scaffold display in Tier 1 Starter Ideas panel showed raw `**bold**` asterisks. Fixed by applying `stripMarkdown()` before rendering (PreWritePanel line 229).
+- **B7:** Scaffold insertion into Tier 3 editor passed raw markdown to onInsert. Fixed on both insert paths (PreWritePanel lines 120 + 124).
+- **B8:** AffirmationBanner on dashboard rendered raw `__[Learn more](url)__` from Supabase `affirmations` table. Fixed by applying `stripMarkdown()` before render (AffirmationBanner line 78).
+
+### New utility
+
+`src/utils/stripMarkdown.js`: word-boundary-safe markdown stripper. Covers bold, italic (with lookbehind to avoid snake_case false matches), links, headers, inline code, bullet markers, numbered lists.
+
+### Files changed
+
+| File | Type | Summary |
+|---|---|---|
+| `src/utils/stripMarkdown.js` | New | Plain-text markdown stripper utility |
+| `src/frontend/components/PreWritePanel.jsx` | Modified | Import stripMarkdown; apply to scaffold display (B6) and both onInsert paths (B7) |
+| `src/frontend/components/AffirmationBanner.jsx` | Modified | Import stripMarkdown; apply to {copy} render (B8) |
+
+### Commit SHAs
+
+| SHA | Description |
+|---|---|
+| `7ff64e33` | fix(markdown): strip markdown from scaffold display, editor insertion, and dashboard affirmations |
+
+### Tests
+
+Build: passing (zero errors). Regression: 12/12 passed.
+
+### Next session constraints
+
+Sprint 6: Authenticity Report. Wire unlockWithUserId() in AppShell. Wire startIdleDetection() in ProjectContext. Basic report renders from HistoryOfThought log.
+
+---
+
 ## Sprint 5 Complete: Task Guidance Engine
 **Date:** 2026-05-17
 
