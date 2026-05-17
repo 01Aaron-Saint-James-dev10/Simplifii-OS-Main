@@ -688,3 +688,15 @@ Tools recommend the next tool on completion. Rubric decode -> Brief simplify -> 
 **Location:** ProjectContext.js:275
 **Issue:** `weight` field on assessmentBriefs is empty after Supabase round-trip if JSONB `extractionData` did not include it. The assessments table has no `weight` column, so weight only survives if the JSONB extractionData.assessmentBriefs stored it. Low impact: weight is cosmetic on dashboard, not used for sorting or AURA context.
 **Fix:** Address when porting Assessment Scaffolder prompt (docs/REFERENCE_BUILD_AUDIT.md, Tool 1).
+
+---
+
+## D1-CONFIRMED: Rubric Decoder receives criteria names only, not full rubric text
+
+**Priority:** Degrading (not blocking)
+**Location:** CanvasScreen.jsx:399-400
+**Issue:** ToolPanel for rubric-decoder passes `rubricText: rubricCriteria?.join('\n') || ''` which is a flat newline-joined list of criterion names extracted by regex. It does NOT pass the full rubric text with grade bands, descriptions, and mark allocations. The Rubric Decoder therefore receives only criterion headings, not the actual rubric content it needs to decode.
+**Impact:** Rubric Decoder output is shallow. Grade bands are fabricated by Claude from criterion names alone rather than extracted from the actual rubric document.
+**Root cause:** CanvasScreen.jsx:400 uses `rubricCriteria` (regex-extracted names) as the rubric source. The full rubric text is available as `briefOrText` but is passed as the `briefText` prop, not `rubricText`.
+**Fix:** Change CanvasScreen.jsx:399 `buildPayload` to pass `rubricText: brief` (full document text) instead of `rubricText: rubric` (criteria names only). Requires touching CanvasScreen.jsx (currently constrained).
+**Constraint:** DO NOT fix until CanvasScreen.jsx constraint is lifted.
