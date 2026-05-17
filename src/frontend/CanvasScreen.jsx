@@ -785,7 +785,7 @@ export default function CanvasScreen() {
         <ComprehensionBreak onCheckRequest={() => { setRailVisible(true); setActivePanel('check'); }} />
       )}
       {showSaveAffirmation && <AffirmationBanner trigger="save_event" visible={true} />}
-      <BottomStrip wordCount={wordCount} targetWords={targetWords} />
+      <BottomStrip wordCount={wordCount} targetWords={targetWords} assessmentTitle={currentTitle} />
 
       <ReentryOverlay
         courseId={courseId}

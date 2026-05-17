@@ -18,16 +18,14 @@ import {
  *
  * Sticky bottom bar on canvas. Cannot collapse.
  * Left: Talk to someone
- * Centre: word count (tier-aware), body doubling with pulse
- * Right: authenticity %, local-only badge
+ * Centre: composite progress (words + thinking + scaffold)
+ * Right: auto-saved badge
  *
  * Props:
- *   wordCount    - number
- *   targetWords  - number
+ *   wordCount       - number
+ *   targetWords     - number
+ *   assessmentTitle - string
  */
-
-// Body doubling count removed. Was hardcoded fiction (47 students).
-// Will wire to real telemetry post-beta.
 
 function wordCountDisplay(count, target) {
   if (target <= 0) return { text: `${count} words`, colour: TEXT_MUTED, guidance: '' }; // allow-style
@@ -38,9 +36,22 @@ function wordCountDisplay(count, target) {
   return { text: `${count} / ${target} words`, colour: COLOUR_WARN, guidance: `trim ${count - target} words` }; // allow-style
 }
 
-export default function BottomStrip({ wordCount, targetWords }) {
+function compositeProgress(wordCount, targetWords, assessmentTitle) {
+  const words = Math.min(50, Math.round((wordCount / Math.max(targetWords, 1)) * 100) * 0.5);
+  let thinking = 0;
+  let scaffold = 0;
+  if (assessmentTitle) {
+    const tier2Raw = localStorage.getItem(`simplifii:tier2-count-${assessmentTitle}`);
+    thinking = tier2Raw ? Math.min(25, parseInt(tier2Raw, 10) * 12.5) : 0;
+    scaffold = localStorage.getItem(`simplifii:scaffold-accepted-${assessmentTitle}`) === 'true' ? 25 : 0;
+  }
+  return Math.min(100, Math.round(words + thinking + scaffold));
+}
+
+export default function BottomStrip({ wordCount, targetWords, assessmentTitle }) {
   const { reducedMotion } = useSettings();
   const wc = wordCountDisplay(wordCount || 0, targetWords || 0);
+  const progress = compositeProgress(wordCount || 0, targetWords || 0, assessmentTitle);
 
   return (
     <footer
@@ -68,24 +79,18 @@ export default function BottomStrip({ wordCount, targetWords }) {
         <TalkToSomeoneLink />
       </div>
 
-      {/* Centre: word count + body doubling */}
+      {/* Centre: composite progress + word count */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <span style={{ color: progress >= 75 ? ACCENT_PULSE : progress >= 40 ? TEXT_PRIMARY : TEXT_MUTED }}>
+          {progress}%{progress < 100 ? ': keep going' : ': ready to review'}
+        </span>
         <span style={{ color: wc.colour }}>
           {wc.text}
-          {wc.guidance && (
-            <span style={{ color: wc.colour, marginLeft: 4, opacity: 0.8 }}>
-              {wc.guidance}
-            </span>
-          )}
           {(wordCount || 0) >= 50 && (
             <span style={{ color: TEXT_FAINT, marginLeft: 8, fontWeight: 400 }} title="Estimated read time at 238 words per minute">
               {Math.max(1, Math.ceil((wordCount || 0) / 238))} min read
             </span>
           )}
-        </span>
-
-        <span style={{ color: TEXT_FAINT }}>
-          Beta. Synced securely. We never sell your data.
         </span>
       </div>
 
