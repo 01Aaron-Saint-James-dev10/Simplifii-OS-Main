@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: 'POST only.' });
   }
 
-  const limited = rateLimit(getIdentifier(req), { maxRequests: 60, windowMs: 60000 });
+  const limited = await rateLimit(getIdentifier(req), { maxRequests: 60, windowMs: 60000 });
   if (limited) return res.status(429).json({ success: false, error: limited.error });
 
   const { query, userId, courseId, assessmentTitle, limit } = req.body || {};

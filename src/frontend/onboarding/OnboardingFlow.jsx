@@ -16,6 +16,7 @@ import {
   SURFACE_BASE, SURFACE_RAISED,
   TEXT_FAINT,
   FONT_SYSTEM,
+  ACCENT_GLASS_SUBTLE,
 } from '../../theme/tokens';
 
 const MQ_REDUCE = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -62,6 +63,7 @@ const STEP_NAMES = {
   meetAura: 'Meet AURA',
   tier: 'Your level',
   secondaryDetails: 'Your school details',
+  parentalConsent: 'Parent or guardian consent',
   accessibility: 'How you learn best',
   painPoints: 'What gets in the way',
   profiler: 'Your strengths',
@@ -71,15 +73,58 @@ function buildSteps(tier) {
   const steps = ['whatBringsYou', 'meetAura'];
   if (!tier) steps.push('tier');
   if (tier === 'helper') {
-    // Helping someone else: ask about the person they support, then accessibility
     steps.push('accessibility');
     return steps;
   }
-  if (tier === 'secondary') steps.push('secondaryDetails');
+  if (tier === 'secondary') {
+    steps.push('secondaryDetails');
+    steps.push('parentalConsent');
+  }
   steps.push('accessibility');
   if (tier === 'secondary') steps.push('painPoints');
   steps.push('profiler');
   return steps;
+}
+
+function ParentalConsentStep({ onConsent }) {
+  const [checked, setChecked] = React.useState(false);
+  return (
+    <div style={{ maxWidth: 440, padding: '0 24px', textAlign: 'center' }}>
+      <h2 style={{ fontFamily: 'var(--font-system, system-ui)', fontSize: 20, fontWeight: 700, color: '#f4f4f5', margin: '0 0 12px' }}>
+        Parent or guardian consent
+      </h2>
+      <p style={{ fontFamily: 'var(--font-body, system-ui)', fontSize: 13, color: '#a1a1aa', lineHeight: 1.6, margin: '0 0 20px' }}>
+        Because you are a secondary school student, Australian privacy law requires consent from a parent or guardian before we collect anonymised usage data for education research.
+      </p>
+      <p style={{ fontFamily: 'var(--font-body, system-ui)', fontSize: 12, color: '#71717a', lineHeight: 1.6, margin: '0 0 20px' }}>
+        Your work, identity, and patterns are never shared with your school, teachers, or anyone else. Only anonymised, de-identified statistics are used for research. You can export or delete your data at any time.
+      </p>
+      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, textAlign: 'left', cursor: 'pointer', padding: '12px 16px', border: '1px solid #27272a', borderRadius: 8, background: checked ? ACCENT_GLASS_SUBTLE : 'transparent' }}>
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={() => setChecked(c => !c)}
+          style={{ marginTop: 3, accentColor: '#10b981' }}
+        />
+        <span style={{ fontFamily: 'var(--font-body, system-ui)', fontSize: 12, color: '#d4d4d8', lineHeight: 1.5 }}>
+          I am the parent or guardian of this student and I consent to anonymised usage data being collected for education research purposes.
+        </span>
+      </label>
+      <button
+        type="button"
+        onClick={onConsent}
+        disabled={!checked}
+        style={{
+          marginTop: 20, width: '100%', padding: '14px 0', borderRadius: 8,
+          fontFamily: 'var(--font-system, system-ui)', fontSize: 15, fontWeight: 700,
+          background: checked ? '#10b981' : '#27272a', border: 'none',
+          color: checked ? '#09090b' : '#71717a', cursor: checked ? 'pointer' : 'default',
+        }}
+      >
+        Continue
+      </button>
+    </div>
+  );
 }
 
 export default function OnboardingFlow() {
@@ -202,6 +247,19 @@ export default function OnboardingFlow() {
               <SecondaryDetailsStep
                 onContinue={(data) => { setSecondaryData(data); next(); }}
                 onSkip={next}
+              />
+            </motion.div>
+          )}
+          {currentStep === 'parentalConsent' && (
+            <motion.div key="consent" variants={slideVariants} initial="enter" animate="centre" exit="exit" transition={{ duration: 0.3 }}>
+              <ParentalConsentStep
+                userId={user?.id}
+                onConsent={async () => {
+                  try {
+                    await supabase.from('profiles').update({ parental_consent_at: new Date().toISOString() }).eq('id', user.id);
+                  } catch { /* non-blocking */ }
+                  next();
+                }}
               />
             </motion.div>
           )}

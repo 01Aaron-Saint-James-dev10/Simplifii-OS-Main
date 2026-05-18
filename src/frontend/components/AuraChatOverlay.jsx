@@ -557,6 +557,19 @@ export default function AuraChatOverlay({ open, onClose }) {
   const [collapsed, setCollapsed] = useState(false);
   const [presessionIntel, setPresessionIntel] = useState(null); // null=unchecked, false=not needed, object={targetGrade,teacherPriority,hardestPart}
   const [showPresessionCard, setShowPresessionCard] = useState(false);
+
+  // Flow state: suppress all proactive messages when student is in flow
+  const [flowActive, setFlowActive] = useState(false);
+  useEffect(() => {
+    const handler = () => {
+      setFlowActive(true);
+      // Flow state expires after 10 minutes of no re-trigger
+      const timer = setTimeout(() => setFlowActive(false), 10 * 60 * 1000);
+      return () => clearTimeout(timer);
+    };
+    window.addEventListener('flowstate:active', handler);
+    return () => window.removeEventListener('flowstate:active', handler);
+  }, []);
   const [overlayPos, setOverlayPos] = useState(() => {
     try {
       const stored = localStorage.getItem('simplifii:aura-position');
@@ -630,6 +643,7 @@ export default function AuraChatOverlay({ open, onClose }) {
   // Waits for presession intel check before firing. Incorporates intel into the greeting when available.
   useEffect(() => {
     if (!courseId || !activeAssessmentTitle) return;
+    if (flowActive) return; // Student is in flow, do not interrupt
     if (showPresessionCard) return; // Card is showing, wait for student to complete it
     if (presessionIntel === null) return; // Not yet checked, wait
     const greetKey = `aura-greeted-${courseId}`;
@@ -726,7 +740,7 @@ export default function AuraChatOverlay({ open, onClose }) {
   useEffect(() => {
     if (!courseId) return;
     const handler = () => {
-      if (idleNudgedRef.current) return;
+      if (idleNudgedRef.current || flowActive) return;
       idleNudgedRef.current = true;
       setMessages(prev => [...prev, {
         role: 'tutor',

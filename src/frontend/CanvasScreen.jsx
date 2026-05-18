@@ -280,6 +280,29 @@ export default function CanvasScreen() {
   const [tiptapDoc, setTiptapDoc] = useState(null);
   const handleWordCount = useCallback((count) => setWordCount(count), []);
 
+  // Flow state detection: track words per minute, dispatch flowstate:active when sustained
+  const flowRef = useRef({ lastCount: 0, lastTime: Date.now(), streak: 0 });
+  useEffect(() => {
+    const f = flowRef.current;
+    const now = Date.now();
+    const elapsed = (now - f.lastTime) / 60000; // minutes
+    if (elapsed > 0.05) { // at least 3 seconds between checks
+      const wordsTyped = wordCount - f.lastCount;
+      const wpm = elapsed > 0 ? wordsTyped / elapsed : 0;
+      if (wpm > 15 && wordsTyped > 0) {
+        f.streak += 1;
+        if (f.streak >= 3) {
+          window.dispatchEvent(new CustomEvent('flowstate:active'));
+          f.streak = 0; // reset after firing, will re-fire if flow continues
+        }
+      } else {
+        f.streak = 0;
+      }
+      f.lastCount = wordCount;
+      f.lastTime = now;
+    }
+  }, [wordCount]);
+
   // Hallucination scanner: detects citations in draft text and flags
   // any that are not found+verified in the project corpus.
   const [unverifiedMatches, setUnverifiedMatches] = useState([]);

@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: 'Method not allowed. Use POST.' });
   }
 
-  const limited = rateLimit(getIdentifier(req), { maxRequests: 10, windowMs: 60000 });
+  const limited = await rateLimit(getIdentifier(req), { maxRequests: 10, windowMs: 60000 });
   if (limited) return res.status(429).json({ success: false, error: limited.error });
 
   const { url } = req.body || {};
