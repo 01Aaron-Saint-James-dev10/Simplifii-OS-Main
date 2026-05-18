@@ -177,6 +177,19 @@ export default function CanvasScreen() {
     if (!isExamPaper || !extractedText) return null;
     return parseExamPaper(extractedText);
   }, [isExamPaper, extractedText]);
+
+  // Stable document fingerprint: djb2 hash of first 200 chars of extracted text.
+  // Gives each uploaded exam paper its own answer-key namespace even when two
+  // papers sit under the same courseId.
+  const examDocId = useMemo(() => {
+    if (!extractedText) return courseId;
+    const snippet = extractedText.slice(0, 200);
+    let h = 5381;
+    for (let i = 0; i < snippet.length; i++) {
+      h = ((h << 5) + h + snippet.charCodeAt(i)) & 0xffffffff;
+    }
+    return `${courseId}_${(h >>> 0).toString(36)}`;
+  }, [courseId, extractedText]);
   const [activeQuestionNum, setActiveQuestionNum] = useState(1);
   // Prefer actual content (body or extractedText) over the assessment title.
   // brief.body may be empty if cloud enhancement hasn't completed yet;
@@ -801,7 +814,7 @@ export default function CanvasScreen() {
               questions={examData?.questions || []}
               activeQuestion={activeQuestionNum}
               onSelectQuestion={setActiveQuestionNum}
-              documentId={courseId}
+              documentId={examDocId}
               onAskTutor={(text) => { setPendingTutorMessage(text); setRailVisible(true); setActivePanelWithLog('tutor'); }}
             />
           ) : (

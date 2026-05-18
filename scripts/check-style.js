@@ -101,8 +101,9 @@ function scanFile(filePath, content) {
 
     // Raw rgba() values: warned in component files. tokens.js is the
     // single source of truth for colour values including alpha variants.
+    // public/ HTML files have no token system so they are excluded from this check.
     // Warning only until Sprint 3.6 lands. After 3.6 commits, rgba() in component files is a hard fail.
-    if (!rel.endsWith(TOKEN_FILE) && !rel.endsWith('.css')) {
+    if (!rel.endsWith(TOKEN_FILE) && !rel.endsWith('.css') && !rel.startsWith('public' + path.sep) && rel !== 'public') {
       RGBA_RE.lastIndex = 0;
       let rm;
       while ((rm = RGBA_RE.exec(line)) !== null) {

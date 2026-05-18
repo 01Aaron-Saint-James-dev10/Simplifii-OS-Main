@@ -330,11 +330,19 @@ export default function AuraChatOverlay({ open, onClose }) {
       if (parts.length > 0) return parts.join('\n\n').slice(0, 3200);
     }
 
-    // Second priority: typed documents array from per-file classification
+    // Second priority: typed documents array from per-file classification.
+    // When an exam paper is active, restrict to exam_paper documents only so
+    // brief/rubric/reading content from the same course does not bleed into
+    // AURA's exam context.
     const typedDocs = ext.documents;
     if (typedDocs && typedDocs.length > 0) {
+      const isExamContext = activeDocType === 'exam_paper';
+      const filteredDocs = isExamContext
+        ? typedDocs.filter(d => d.type === 'exam_paper')
+        : typedDocs;
+      const docsToUse = (filteredDocs.length > 0 ? filteredDocs : typedDocs).slice(0, 5);
       const parts = [];
-      for (const doc of typedDocs.slice(0, 5)) {
+      for (const doc of docsToUse) {
         const header = `[${doc.type.toUpperCase()}: ${doc.title || doc.filename}]`;
         const meta = [];
         if (doc.weighting) meta.push(`Weight: ${doc.weighting}%`);
