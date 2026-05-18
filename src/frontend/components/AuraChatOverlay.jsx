@@ -555,7 +555,7 @@ export default function AuraChatOverlay({ open, onClose }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: clean }),
       });
-      if (res.headers.get('content-type')?.includes('audio')) {
+      if (res.headers.get('content-type')?.includes('audio') || res.headers.get('content-type')?.includes('octet')) {
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         const audio = new Audio(url);

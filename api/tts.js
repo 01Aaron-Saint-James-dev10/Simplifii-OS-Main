@@ -29,14 +29,14 @@ export default async function handler(req, res) {
         id: voiceId || 'a0e99841-438c-4a64-b679-ae501e7d6091',
       },
       outputFormat: {
-        container: 'mp3',
-        encoding: 'mp3',
-        sampleRate: 44100,
+        container: 'wav',
+        encoding: 'pcm_s16le',
+        sampleRate: 24000,
       },
       language: 'en',
     });
 
-    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Content-Type', 'audio/wav');
     res.setHeader('Cache-Control', 'no-cache');
     // Response may be a ReadableStream, Buffer, or Response-like object
     if (response instanceof ArrayBuffer || response?.arrayBuffer) {
