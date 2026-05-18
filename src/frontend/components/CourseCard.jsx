@@ -74,7 +74,7 @@ function findNextDue(course, now) {
   return best;
 }
 
-export default function CourseCard({ course, courseId, density = 'standard', onOpen, now: nowProp }) {
+export default function CourseCard({ course, courseId, density = 'standard', onOpen, now: nowProp, isPinned, onPin, onArchive, isArchived }) {
   const now = nowProp || new Date();
   const isCompact = density === 'compact';
   const [editing, setEditing] = useState(false);
@@ -97,6 +97,7 @@ export default function CourseCard({ course, courseId, density = 'standard', onO
         background: SURFACE_CARD_GLASS, // allow-style
         backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
         border: `1px solid ${SURFACE_RAISED}`,
+        borderLeft: isPinned ? `3px solid ${ACCENT_BORDER}` : `1px solid ${SURFACE_RAISED}`,
         borderRadius: BORDER_RADIUS,
         padding: isCompact ? '12px 14px' : '16px 18px',
         display: 'flex',
@@ -217,6 +218,46 @@ export default function CourseCard({ course, courseId, density = 'standard', onO
       >
         Open
       </button>
+
+      {/* Pin and archive controls */}
+      {(onPin || onArchive) && (
+        <div style={{ display: 'flex', gap: 6 }}>
+          {onPin && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onPin(); }}
+              aria-label={isPinned ? 'Unpin course' : 'Pin course to top'}
+              title={isPinned ? 'Unpin' : 'Pin to top'}
+              style={{
+                background: 'none', border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS,
+                cursor: 'pointer', padding: '4px 8px', minHeight: 44, minWidth: 44,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 14, color: isPinned ? ACCENT_PULSE : TEXT_FAINT,
+                outline: 'none',
+              }}
+            >
+              {'\u{1F4CC}'}
+            </button>
+          )}
+          {onArchive && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onArchive(); }}
+              aria-label={isArchived ? 'Unarchive course' : 'Archive course'}
+              title={isArchived ? 'Unarchive' : 'Archive'}
+              style={{
+                background: 'none', border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS,
+                cursor: 'pointer', padding: '4px 8px', minHeight: 44, minWidth: 44,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 14, color: TEXT_FAINT,
+                outline: 'none',
+              }}
+            >
+              {isArchived ? '\u2B06' : '\u2B07'}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Grade input for submitted courses (Phase 6+) */}
       {determinePhase(course) >= PHASES.SUBMISSION && (

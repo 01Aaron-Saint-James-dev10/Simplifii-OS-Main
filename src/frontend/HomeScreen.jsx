@@ -142,14 +142,56 @@ export default function HomeScreen() {
 
   const filteredOut = allEntries.length - courseEntries.length;
 
-  // Sort courses by earliest next-due date ascending (most urgent first)
-  const sortedCourses = useMemo(() => {
-    return [...courseEntries].sort((a, b) => {
-      const aDays = findEarliestDue(a[1], now);
-      const bDays = findEarliestDue(b[1], now);
-      return aDays - bDays;
+  // Archive and pin state (localStorage-backed)
+  const [archivedIds, setArchivedIds] = useState(() => {
+    const ids = {};
+    for (const [id] of allEntries) {
+      if (localStorage.getItem(`simplifii:archived-${id}`) === 'true') ids[id] = true;
+    }
+    return ids;
+  });
+  const [pinnedIds, setPinnedIds] = useState(() => {
+    const ids = {};
+    for (const [id] of allEntries) {
+      if (localStorage.getItem(`simplifii:pinned-${id}`) === 'true') ids[id] = true;
+    }
+    return ids;
+  });
+  const [showArchived, setShowArchived] = useState(false);
+
+  const toggleArchive = useCallback((id) => {
+    setArchivedIds(prev => {
+      const next = { ...prev };
+      if (next[id]) { delete next[id]; localStorage.removeItem(`simplifii:archived-${id}`); }
+      else { next[id] = true; localStorage.setItem(`simplifii:archived-${id}`, 'true'); }
+      return next;
     });
-  }, [courseEntries, now]);
+  }, []);
+
+  const togglePin = useCallback((id) => {
+    setPinnedIds(prev => {
+      const next = { ...prev };
+      if (next[id]) { delete next[id]; localStorage.removeItem(`simplifii:pinned-${id}`); }
+      else { next[id] = true; localStorage.setItem(`simplifii:pinned-${id}`, 'true'); }
+      return next;
+    });
+  }, []);
+
+  // Sort courses: pinned first, then by earliest next-due, archived separated
+  const sortedCourses = useMemo(() => {
+    const active = courseEntries.filter(([id]) => !archivedIds[id]);
+    const sorted = [...active].sort((a, b) => {
+      const aPinned = pinnedIds[a[0]] ? 0 : 1;
+      const bPinned = pinnedIds[b[0]] ? 0 : 1;
+      if (aPinned !== bPinned) return aPinned - bPinned;
+      return findEarliestDue(a[1], now) - findEarliestDue(b[1], now);
+    });
+    return sorted;
+  }, [courseEntries, now, archivedIds, pinnedIds]);
+
+  const archivedCourses = useMemo(() => {
+    return courseEntries.filter(([id]) => archivedIds[id]);
+  }, [courseEntries, archivedIds]);
 
   const courseCount = courseEntries.length;
   const { overdue: overdueCount, thisWeek: thisWeekCount } = useMemo(() => countByState(courses, now), [courses, now]);
@@ -382,6 +424,9 @@ export default function HomeScreen() {
                     course={course}
                     density={display.cardDensity}
                     now={now}
+                    isPinned={!!pinnedIds[id]}
+                    onPin={() => togglePin(id)}
+                    onArchive={() => toggleArchive(id)}
                     onOpen={(cId) => {
                       const c = courses[cId];
                       const briefs = c?.extractionData?.assessmentBriefs || [];
@@ -402,6 +447,41 @@ export default function HomeScreen() {
                 >
                   View all courses ({filteredOut} hidden by term filter)
                 </button>
+              )}
+              {archivedCourses.length > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowArchived(v => !v)}
+                    className="home-view-all"
+                    style={{ marginBottom: showArchived ? 12 : 0 }}
+                  >
+                    {showArchived ? 'Hide' : 'Show'} archived ({archivedCourses.length})
+                  </button>
+                  {showArchived && (
+                    <div className={`home-grid ${display.cardDensity === 'compact' ? 'home-grid-compact' : ''}`} style={{ opacity: 0.6 }}>
+                      {archivedCourses.map(([id, course]) => (
+                        <CourseCard
+                          key={id}
+                          courseId={id}
+                          course={course}
+                          density={display.cardDensity}
+                          now={now}
+                          isPinned={false}
+                          onPin={() => togglePin(id)}
+                          onArchive={() => toggleArchive(id)}
+                          isArchived
+                          onOpen={(cId) => {
+                            const c = courses[cId];
+                            const briefs = c?.extractionData?.assessmentBriefs || [];
+                            if (briefs.length > 1) navigateToAssessments(cId);
+                            else navigateToCanvas(cId, null);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </section>
           </>
