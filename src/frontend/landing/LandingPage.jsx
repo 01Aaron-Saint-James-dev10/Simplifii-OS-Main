@@ -122,15 +122,14 @@ export default function LandingPage() {
             </p>
             <h1 className="lp-fade-1" style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(2.5rem, 8vw, 5rem)', lineHeight: 1.05, letterSpacing: '-0.03em', margin: '0 0 8px' }}>
               <span style={{ background: GRADIENT_EMERALD_CYAN, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                Not AI that does your thinking.
+                Drop in your assignment brief.
               </span>
               <br />
-              <span style={{ color: TEXT_PRIMARY }}>AI that protects it.</span>
+              <span style={{ color: TEXT_PRIMARY }}>Get a study plan in 30 seconds.</span>
             </h1>
 
             <p className="lp-fade-2" style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(1rem, 2.4vw, 1.25rem)', lineHeight: 1.7, maxWidth: 520, margin: '24px 0 36px', color: TEXT_MUTED }}>
-              The neuroinclusive thinking layer for every kind of mind.<br />
-              Prepare. Organise. Decide. In your own voice.
+              Simplifii reads your rubric, extracts your due dates, and builds your workspace before you type a single word. Free during beta. Built for every kind of mind.
             </p>
 
             <div className="lp-fade-3" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
@@ -405,7 +404,7 @@ export default function LandingPage() {
           No credit card. No ads. Your data, never sold.
         </p>
         <div style={{ marginTop: 24, maxWidth: 380, marginLeft: 'auto', marginRight: 'auto' }}>
-          <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_FAINT, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Or join the waitlist</p>
+          <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_FAINT, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Want early access to new features?</p>
           <EmailCapture source="landing-footer" />
         </div>
       </section>
