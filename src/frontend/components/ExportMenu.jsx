@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { exportToDocx, exportToTxt, exportToMarkdown } from '../../services/DocxExportService';
+import { exportToDocx, exportToTxt, exportToMarkdown, exportToSubmissionPdf } from '../../services/DocxExportService';
 import {
   SURFACE_CARD,
   SURFACE_RAISED,
@@ -30,9 +30,10 @@ import {
  */
 
 const FORMATS = [
-  { id: 'docx', label: 'Export DOCX', description: 'Word document with formatting' },
-  { id: 'txt', label: 'Export TXT', description: 'Plain text, no formatting' },
-  { id: 'md', label: 'Export Markdown', description: 'Markdown with headings and lists' },
+  { id: 'pdf',  label: 'Export PDF',      description: 'Submission-ready PDF, A4, Times New Roman' },
+  { id: 'docx', label: 'Export DOCX',     description: 'Word document with formatting' },
+  { id: 'txt',  label: 'Export TXT',      description: 'Plain text, no formatting' },
+  { id: 'md',   label: 'Export Markdown', description: 'Markdown with headings and lists' },
 ];
 
 export default function ExportMenu({ tiptapDoc, htmlContent, courseCode, assessmentTitle, courseId }) {
@@ -58,7 +59,8 @@ export default function ExportMenu({ tiptapDoc, htmlContent, courseCode, assessm
     setExporting(format);
     try {
       const payload = { tiptapDoc, htmlContent, courseCode, assessmentTitle, courseId };
-      if (format === 'docx') await exportToDocx(payload);
+      if (format === 'pdf') await exportToSubmissionPdf(payload);
+      else if (format === 'docx') await exportToDocx(payload);
       else if (format === 'txt') exportToTxt(payload);
       else if (format === 'md') exportToMarkdown(payload);
     } catch (err) {

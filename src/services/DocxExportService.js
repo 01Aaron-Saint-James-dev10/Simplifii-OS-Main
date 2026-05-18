@@ -9,6 +9,7 @@
 
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from 'docx';
 import { saveAs } from 'file-saver';
+import { jsPDF } from 'jspdf';
 import { appendEvent } from '../core/HistoryOfThought';
 
 /**
@@ -167,4 +168,174 @@ export function exportToMarkdown({ tiptapDoc, htmlContent, courseCode, assessmen
     : (htmlContent || '').replace(/<[^>]*>/g, ' ');
   const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
   saveAs(blob, buildFilename(courseCode, assessmentTitle, 'md'));
+}
+
+// ============================================================
+// Submission PDF export (jsPDF)
+// ============================================================
+
+const PDF_ML      = 25;  // mm: left margin
+const PDF_MR_W    = 210 - 25; // mm: right boundary (A4 width minus margin)
+const PDF_MT      = 30;  // mm: top margin (below header)
+const PDF_MB      = 270; // mm: bottom boundary (above footer)
+const PDF_COL_W   = 210 - 50; // mm: usable column width (page - 2 margins)
+const PDF_LINE_H  = 7;   // mm: line height (12pt * 1.5 = 18pt = ~6.35mm; rounded up)
+
+/**
+ * Render a single block of text onto the PDF, wrapping at PDF_COL_W.
+ * Returns updated y position after the block.
+ */
+function pdfBlock(doc, text, x, y, opts = {}) {
+  const { fontSize = 12, fontStyle = 'normal', indent = 0, extraSpaceAfter = 2 } = opts;
+  doc.setFont('times', fontStyle);
+  doc.setFontSize(fontSize);
+  const lines = doc.splitTextToSize(String(text || '').trim(), PDF_COL_W - indent);
+  for (const line of lines) {
+    if (y > PDF_MB) {
+      doc.addPage();
+      pdfPageHeader(doc, opts._courseCode || '', opts._assessmentTitle || '');
+      y = PDF_MT;
+    }
+    doc.text(line, x + indent, y);
+    y += PDF_LINE_H;
+  }
+  return y + extraSpaceAfter;
+}
+
+function pdfPageHeader(doc, courseCode, assessmentTitle) {
+  doc.setFont('times', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(120, 120, 120);
+  const header = [courseCode, assessmentTitle].filter(Boolean).join(' | ');
+  doc.text(header, PDF_ML, 15);
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.2);
+  doc.line(PDF_ML, 18, PDF_MR_W, 18);
+  doc.setTextColor(0, 0, 0);
+}
+
+function pdfPageFooter(doc, wordCount) {
+  const totalPages = doc.internal.getNumberOfPages();
+  const date = new Date().toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' });
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.2);
+    doc.line(PDF_ML, 280, PDF_MR_W, 280);
+    doc.setFont('times', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(120, 120, 120);
+    doc.text(`Word count: ${wordCount}  |  ${date}`, PDF_ML, 287);
+    doc.text(`${p} / ${totalPages}`, PDF_MR_W, 287, { align: 'right' });
+  }
+}
+
+/**
+ * Walk TipTap JSON and render each node to the PDF.
+ */
+function renderTiptapToPdf(doc, tiptapDoc, startY, courseCode, assessmentTitle) {
+  let y = startY;
+  if (!tiptapDoc || !tiptapDoc.content) return y;
+  const ctx = { _courseCode: courseCode, _assessmentTitle: assessmentTitle };
+
+  for (const node of tiptapDoc.content) {
+    if (node.type === 'heading') {
+      const level = node.attrs?.level || 1;
+      const text = (node.content || []).map(c => c.text || '').join('');
+      const fs = level === 1 ? 18 : level === 2 ? 14 : 13;
+      y = pdfBlock(doc, text, PDF_ML, y, { ...ctx, fontSize: fs, fontStyle: 'bold', extraSpaceAfter: 3 });
+    } else if (node.type === 'paragraph') {
+      const text = (node.content || []).map(c => c.text || '').join('');
+      if (text.trim()) {
+        y = pdfBlock(doc, text, PDF_ML, y, { ...ctx, extraSpaceAfter: 3 });
+      } else {
+        y += 4; // blank line
+      }
+    } else if (node.type === 'bulletList') {
+      for (const item of (node.content || [])) {
+        const text = (item.content || []).map(n => (n.content || []).map(c => c.text || '').join('')).join('');
+        y = pdfBlock(doc, `\u2022  ${text}`, PDF_ML, y, { ...ctx, indent: 4, extraSpaceAfter: 1 });
+      }
+      y += 3;
+    } else if (node.type === 'orderedList') {
+      node.content?.forEach((item, i) => {
+        const text = (item.content || []).map(n => (n.content || []).map(c => c.text || '').join('')).join('');
+        y = pdfBlock(doc, `${i + 1}.  ${text}`, PDF_ML, y, { ...ctx, indent: 4, extraSpaceAfter: 1 });
+      });
+      y += 3;
+    } else if (node.type === 'blockquote') {
+      doc.setDrawColor(180, 180, 180);
+      doc.setLineWidth(0.5);
+      const blockStart = y;
+      for (const child of (node.content || [])) {
+        const text = (child.content || []).map(c => c.text || '').join('');
+        y = pdfBlock(doc, text, PDF_ML + 8, y, { ...ctx, indent: 0, fontStyle: 'italic', extraSpaceAfter: 1 });
+      }
+      doc.line(PDF_ML + 2, blockStart - 1, PDF_ML + 2, y - 2);
+      doc.setLineWidth(0.2);
+      y += 4;
+    } else if (node.type === 'horizontalRule') {
+      doc.setDrawColor(180, 180, 180);
+      doc.setLineWidth(0.3);
+      doc.line(PDF_ML, y, PDF_MR_W, y);
+      y += 6;
+    }
+  }
+  return y;
+}
+
+/**
+ * Export to submission-ready PDF.
+ * Uses jsPDF with Times New Roman, 12pt, 1.5 line spacing.
+ */
+export async function exportToSubmissionPdf({ tiptapDoc, htmlContent, courseCode, assessmentTitle, courseId }) {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  doc.setDocumentProperties({
+    title: assessmentTitle || 'Draft',
+    author: '',
+    creator: 'Simplifii-OS',
+    subject: assessmentTitle || '',
+  });
+
+  // Page 1 header
+  pdfPageHeader(doc, courseCode, assessmentTitle);
+
+  // Title block
+  doc.setFont('times', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(0, 0, 0);
+  let y = PDF_MT;
+  if (assessmentTitle) {
+    const titleLines = doc.splitTextToSize(assessmentTitle, PDF_COL_W);
+    doc.text(titleLines, PDF_ML, y);
+    y += titleLines.length * 8 + 6;
+  }
+
+  // Body
+  if (tiptapDoc) {
+    y = renderTiptapToPdf(doc, tiptapDoc, y, courseCode, assessmentTitle);
+  } else {
+    const plain = (htmlContent || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const paragraphs = plain.split(/\n{2,}/);
+    for (const para of paragraphs) {
+      y = pdfBlock(doc, para, PDF_ML, y, {
+        _courseCode: courseCode, _assessmentTitle: assessmentTitle, extraSpaceAfter: 3,
+      });
+    }
+  }
+
+  const wordCount = tiptapDoc
+    ? tiptapToPlainText(tiptapDoc).trim().split(/\s+/).filter(Boolean).length
+    : (htmlContent || '').replace(/<[^>]*>/g, ' ').trim().split(/\s+/).filter(Boolean).length;
+
+  pdfPageFooter(doc, wordCount);
+
+  doc.save(buildFilename(courseCode, assessmentTitle, 'pdf'));
+
+  try {
+    await appendEvent({
+      event_type: 'export_complete',
+      payload: { format: 'pdf', wordCount, courseId, assessmentTitle, timestamp: Date.now() },
+    });
+  } catch { /* vault may be locked */ }
 }
