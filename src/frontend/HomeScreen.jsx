@@ -258,9 +258,6 @@ export default function HomeScreen() {
       </nav>
 
       <main className="home-main">
-        {/* First-time welcome banner (shows once after onboarding) */}
-        <WelcomeBanner />
-
         {/* Greeting: tier-aware + time-aware + context-aware */}
         {(() => {
           const name = displayName || '';
