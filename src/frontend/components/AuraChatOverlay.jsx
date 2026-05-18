@@ -57,18 +57,25 @@ function FormattedMessage({ text, style }) {
   };
 
   const formatInline = (str) => {
-    // Split on bold (**text** or __text__) and italic (*text* or _text_)
+    // Split on links [text](url), bold (**text** or __text__), italic (*text* or _text_)
     const parts = [];
     let remaining = str;
-    const inlineRe = /(\*\*(.+?)\*\*|__(.+?)__|(?<!\w)\*(.+?)\*(?!\w)|(?<!\w)_(.+?)_(?!\w))/g;
+    const inlineRe = /(\[(.+?)\]\((.+?)\)|\*\*(.+?)\*\*|__(.+?)__|(?<!\w)\*(.+?)\*(?!\w)|(?<!\w)_(.+?)_(?!\w))/g;
     let lastIndex = 0;
     let match;
     while ((match = inlineRe.exec(remaining)) !== null) {
       if (match.index > lastIndex) parts.push(remaining.slice(lastIndex, match.index));
-      const bold = match[2] || match[3];
-      const italic = match[4] || match[5];
-      if (bold) parts.push(React.createElement('strong', { key: `b${match.index}` }, bold));
-      else if (italic) parts.push(React.createElement('em', { key: `i${match.index}` }, italic));
+      const linkText = match[2];
+      const linkHref = match[3];
+      const bold = match[4] || match[5];
+      const italic = match[6] || match[7];
+      if (linkText && linkHref) {
+        parts.push(React.createElement('a', { key: `a${match.index}`, href: linkHref, target: '_blank', rel: 'noopener noreferrer', style: { color: ACCENT_PULSE, textDecoration: 'underline' } }, linkText));
+      } else if (bold) {
+        parts.push(React.createElement('strong', { key: `b${match.index}` }, bold));
+      } else if (italic) {
+        parts.push(React.createElement('em', { key: `i${match.index}` }, italic));
+      }
       lastIndex = match.index + match[0].length;
     }
     if (lastIndex < remaining.length) parts.push(remaining.slice(lastIndex));
