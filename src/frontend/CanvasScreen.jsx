@@ -33,8 +33,7 @@ import AffirmationBanner from './components/AffirmationBanner';
 import AnnouncementBanner from './components/AnnouncementBanner';
 import { getSensoryCSSVars, getSensoryProfile } from '../theme/sensoryProfiles';
 import FidgetZone from './components/FidgetZone';
-import MultimodalCanvas from './components/MultimodalCanvas';
-import QuestionNav from './components/QuestionNav';
+import QuestionCoach from './components/QuestionCoach';
 import { parseExamPaper } from '../services/ExamPaperParser';
 import { startAmbient, stopAmbient } from './services/AmbientSound';
 import { startIdleDetection, stopIdleDetection } from '../core/ExecutiveSpine';
@@ -603,15 +602,6 @@ export default function CanvasScreen() {
           </div>
         )}
         {/* Exam paper: show question nav instead of section rail */}
-        {isExamPaper && examData?.questions?.length > 0 && (
-          <QuestionNav
-            questions={examData.questions}
-            activeQuestion={activeQuestionNum}
-            onSelect={setActiveQuestionNum}
-            progress={{}}
-          />
-        )}
-
         {/* Vertical tab sidebar: 48px left column, restores layout anchoring */}
         {!isExamPaper && (
           <nav
@@ -735,17 +725,13 @@ export default function CanvasScreen() {
 
           {/* Exam paper: multimodal canvas per question. SectionEditor NEVER renders on exam papers. */}
           {isExamPaper ? (
-            examData?.questions?.length > 0 ? (
-              <MultimodalCanvas
-                question={examData.questions.find(q => q.number === activeQuestionNum) || examData.questions[0]}
-                documentId={courseId}
-                onAskTutor={(text) => { setPendingTutorMessage(text); setRailVisible(true); setActivePanelWithLog('tutor'); }}
-              />
-            ) : (
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', fontFamily: 'var(--font-system, system-ui)', fontSize: 12 }}> {/* allow-style */}
-                Parsing exam questions...
-              </div>
-            )
+            <QuestionCoach
+              questions={examData?.questions || []}
+              activeQuestion={activeQuestionNum}
+              onSelectQuestion={setActiveQuestionNum}
+              documentId={courseId}
+              onAskTutor={(text) => { setPendingTutorMessage(text); setRailVisible(true); setActivePanelWithLog('tutor'); }}
+            />
           ) : (
           <SectionEditor
             sections={activeSections}

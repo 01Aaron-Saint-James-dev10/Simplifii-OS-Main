@@ -1,3 +1,30 @@
+## Sprint 15: Journey Tests + Brief Weight Fix + rgba Cleanup + QuestionCoach
+**Date:** 2026-05-18
+
+### Commits
+
+| SHA | Change |
+|-----|--------|
+| `9815fb77` | journey-tests: replace smoke suites 1-4 with J1-J5 BABS1201 journey tests |
+| `9dd87362` | fix-brief-weight: prioritise dedicated weighting field over first-percentage match |
+| `0a4fedae` | rgba-cleanup: guard last unexempted raw rgba() in CanvasScreen with allow-style |
+| `e4738c04` | transform-question-api: four parallel UDL question variants via Promise.all |
+| (staged)  | secondary-canvas: QuestionCoach three-tier exam canvas |
+
+### Summary
+
+1. **Journey tests J1-J5**: replaced low-value smoke suites 1-4 with fixture-seeded journey tests covering dashboard, THINK tab, IDEAS tab, WRITE tab, and AURA Socratic guard. 20/20 pass in test mode, 12/12 against prod.
+2. **Brief weight fix**: BriefService.js line-anchored weighting regex now requires a weighting/weight/worth keyword context before accepting a percentage, preventing first-in-document grab from multi-assessment course outlines.
+3. **rgba cleanup**: last unguarded raw rgba() in CanvasScreen.jsx marked allow-style (CSS variable fallback for --sov-line-dim).
+4. **transform-question API**: new /api/transform-question — 5/min rate-limited, four parallel Claude calls returning plainLanguage, visualBreakdown, workedExample, audioReady.
+5. **QuestionCoach**: new three-tier exam canvas component replacing MultimodalCanvas + QuestionNav. Horizontal pill strip, UDL buttons calling /api/transform-question, AURA Tier 2 button, answer workspace with localStorage persistence. Bundle shrunk 2.25 kB.
+
+### Test Results
+
+12/12 regression tests pass (prod mode). Build compiles clean, no errors.
+
+---
+
 ## Sprint 14: AI Permission Level + Weight Fix + Test Fixture
 **Date:** 2026-05-18
 
