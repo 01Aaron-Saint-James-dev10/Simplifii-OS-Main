@@ -130,16 +130,17 @@ export default function SectionEditor({
         </span>
       </div>
 
-      {/* Editors: one per section, only active one visible */}
+      {/* Editors: only the active section mounts its editor. Inactive sections are not rendered,
+          preventing multiple TipTap instances and scoping the voice-transcript event. */}
       <div style={{ flex: 1, overflow: 'auto', background: SURFACE_BASE }}>
-        {sections.map(sec => (
-          <div key={sec.type} style={{ display: sec.type === activeSection ? 'flex' : 'none', flexDirection: 'column', height: '100%' }}>
+        {sections.map(sec => sec.type === activeSection && (
+          <div key={sec.type} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <RichTextEditor
               initialContent={sectionDrafts[sec.type] || ''}
               onTextChange={(html) => handleSectionChange(sec.type, html)}
               onWordCountChange={() => {}}
-              onJsonChange={sec.type === activeSection ? onJsonDocChange : undefined}
-              citationFlags={sec.type === activeSection ? citationFlags : []}
+              onJsonChange={onJsonDocChange}
+              citationFlags={citationFlags}
             />
           </div>
         ))}
