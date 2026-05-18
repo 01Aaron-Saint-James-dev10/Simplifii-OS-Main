@@ -30,10 +30,10 @@ const MQ_REDUCE = typeof window !== 'undefined' && window.matchMedia?.('(prefers
 /* ── Data ────────────────────────────────────────────────────────── */
 
 const PILLARS = [
-  { icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', title: 'Prepare', body: 'Decode the brief. Translate the rubric. Know what is actually being asked before you start.' },
-  { icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10', title: 'Organise', body: 'Drop in your sources. Sort your thinking. Build a space that holds your ideas as you write.' },
-  { icon: 'M8 9l4-4 4 4m0 6l-4 4-4-4', title: 'Decide', body: 'When you are stuck, surface the real options. When you are wrong, get told kindly.' },
-  { icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', title: 'Follow through', body: 'Every claim verified. Every citation real. Submission-ready, in your own words.' },
+  { icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', title: 'Upload your brief', body: 'Drop in your assignment, rubric, or course outline. Simplifii extracts every task, every deadline, and builds you a structured week-by-week plan.' },
+  { icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z', title: 'AURA guides you', body: 'AURA is your study companion, not a ghostwriter. It asks questions to sharpen your thinking. Adapts to how your brain works: step-by-step, visual, conversational, or audio.' },
+  { icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', title: 'All your deadlines', body: 'Every assessment, every due date, automatically organised by urgency. Export to Apple Calendar, Google Calendar, or any calendar app in one tap.' },
+  { icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', title: 'Focus with AURA', body: 'Body doubling, Pomodoro timer, ambient sound, and AURA present the whole time. See how many other students are working right now.' },
 ];
 
 // Awards removed: belong to Aaron personally, not the app. See Sprint V backlog.
@@ -122,14 +122,14 @@ export default function LandingPage() {
             </p>
             <h1 className="lp-fade-1" style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(2.5rem, 8vw, 5rem)', lineHeight: 1.05, letterSpacing: '-0.03em', margin: '0 0 8px' }}>
               <span style={{ background: GRADIENT_EMERALD_CYAN, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                Drop in your assignment brief.
+                Every other study tool writes for you.
               </span>
               <br />
-              <span style={{ color: TEXT_PRIMARY }}>Get a study plan in 30 seconds.</span>
+              <span style={{ color: TEXT_PRIMARY }}>AURA thinks with you.</span>
             </h1>
 
             <p className="lp-fade-2" style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(1rem, 2.4vw, 1.25rem)', lineHeight: 1.7, maxWidth: 520, margin: '24px 0 36px', color: TEXT_MUTED }}>
-              Simplifii reads your rubric, extracts your due dates, and builds your workspace before you type a single word. Free during beta. Built for every kind of mind.
+              Breaking down assessments. Timetabling your work. Knowing what to do next. Finally.
             </p>
 
             <div className="lp-fade-3" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
@@ -184,7 +184,7 @@ export default function LandingPage() {
               <div style={{ textAlign: 'center', marginTop: 16 }}>
                 <span style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: TEXT_FAINT }}>
                   <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: ACCENT_PULSE, marginRight: 6, boxShadow: `0 0 8px ${ACCENT_PULSE}`, verticalAlign: 'middle' }} />
-                  sovereign runtime active
+                  AURA is ready
                 </span>
               </div>
             </div>
@@ -443,7 +443,7 @@ export default function LandingPage() {
           </div>
         </div>
         <div style={{ maxWidth: 960, margin: '32px auto 0', paddingTop: 20, borderTop: `1px solid ${GLASS_BORDER}`, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-          <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_LABEL, letterSpacing: '0.04em', margin: 0 }}>&copy; 2026 Simplifii Pty Ltd, ABN [Aaron will provide]. Patent pending.</p>
+          <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_LABEL, letterSpacing: '0.04em', margin: 0 }}>&copy; 2026 Simplifii Pty Ltd, ABN 52 696 711 887. Provisional patent filed 2026902550.</p>
           <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_LABEL, letterSpacing: '0.04em', margin: 0 }}>
             Made with care for every kind of mind | <a href="https://buymeacoffee.com/simplifii" target="_blank" rel="noopener noreferrer" style={{ color: ACCENT_PULSE, textDecoration: 'none' }}>Buy us a coffee</a>
           </p>
