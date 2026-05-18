@@ -2,6 +2,18 @@
 
 ---
 
+## Sprint 14: AI Permission Level Extraction
+
+**Location:** `api/extract-document.js` + canvas display
+
+**Issue:** UNSW and all Australian universities specify AI permission level in every assessment brief. Values: No Assistance, Assistance with Attribution, Full Assistance. Simplifii does not extract or display this field.
+
+**Fix:** Add `aiPermission` field to extract-document.js JSON schema alongside weight. Store as `extractionData.aiPermission`. In CanvasScreen, if aiPermission is "No Assistance", show a prominent banner before AURA activates: "Your lecturer has set this assessment to No AI Assistance. AURA can help you think but cannot generate content for this task." This is the academic integrity differentiator.
+
+**Priority:** Sprint 14
+
+---
+
 ## Sprint O: Game Layer (Cognitive Breaks)
 
 Embedded mini-games as ADHD/EF regulation tools: 5-min breath visualiser, pattern matching, word association, Pomodoro break activities. Voluntary, never forced. Tracks total break time as positive metric. Schema: game_sessions. Effort: 12-16 hours.
@@ -1054,3 +1066,12 @@ When student opens Phase 1 (Understand), AURA proactively shows relevant communi
 **Location:** Supabase courses table, courseName field
 **Issue:** B12 fixed display via stripMarkdown but existing records still store __BABS1201__ raw. Students who created courses before the fix have dirty underlying data.
 **Fix:** Sanitise courseName on write in course creation flow. Strip markdown before saving to Supabase.
+
+---
+
+## CRAFT-C1: tier_transition events missing assessment_title_hash in telemetry
+
+**Priority:** P3 (data quality, not blocking)
+**Location:** src/core/EventBus.js — tier_transition emission
+**Issue:** assessment_title_hash is NULL for all tier_transition telemetry events. The tier_transition payload does not include assessmentTitle at the point of emission, so pushToCloud receives nothing to hash. All other event types include assessmentTitle in their payload and hash correctly.
+**Fix:** Pass assessmentTitle in the tier_transition payload wherever the event is dispatched (CanvasScreen.jsx tier tab switches). EventBus or HistoryOfThought.appendEvent will then hash it via the existing hashValue() path before cloud emission.

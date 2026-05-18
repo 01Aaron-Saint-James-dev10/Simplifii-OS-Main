@@ -1,0 +1,133 @@
+{
+  "id": "test-babs1201-00000000",
+  "name": "BABS1201 Molecules Cells and Genes",
+  "code": "BABS1201",
+  "tier": "tertiary",
+  "term": "T1 2025",
+  "extractionData": {
+    "documents": [
+      {
+        "type": "brief",
+        "filename": "BABS1201_Literature_Review_Brief.pdf",
+        "text": "Write a 2000-word mini literature review on a biology topic of your choice. The review must include an introduction, body sections, and conclusion. Use three peer-reviewed scientific articles (two primary, one review). Apply Harvard referencing style throughout.",
+        "title": "Mini Literature Review",
+        "rubricCriteria": [],
+        "rubricBands": []
+      },
+      {
+        "type": "rubric",
+        "filename": "BABS1201_Literature_Review_Rubric.pdf",
+        "text": "Introduce the topic (2 marks), Content (2 marks), Conclusion (1 mark), Readability (2 marks), References (3 marks), Research process (15 marks).",
+        "title": "Literature Review Rubric",
+        "rubricCriteria": [
+          {"criterion": "Introduce the topic", "weighting": "2 marks"},
+          {"criterion": "Content", "weighting": "2 marks"},
+          {"criterion": "Conclusion", "weighting": "1 mark"},
+          {"criterion": "Readability", "weighting": "2 marks"},
+          {"criterion": "References", "weighting": "3 marks"},
+          {"criterion": "Research process", "weighting": "15 marks"}
+        ],
+        "rubricBands": []
+      }
+    ],
+    "sourceFiles": [
+      "BABS1201_Literature_Review_Brief.pdf",
+      "BABS1201_Literature_Review_Rubric.pdf"
+    ],
+    "nodes": [
+      {
+        "nodeType": "XN1",
+        "content": "Write a 2000-word mini literature review on a biology topic of your choice. The review must include an introduction, body sections, and conclusion. Use three peer-reviewed scientific articles (two primary, one review). Apply Harvard referencing style throughout.",
+        "confidence": 0.9
+      },
+      {
+        "nodeType": "XN2",
+        "content": "Word count: 2000 words maximum (excluding reference list). Format: Introduction, body paragraphs, conclusion, research process section, reference list. Referencing style: Harvard. Submission: Turnitin, one submission only.",
+        "confidence": 0.9
+      },
+      {
+        "nodeType": "XN3",
+        "content": "Weight: 25. Due: Week 5, Friday 5pm. Course: BABS1201 Molecules Cells and Genes.",
+        "confidence": 0.9
+      },
+      {
+        "nodeType": "XN4",
+        "content": "LO1: Locate and evaluate peer-reviewed scientific literature. LO2: Synthesise information from multiple sources. LO3: Communicate scientific information clearly in written form.",
+        "confidence": 0.9
+      },
+      {
+        "nodeType": "XN5",
+        "content": "Hidden curriculum: 'mini literature review' implies academic register, not conversational tone. 'Peer-reviewed' excludes textbooks and websites. Harvard referencing implies UNSW standard. 'Research process section' implies metacognitive reflection on search strategy. Two primary articles means original research papers, not reviews.",
+        "confidence": 0.7
+      },
+      {
+        "nodeType": "YN1",
+        "content": "[{\"criterion\":\"Introduce the topic\",\"weighting\":\"2 marks\"},{\"criterion\":\"Content\",\"weighting\":\"2 marks\"},{\"criterion\":\"Conclusion\",\"weighting\":\"1 mark\"},{\"criterion\":\"Readability\",\"weighting\":\"2 marks\"},{\"criterion\":\"References\",\"weighting\":\"3 marks\"},{\"criterion\":\"Research process\",\"weighting\":\"15 marks\"}]",
+        "confidence": 0.9
+      },
+      {
+        "nodeType": "YN2",
+        "content": "[{\"band\":\"HD\",\"descriptor\":\"Demonstrates exceptional synthesis of literature with clear critical evaluation and original insight\"},{\"band\":\"DN\",\"descriptor\":\"Demonstrates strong synthesis with consistent critical evaluation\"},{\"band\":\"CR\",\"descriptor\":\"Demonstrates adequate synthesis with some critical evaluation\"},{\"band\":\"PS\",\"descriptor\":\"Demonstrates basic understanding with limited synthesis\"},{\"band\":\"FL\",\"descriptor\":\"Does not demonstrate adequate understanding or synthesis\"}]",
+        "confidence": 0.8
+      },
+      {
+        "nodeType": "QN1",
+        "content": "Question 1. Describe the structure of a eukaryotic cell membrane. (4 marks)",
+        "confidence": 0.9,
+        "question_number": 1,
+        "marks": 4,
+        "question_type": "short_answer"
+      },
+      {
+        "nodeType": "QN2",
+        "content": "Question 2. Explain the process of DNA replication in prokaryotes. Include a labelled diagram. (6 marks)",
+        "confidence": 0.9,
+        "question_number": 2,
+        "marks": 6,
+        "question_type": "short_answer"
+      },
+      {
+        "nodeType": "QN3",
+        "content": "Question 3. Compare and contrast mitosis and meiosis. Discuss the significance of each process in the context of genetic diversity. (8 marks)",
+        "confidence": 0.9,
+        "question_number": 3,
+        "marks": 8,
+        "question_type": "extended_response"
+      },
+      {
+        "nodeType": "QN4",
+        "content": "Question 4. Evaluate the role of epigenetic modifications in gene expression regulation. Use at least two specific examples from the literature. (10 marks)",
+        "confidence": 0.9,
+        "question_number": 4,
+        "marks": 10,
+        "question_type": "extended_response"
+      },
+      {
+        "nodeType": "QN5",
+        "content": "Question 5. Which of the following is NOT a function of the Golgi apparatus? (a) Protein modification (b) Lipid synthesis (c) DNA replication (d) Vesicle formation (1 mark)",
+        "confidence": 0.9,
+        "question_number": 5,
+        "marks": 1,
+        "question_type": "multiple_choice"
+      }
+    ],
+    "assessmentBriefs": [
+      {
+        "title": "Mini Literature Review",
+        "body": "Write a 2000-word mini literature review on a biology topic of your choice.",
+        "dueDate": "2025-03-28",
+        "weight": "25%",
+        "wordCountGoal": 2000,
+        "rubricCriteria": [
+          "Introduce the topic",
+          "Content",
+          "Conclusion",
+          "Readability",
+          "References",
+          "Research process"
+        ]
+      }
+    ],
+    "rawText": "BABS1201 Molecules Cells and Genes. Assessment Task 1: Mini Literature Review. Weight: 25%. Due: Friday Week 5, 5pm. Word count: 2000 words (excluding reference list)."
+  }
+}
