@@ -487,7 +487,7 @@ export default function CanvasScreen() {
           toolId="rubric-decoder" title="Rubric Decoder" endpoint="/api/decode-rubric" resultKey="decoded"
           description="Plain language translation of what markers actually want."
           buttonLabel="Decode rubric"
-          buildPayload={(brief, rubric, draft, s) => ({ rubricText: rubric || brief, assessmentTitle: s.assessmentTitle, tier: s.tier, literalMode: s.literalMode, accessibilityProfile: s.accessibilityProfile, learnerContext: s.learnerContext })}
+          buildPayload={(brief, rubric, draft, s) => ({ rubricText: brief, assessmentTitle: s.assessmentTitle, tier: s.tier, literalMode: s.literalMode, accessibilityProfile: s.accessibilityProfile, learnerContext: s.learnerContext })}
           briefText={briefOrText} rubricText={rubricCriteria?.join('\n') || ''} draftText="" assessmentTitle={currentTitle} courseId={courseId}
         />
       </div>

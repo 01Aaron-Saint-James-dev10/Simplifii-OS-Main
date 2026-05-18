@@ -22,6 +22,7 @@ import {
   FONT_SYSTEM, FONT_BODY,
   BORDER_RADIUS, FOCUS_RING,
 } from '../../theme/tokens';
+import stripMarkdown from '../../utils/stripMarkdown';
 
 /**
  * AuraChatOverlay
@@ -409,13 +410,7 @@ export default function AuraChatOverlay({ open, onClose }) {
       };
 
       const cleanReply = (raw) => {
-        const stripped = raw
-          .replace(/\*\*(.+?)\*\*/g, '$1')
-          .replace(/__(.+?)__/g, '$1')
-          .replace(/\*(.+?)\*/g, '$1')
-          .replace(/_(.+?)_/g, '$1')
-          .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-          .replace(/^#{1,4}\s+/gm, '');
+        const stripped = stripMarkdown(raw);
         return isLiteralMode ? literalise(stripped) : stripped;
       };
 
