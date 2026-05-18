@@ -22,5 +22,7 @@ export default function stripMarkdown(text) {
     .replace(/^[\s]*[-*+]\s+/gm, '')
     // Numbered list markers: 1. item → item
     .replace(/^[\s]*\d+\.\s+/gm, '')
+    // AURA tool tags: [TOOL:simplify] → (stripped, must never reach editor or display)
+    .replace(/\s*\[TOOL:\w+\]\s*/g, '')
     .trim();
 }

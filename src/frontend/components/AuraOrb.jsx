@@ -430,14 +430,7 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
               outline: 'none',
             }}
           >
-            {/* Ditto face */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, pointerEvents: 'none' }}>
-              <div style={{ display: 'flex', gap: 9 }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#2d1a4a' }} />
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#2d1a4a' }} />
-              </div>
-              <div style={{ width: 14, height: 7, borderBottom: '2px solid #2d1a4a', borderRadius: '0 0 10px 10px' }} />
-            </div>
+            <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 700, color: '#ede9f7', letterSpacing: '-1px', pointerEvents: 'none', userSelect: 'none' }}>{'>_<'}</span> {/* allow-style */}
           </button>
           <button type="button" onClick={toggleMinimise} aria-label="Minimise AURA"
             style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: 'rgba(180,159,212,0.3)', border: 'none', cursor: 'pointer', fontSize: 9, color: '#2d1a4a', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}> {/* allow-style */}
@@ -503,27 +496,26 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
         {'\u2212'}
       </button>
 
-      {/* Ditto face overlay: centred over the 3D canvas */}
-      <div
+      {/* Cyber face overlay: centred over the 3D canvas */}
+      <span
         style={{
           position: 'absolute',
-          top: '38%',
+          top: '42%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 4,
+          fontFamily: 'monospace',
+          fontSize: 14,
+          fontWeight: 700,
+          color: '#ede9f7',
+          letterSpacing: '-1px',
           pointerEvents: 'none',
           zIndex: 1,
+          userSelect: 'none',
+          textShadow: '0 0 6px rgba(180,159,212,0.9)', /* allow-style */
         }}
       >
-        <div style={{ display: 'flex', gap: 9 }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#2d1a4a', boxShadow: '0 0 2px rgba(255,255,255,0.3)' }} /> {/* allow-style */}
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#2d1a4a', boxShadow: '0 0 2px rgba(255,255,255,0.3)' }} /> {/* allow-style */}
-        </div>
-        <div style={{ width: 14, height: 7, borderBottom: '2px solid #2d1a4a', borderRadius: '0 0 10px 10px' }} /> {/* allow-style */}
-      </div>
+        {'>_<'}
+      </span>
 
       <Canvas
         camera={{ position: [0, 0, 3], fov: 45 }}
