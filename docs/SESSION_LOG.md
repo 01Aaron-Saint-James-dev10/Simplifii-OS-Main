@@ -1,3 +1,27 @@
+## Sprint 14: AI Permission Level + Weight Fix + Test Fixture
+**Date:** 2026-05-18
+
+### Commits
+
+| SHA | Change |
+|-----|--------|
+| `d43a4071` | fix-weight-extraction: disambiguate weight for multi-assessment briefs |
+| `3a572f15` | fixture-babs1201: real BABS1201 test fixture with XN/YN/QN nodes |
+| `c4179331` | sprint-14-ai-permission: extract aiPermission, No Assistance banner in canvas |
+
+### Summary
+
+1. **Weight extraction fix**: extract-document.js prompt disambiguates weight to the specific assessment described in the brief, not the first percentage found.
+2. **Test fixture**: tests/fixtures/test-course.json with real BABS1201 structure (5 XN, 2 YN, 5 QN nodes, 6 rubric criteria).
+3. **AI Permission Level**: new `aiPermission` field in extract-document.js (no_assistance, assistance_with_attribution, full_assistance). useIngestion stores it. CanvasScreen displays dismissible amber banner when no_assistance detected.
+4. **Sprint 14 backlog entry**: AI Permission Level documented in docs/BACKLOG.md.
+
+### Test Results
+
+15/15 regression tests pass. Build compiles clean.
+
+---
+
 ## Sprint 13.7: Weight Extraction Fix + BABS1201 Test Fixture
 **Date:** 2026-05-18
 
