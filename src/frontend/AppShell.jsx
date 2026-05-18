@@ -15,6 +15,7 @@ import AiDisclaimerFooter from './components/disclaimers/AiDisclaimerFooter';
 import FeedbackButton from './feedback/FeedbackButton';
 import AuraOrb from './components/AuraOrb';
 import AuraChatOverlay from './components/AuraChatOverlay';
+import ErrorBoundary from './components/ErrorBoundary';
 import FirstTimeTooltip from './components/FirstTimeTooltip';
 import EnergyOrbs from './components/EnergyOrbs';
 import CanvasSettingsOverlay from './components/CanvasSettingsOverlay';
@@ -166,7 +167,9 @@ export default function AppShell() {
               <MatrixRain />
               <div style={{ position: 'relative', zIndex: 1 }}>
                 <BetaBanner />
-                <ViewSwitch />
+                <ErrorBoundary>
+                  <ViewSwitch />
+                </ErrorBoundary>
               </div>
               <EnergyOrbs userId={user?.id || 'anon'} />
               <FeedbackButton />

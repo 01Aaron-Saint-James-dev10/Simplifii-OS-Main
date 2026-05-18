@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import AsciiLoader from './AsciiLoader';
 import {
   SURFACE_RAISED,
