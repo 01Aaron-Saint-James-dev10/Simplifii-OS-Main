@@ -48,6 +48,10 @@ import { appendEvent } from '../core/HistoryOfThought';
 import TaskPhaseBar from './components/TaskPhaseBar';
 import { buildAssessmentKey, getCurrentPhaseId, setCurrentPhaseId } from '../core/TaskSequenceManager';
 import './CanvasScreen.css';
+import {
+  COLOUR_WARN, COLOUR_WARN_TINT, COLOUR_WARN_BORDER,
+  ACCENT_GLASS_SUBTLE, ACCENT_LINE_DIM,
+} from '../theme/tokens';
 
 /**
  * CanvasScreen (Screen 4)
@@ -607,9 +611,9 @@ export default function CanvasScreen() {
       <div className="canvas-body">
         {/* AI Permission banner: No Assistance warning */}
         {!aiPermDismissed && course.extractionData?.aiPermission === 'no_assistance' && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: 'var(--colour-warn-tint, rgba(245,158,11,0.06))', borderBottom: '1px solid var(--colour-warn-border, rgba(245,158,11,0.2))', fontFamily: 'var(--font-body, Inter, sans-serif)', fontSize: 12, color: 'var(--colour-warn, #f59e0b)' }}> {/* allow-style */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: COLOUR_WARN_TINT, borderBottom: `1px solid ${COLOUR_WARN_BORDER}`, fontFamily: 'var(--font-body, Inter, sans-serif)', fontSize: 12, color: COLOUR_WARN }}> {/* allow-style */}
             <span>Your lecturer has set this assessment to No AI Assistance. AURA can help you think but cannot generate content for this task.</span>
-            <button type="button" onClick={() => setAiPermDismissed(true)} aria-label="Dismiss" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--colour-warn, #f59e0b)', fontSize: 16, padding: 4, minHeight: 28, minWidth: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{'\u2715'}</button>
+            <button type="button" onClick={() => setAiPermDismissed(true)} aria-label="Dismiss" style={{ background: 'none', border: 'none', cursor: 'pointer', color: COLOUR_WARN, fontSize: 16, padding: 4, minHeight: 28, minWidth: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{'\u2715'}</button>
           </div>
         )}
         {/* Exam paper: show question nav instead of section rail */}
@@ -772,7 +776,7 @@ export default function CanvasScreen() {
                         ? '1px solid var(--sov-line, #10b981)' /* allow-style */
                         : '1px solid var(--theme-border, #27272a)', /* allow-style */
                       background: isActive
-                        ? 'var(--accent-glass, rgba(16,185,129,0.06))' /* allow-style */
+                        ? ACCENT_GLASS_SUBTLE
                         : 'transparent',
                       color: isActive
                         ? 'var(--sov-line, #10b981)' /* allow-style */
@@ -833,7 +837,7 @@ export default function CanvasScreen() {
             aria-label="Open tools"
             title="Open tools panel"
             onClick={() => setRailVisible(true)}
-            style={{ position: 'absolute', right: 8, top: 56, zIndex: 20, width: 32, height: 32, borderRadius: 16, background: 'var(--sov-line-dim, rgba(16,185,129,0.18))', border: 'none', color: 'var(--sov-line, #10b981)', cursor: 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }} /* allow-style */
+            style={{ position: 'absolute', right: 8, top: 56, zIndex: 20, width: 32, height: 32, borderRadius: 16, background: ACCENT_LINE_DIM, border: 'none', color: 'var(--sov-line, #10b981)', cursor: 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }} /* allow-style */
           >
             T
           </button>

@@ -28,7 +28,8 @@ export const OVERLAY_RULER   = 'rgba(0,0,0,0.15)';  // Reading ruler mask bands
 export const OVERLAY_MEDIUM  = 'rgba(0,0,0,0.5)';   // Modal backdrop, overlay
 export const OVERLAY_HEAVY   = 'rgba(0,0,0,0.8)';   // Dense overlay
 export const OVERLAY_GAME    = 'rgba(9,9,11,0.85)';  // Game over screen backdrop
-export const OVERLAY_BACKDROP = 'rgba(7,8,13,0.94)'; // Full-screen backdrop
+export const OVERLAY_BACKDROP  = 'rgba(7,8,13,0.94)'; // Full-screen backdrop
+export const OVERLAY_SPOTLIGHT = 'rgba(0,0,0,0.76)';  // Onboarding spotlight cutout
 
 // White tint ramp
 export const WHITE_TINT_FAINT  = 'rgba(255,255,255,0.04)'; // Subtle hover fill
@@ -63,6 +64,9 @@ export const ACCENT_CYAN       = '#22d3ee'; // Cyan 400: gradient end
 
 // Gradient presets
 export const GRADIENT_EMERALD_CYAN = `linear-gradient(135deg, ${ACCENT_PULSE}, ${ACCENT_CYAN})`;
+
+// Emerald 0.18 (sovereign hairline / Tools button background)
+export const ACCENT_LINE_DIM = 'rgba(16,185,129,0.18)';
 
 // Emerald alpha ramp (opacity tiers)
 export const ACCENT_GLASS_FAINT   = 'rgba(16,185,129,0.03)'; // Faintest tint
@@ -129,6 +133,15 @@ export const COLOUR_INDIGO_BORDER      = 'rgba(79,70,229,0.15)';  // Indigo bord
 export const COLOUR_PURPLE_GLOW        = 'rgba(168,85,247,0.3)';  // Purple glow
 export const COLOUR_PURPLE_GLOW_STRONG = 'rgba(168,85,247,0.5)';  // Strong purple glow
 
+// AURA orb (soft violet/lavender) ramp
+export const AURA_TINT        = '#b49fd4';                  // AURA text colour
+export const AURA_GLASS       = 'rgba(180,159,212,0.18)';   // AURA chip background
+export const AURA_GLASS_LIGHT = 'rgba(180,159,212,0.25)';   // AURA mini-orb bg
+export const AURA_GLASS_MED   = 'rgba(180,159,212,0.30)';   // AURA minimise button
+export const AURA_BORDER      = 'rgba(180,159,212,0.40)';   // AURA chip/orb border
+export const AURA_GLOW        = 'rgba(180,159,212,0.50)';   // AURA orb shadow
+export const AURA_GLOW_STRONG = 'rgba(180,159,212,0.90)';   // AURA text glow
+
 // Amber focus/glow
 export const COLOUR_WARN_FOCUS = 'rgba(245,158,11,0.3)'; // Amber focus ring, avatar dim
 
@@ -149,6 +162,11 @@ export const VAULT_GREEN_GLOW          = 'rgba(80,200,120,0.45)'; // Vault shado
 export const GLASS_SURFACE     = 'rgba(255,255,255,0.02)';  // Glass card fill
 export const GLASS_BORDER      = 'rgba(255,255,255,0.08)';  // Glass card border
 export const GLASS_BORDER_HOVER = 'rgba(255,255,255,0.14)'; // Glass card hover border
+// Composite card box-shadows (black shadow layers)
+export const SHADOW_CARD_DEFAULT = '0 1px 4px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.12)';
+export const SHADOW_CARD_HOVER   = '0 2px 8px rgba(0,0,0,0.28), 0 8px 32px rgba(0,0,0,0.18)';
+export const SHADOW_UPNEXT       = `0 0 32px ${ACCENT_BORDER_FAINT}, 0 2px 8px rgba(0,0,0,0.2), 0 8px 32px rgba(0,0,0,0.14)`;
+
 export const GLOW_EMERALD      = `0 0 60px ${ACCENT_GLOW_50}, 0 0 120px ${ACCENT_BORDER_FAINT}`; // CTA glow
 export const GLOW_EMERALD_SM   = `0 0 20px ${ACCENT_GLOW_50}`; // Subtle card glow
 export const ACCENT_RADIAL_FAINT = ACCENT_GLASS_FAINT;      // Radial gradient fill

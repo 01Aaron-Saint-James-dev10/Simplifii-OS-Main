@@ -1,6 +1,10 @@
 import React, { useRef, useMemo, useEffect, useState, useCallback } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import {
+  AURA_TINT, AURA_GLASS, AURA_GLASS_LIGHT, AURA_GLASS_MED,
+  AURA_BORDER, AURA_GLOW, AURA_GLOW_STRONG,
+} from '../../theme/tokens';
 
 /**
  * AuraOrb
@@ -388,8 +392,8 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
           alignItems: 'center',
           gap: 6,
           padding: '5px 12px',
-          background: 'rgba(180,159,212,0.18)', /* allow-style */
-          border: '1px solid rgba(180,159,212,0.4)', /* allow-style */
+          background: AURA_GLASS,
+          border: `1px solid ${AURA_BORDER}`,
           borderRadius: 20,
           cursor: 'pointer',
           fontFamily: 'var(--font-system, system-ui)',
@@ -430,8 +434,8 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
               height: 64,
               borderRadius: '50%',
               background: 'radial-gradient(circle at 35% 30%, #d0bfe8, #b49fd4)', /* allow-style */
-              border: '2px solid rgba(180,159,212,0.4)', /* allow-style */
-              boxShadow: '0 0 24px rgba(180,159,212,0.5)', /* allow-style */
+              border: `2px solid ${AURA_BORDER}`,
+              boxShadow: `0 0 24px ${AURA_GLOW}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -442,7 +446,7 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
             <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 700, color: '#ede9f7', letterSpacing: '-1px', pointerEvents: 'none', userSelect: 'none' }}>{'>_<'}</span> {/* allow-style */}
           </button>
           <button type="button" onClick={toggleMinimise} aria-label="Minimise AURA"
-            style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: 'rgba(180,159,212,0.3)', border: 'none', cursor: 'pointer', fontSize: 9, color: '#2d1a4a', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}> {/* allow-style */}
+            style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: AURA_GLASS_MED, border: 'none', cursor: 'pointer', fontSize: 9, color: '#2d1a4a', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
             {'\u2212'}
           </button>
         </div>
@@ -490,7 +494,7 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
           width: 18,
           height: 18,
           borderRadius: '50%',
-          background: 'rgba(180,159,212,0.25)', /* allow-style */
+          background: AURA_GLASS_LIGHT,
           border: 'none',
           cursor: 'pointer',
           fontSize: 10,
@@ -522,7 +526,7 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
           pointerEvents: 'none',
           zIndex: 1,
           userSelect: 'none',
-          textShadow: '0 0 6px rgba(180,159,212,0.9)', /* allow-style */
+          textShadow: `0 0 6px ${AURA_GLOW_STRONG}`,
         }}
       >
         {'>_<'}

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   FONT_SYSTEM,
   BORDER_RADIUS, FOCUS_RING,
+  ACCENT_LINE_DIM,
 } from '../../theme/tokens';
 
 const THEMES = [
@@ -80,7 +81,7 @@ export default function ThemeSwitcher() {
         textTransform: 'uppercase',
         color: 'var(--sov-line, #10b981)', /* allow-style */
         background: 'transparent',
-        border: '1px solid var(--sov-hairline, rgba(16,185,129,0.18))', /* allow-style */
+        border: `1px solid ${ACCENT_LINE_DIM}`,
         borderRadius: BORDER_RADIUS,
         padding: '4px 10px',
         cursor: 'pointer',

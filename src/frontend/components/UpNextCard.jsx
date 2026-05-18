@@ -16,6 +16,8 @@ import {
   FONT_BODY,
   BORDER_RADIUS,
   FOCUS_RING,
+  SHADOW_CARD_DEFAULT,
+  SHADOW_UPNEXT,
 } from '../../theme/tokens';
 
 /**
@@ -75,7 +77,7 @@ export default function UpNextCard({ courses, onOpenCanvas, now: nowProp }) {
           borderRadius: 16,
           padding: '28px',
           textAlign: 'center',
-          boxShadow: '0 1px 4px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.12)', // allow-style
+          boxShadow: SHADOW_CARD_DEFAULT,
         }}
       >
         <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_MUTED, margin: 0 }}>
@@ -97,7 +99,7 @@ export default function UpNextCard({ courses, onOpenCanvas, now: nowProp }) {
         display: 'flex',
         flexDirection: 'column',
         gap: 20,
-        boxShadow: `0 0 32px ${ACCENT_BORDER_FAINT}, 0 2px 8px rgba(0,0,0,0.2), 0 8px 32px rgba(0,0,0,0.14)`, // allow-style
+        boxShadow: SHADOW_UPNEXT,
       }}
     >
       {/* Header row */}

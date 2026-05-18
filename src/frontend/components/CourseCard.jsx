@@ -17,6 +17,8 @@ import {
   FONT_BODY,
   BORDER_RADIUS,
   FOCUS_RING,
+  SHADOW_CARD_DEFAULT,
+  SHADOW_CARD_HOVER,
 } from '../../theme/tokens';
 
 /**
@@ -103,16 +105,16 @@ export default function CourseCard({ course, courseId, density = 'standard', onO
         display: 'flex',
         flexDirection: 'column',
         gap: isCompact ? 10 : 14,
-        boxShadow: '0 1px 4px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.12)', // allow-style
+        boxShadow: SHADOW_CARD_DEFAULT,
         transitionProperty: 'border-color, box-shadow', transitionDuration: '160ms', // allow-style
       }}
       onMouseEnter={e => {
         e.currentTarget.style.borderColor = ACCENT_BORDER;
-        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.28), 0 8px 32px rgba(0,0,0,0.18)'; // allow-style
+        e.currentTarget.style.boxShadow = SHADOW_CARD_HOVER;
       }}
       onMouseLeave={e => {
         e.currentTarget.style.borderColor = isPinned ? ACCENT_BORDER : SURFACE_RAISED;
-        e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.12)'; // allow-style
+        e.currentTarget.style.boxShadow = SHADOW_CARD_DEFAULT;
       }}
     >
       {/* Header: name + pill */}

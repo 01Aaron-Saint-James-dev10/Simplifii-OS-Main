@@ -5,6 +5,7 @@ import {
   ACCENT_PULSE, ACCENT_BORDER,
   FONT_SYSTEM, FONT_BODY,
   BORDER_RADIUS,
+  OVERLAY_SPOTLIGHT, OVERLAY_MEDIUM,
 } from '../../theme/tokens';
 
 const TOUR_KEY = 'simplifii-tour-complete';
@@ -200,7 +201,7 @@ export default function OnboardingTour() {
         width: pos.spotW,
         height: pos.spotH,
         borderRadius: BORDER_RADIUS + 2,
-        boxShadow: '0 0 0 9999px rgba(0,0,0,0.76)',
+        boxShadow: `0 0 0 9999px ${OVERLAY_SPOTLIGHT}`,
         pointerEvents: 'none',
         transition: 'top 220ms ease, left 220ms ease, width 220ms ease, height 220ms ease',
       }} />
@@ -215,7 +216,7 @@ export default function OnboardingTour() {
         border: `1px solid ${ACCENT_BORDER}`,
         borderRadius: BORDER_RADIUS + 4,
         padding: '16px 18px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+        boxShadow: `0 8px 32px ${OVERLAY_MEDIUM}`,
         pointerEvents: 'all',
         transition: 'top 220ms ease, left 220ms ease',
       }}>
