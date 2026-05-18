@@ -657,8 +657,28 @@ export function useIngestion({
         for (const file of groupFiles) {
           setIngestStatus(`Extracting ${file.name}...`);
           try {
-            const processDocument = await loadDocumentAI();
-            const text = await processDocument(file);
+            let text;
+            const isImage = /^image\/(jpeg|jpg|png|webp)$/i.test(file.type);
+            if (isImage) {
+              // OCR path: convert image to base64 and send to /api/ocr
+              setIngestStatus(`Reading image ${file.name}...`);
+              const base64 = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+              });
+              const ocrRes = await fetch('/api/ocr', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: base64, mimeType: file.type }),
+              });
+              const ocrData = await ocrRes.json();
+              text = ocrData.success ? ocrData.text : '';
+            } else {
+              const processDocument = await loadDocumentAI();
+              text = await processDocument(file);
+            }
             if (!text || text.trim().length === 0) continue;
 
             // Try to find course code in content if filename had none

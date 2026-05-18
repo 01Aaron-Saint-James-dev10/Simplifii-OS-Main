@@ -11,6 +11,7 @@ import UpNextCard from './components/UpNextCard';
 import CourseCard from './components/CourseCard';
 import DecisionButton from './components/DecisionButton';
 import { downloadICal } from '../services/ICalService';
+import { checkDueDateReminders, requestPermission, isEnabled } from '../services/NotificationService';
 import AddCourseButton from './components/AddCourseButton';
 import LogoutButton from './auth/LogoutButton';
 import EmptyWorkspace from './workspace/EmptyWorkspace';
@@ -100,6 +101,24 @@ export default function HomeScreen() {
     window.addEventListener('simplifii:trigger-manual-entry', handler);
     return () => window.removeEventListener('simplifii:trigger-manual-entry', handler);
   }, []);
+  // Due date reminder check (every 30 minutes)
+  useEffect(() => {
+    if (!courses || Object.keys(courses).length === 0) return;
+    checkDueDateReminders(courses);
+    const interval = setInterval(() => checkDueDateReminders(courses), 30 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [courses]);
+
+  // Notification permission prompt (once per session, after 10 seconds)
+  const [notifPromptShown, setNotifPromptShown] = useState(false);
+  useEffect(() => {
+    if (notifPromptShown || isEnabled()) return;
+    if (!('Notification' in window) || Notification.permission === 'denied') return;
+    if (Notification.permission === 'granted') return;
+    const timer = setTimeout(() => setNotifPromptShown(true), 10000);
+    return () => clearTimeout(timer);
+  }, [notifPromptShown]);
+
   const isAaron = user?.email === AARON_EMAIL;
 
   // Listen for document classification events from useIngestion
@@ -325,6 +344,29 @@ export default function HomeScreen() {
         })()}
 
         {/* Empty state */}
+        {/* Notification permission prompt */}
+        {notifPromptShown && Notification.permission === 'default' && (
+          <div style={{ padding: '12px 16px', marginBottom: 20, borderRadius: 8, border: `1px solid ${ACCENT_BORDER}`, background: ACCENT_GLASS, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ fontFamily: 'system-ui,sans-serif', fontSize: 13, color: TEXT_PRIMARY }}>
+              Get reminders when assessments are due?
+            </span>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={async () => { await requestPermission(); setNotifPromptShown(false); }}
+                style={{ padding: '6px 16px', borderRadius: 6, border: 'none', background: ACCENT_PULSE, color: '#fff', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}
+              >
+                Yes
+              </button>
+              <button
+                onClick={() => setNotifPromptShown(false)}
+                style={{ padding: '6px 12px', borderRadius: 6, border: `1px solid ${ACCENT_BORDER}`, background: 'transparent', color: TEXT_MUTED, fontSize: 12, cursor: 'pointer' }}
+              >
+                Not now
+              </button>
+            </div>
+          </div>
+        )}
+
         {isEmpty && !isAaron && (
           <EmptyWorkspace
             tier={profileTier}

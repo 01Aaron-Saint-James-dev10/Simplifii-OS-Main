@@ -82,7 +82,7 @@ export default function EmptyWorkspace({ tier, onCourseAdded }) {
           <p style={{ fontFamily: FONT_SYSTEM, fontSize: 12, color: TEXT_MUTED, margin: '0 0 16px', lineHeight: 1.5 }}>
             Tap <strong>+ Add work</strong> (top right) to get started.
           </p>
-          <input ref={fileRef} type="file" accept=".pdf" multiple onChange={handleFilePick} style={{ display: 'none' }} aria-hidden="true" />
+          <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" multiple onChange={handleFilePick} style={{ display: 'none' }} aria-hidden="true" />
 
           {ingestStatus && <AsciiLoader status={ingestStatus} />}
         </div>

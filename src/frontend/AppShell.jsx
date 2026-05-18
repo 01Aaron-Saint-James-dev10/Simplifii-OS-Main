@@ -13,6 +13,7 @@ import FeedbackDashboard from './admin/FeedbackDashboard';
 import FirstRunModal from './components/disclaimers/FirstRunModal';
 import AiDisclaimerFooter from './components/disclaimers/AiDisclaimerFooter';
 import FeedbackButton from './feedback/FeedbackButton';
+import { registerNotificationSW, checkDueDateReminders } from '../services/NotificationService';
 import AuraOrb from './components/AuraOrb';
 import AuraChatOverlay from './components/AuraChatOverlay';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -145,6 +146,9 @@ export default function AppShell() {
         enableCloudSync(user.id);
       }).catch(() => { /* non-blocking: vault may already be unlocked */ });
     }
+    // Register notification service worker
+    registerNotificationSW();
+
     return () => endSession();
   }, [disclaimerState, user]);
 
