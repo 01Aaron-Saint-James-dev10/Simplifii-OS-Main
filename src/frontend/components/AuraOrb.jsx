@@ -122,6 +122,15 @@ const STATES = {
   lowEnergy: { distortion: 0.04, pulse: 0.5, rotationSpeed: 0.05, primary: [0.44,  0.44,  0.48],  secondary: [0.36, 0.32, 0.44] },
 };
 
+const STATE_LABELS = {
+  idle:      'Ask AURA for help',
+  listening: 'Listening...',
+  thinking:  'Thinking...',
+  speaking:  'Responding...',
+  success:   'Done',
+  lowEnergy: 'AURA is resting',
+};
+
 function FluidOrb({ state = 'idle', audioLevel = 0 }) {
   const meshRef = useRef();
   const materialRef = useRef();
@@ -437,7 +446,7 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
             {'\u2212'}
           </button>
         </div>
-        <span style={{ fontFamily: 'var(--font-system, system-ui)', fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: '#b49fd4', whiteSpace: 'nowrap' }}>Ask AURA for help</span> {/* allow-style */}
+        <span style={{ fontFamily: 'var(--font-system, system-ui)', fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: '#b49fd4', whiteSpace: 'nowrap' }}>{STATE_LABELS[currentState] || STATE_LABELS.idle}</span> {/* allow-style */}
       </div>
     );
   }
@@ -460,7 +469,8 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        position: 'fixed',
+        transform: currentState === 'listening' ? 'scale(1.08)' : currentState === 'thinking' ? 'scale(1.04)' : 'scale(1)',
+        transition: 'transform 300ms ease', // allow-style
       }}
       onClick={handleClick}
       role="button"
@@ -536,7 +546,7 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
         <OrbParticles state={currentState} />
       </Canvas>
 
-      <span style={{ fontFamily: 'var(--font-system, system-ui)', fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: '#b49fd4', whiteSpace: 'nowrap', position: 'absolute', bottom: -16 }}>Ask AURA for help</span> {/* allow-style */}
+      <span style={{ fontFamily: 'var(--font-system, system-ui)', fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: '#b49fd4', whiteSpace: 'nowrap', position: 'absolute', bottom: -16 }}>{STATE_LABELS[currentState] || STATE_LABELS.idle}</span> {/* allow-style */}
     </div>
   );
 }

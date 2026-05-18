@@ -723,7 +723,8 @@ export default function AuraChatOverlay({ open, onClose }) {
           const toolSuggestion = results.find(r => r?.toolSuggestion)?.toolSuggestion || null;
           dispatchAuraState('speaking');
           setMessages(prev => [...prev, { role: 'tutor', variants, selected: null, toolSuggestion }]);
-          setTimeout(() => dispatchAuraState('idle'), 2000);
+          setTimeout(() => dispatchAuraState('success'), 1500);
+          setTimeout(() => dispatchAuraState('idle'), 3000);
         } else {
           setMessages(prev => [...prev, { role: 'tutor', text: 'Could not connect. Try again.' }]);
           dispatchAuraState('idle');
@@ -741,7 +742,8 @@ export default function AuraChatOverlay({ open, onClose }) {
           dispatchAuraState('speaking');
           setMessages(prev => [...prev, { role: 'tutor', text: finalReply, rawText: data.reply, toolSuggestion: data.toolSuggestion || null }]);
           if (voiceMode || isListeningContinuous || isListening) speak(finalReply);
-          setTimeout(() => dispatchAuraState('idle'), 2000);
+          setTimeout(() => dispatchAuraState('success'), 1500);
+          setTimeout(() => dispatchAuraState('idle'), 3000);
         } else {
           setMessages(prev => [...prev, { role: 'tutor', text: 'Could not connect. Try again.' }]);
           dispatchAuraState('idle');
