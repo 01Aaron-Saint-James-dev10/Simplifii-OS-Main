@@ -57,6 +57,7 @@ export default async function handler(req, res) {
   const documentContextAvailable = req.body?.documentContextAvailable !== false && briefText && briefText.length >= 100;
   const documentContextPartial = req.body?.documentContextPartial === true;
   const presessionIntel = req.body?.presessionIntel || null;
+  const currentPhase = req.body?.currentPhase || null;
 
   let systemPrompt = '';
 
@@ -116,6 +117,7 @@ export default async function handler(req, res) {
     specialInterests: Array.isArray(specialInterests) ? specialInterests : [],
     sensoryLevel: typeof sensoryLevel === 'number' ? sensoryLevel : 5,
     voiceMode,
+    currentPhase: currentPhase || null,
     targetGrade: presessionIntel?.targetGrade || null,
     teacherPriority: presessionIntel?.teacherPriority || null,
     hardestPart: presessionIntel?.hardestPart || null,
