@@ -223,7 +223,7 @@ export default function PreWritePanel({ assessmentTitle, briefText, rubricCriter
               <p style={{ margin: 0, fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_FAINT }}>Generating...</p>
             )}
 
-            {error && (
+            {error && !scaffold && (
               <p style={{ margin: 0, fontFamily: FONT_SYSTEM, fontSize: 10, color: COLOUR_WARN }}>{error}</p>
             )}
 

@@ -174,7 +174,7 @@ export default function CanvasScreen() {
     || brief?.title || '';
 
   // Save status + save-event affirmation (fires every 5th save)
-  const [saveStatus, setSaveStatus] = useState('unsaved');
+  const [saveStatus, setSaveStatus] = useState('saved');
   const [lastSavedAgo, setLastSavedAgo] = useState('');
   const [showSaveAffirmation, setShowSaveAffirmation] = useState(false);
   const saveCountRef = useRef(0);
@@ -770,7 +770,7 @@ export default function CanvasScreen() {
                     {sec.label}
                     {sec.targetWords > 0 && (
                       <span style={{ marginLeft: 4, fontWeight: 400, opacity: 0.7 }}>
-                        ({sec.targetWords}w)
+                        (target: {sec.targetWords}w)
                       </span>
                     )}
                   </button>
