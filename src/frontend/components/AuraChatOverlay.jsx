@@ -444,6 +444,37 @@ export default function AuraChatOverlay({ open, onClose }) {
       return prev;
     });
   }, [greetingText]);
+
+  // Proactive canvas greeting: auto-open AURA once per session with a contextual first message.
+  // Fires 2 seconds after mount when a course and assessment are both present.
+  useEffect(() => {
+    if (!courseId || !activeAssessmentTitle) return;
+    const greetKey = `aura-greeted-${courseId}`;
+    if (sessionStorage.getItem(greetKey)) return;
+    const timer = setTimeout(() => {
+      const now = new Date();
+      const msPerDay = 1000 * 60 * 60 * 24;
+      const daysUntilDue = activeDueDate
+        ? Math.ceil((new Date(activeDueDate) - now) / msPerDay)
+        : null;
+      let proactiveMsg;
+      if (daysUntilDue !== null && daysUntilDue < 0) {
+        proactiveMsg = `Your ${activeAssessmentTitle} is overdue. No judgement, where are you up to with it?`;
+      } else if (daysUntilDue !== null && daysUntilDue <= 7) {
+        proactiveMsg = `Your ${activeAssessmentTitle} is due very soon. What is the one section you have not started yet?`;
+      } else {
+        proactiveMsg = `Before we start on ${activeAssessmentTitle}: what do you already know about this topic, even one thing?`;
+      }
+      sessionStorage.setItem(greetKey, 'true');
+      setMessages(prev => {
+        // Replace the initial greeting if it is the only message so far
+        if (prev.length === 1 && prev[0].role === 'tutor') return [{ role: 'tutor', text: proactiveMsg }];
+        return prev;
+      });
+      window.dispatchEvent(new CustomEvent('aura:canvas-ready', { detail: { courseId } }));
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [courseId, activeAssessmentTitle, activeDueDate]); // eslint-disable-line react-hooks/exhaustive-deps
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef(null);
