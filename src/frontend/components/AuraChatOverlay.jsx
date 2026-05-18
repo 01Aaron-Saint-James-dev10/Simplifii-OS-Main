@@ -542,17 +542,37 @@ export default function AuraChatOverlay({ open, onClose }) {
 
   const { speak, stopSpeaking, isSpeaking, startContinuousListening, stopContinuousListening, isListeningContinuous } = useAuraVoice();
   const [voiceMode, setVoiceMode] = useState(true);
-  const [readAloud, setReadAloud] = useState(false);
+  const [readAloud, setReadAloud] = useState(() => localStorage.getItem('simplifii-voice-mode') === 'true');
 
   // Simple browser speech for read-aloud (no mic, no ElevenLabs)
-  const readText = useCallback((text) => {
-    if (!readAloud || !text || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.9;
-    utterance.pitch = 1.0;
-    utterance.lang = 'en-AU';
-    window.speechSynthesis.speak(utterance);
+  // Read-aloud: Cartesia Sonic 2 via /api/tts, browser speechSynthesis fallback
+  const readText = useCallback(async (text) => {
+    if (!readAloud || !text) return;
+    const clean = text.replace(/[#*_`>]/g, '').slice(0, 500);
+    try {
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: clean }),
+      });
+      if (res.headers.get('content-type')?.includes('audio')) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audio.onended = () => URL.revokeObjectURL(url);
+        await audio.play();
+        return;
+      }
+    } catch { /* Cartesia unavailable, fall through */ }
+    // Browser speechSynthesis fallback
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      const utt = new SpeechSynthesisUtterance(clean);
+      utt.rate = 0.9;
+      utt.pitch = 1.0;
+      utt.lang = 'en-AU';
+      window.speechSynthesis.speak(utt);
+    }
   }, [readAloud]);
   const [collapsed, setCollapsed] = useState(false);
   const [presessionIntel, setPresessionIntel] = useState(null); // null=unchecked, false=not needed, object={targetGrade,teacherPriority,hardestPart}
@@ -1061,7 +1081,7 @@ export default function AuraChatOverlay({ open, onClose }) {
           {'speechSynthesis' in window && (
             <button
               type="button"
-              onClick={() => { setReadAloud(r => !r); if (readAloud) window.speechSynthesis?.cancel(); }}
+              onClick={() => { setReadAloud(r => { const next = !r; localStorage.setItem('simplifii-voice-mode', String(next)); return next; }); if (readAloud) window.speechSynthesis?.cancel(); }}
               aria-label={readAloud ? 'Stop reading aloud' : 'Read responses aloud'}
               title={readAloud ? 'Voice: on' : 'Voice: off'}
               style={{
