@@ -39,12 +39,26 @@ export const parseExamPaper = (rawText) => {
   }
 
   // Detect Section I boundary for MC extraction.
-  // If "Section I" exists explicitly, use it. Otherwise infer: everything
-  // before the first "Section II" (or equivalent) is Section I territory.
+  // HSC papers list all sections on the cover page, so the FIRST match of
+  // "Section II" is usually the cover-page description, not the actual content
+  // boundary. Use the LAST occurrence of each section number so we get the
+  // actual content start, not the cover-page mention.
+  const allSectionMatches = {};
+  for (const m of text.matchAll(/\b(?:Section|SECTION|Part)\s+([IVX]+|[A-D]|\d+)\b/g)) {
+    allSectionMatches[m[1]] = { index: m.index, number: m[1] };
+  }
   const sectionI = sections.find(s => s.number === 'I' || s.number === '1');
   const sectionsAfterI = sections.filter(s => s !== sectionI).sort((a, b) => a.startIndex - b.startIndex);
   const sectionIStart = sectionI?.startIndex ?? 0;
-  const sectionIEnd = sectionsAfterI.length > 0 ? sectionsAfterI[0].startIndex : text.length;
+  // Use the last occurrence of Section II (or equivalent) as the MC region end.
+  // This avoids cover-page false positives that make sectionIEnd too small.
+  const sectionIILastIndex = (() => {
+    const key = sectionsAfterI[0]?.number;
+    return key && allSectionMatches[key] ? allSectionMatches[key].index : -1;
+  })();
+  const sectionIEnd = sectionIILastIndex > 0 ? sectionIILastIndex
+    : sectionsAfterI.length > 0 ? sectionsAfterI[0].startIndex
+    : text.length;
 
   // ──────────────────────────────────────────────────────────────────
   // Step 2: Extract "Question N" style questions (Section II+)
@@ -89,8 +103,19 @@ export const parseExamPaper = (rawText) => {
   //   "1  Which of..." (no period, just whitespace)
   //   "1\nWhich of..." (number on its own line)
   // They are never prefixed "Question N" so Step 2 misses them.
+  //
+  // Use firstQ21Pos as the primary MC region boundary: even if sectionIEnd
+  // is wrong (cover-page false positive), the first "Question 21" marker
+  // reliably separates MC from short-answer content.
   // ──────────────────────────────────────────────────────────────────
-  const mcSectionText = text.slice(sectionIStart, sectionIEnd);
+  // "Question 21" (singular) in actual content reliably marks the end of MC region.
+  // Prefer this over sectionIEnd: cover-page references say "Questions 21-35" (plural)
+  // so the singular form only appears in actual question headers.
+  const firstQ21Match = text.match(/\bQuestion\s+(?:2[1-9]|[3-9]\d|\d{3,})\b/i);
+  const mcBoundary = firstQ21Match ? firstQ21Match.index : sectionIEnd;
+  // Run MC extraction on full text up to the boundary (not just sectionIStart..sectionIEnd).
+  // This captures MC questions on pages 2-11 even when sectionIEnd landed on the cover page.
+  const mcSectionText = text.slice(0, mcBoundary);
   const mcSection = sectionI ? (sectionI.title || `Section ${sectionI.number}`) : 'Section I: Multiple Choice';
 
   // Match numbered items: "1." or "1 " at start of line, with question text

@@ -144,6 +144,17 @@ export default function QuestionCoach({ questions = [], activeQuestion, onSelect
     onAskTutor(`I need help with this question: ${question.text}${question.marks ? ` (${question.marks} marks)` : ''}`);
   };
 
+  const handleCheckAnswer = () => {
+    if (!question || !onAskTutor) return;
+    const trimmed = answer.trim();
+    const questionContext = `${question.text}${question.marks ? ` (${question.marks} marks)` : ''}`;
+    if (!trimmed) {
+      onAskTutor(`I haven't started yet. Can you help me work out how to approach this question: ${questionContext}`);
+    } else {
+      onAskTutor(`Can you check my answer for this exam question?\n\nQuestion: ${questionContext}\n\nMy answer: ${trimmed}`);
+    }
+  };
+
   const handlePlayAudio = (text) => {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
@@ -333,19 +344,37 @@ export default function QuestionCoach({ questions = [], activeQuestion, onSelect
             display: 'block', marginBottom: 8 }}>
             Tier 2: AURA
           </span>
-          <button
-            type="button"
-            onClick={handleAskAura}
-            onFocus={e => { e.currentTarget.style.boxShadow = `0 0 0 2px ${FOCUS_RING}`; }}
-            onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
-            style={{ fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700,
-              letterSpacing: '0.06em', textTransform: 'uppercase',
-              color: ACCENT_PULSE, background: ACCENT_GLASS,
-              border: `1px solid ${ACCENT_BORDER}`, borderRadius: BORDER_RADIUS,
-              padding: '8px 16px', cursor: 'pointer', minHeight: 36 }}
-          >
-            Ask AURA about this question
-          </button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={handleAskAura}
+              onFocus={e => { e.currentTarget.style.boxShadow = `0 0 0 2px ${FOCUS_RING}`; }}
+              onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
+              style={{ fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700,
+                letterSpacing: '0.06em', textTransform: 'uppercase',
+                color: ACCENT_PULSE, background: ACCENT_GLASS,
+                border: `1px solid ${ACCENT_BORDER}`, borderRadius: BORDER_RADIUS,
+                padding: '8px 16px', cursor: 'pointer', minHeight: 36 }}
+            >
+              Ask AURA about this question
+            </button>
+            <button
+              type="button"
+              onClick={handleCheckAnswer}
+              onFocus={e => { e.currentTarget.style.boxShadow = `0 0 0 2px ${FOCUS_RING}`; }}
+              onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
+              title={answer.trim() ? 'Send your draft answer to AURA for feedback' : 'Get help starting this question'}
+              style={{ fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700,
+                letterSpacing: '0.06em', textTransform: 'uppercase',
+                color: answer.trim() ? ACCENT_PULSE : TEXT_MUTED,
+                background: 'transparent',
+                border: `1px solid ${answer.trim() ? ACCENT_BORDER : SURFACE_RAISED}`,
+                borderRadius: BORDER_RADIUS,
+                padding: '8px 16px', cursor: 'pointer', minHeight: 36 }}
+            >
+              {answer.trim() ? 'Check my answer' : 'Help me start'}
+            </button>
+          </div>
         </div>
 
         {/* Tier 3: Answer workspace */}
