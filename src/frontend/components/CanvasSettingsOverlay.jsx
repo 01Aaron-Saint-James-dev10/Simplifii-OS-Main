@@ -241,18 +241,18 @@ export default function CanvasSettingsOverlay({ onClose }) {
         <SectionLabel>Accessibility profile</SectionLabel>
         <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_MUTED, margin: '0 0 8px', lineHeight: 1.4 }}>Tell us how your brain works so AURA can adapt its language and support style</p>
         <RadioGroup
-          label="How does your brain work?"
+          label="How do you want Simplifii to work for you?"
           options={getProfileCards().map(p => ({ value: p.id, label: p.name }))}
           value={accessibilityProfile}
           onChange={setAccessibilityProfile}
         />
 
         <div style={{ borderTop: `1px solid ${SURFACE_RAISED}`, margin: '12px 0' }} />
-        <SectionLabel>Autism-first features</SectionLabel>
-        <Toggle label="Autism-first mode" description="Enables predictability, sensory dial, literal mode, and decision support" value={autismFirstEnabled} onChange={setAutismFirstEnabled} />
+        <SectionLabel>How AURA talks to you</SectionLabel>
+        <Toggle label="Structured communication mode" description="Enables predictability, sensory dial, literal mode, and decision support" value={autismFirstEnabled} onChange={setAutismFirstEnabled} />
         {autismFirstEnabled && (
           <>
-            <Toggle label="Predictability announcements" description="Announces every AI action before it happens" value={predictabilityAnnouncements} onChange={setPredictabilityAnnouncements} />
+            <Toggle label="AURA announces what it is about to do before doing it" description="Announces every AI action before it happens" value={predictabilityAnnouncements} onChange={setPredictabilityAnnouncements} />
             <Toggle label="Literal mode" description="Removes metaphors, idioms, and ambiguous language from AI" value={isLiteralMode} onChange={setIsLiteralMode} />
             <div style={{ padding: '8px 0' }}>
               <div style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600, color: TEXT_PRIMARY, marginBottom: 6 }}>My special interests</div>
