@@ -32,6 +32,88 @@ function formatDate(d) {
 }
 
 /**
+ * FormattedMessage: lightweight markdown renderer for AURA tutor messages.
+ * Handles bold, italic, bullets, numbered lists, and headers.
+ * No dangerouslySetInnerHTML: builds React elements directly.
+ */
+function FormattedMessage({ text, style }) {
+  if (!text) return null;
+  const lines = text.split('\n');
+  const elements = [];
+  let listItems = [];
+  let listType = null; // 'ul' | 'ol'
+
+  const flushList = () => {
+    if (listItems.length === 0) return;
+    const Tag = listType === 'ol' ? 'ol' : 'ul';
+    elements.push(
+      React.createElement(Tag, { key: `list-${elements.length}`, style: { margin: '4px 0', paddingLeft: 18, fontSize: 12, lineHeight: 1.6 } },
+        listItems.map((li, j) => React.createElement('li', { key: j, style: { marginBottom: 2 } }, formatInline(li)))
+      )
+    );
+    listItems = [];
+    listType = null;
+  };
+
+  const formatInline = (str) => {
+    // Split on bold (**text** or __text__) and italic (*text* or _text_)
+    const parts = [];
+    let remaining = str;
+    const inlineRe = /(\*\*(.+?)\*\*|__(.+?)__|(?<!\w)\*(.+?)\*(?!\w)|(?<!\w)_(.+?)_(?!\w))/g;
+    let lastIndex = 0;
+    let match;
+    while ((match = inlineRe.exec(remaining)) !== null) {
+      if (match.index > lastIndex) parts.push(remaining.slice(lastIndex, match.index));
+      const bold = match[2] || match[3];
+      const italic = match[4] || match[5];
+      if (bold) parts.push(React.createElement('strong', { key: `b${match.index}` }, bold));
+      else if (italic) parts.push(React.createElement('em', { key: `i${match.index}` }, italic));
+      lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < remaining.length) parts.push(remaining.slice(lastIndex));
+    return parts.length > 0 ? parts : str;
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const headerMatch = line.match(/^(#{1,4})\s+(.+)/);
+    const bulletMatch = line.match(/^\s*[-*+]\s+(.+)/);
+    const numberedMatch = line.match(/^\s*\d+\.\s+(.+)/);
+
+    if (headerMatch) {
+      flushList();
+      elements.push(
+        React.createElement('p', {
+          key: `h-${i}`,
+          style: { fontWeight: 700, fontSize: 12, margin: '6px 0 2px', letterSpacing: '0.02em' },
+        }, formatInline(headerMatch[2]))
+      );
+    } else if (bulletMatch) {
+      if (listType !== 'ul') flushList();
+      listType = 'ul';
+      listItems.push(bulletMatch[1]);
+    } else if (numberedMatch) {
+      if (listType !== 'ol') flushList();
+      listType = 'ol';
+      listItems.push(numberedMatch[1]);
+    } else if (line.trim() === '') {
+      flushList();
+    } else {
+      flushList();
+      elements.push(
+        React.createElement('p', {
+          key: `p-${i}`,
+          style: { margin: '2px 0', lineHeight: 1.5, fontSize: 12 },
+        }, formatInline(line))
+      );
+    }
+  }
+  flushList();
+
+  return React.createElement('div', { style }, elements);
+}
+
+/**
  * AuraChatOverlay
  *
  * Floating chat panel triggered by clicking the AURA orb.
@@ -453,7 +535,7 @@ export default function AuraChatOverlay({ open, onClose }) {
         const labels = ['A', 'B', 'C'];
         const styles = ['structured', 'conversational', 'minimal'];
         const variants = results
-          .map((r, i) => r ? { label: labels[i], text: cleanReply(r.reply), style: styles[i] } : null)
+          .map((r, i) => r ? { label: labels[i], text: cleanReply(r.reply), rawText: r.reply, style: styles[i] } : null)
           .filter(Boolean);
 
         if (variants.length > 0) {
@@ -476,7 +558,7 @@ export default function AuraChatOverlay({ open, onClose }) {
         if (data.success && data.reply && data.reply.trim()) {
           const finalReply = cleanReply(data.reply);
           dispatchAuraState('speaking');
-          setMessages(prev => [...prev, { role: 'tutor', text: finalReply, toolSuggestion: data.toolSuggestion || null }]);
+          setMessages(prev => [...prev, { role: 'tutor', text: finalReply, rawText: data.reply, toolSuggestion: data.toolSuggestion || null }]);
           if (voiceMode || isListeningContinuous || isListening) speak(finalReply);
           setTimeout(() => dispatchAuraState('idle'), 2000);
         } else {
@@ -498,11 +580,11 @@ export default function AuraChatOverlay({ open, onClose }) {
       if (i !== msgIndex || !m.variants) return m;
       const chosen = m.variants[variantIndex];
       if (!chosen) return m;
-      // Speak selected variant
+      // Speak selected variant (use cleaned text for voice)
       if (voiceMode || isListeningContinuous) speak(chosen.text);
       // Log to HistoryOfThought
       appendEvent({ event_type: 'pre_write_accepted', payload: { variant: chosen.label, style: chosen.style } }).catch(() => {});
-      return { ...m, text: chosen.text, selected: variantIndex };
+      return { ...m, text: chosen.text, rawText: chosen.rawText || chosen.text, selected: variantIndex };
     }));
   }, [voiceMode, isListeningContinuous, speak]);
 
@@ -648,9 +730,10 @@ export default function AuraChatOverlay({ open, onClose }) {
                     <span style={{ fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, color: ACCENT_PULSE, letterSpacing: '0.06em' }}>
                       {v.label}
                     </span>
-                    <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_PRIMARY, margin: '4px 0 0', lineHeight: 1.5 }}>
-                      {v.text.length > 180 ? v.text.slice(0, 180) + '...' : v.text}
-                    </p>
+                    <FormattedMessage
+                      text={(v.rawText || v.text).length > 200 ? (v.rawText || v.text).slice(0, 200) + '...' : (v.rawText || v.text)}
+                      style={{ fontFamily: FONT_BODY, color: TEXT_PRIMARY, marginTop: 4 }}
+                    />
                   </button>
                 ))}
               </div>
@@ -667,9 +750,13 @@ export default function AuraChatOverlay({ open, onClose }) {
             padding: '8px 10px',
             position: 'relative',
           }}>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_PRIMARY, margin: 0, lineHeight: 1.5 }}>
-              {displayText}
-            </p>
+            {m.role === 'tutor' && m.rawText ? (
+              <FormattedMessage text={m.rawText} style={{ fontFamily: FONT_BODY, color: TEXT_PRIMARY }} />
+            ) : (
+              <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_PRIMARY, margin: 0, lineHeight: 1.5 }}>
+                {displayText}
+              </p>
+            )}
             {toolMatch && (
               <button
                 type="button"
