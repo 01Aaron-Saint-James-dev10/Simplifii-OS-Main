@@ -12,7 +12,7 @@ import { getQueuedAuraMessages } from '../../core/TaskLifecycleManager';
 import { buildAssessmentKey, getCurrentPhase } from '../../core/TaskSequenceManager';
 import { loadLastSession } from '../../services/SessionSummaryService';
 import { literalise } from '../../core/LiteralMode';
-// HistoryOfThought event logging removed with A/B/C variant system
+import { supabase } from '../../lib/supabaseClient';
 import { loadDraft } from '../../services/DraftService';
 import {
   SURFACE_CARD, SURFACE_RAISED,
@@ -150,6 +150,48 @@ function matchNavTarget(text, courses) {
         return { courseId: cId, assessmentTitle: b.title, label: b.title };
       }
     }
+  }
+  return null;
+}
+
+/**
+ * AURA persistent memory: load/save conversation history across sessions.
+ */
+async function loadAuraHistory(userId, courseId, assessmentTitle) {
+  if (!userId || !courseId) return null;
+  try {
+    const { data } = await supabase
+      .from('aura_history')
+      .select('messages, last_commitment, last_confusion, session_count')
+      .eq('user_id', userId)
+      .eq('course_id', courseId)
+      .eq('assessment_title', assessmentTitle || '__global__')
+      .maybeSingle();
+    return data || null;
+  } catch { return null; }
+}
+
+async function saveAuraHistory(userId, courseId, assessmentTitle, messages, commitment) {
+  if (!userId || !courseId) return;
+  const last6 = (messages || []).slice(-6).map(m => ({ role: m.role, text: m.text?.slice(0, 500) }));
+  try {
+    await supabase.from('aura_history').upsert({
+      user_id: userId,
+      course_id: courseId,
+      assessment_title: assessmentTitle || '__global__',
+      messages: last6,
+      last_commitment: commitment || null,
+      updated_at: new Date().toISOString(),
+    });
+  } catch { /* silent */ }
+}
+
+function detectCommitment(messages) {
+  const userMsgs = (messages || []).filter(m => m.role === 'user').map(m => m.text || '');
+  const commitPattern = /\b(I will|I'll|I'm going to|tonight I|tomorrow I|going to start|plan to)\b/i;
+  for (let i = userMsgs.length - 1; i >= 0; i--) {
+    const match = userMsgs[i].match(commitPattern);
+    if (match) return userMsgs[i].slice(0, 200);
   }
   return null;
 }
@@ -459,6 +501,33 @@ export default function AuraChatOverlay({ open, onClose }) {
       return prev;
     });
   }, [greetingText]);
+
+  // AURA persistent memory: load last session context on mount
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
+  useEffect(() => {
+    if (!user?.id || !courseId) return;
+    const historyKey = `aura-history-loaded-${courseId}-${activeAssessmentTitle}`;
+    if (sessionStorage.getItem(historyKey)) return;
+    loadAuraHistory(user.id, courseId, activeAssessmentTitle).then(history => {
+      if (!history?.last_commitment) return;
+      sessionStorage.setItem(historyKey, '1');
+      setMessages(prev => {
+        const memoryMsg = { role: 'tutor', text: `Last time you said: "${history.last_commitment}"\n\nHow did that go?` };
+        return [memoryMsg, ...prev];
+      });
+    });
+  }, [user?.id, courseId, activeAssessmentTitle]); // eslint-disable-line
+
+  // AURA persistent memory: save on unmount
+  useEffect(() => {
+    return () => {
+      const commitment = detectCommitment(messagesRef.current);
+      if (user?.id && courseId && messagesRef.current.length > 1) {
+        saveAuraHistory(user.id, courseId, activeAssessmentTitle, messagesRef.current, commitment);
+      }
+    };
+  }, [user?.id, courseId, activeAssessmentTitle]); // eslint-disable-line
 
   // Proactive canvas greeting: auto-open AURA once per session with a contextual first message.
   // Fires 2 seconds after mount when a course and assessment are both present.

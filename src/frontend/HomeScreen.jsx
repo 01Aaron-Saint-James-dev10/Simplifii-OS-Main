@@ -6,7 +6,7 @@ import { useRouter } from '../contexts/RouterContext';
 import { hydrate } from '../core/SovereignRouter';
 import { getTaskStatus } from '../services/StatusService';
 import { supabase } from '../lib/supabaseClient';
-import TimelineStrip from './components/TimelineStrip';
+// TimelineStrip removed: replaced with status summary counters
 import UpNextCard from './components/UpNextCard';
 import CourseCard from './components/CourseCard';
 import DecisionButton from './components/DecisionButton';
@@ -330,53 +330,18 @@ export default function HomeScreen() {
         {/* Populated state */}
         {!isEmpty && (
           <>
-            {/* Timeline strip */}
-            {display.timeline && (
-              <section className="home-section" aria-label="Timeline">
-                <div className="home-week-header">
-                  <div className="home-week-title-row">
-                    <h2 className="home-week-title">Your week</h2>
-                    {activeTermLabel && (
-                      <span className="home-term-label">{activeTermLabel}</span>
-                    )}
-                    {terms.length > 1 && (
-                      <div className="home-term-switcher" role="group" aria-label="Term filter">
-                        <button
-                          type="button"
-                          className={`home-term-pill ${!activeTerm ? 'home-term-pill-active' : ''}`}
-                          onClick={() => setActiveTerm(null)}
-                        >
-                          All
-                        </button>
-                        {terms.map(t => {
-                          const isActive = activeTerm && activeTerm.year === t.year && activeTerm.code === t.code;
-                          return (
-                            <button
-                              type="button"
-                              key={`${t.year}-${t.code}`}
-                              className={`home-term-pill ${isActive ? 'home-term-pill-active' : ''}`}
-                              onClick={() => setActiveTerm({ year: t.year, code: t.code })}
-                            >
-                              {t.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                  <div className="home-week-counters">
-                    {overdueCount > 0 && (
-                      <span className="home-counter home-counter-red">{overdueCount} overdue</span>
-                    )}
-                    {thisWeekCount > 0 && (
-                      <span className="home-counter home-counter-amber">{thisWeekCount} this week</span>
-                    )}
-                    <span className="home-counter home-counter-muted">{courseCount} course{courseCount !== 1 ? 's' : ''}</span>
-                  </div>
-                </div>
-                <TimelineStrip courses={courses} now={now} />
-              </section>
-            )}
+            {/* Status summary (replaces timeline strip) */}
+            <section className="home-section" aria-label="Status">
+              <div className="home-week-counters" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {overdueCount > 0 && (
+                  <span className="home-counter home-counter-red">{overdueCount} overdue</span>
+                )}
+                {thisWeekCount > 0 && (
+                  <span className="home-counter home-counter-amber">{thisWeekCount} this week</span>
+                )}
+                <span className="home-counter home-counter-muted">{courseCount} course{courseCount !== 1 ? 's' : ''}</span>
+              </div>
+            </section>
 
             {/* Up Next card */}
             {display.upNext && (
