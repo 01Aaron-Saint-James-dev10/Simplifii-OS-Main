@@ -779,7 +779,7 @@ export default function CanvasScreen() {
             aria-label="Open tools"
             title="Open tools panel"
             onClick={() => setRailVisible(true)}
-            style={{ position: 'absolute', right: 8, top: 56, zIndex: 20, width: 32, height: 32, borderRadius: 16, background: 'var(--sov-line-dim, rgba(16,185,129,0.18))', border: 'none', color: 'var(--sov-line, #10b981)', cursor: 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ position: 'absolute', right: 8, top: 56, zIndex: 20, width: 32, height: 32, borderRadius: 16, background: 'var(--sov-line-dim, rgba(16,185,129,0.18))', border: 'none', color: 'var(--sov-line, #10b981)', cursor: 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }} /* allow-style */
           >
             T
           </button>
