@@ -1,3 +1,32 @@
+## Sprint 17: P0 Fixes + AURA Upgrades + Section Nav + Dashboard Org + Rubric Scaffold
+**Date:** 2026-05-18
+
+### Commits
+
+| SHA | Change |
+|-----|--------|
+| `e195cc62` | fix(P0): stripMarkdown on injected AURA messages, format raw ISO dates |
+| `91e622b5` | feat(AURA): formatted markdown rendering in tutor messages |
+| `114d9423` | feat(AURA): navigation intent detection and canvas routing |
+| `3529c44e` | feat(canvas): section navigation pills in WRITE tab |
+| `2f3343ab` | feat(dashboard): pin and archive controls for course cards |
+| `fd84c09b` | feat(PreWrite): rubric-mapped scaffold with per-criterion starters |
+
+### Summary
+
+1. **P0 fix: raw markdown + ISO dates**: injected and phase AURA messages now pass through stripMarkdown. All due date render sites (AuraChatOverlay, AssessmentSwitcher, BriefPanel) format as en-AU human dates.
+2. **AURA formatted responses**: new FormattedMessage component renders bold, italic, bullets, numbered lists, headers as React elements (no innerHTML). rawText stored for display, stripped text for voice.
+3. **AURA navigation**: matchNavTarget() detects nav intent ("take me to", "open my") and fuzzy-matches course/assessment names. Navigates immediately with confirmation button. open_canvas tool suggestion wired.
+4. **Section navigation pills**: section architecture already existed (SectionEditor, activeSections) but had no user-facing nav. Added clickable section pills in WRITE tab header with word count targets ("Introduction (300w)").
+5. **Dashboard pin/archive**: localStorage-backed pin and archive per course. Pinned sort to top with accent border. Archived courses collapse to bottom section with show/hide toggle. No Supabase changes.
+6. **Rubric-mapped scaffold**: PreWritePanel now receives rubricCriteria from CanvasScreen. When criteria exist, generates per-criterion starter sentence + two Socratic questions. Falls back to generic bullets when no rubric.
+
+### Test Results
+
+122 tests pass (4 suites). Build compiles clean, no errors.
+
+---
+
 ## Sprint 15: Journey Tests + Brief Weight Fix + rgba Cleanup + QuestionCoach
 **Date:** 2026-05-18
 
