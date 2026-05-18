@@ -57,6 +57,30 @@ import {
   ACCENT_BORDER, ACCENT_PULSE, TEXT_MUTED, SHADOW_CARD,
 } from '../theme/tokens';
 
+/** AuraLastQuestion: reads AURA's last question from sessionStorage chat history */
+function AuraLastQuestion({ userId }) {
+  const [question, setQuestion] = React.useState('');
+  React.useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(`simplifii_aura_chat_${userId || 'anon'}`);
+      if (!raw) return;
+      const msgs = JSON.parse(raw);
+      for (let i = msgs.length - 1; i >= 0; i--) {
+        if (msgs[i].role === 'tutor' && msgs[i].text?.includes('?')) {
+          const lines = msgs[i].text.split('\n').filter(l => l.includes('?'));
+          if (lines.length > 0) { setQuestion(lines[lines.length - 1].trim()); break; }
+        }
+      }
+    } catch { /* no chat yet */ }
+  }, [userId]);
+  if (!question) return null;
+  return (
+    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 280, fontStyle: 'italic', opacity: 0.6 }} title={question}>
+      AURA: {question}
+    </span>
+  );
+}
+
 /**
  * CanvasScreen (Screen 4)
  *
@@ -405,6 +429,59 @@ export default function CanvasScreen() {
   const [railVisible, setRailVisible] = useState(false);
   const [focusTimerOpen, setFocusTimerOpen] = useState(false);
 
+  // Submission handler: marks assessment as submitted and schedules spaced repetition
+  const handleSubmit = useCallback(() => {
+    const now = Date.now();
+    const DAY = 86400000;
+    const srKey = `sr-schedule-${courseId}-${currentTitle}`;
+    const schedule = [now + DAY, now + 3 * DAY, now + 7 * DAY];
+    localStorage.setItem(srKey, JSON.stringify(schedule));
+    appendEvent({ event_type: 'submission_complete', payload: { assessmentTitle: currentTitle, courseId, timestamp: new Date().toISOString() } }).catch(() => {});
+    // Request notification permission if not granted
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+    window.dispatchEvent(new CustomEvent('simplifii:aura-inject', {
+      detail: { message: `You have marked "${currentTitle}" as submitted. Well done. Over the next week, I will check in with you to help the learning stick.` }
+    }));
+  }, [courseId, currentTitle]);
+
+  // Spaced repetition: check for overdue check-ins on mount
+  useEffect(() => {
+    if (!courseId || !currentTitle) return;
+    const srKey = `sr-schedule-${courseId}-${currentTitle}`;
+    const raw = localStorage.getItem(srKey);
+    if (!raw) return;
+    try {
+      const schedule = JSON.parse(raw);
+      const now = Date.now();
+      const firedKey = `sr-fired-${courseId}-${currentTitle}`;
+      const firedSet = new Set(JSON.parse(localStorage.getItem(firedKey) || '[]'));
+      const overdue = schedule.filter((ts, i) => ts <= now && !firedSet.has(i));
+      if (overdue.length > 0) {
+        const dayLabels = [1, 3, 7];
+        const idx = schedule.findIndex((ts, i) => ts <= now && !firedSet.has(i));
+        const daysAgo = dayLabels[idx] || Math.round((now - schedule[idx]) / 86400000);
+        // Fire browser notification
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('AURA wants to ask you something', {
+            body: `You submitted ${currentTitle} ${daysAgo} day${daysAgo === 1 ? '' : 's'} ago. Reflecting now helps it stick.`,
+            tag: `sr-${courseId}-${currentTitle}-${idx}`,
+          });
+        }
+        // Inject AURA message
+        window.dispatchEvent(new CustomEvent('simplifii:aura-inject', {
+          detail: { message: `What was the hardest part of "${currentTitle}" for you? Reflecting on this ${daysAgo} day${daysAgo === 1 ? '' : 's'} later helps it stick.` }
+        }));
+        // Mark as fired
+        overdue.forEach((_, i) => firedSet.add(schedule.indexOf(overdue[i])));
+        // Find index properly
+        schedule.forEach((ts, i) => { if (ts <= now && !firedSet.has(i)) firedSet.add(i); });
+        localStorage.setItem(firedKey, JSON.stringify([...firedSet]));
+      }
+    } catch { /* corrupt schedule, ignore */ }
+  }, [courseId, currentTitle]);
+
   // Close panel when session starts (FocusBar takes over); re-open panel on session end
   useEffect(() => {
     const onStart = () => setFocusTimerOpen(false);
@@ -618,6 +695,7 @@ export default function CanvasScreen() {
         courseId={courseId}
         onOpenSettings={() => setSettingsOpen(true)}
         onCourseName={briefs.length > 1 ? () => navigateToAssessments(courseId) : undefined}
+        onSubmit={handleSubmit}
       />}
 
       {/* Docs button: opens DocLibrary drawer */}
@@ -674,6 +752,35 @@ export default function CanvasScreen() {
         >
           Focus
         </button>
+      </div>
+
+      {/* Working memory shelf: persistent context bar */}
+      <div
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10, padding: '4px 24px',
+          fontSize: 10, fontFamily: 'var(--font-system, system-ui)',
+          color: 'var(--text-faint, #71717a)', borderBottom: '1px solid var(--theme-border, #27272a)',
+          minHeight: 28, overflow: 'hidden', flexWrap: 'nowrap',
+        }}
+        aria-label="Working memory shelf"
+      >
+        <span style={{ fontWeight: 700, color: 'var(--text-muted, #a1a1aa)', flexShrink: 0 }}>{currentTitle}</span>
+        {targetWords > 0 && (
+          <span style={{ flexShrink: 0 }}>
+            {wordCount}/{targetWords} words
+          </span>
+        )}
+        {rubricCriteria.length > 0 && (
+          <span style={{ flexShrink: 0 }}>
+            {rubricCriteria.length} criteria
+          </span>
+        )}
+        {rubricCriteria.length > 0 && (
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 240, opacity: 0.7 }}>
+            {rubricCriteria[0]?.criterion || rubricCriteria[0]}
+          </span>
+        )}
+        <AuraLastQuestion userId={user?.id} />
       </div>
 
       {taskPhases.length > 0 && (
