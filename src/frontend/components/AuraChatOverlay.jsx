@@ -13,6 +13,7 @@ import { buildAssessmentKey, getCurrentPhase } from '../../core/TaskSequenceMana
 import { loadLastSession } from '../../services/SessionSummaryService';
 import { literalise } from '../../core/LiteralMode';
 import { appendEvent } from '../../core/HistoryOfThought';
+import { loadDraft } from '../../services/DraftService';
 import {
   SURFACE_CARD, SURFACE_RAISED,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
@@ -144,6 +145,88 @@ function matchNavTarget(text, courses) {
     }
   }
   return null;
+}
+
+/**
+ * buildAuraContext: assembles full student picture for AURA system prompt.
+ * Reads all courses, active assessment detail, session stats, accessibility.
+ */
+function buildAuraContext({ courses, courseId, activeCourse, activeAssessmentTitle, activeWeight, activeDueDate, rubricCriteria, currentPhase, activeTier, isLiteralMode, accessibilityProfile, learnerContext, lastSession, currentDraft }) {
+  const now = new Date();
+  const msPerDay = 1000 * 60 * 60 * 24;
+
+  // Active course detail
+  let activeCourseContext = null;
+  if (activeCourse && activeAssessmentTitle) {
+    const daysUntilDue = activeDueDate ? Math.ceil((new Date(activeDueDate) - now) / msPerDay) : null;
+    const tier2Count = parseInt(localStorage.getItem(`simplifii:tier2-count-${activeAssessmentTitle}`) || '0', 10);
+    const scaffoldAccepted = localStorage.getItem(`simplifii:scaffold-accepted-${activeAssessmentTitle}`) === 'true';
+    activeCourseContext = {
+      name: activeCourse.name || 'Untitled',
+      assessment: activeAssessmentTitle,
+      weight: activeWeight || 'unknown',
+      daysUntilDue: daysUntilDue !== null ? (daysUntilDue < 0 ? `${Math.abs(daysUntilDue)} days overdue` : daysUntilDue === 0 ? 'due today' : `${daysUntilDue} days`) : 'no due date',
+      rubricCriteria: rubricCriteria.map(r => r.criterion || r),
+      aiPermission: activeCourse.extractionData?.aiPermission || 'not specified',
+      currentPhase: currentPhase || 'not started',
+      tier2Answers: tier2Count,
+      scaffoldAccepted,
+      currentDraft: currentDraft || null,
+    };
+  }
+
+  // All courses summary with urgency
+  const allCourses = Object.entries(courses || {}).map(([cId, c]) => {
+    const briefs = c.extractionData?.assessmentBriefs || [];
+    const nearest = briefs.reduce((best, b) => {
+      if (!b.dueDate) return best;
+      const days = Math.ceil((new Date(b.dueDate) - now) / msPerDay);
+      if (!best || days < best.days) return { title: b.title, days, weight: b.weight };
+      return best;
+    }, null);
+    const urgency = !nearest ? 'no deadline' : nearest.days < 0 ? 'overdue' : nearest.days <= 7 ? 'critical' : nearest.days <= 21 ? 'soon' : 'fine';
+    return {
+      name: c.name || 'Untitled',
+      assessmentCount: briefs.length,
+      nextAssessment: nearest?.title || 'none',
+      daysUntilDue: nearest ? (nearest.days < 0 ? `${Math.abs(nearest.days)} days overdue` : `${nearest.days} days`) : 'no deadline',
+      urgency,
+      isCurrent: cId === courseId,
+    };
+  });
+
+  return { student: { tier: activeTier || 'tertiary', literalMode: isLiteralMode || false, accessibilityProfile: accessibilityProfile || 'standard', learnerContext: learnerContext || null }, activeCourse: activeCourseContext, allCourses, lastSession: lastSession || null };
+}
+
+/**
+ * formatAuraSystemPrefix: converts context object into a readable system prompt prefix.
+ */
+function formatAuraSystemPrefix(ctx) {
+  const lines = [];
+  lines.push(`STUDENT CONTEXT: Tier: ${ctx.student.tier}. Accessibility: ${ctx.student.accessibilityProfile}.${ctx.student.literalMode ? ' Literal mode ON.' : ''}`);
+  if (ctx.student.learnerContext) lines.push(`Learner profile: ${ctx.student.learnerContext}`);
+
+  if (ctx.activeCourse) {
+    const ac = ctx.activeCourse;
+    lines.push(`ACTIVE ASSESSMENT: ${ac.name}: ${ac.assessment} (${ac.weight}, ${ac.daysUntilDue}). Phase: ${ac.currentPhase}. AI permission: ${ac.aiPermission}.`);
+    if (ac.rubricCriteria.length > 0) lines.push(`Rubric criteria: ${ac.rubricCriteria.join('; ')}`);
+    lines.push(`Session stats: ${ac.tier2Answers} Socratic answers, scaffold ${ac.scaffoldAccepted ? 'accepted' : 'not yet accepted'}.`);
+    if (ac.currentDraft) lines.push(`CURRENT DRAFT (first 800 chars): ${ac.currentDraft}`);
+  }
+
+  if (ctx.allCourses.length > 0) {
+    const others = ctx.allCourses.filter(c => !c.isCurrent);
+    if (others.length > 0) {
+      lines.push(`OTHER COURSES: ${others.map(c => `${c.name}: ${c.nextAssessment} (${c.daysUntilDue}, ${c.urgency})`).join('. ')}.`);
+    }
+  }
+
+  if (ctx.lastSession) {
+    const ls = ctx.lastSession;
+    lines.push(`LAST SESSION: ${ls.days_ago} day(s) ago, touched ${ls.tasks_touched || 0} task(s).${ls.growth_signals ? ' Growth: ' + ls.growth_signals : ''}`);
+  }
+
+  return lines.join('\n');
 }
 
 export default function AuraChatOverlay({ open, onClose }) {
@@ -497,6 +580,28 @@ export default function AuraChatOverlay({ open, onClose }) {
       // Detect overwhelm signal from quick-reply chips
       const isOverwhelmed = text.trim().toLowerCase().includes('overwhelm');
 
+      // Load current draft from IndexedDB for AURA context
+      let currentDraft = null;
+      if (courseId && activeAssessmentTitle) {
+        try {
+          // Try introduction section first (most common), then fallback to default
+          for (const secKey of [`${courseId}_${activeAssessmentTitle}_introduction`, activeAssessmentTitle]) {
+            const draft = await loadDraft(courseId, secKey);
+            const rawText = draft?.content || '';
+            const plainText = rawText.replace(/<[^>]*>/g, ' ').trim();
+            if (plainText.length > 10) { currentDraft = plainText.slice(0, 800); break; }
+          }
+        } catch { /* IndexedDB unavailable, skip draft context */ }
+      }
+
+      // Build full AURA context with all courses and student profile
+      const auraCtx = buildAuraContext({
+        courses, courseId, activeCourse, activeAssessmentTitle, activeWeight,
+        activeDueDate, rubricCriteria, currentPhase, activeTier, isLiteralMode,
+        accessibilityProfile, learnerContext, lastSession, currentDraft,
+      });
+      const auraSystemPrefix = formatAuraSystemPrefix(auraCtx);
+
       // Use dashboard context when no canvas is active, otherwise use brief text
       const effectiveBriefText = activeBriefText || dashboardContext || '';
       const hasDocContext = effectiveBriefText && effectiveBriefText.length >= 100;
@@ -533,6 +638,7 @@ export default function AuraChatOverlay({ open, onClose }) {
         } : undefined,
         user_id: user?.id || null,
         currentPhase: currentPhase || undefined,
+        auraContext: auraSystemPrefix || undefined,
       };
 
       const cleanReply = (raw) => {

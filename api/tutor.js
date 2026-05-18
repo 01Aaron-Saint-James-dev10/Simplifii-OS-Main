@@ -59,6 +59,12 @@ export default async function handler(req, res) {
 
   let systemPrompt = '';
 
+  // Full AURA context from buildAuraContext (student profile, all courses, active assessment, draft)
+  const auraContext = req.body?.auraContext || '';
+  if (auraContext) {
+    systemPrompt += `${auraContext}\n\nYou have full awareness of this student's academic situation. Always respond with this context in mind. Prioritise the most urgent genuine need, not just the surface question.\n\n`;
+  }
+
   // Overwhelm signal: learner indicated they feel overwhelmed
   if (req.body?.overwhelmSignal) {
     systemPrompt += 'OVERWHELM SIGNAL: The learner has indicated they feel overwhelmed. Respond with warmth and calm first. Acknowledge their feeling in one sentence. Then gently ask what would help most right now. Do not immediately redirect to tasks. Do not minimise. Do not say "you have got this."\n\n';
