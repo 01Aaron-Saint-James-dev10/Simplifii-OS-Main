@@ -70,7 +70,7 @@ export default function CanvasScreen() {
   const { courseId, assessmentTitle, navigateToAssessments } = useRouter();
   const { courses, activeCourse, projectSources, upgradeCourseExtraction } = useProject();
   const { user } = useAuth();
-  const { reducedMotion, isZenMode, theme, autismFirstEnabled, sensoryLevel, isLiteralMode, ambientPreference, examExtraTimePercent, setExamExtraTimePercent, examQuestionsPerBall } = useSettings();
+  const { reducedMotion, isZenMode, theme, autismFirstEnabled, sensoryLevel, isLiteralMode, ambientPreference, examExtraTimePercent, setExamExtraTimePercent, examQuestionsPerBall, focusLock, setFocusLock } = useSettings();
 
   // Ambient sound: start/stop when preference changes
   useEffect(() => {
@@ -591,7 +591,18 @@ export default function CanvasScreen() {
     <div className={`canvas-root theme-${theme || 'dark'} ${reducedMotion ? 'canvas-no-motion' : ''} ${isZenMode ? 'canvas-zen' : ''}`}
       style={autismFirstEnabled ? getSensoryCSSVars(sensoryLevel) : undefined}
     >
-      <CanvasNav
+      {/* Focus lock: exit button */}
+      {focusLock && (
+        <button
+          type="button"
+          onClick={() => setFocusLock(false)}
+          aria-label="Exit focus mode"
+          style={{ position: 'fixed', top: 12, right: 12, zIndex: 100, padding: '6px 14px', borderRadius: 6, background: 'transparent', border: `1px solid ${ACCENT_BORDER}`, fontFamily: 'system-ui,sans-serif', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: TEXT_MUTED, cursor: 'pointer' }} /* allow-style */
+        >
+          Exit focus
+        </button>
+      )}
+      {!focusLock && <CanvasNav
         courseName={courseName}
         assessmentTitle={currentTitle}
         saveStatus={saveStatus}
@@ -601,7 +612,7 @@ export default function CanvasScreen() {
         courseId={courseId}
         onOpenSettings={() => setSettingsOpen(true)}
         onCourseName={briefs.length > 1 ? () => navigateToAssessments(courseId) : undefined}
-      />
+      />}
 
       {/* Docs button: opens DocLibrary drawer */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '4px 24px 0' }}>
@@ -896,7 +907,7 @@ export default function CanvasScreen() {
         </div>
 
         {/* Minimal UI: rail hidden by default, AURA surfaces tools contextually */}
-        {railVisible ? (
+        {focusLock ? null : railVisible ? (
           <PanelRail
             activePanel={activePanel}
             onSelectPanel={setActivePanelWithLog}

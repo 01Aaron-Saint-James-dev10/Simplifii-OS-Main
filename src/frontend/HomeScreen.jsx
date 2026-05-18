@@ -10,7 +10,7 @@ import TimelineStrip from './components/TimelineStrip';
 import UpNextCard from './components/UpNextCard';
 import CourseCard from './components/CourseCard';
 import DecisionButton from './components/DecisionButton';
-// BodyDoublingLine moved to CanvasScreen
+import { downloadICal } from '../services/ICalService';
 import AddCourseButton from './components/AddCourseButton';
 import LogoutButton from './auth/LogoutButton';
 import EmptyWorkspace from './workspace/EmptyWorkspace';
@@ -221,6 +221,17 @@ export default function HomeScreen() {
           >
             + Add work
           </button>
+          {Object.keys(courses || {}).length > 0 && (
+            <button
+              type="button"
+              onClick={() => downloadICal(courses)}
+              aria-label="Export assessment due dates to calendar"
+              title="Download .ics calendar file with your due dates"
+              style={{ padding: '4px 14px', background: 'transparent', border: `1px solid ${ACCENT_BORDER}`, borderRadius: 6, fontFamily: 'system-ui,sans-serif', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_PULSE, cursor: 'pointer', minHeight: 28 }}
+            >
+              Export calendar
+            </button>
+          )}
           {display.overdueTally && overdueCount > 0 && (
             <span className="home-overdue-badge" aria-label={`${overdueCount} overdue task${overdueCount === 1 ? '' : 's'}`}>
               {overdueCount}

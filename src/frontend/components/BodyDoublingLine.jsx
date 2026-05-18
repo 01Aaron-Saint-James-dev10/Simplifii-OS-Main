@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSettings } from '../SettingsContext';
 import {
   FONT_BODY,
   TEXT_PRIMARY,
@@ -77,6 +78,7 @@ function createBrownNoise(audioCtx) {
 
 export default function BodyDoublingLine() {
   const { user } = useAuth();
+  const { setFocusLock } = useSettings();
 
   // Session state
   const [phase, setPhase] = useState('entry'); // entry | active | complete
@@ -215,6 +217,7 @@ export default function BodyDoublingLine() {
     setTimeLeft(MODES[mode].seconds);
     setIsRunning(true);
     setPhase('active');
+    setFocusLock(true);
   }
 
   function handlePause() {
@@ -249,6 +252,7 @@ export default function BodyDoublingLine() {
     elapsedRef.current = 0;
     setCheckInShown(false);
     setCheckInDismissed(false);
+    setFocusLock(false);
     fetchStudentCount();
   }
 

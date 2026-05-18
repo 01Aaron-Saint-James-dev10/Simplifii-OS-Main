@@ -26,10 +26,7 @@ export default function AiDisclaimerFooter() {
     >
       {/* Compact (always visible) */}
       <span style={s.compact}>
-        AI assists. You decide.{' '}
-        <a href="/ai-use" style={s.learnMore} aria-label="Learn more about how Simplifii-OS uses AI">
-          Learn more
-        </a>
+        AI assists. You decide.
       </span>
 
       {/* Expanded tooltip */}
