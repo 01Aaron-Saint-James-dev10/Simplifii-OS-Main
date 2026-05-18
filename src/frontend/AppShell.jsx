@@ -21,6 +21,7 @@ import EnergyOrbs from './components/EnergyOrbs';
 import CanvasSettingsOverlay from './components/CanvasSettingsOverlay';
 import BetaBanner from './components/BetaBanner';
 import MatrixRain from './components/MatrixRain';
+import ThemeSwitcher from './components/ThemeSwitcher';
 import { startSession, endSession } from '../core/StudyPatternTracker';
 import { unlockWithUserId, enableCloudSync } from '../core/HistoryOfThought';
 import {
@@ -178,6 +179,8 @@ export default function AppShell() {
               </FirstTimeTooltip>
               <AuraChatOverlay open={auraChatOpen} onClose={() => setAuraChatOpen(false)} />
               {settingsOpen && <CanvasSettingsOverlay onClose={() => setSettingsOpen(false)} />}
+              {/* ThemeSwitcher: mounted here so the T-key shortcut listener is always active. */}
+              <div aria-hidden="true" style={{ display: 'none' }}><ThemeSwitcher /></div>
               <AiDisclaimerFixed />
             </div>
           </RouterProvider>

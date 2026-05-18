@@ -43,7 +43,7 @@ const SHOWCASE = [
   { id: 'editor', label: '2. Write', desc: 'Full editor with real-time citation flagging. Every claim checked against your uploaded sources. Voice input available.' },
   { id: 'tutor', label: '3. Ask', desc: 'Socratic tutor powered by Claude. Asks questions to sharpen your thinking. Never writes for you. Adapts to your year level.' },
   { id: 'voice', label: '4. Speak', desc: 'Voice-to-text input. Speak your thoughts, text appears at cursor. Free, browser-native, no recordings stored.' },
-  { id: 'hsc', label: '5. Practice', desc: '26 years of HSC past papers across NSW, VIC, QLD, WA. Matched to your assessment. Marker feedback included.' },
+  { id: 'hsc', label: '5. Practice', desc: 'HSC past papers matched to your assessment topic. Review real exam questions and read marker feedback to understand what high marks look like.' },
   { id: 'reset', label: '6. Reset', desc: 'Built-in breaks designed for sustainable thinking. No guilt. No streaks. No shame. Just good work habits.' },
   { id: 'joke', label: '7. Joy', desc: 'Type /joke or say "tell me a joke" to get a clean, ND-friendly joke when you need a brain break. Stays until you dismiss it.' },
 ];
@@ -59,7 +59,7 @@ const FAQS = [
   { q: 'Is this allowed under my university\'s AI policy?', a: 'Simplifii-OS is a workflow and verification tool, not a content generator. Most institutions permit tools that support your own thinking. We make disclosure easy with our AI Use Receipt feature. Always check your institution\'s specific policy.' },
   { q: 'Will my grades improve?', a: 'We cannot promise any specific academic outcome. Simplifii-OS helps you organise, verify, and strengthen your work. Better work habits tend to produce better results, but grades depend on many factors outside our control.' },
   { q: 'How is this different from ChatGPT or Grammarly?', a: 'ChatGPT writes for you. Grammarly polishes what you wrote. Simplifii-OS works with you across the entire workflow: from decoding the brief, to organising sources, to verifying every claim before submission. Your voice stays yours.' },
-  { q: 'What happens to my data?', a: 'Your data is stored encrypted in Sydney, Australia. We do not sell it, share it with advertisers, or use it to train AI models. You can export or delete your data at any time.' },
+  { q: 'What happens to my data?', a: 'Your data is stored encrypted in Sydney, Australia. We do not sell it, share it with advertisers, or use it to train AI models. To request an export or deletion of your data, email aaron@simplifii.com.au.' },
   { q: 'Is it really free?', a: 'Yes. Simplifii-OS is free for all individual learners during beta. When we introduce paid plans, free accounts will always have a free tier.' },
   { q: 'Does it work for high school students?', a: 'Yes. Simplifii-OS works for Year 7 through Year 12, including HSC preparation, as well as primary school students with parental support. The UI and language adapt to the learner\'s stage.', link: '/accessibility', linkText: 'Read more on our accessibility page' },
   { q: 'What if I have ADHD or dyslexia?', a: 'Simplifii-OS was built by a dyslexic, ADHD founder specifically for neurodivergent learners. Executive function support, clear visual hierarchy, no guilt notifications, and calm transitions are core to the design.', link: '/accessibility', linkText: 'Read more on our accessibility page' },

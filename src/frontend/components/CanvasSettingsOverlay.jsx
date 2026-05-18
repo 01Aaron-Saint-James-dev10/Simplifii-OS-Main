@@ -28,6 +28,15 @@ import {
  *   onClose - callback
  */
 
+const SOVEREIGN_THEMES = [
+  { value: 'obsidian', label: 'Dark' },
+  { value: 'clarity', label: 'Clarity' },
+  { value: 'vaporwave', label: 'Neon' },
+  { value: 'surreal', label: 'Paper' },
+  { value: 'minimal', label: 'Light' },
+];
+const SOV_THEME_KEY = 'simplifii_sovereign_theme';
+
 function Toggle({ label, description, value, onChange }) {
   return (
     <button
@@ -123,6 +132,15 @@ export default function CanvasSettingsOverlay({ onClose }) {
     window.dispatchEvent(new CustomEvent('simplifii:font-change', { detail: { font: v } }));
   };
 
+  const [sovereignTheme, setSovereignTheme] = React.useState(() =>
+    localStorage.getItem(SOV_THEME_KEY) || 'obsidian'
+  );
+  const handleSovereignTheme = (id) => {
+    document.documentElement.setAttribute('data-theme', id);
+    localStorage.setItem(SOV_THEME_KEY, id);
+    setSovereignTheme(id);
+  };
+
   const dialogRef = useRef(null);
 
   useEffect(() => {
@@ -208,13 +226,9 @@ export default function CanvasSettingsOverlay({ onClose }) {
         <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_MUTED, margin: '0 0 8px', lineHeight: 1.4 }}>Colours, motion, and visual comfort</p>
         <RadioGroup
           label="Theme"
-          options={[
-            { value: 'dark', label: 'Dark' },
-            { value: 'light', label: 'Light' },
-            { value: 'highContrast', label: 'High Contrast' },
-          ]}
-          value={theme}
-          onChange={setTheme}
+          options={SOVEREIGN_THEMES}
+          value={sovereignTheme}
+          onChange={handleSovereignTheme}
         />
         <Toggle label="Reduced motion" description="Disable all animations and transitions" value={reducedMotion} onChange={setReducedMotion} />
         <Toggle label="Visual effects (FX)" description="Matrix rain animation in header and footer strips" value={localStorage.getItem('simplifii_matrix_rain') !== 'false'} onChange={(v) => { localStorage.setItem('simplifii_matrix_rain', String(v)); window.location.reload(); }} />
