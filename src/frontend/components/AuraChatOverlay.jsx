@@ -163,13 +163,28 @@ async function loadAuraHistory(userId, courseId, assessmentTitle) {
   try {
     const { data } = await supabase
       .from('aura_history')
-      .select('messages, last_commitment, last_confusion, session_count')
+      .select('messages, last_commitment, last_confusion, session_count, target_grade, teacher_priority, hardest_part')
       .eq('user_id', userId)
       .eq('course_id', courseId)
       .eq('assessment_title', assessmentTitle || '__global__')
       .maybeSingle();
     return data || null;
   } catch { return null; }
+}
+
+async function savePresessionIntel(userId, courseId, assessmentTitle, { targetGrade, teacherPriority, hardestPart }) {
+  if (!userId || !courseId) return;
+  try {
+    await supabase.from('aura_history').upsert({
+      user_id: userId,
+      course_id: courseId,
+      assessment_title: assessmentTitle || '__global__',
+      target_grade: targetGrade,
+      teacher_priority: teacherPriority,
+      hardest_part: hardestPart,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,course_id,assessment_title' });
+  } catch { /* silent */ }
 }
 
 async function saveAuraHistory(userId, courseId, assessmentTitle, messages, commitment) {
@@ -277,6 +292,55 @@ function formatAuraSystemPrefix(ctx) {
   }
 
   return lines.join('\n');
+}
+
+function AuraPresessionCard({ onSubmit }) {
+  const [grade, setGrade] = useState('');
+  const [priority, setPriority] = useState('');
+  const [hardest, setHardest] = useState('');
+  const GRADES = ['Pass', 'Credit', 'Distinction', 'High Distinction'];
+  const HARDEST = ['Starting', 'Understanding what is required', 'Finding sources', 'Writing', 'Staying focused', 'All of it'];
+  const canSubmit = grade && priority.trim() && hardest;
+  return (
+    <div style={{ padding: '12px 16px', borderTop: `1px solid ${SURFACE_RAISED}`, overflowY: 'auto', maxHeight: 360 }}>
+      <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_PULSE, margin: '0 0 12px' }}>
+        Before we start
+      </p>
+      <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_PRIMARY, margin: '0 0 6px' }}>What grade are you aiming for?</p>
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 12 }}>
+        {GRADES.map(g => (
+          <button key={g} type="button" onClick={() => setGrade(g)}
+            style={{ padding: '4px 10px', fontFamily: FONT_SYSTEM, fontSize: 10, borderRadius: 12, cursor: 'pointer',
+              border: `1px solid ${grade === g ? ACCENT_PULSE : SURFACE_RAISED}`,
+              background: grade === g ? ACCENT_GLASS : 'transparent',
+              color: grade === g ? ACCENT_PULSE : TEXT_MUTED }}>{g}</button>
+        ))}
+      </div>
+      <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_PRIMARY, margin: '0 0 6px' }}>What does your teacher care most about?</p>
+      <input type="text" value={priority} onChange={e => setPriority(e.target.value)}
+        placeholder="e.g. referencing, argument structure, word count..."
+        style={{ width: '100%', fontFamily: FONT_BODY, fontSize: 11, color: TEXT_PRIMARY, background: 'transparent',
+          border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS + 2, padding: '6px 8px',
+          outline: 'none', marginBottom: 12, boxSizing: 'border-box' }} />
+      <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: TEXT_PRIMARY, margin: '0 0 6px' }}>What part of this feels hardest right now?</p>
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 14 }}>
+        {HARDEST.map(h => (
+          <button key={h} type="button" onClick={() => setHardest(h)}
+            style={{ padding: '4px 10px', fontFamily: FONT_SYSTEM, fontSize: 10, borderRadius: 12, cursor: 'pointer',
+              border: `1px solid ${hardest === h ? ACCENT_PULSE : SURFACE_RAISED}`,
+              background: hardest === h ? ACCENT_GLASS : 'transparent',
+              color: hardest === h ? ACCENT_PULSE : TEXT_MUTED }}>{h}</button>
+        ))}
+      </div>
+      <button type="button" onClick={() => canSubmit && onSubmit({ targetGrade: grade, teacherPriority: priority.trim(), hardestPart: hardest })}
+        disabled={!canSubmit}
+        style={{ width: '100%', padding: '8px', fontFamily: FONT_SYSTEM, fontSize: 11, fontWeight: 700,
+          color: canSubmit ? '#000' : TEXT_FAINT, background: canSubmit ? ACCENT_PULSE : SURFACE_RAISED,
+          border: 'none', borderRadius: BORDER_RADIUS + 2, cursor: canSubmit ? 'pointer' : 'default' }}>
+        Start with AURA
+      </button>
+    </div>
+  );
 }
 
 export default function AuraChatOverlay({ open, onClose }) {
@@ -491,6 +555,8 @@ export default function AuraChatOverlay({ open, onClose }) {
     window.speechSynthesis.speak(utterance);
   }, [readAloud]);
   const [collapsed, setCollapsed] = useState(false);
+  const [presessionIntel, setPresessionIntel] = useState(null); // null=unchecked, false=not needed, object={targetGrade,teacherPriority,hardestPart}
+  const [showPresessionCard, setShowPresessionCard] = useState(false);
   const [overlayPos, setOverlayPos] = useState(() => {
     try {
       const stored = localStorage.getItem('simplifii:aura-position');
@@ -516,20 +582,37 @@ export default function AuraChatOverlay({ open, onClose }) {
     });
   }, [greetingText]);
 
-  // AURA persistent memory: load last session context on mount
+  // AURA persistent memory: load last session context on mount + check presession intel
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
   useEffect(() => {
-    if (!user?.id || !courseId) return;
+    if (!user?.id || !courseId || !activeAssessmentTitle) {
+      setPresessionIntel(prev => prev === null ? false : prev);
+      return;
+    }
     const historyKey = `aura-history-loaded-${courseId}-${activeAssessmentTitle}`;
-    if (sessionStorage.getItem(historyKey)) return;
+    const presessionKey = `aura-presession-${courseId}-${activeAssessmentTitle}`;
+    if (sessionStorage.getItem(historyKey)) {
+      const cached = sessionStorage.getItem(presessionKey);
+      setPresessionIntel(cached && cached !== 'none' ? JSON.parse(cached) : false);
+      return;
+    }
     loadAuraHistory(user.id, courseId, activeAssessmentTitle).then(history => {
-      if (!history?.last_commitment) return;
       sessionStorage.setItem(historyKey, '1');
-      setMessages(prev => {
-        const memoryMsg = { role: 'tutor', text: `Last time you said: "${history.last_commitment}"\n\nHow did that go?` };
-        return [memoryMsg, ...prev];
-      });
+      if (history?.target_grade) {
+        const intel = { targetGrade: history.target_grade, teacherPriority: history.teacher_priority, hardestPart: history.hardest_part };
+        setPresessionIntel(intel);
+        sessionStorage.setItem(presessionKey, JSON.stringify(intel));
+      } else {
+        setPresessionIntel(false);
+        setShowPresessionCard(true);
+      }
+      if (history?.last_commitment) {
+        setMessages(prev => {
+          const memoryMsg = { role: 'tutor', text: `Last time you said: "${history.last_commitment}"\n\nHow did that go?` };
+          return [memoryMsg, ...prev];
+        });
+      }
     });
   }, [user?.id, courseId, activeAssessmentTitle]); // eslint-disable-line
 
@@ -544,9 +627,11 @@ export default function AuraChatOverlay({ open, onClose }) {
   }, [user?.id, courseId, activeAssessmentTitle]); // eslint-disable-line
 
   // Proactive canvas greeting: auto-open AURA once per session with a contextual first message.
-  // Fires 2 seconds after mount when a course and assessment are both present.
+  // Waits for presession intel check before firing. Incorporates intel into the greeting when available.
   useEffect(() => {
     if (!courseId || !activeAssessmentTitle) return;
+    if (showPresessionCard) return; // Card is showing, wait for student to complete it
+    if (presessionIntel === null) return; // Not yet checked, wait
     const greetKey = `aura-greeted-${courseId}`;
     if (sessionStorage.getItem(greetKey)) return;
     const timer = setTimeout(() => {
@@ -556,7 +641,9 @@ export default function AuraChatOverlay({ open, onClose }) {
         ? Math.ceil((new Date(activeDueDate) - now) / msPerDay)
         : null;
       let proactiveMsg;
-      if (daysUntilDue !== null && daysUntilDue < 0) {
+      if (presessionIntel && presessionIntel.targetGrade) {
+        proactiveMsg = `You are aiming for ${presessionIntel.targetGrade}. Your teacher cares about ${presessionIntel.teacherPriority}. Let us start with ${presessionIntel.hardestPart} because that is where most students lose marks.`;
+      } else if (daysUntilDue !== null && daysUntilDue < 0) {
         proactiveMsg = `Your ${activeAssessmentTitle} is overdue. That happens. No judgement: what is one small thing you could do on it right now, even 10 minutes worth?`;
       } else if (daysUntilDue !== null && daysUntilDue <= 7) {
         proactiveMsg = `Your ${activeAssessmentTitle} is due in ${daysUntilDue} day${daysUntilDue === 1 ? '' : 's'}. That is close enough to matter. What is the one section you have not started yet?`;
@@ -565,14 +652,13 @@ export default function AuraChatOverlay({ open, onClose }) {
       }
       sessionStorage.setItem(greetKey, 'true');
       setMessages(prev => {
-        // Replace the initial greeting if it is the only message so far
         if (prev.length === 1 && prev[0].role === 'tutor') return [{ role: 'tutor', text: proactiveMsg }];
         return prev;
       });
       window.dispatchEvent(new CustomEvent('aura:canvas-ready', { detail: { courseId } }));
     }, 2000);
     return () => clearTimeout(timer);
-  }, [courseId, activeAssessmentTitle, activeDueDate]); // eslint-disable-line
+  }, [courseId, activeAssessmentTitle, activeDueDate, showPresessionCard, presessionIntel]); // eslint-disable-line
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef(null);
@@ -806,6 +892,7 @@ export default function AuraChatOverlay({ open, onClose }) {
         user_id: user?.id || null,
         currentPhase: currentPhase || undefined,
         auraContext: auraSystemPrefix || undefined,
+        presessionIntel: presessionIntel && presessionIntel !== false ? presessionIntel : undefined,
       };
 
       const cleanReply = (raw) => {
@@ -1059,8 +1146,19 @@ export default function AuraChatOverlay({ open, onClose }) {
         )}
       </div>
 
+      {/* Pre-session intelligence card */}
+      {showPresessionCard && (
+        <AuraPresessionCard onSubmit={async (intel) => {
+          await savePresessionIntel(user?.id, courseId, activeAssessmentTitle, intel);
+          const presessionKey = `aura-presession-${courseId}-${activeAssessmentTitle}`;
+          sessionStorage.setItem(presessionKey, JSON.stringify(intel));
+          setPresessionIntel(intel);
+          setShowPresessionCard(false);
+        }} />
+      )}
+
       {/* Contextual quick-reply chips */}
-      {messages.length <= 1 && (
+      {messages.length <= 1 && !showPresessionCard && (
         <div style={{ padding: '4px 12px 8px', display: 'flex', gap: 6, overflowX: 'auto', borderTop: `1px solid ${SURFACE_RAISED}` }}>
           {(activeAssessmentTitle
             ? ['Where do I start with this?', 'Decode my rubric', 'What are the hidden expectations?', 'I am feeling overwhelmed']
@@ -1090,7 +1188,7 @@ export default function AuraChatOverlay({ open, onClose }) {
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') send(input); }}
           placeholder={isListening ? 'Listening...' : 'Ask AURA anything...'}
-          disabled={loading || isListening}
+          disabled={loading || isListening || showPresessionCard}
           style={{
             flex: 1, fontFamily: FONT_BODY, fontSize: 12, color: TEXT_PRIMARY,
             background: 'transparent', border: `1px solid ${isListening ? ACCENT_BORDER : SURFACE_RAISED}`,

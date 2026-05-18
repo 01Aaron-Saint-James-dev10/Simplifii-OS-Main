@@ -71,7 +71,7 @@ export default function CanvasScreen() {
   const { courseId, assessmentTitle, navigateToAssessments } = useRouter();
   const { courses, activeCourse, projectSources, upgradeCourseExtraction } = useProject();
   const { user } = useAuth();
-  const { reducedMotion, isZenMode, theme, autismFirstEnabled, sensoryLevel, isLiteralMode, ambientPreference, examExtraTimePercent, setExamExtraTimePercent, examQuestionsPerBall, focusLock, setFocusLock } = useSettings();
+  const { reducedMotion, isZenMode, theme, autismFirstEnabled, sensoryLevel, isLiteralMode, ambientPreference, examExtraTimePercent, setExamExtraTimePercent, examQuestionsPerBall } = useSettings();
 
   // Ambient sound: start/stop when preference changes
   useEffect(() => {
@@ -405,6 +405,18 @@ export default function CanvasScreen() {
   const [railVisible, setRailVisible] = useState(false);
   const [focusTimerOpen, setFocusTimerOpen] = useState(false);
 
+  // Close panel when session starts (FocusBar takes over); re-open panel on session end
+  useEffect(() => {
+    const onStart = () => setFocusTimerOpen(false);
+    const onEnd = () => setFocusTimerOpen(true);
+    window.addEventListener('bodyDoubling:sessionStarted', onStart);
+    window.addEventListener('bodyDoubling:sessionEnded', onEnd);
+    return () => {
+      window.removeEventListener('bodyDoubling:sessionStarted', onStart);
+      window.removeEventListener('bodyDoubling:sessionEnded', onEnd);
+    };
+  }, []);
+
   const toggleLeft = () => { const next = !leftCollapsed; setLeftCollapsed(next); localStorage.setItem('simplifii_left_collapsed', String(next)); };
   const [canvasTab, setCanvasTab] = useState('write'); // 'think' | 'ideas' | 'write'
   const [hasThinkContent, setHasThinkContent] = useState(false);
@@ -596,18 +608,7 @@ export default function CanvasScreen() {
     <div className={`canvas-root theme-${theme || 'dark'} ${reducedMotion ? 'canvas-no-motion' : ''} ${isZenMode ? 'canvas-zen' : ''}`}
       style={autismFirstEnabled ? getSensoryCSSVars(sensoryLevel) : undefined}
     >
-      {/* Focus lock: exit button */}
-      {focusLock && (
-        <button
-          type="button"
-          onClick={() => setFocusLock(false)}
-          aria-label="Exit focus mode"
-          style={{ position: 'fixed', top: 12, right: 12, zIndex: 100, padding: '6px 14px', borderRadius: 6, background: 'transparent', border: `1px solid ${ACCENT_BORDER}`, fontFamily: 'system-ui,sans-serif', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: TEXT_MUTED, cursor: 'pointer' }} /* allow-style */
-        >
-          Exit focus
-        </button>
-      )}
-      {!focusLock && <CanvasNav
+      <CanvasNav
         courseName={courseName}
         assessmentTitle={currentTitle}
         saveStatus={saveStatus}
@@ -643,6 +644,35 @@ export default function CanvasScreen() {
           onBlur={e => { e.currentTarget.style.outline = 'none'; }}
         >
           Docs
+        </button>
+        {/* Focus button: one tap starts a session (skips setup form on return visits) */}
+        <button
+          type="button"
+          aria-label="Start focus session"
+          title={localStorage.getItem('bd_sessions') ? 'Start a focus session' : 'Focus with AURA'}
+          onClick={() => {
+            const isReturn = !!localStorage.getItem('bd_sessions');
+            setFocusTimerOpen(true);
+            if (isReturn) window.dispatchEvent(new CustomEvent('bodyDoubling:quickStart'));
+          }}
+          style={{
+            background: 'transparent',
+            border: '1px solid var(--theme-border, #27272a)',
+            borderRadius: 6,
+            color: 'var(--text-faint, #71717a)',
+            fontFamily: 'var(--font-system, system-ui)',
+            fontSize: 9,
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            padding: '0 12px',
+            minHeight: 32,
+            cursor: 'pointer',
+            outline: 'none',
+          }}
+          onFocus={e => { e.currentTarget.style.outline = '2px solid #f4f4f5'; }} /* allow-style */
+          onBlur={e => { e.currentTarget.style.outline = 'none'; }}
+        >
+          Focus
         </button>
       </div>
 
@@ -912,7 +942,7 @@ export default function CanvasScreen() {
         </div>
 
         {/* Minimal UI: rail hidden by default, AURA surfaces tools contextually */}
-        {focusLock ? null : railVisible ? (
+        {railVisible ? (
           <PanelRail
             activePanel={activePanel}
             onSelectPanel={setActivePanelWithLog}

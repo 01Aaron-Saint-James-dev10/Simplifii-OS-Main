@@ -58,7 +58,7 @@ const FAQS = [
   { q: 'Is this allowed under my university\'s AI policy?', a: 'Simplifii-OS is a workflow and verification tool, not a content generator. Most institutions permit tools that support your own thinking. We make disclosure easy with our AI Use Receipt feature. Always check your institution\'s specific policy.' },
   { q: 'Will my grades improve?', a: 'We cannot promise any specific academic outcome. Simplifii-OS helps you organise, verify, and strengthen your work. Better work habits tend to produce better results, but grades depend on many factors outside our control.' },
   { q: 'How is this different from ChatGPT or Grammarly?', a: 'ChatGPT writes for you. Grammarly polishes what you wrote. Simplifii-OS works with you across the entire workflow: from decoding the brief, to organising sources, to verifying every claim before submission. Your voice stays yours.' },
-  { q: 'What happens to my data?', a: 'Your data is stored encrypted in Sydney, Australia. We do not sell it, share it with advertisers, or use it to train AI models. To request an export or deletion of your data, email aaron@simplifii.com.au.' },
+  { q: 'What happens to my data?', a: 'Your work content: your essays, notes, and uploaded briefs, is encrypted and private. Only you can see it. We collect anonymised behavioural data (how you use the tool, not what you write) which is aggregated and sold to education institutions as research insights. No individual is ever identifiable. This is how we keep Simplifii free forever. We also work with selected affiliate partners whose products are relevant to neurodivergent students: sensory tools, study aids, and accessibility products. You will only see suggestions relevant to your declared interests. You can request full deletion at any time by emailing aaron@simplifii.com.au.' },
   { q: 'Is it really free?', a: 'Yes. Simplifii-OS is free for all individual learners during beta. When we introduce paid plans, free accounts will always have a free tier.' },
   { q: 'Does it work for high school students?', a: 'Yes. Simplifii-OS works for Year 7 through Year 12, including HSC preparation, as well as primary school students with parental support. The UI and language adapt to the learner\'s stage.', link: '/accessibility', linkText: 'Read more on our accessibility page' },
   { q: 'What if I have ADHD or dyslexia?', a: 'Simplifii-OS was built by a dyslexic, ADHD founder specifically for neurodivergent learners. Executive function support, clear visual hierarchy, no guilt notifications, and calm transitions are core to the design.', link: '/accessibility', linkText: 'Read more on our accessibility page' },
@@ -141,7 +141,7 @@ export default function LandingPage() {
             </div>
 
             <p className="lp-fade-4" style={{ fontFamily: FONT_SYSTEM, fontSize: 12, letterSpacing: '0.04em', color: TEXT_FAINT }}>
-              No credit card. No ads. Your data, never sold.
+              No credit card. No ads. Your work stays private. We do not sell your data or share it with advertisers.
             </p>
           </div>
 
@@ -352,7 +352,7 @@ export default function LandingPage() {
             <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: ACCENT_PULSE, margin: '0 0 8px' }}>Learner</p>
             <p style={{ fontFamily: FONT_DISPLAY, fontSize: 28, fontWeight: 700, color: TEXT_PRIMARY, margin: '0 0 16px' }}>Free forever</p>
             <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {['Every feature', 'No credit card', 'No ads', 'Your data, never sold'].map(b => (
+              {['Every feature', 'No credit card', 'No ads', 'Your work stays private'].map(b => (
                 <li key={b} style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_MUTED, display: 'flex', gap: 8, alignItems: 'center' }}>
                   <span style={{ color: ACCENT_PULSE, fontSize: 12 }}>{'\u2713'}</span> {b}
                 </li>
@@ -406,7 +406,7 @@ export default function LandingPage() {
           Already have an account? <Link to="/login" style={{ color: ACCENT_PULSE, textDecoration: 'underline' }}>Sign in</Link>
         </p>
         <p style={{ fontFamily: FONT_SYSTEM, fontSize: 11, color: TEXT_FAINT, letterSpacing: '0.04em', marginTop: 8 }}>
-          No credit card. No ads. Your data, never sold.
+          No credit card. No ads. Your work stays private. We do not sell your data or share it with advertisers.
         </p>
         <div style={{ marginTop: 24, maxWidth: 380, marginLeft: 'auto', marginRight: 'auto' }}>
           <p style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_FAINT, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Want early access to new features?</p>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
-import { useSettings } from '../SettingsContext';
+import FocusBar from './FocusBar';
 import {
   FONT_BODY,
   TEXT_PRIMARY,
@@ -78,7 +78,6 @@ function createBrownNoise(audioCtx) {
 
 export default function BodyDoublingLine() {
   const { user } = useAuth();
-  const { setFocusLock } = useSettings();
 
   // Session state
   const [phase, setPhase] = useState('entry'); // entry | active | complete
@@ -217,7 +216,7 @@ export default function BodyDoublingLine() {
     setTimeLeft(MODES[mode].seconds);
     setIsRunning(true);
     setPhase('active');
-    setFocusLock(true);
+    window.dispatchEvent(new CustomEvent('bodyDoubling:sessionStarted'));
   }
 
   function handlePause() {
@@ -252,7 +251,7 @@ export default function BodyDoublingLine() {
     elapsedRef.current = 0;
     setCheckInShown(false);
     setCheckInDismissed(false);
-    setFocusLock(false);
+    window.dispatchEvent(new CustomEvent('bodyDoubling:sessionEnded'));
     fetchStudentCount();
   }
 
@@ -260,6 +259,15 @@ export default function BodyDoublingLine() {
     setMode(newMode);
     setTimeLeft(MODES[newMode].seconds);
   }
+
+  // Quick-start: canvas header "Focus" button dispatches this to skip the entry form
+  const handleStartRef = useRef(handleStart);
+  handleStartRef.current = handleStart;
+  useEffect(() => {
+    const handler = () => { if (phase === 'entry') handleStartRef.current(); };
+    window.addEventListener('bodyDoubling:quickStart', handler);
+    return () => window.removeEventListener('bodyDoubling:quickStart', handler);
+  }, [phase]);
 
   // Progress for circular timer (0 to 1)
   const progress = 1 - (timeLeft / MODES[mode].seconds);
@@ -398,130 +406,22 @@ export default function BodyDoublingLine() {
   }
 
   // ---- ACTIVE SESSION ----
+  // FocusBar renders via portal at top of viewport. Canvas stays fully accessible.
   if (phase === 'active') {
     return (
-      <div style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        background: SURFACE_BASE,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: FONT_BODY,
-        gap: 20,
-      }} role="dialog" aria-label="Focus session active">
-        {/* Session goal */}
-        {sessionGoal && (
-          <p style={{ color: TEXT_FAINT, fontSize: 13, margin: 0, maxWidth: 400, textAlign: 'center' }}>
-            {sessionGoal}
-          </p>
-        )}
-
-        {/* Circular timer */}
-        <div style={{ position: 'relative', width: 200, height: 200 }}>
-          <svg width="200" height="200" viewBox="0 0 200 200" aria-hidden="true">
-            {/* Background circle */}
-            <circle
-              cx="100" cy="100" r="90"
-              fill="none"
-              stroke={ACCENT_BORDER_FAINT}
-              strokeWidth="4"
-            />
-            {/* Progress arc */}
-            <circle
-              cx="100" cy="100" r="90"
-              fill="none"
-              stroke={ACCENT_PULSE}
-              strokeWidth="4"
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={strokeDashoffset}
-              transform="rotate(-90 100 100)"
-              style={{ transition: 'stroke-dashoffset 1s linear' }}
-            />
-          </svg>
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <span
-              style={{ fontSize: 42, fontWeight: 300, color: TEXT_PRIMARY, fontVariantNumeric: 'tabular-nums' }}
-              aria-live="polite"
-              aria-label={`${Math.floor(timeLeft / 60)} minutes ${timeLeft % 60} seconds remaining`}
-            >
-              {formatTime(timeLeft)}
-            </span>
-            <span style={{ fontSize: 12, color: TEXT_MUTED, marginTop: 4 }}>
-              {MODES[mode].label}
-            </span>
-          </div>
-        </div>
-
-        {/* Controls */}
-        <div style={{ display: 'flex', gap: 12 }}>
-          <button onClick={handlePause} style={buttonStyle(false)}>
-            {isRunning ? 'Pause' : 'Resume'}
-          </button>
-          <button onClick={handleEndEarly} style={buttonStyle(false)}>
-            End early
-          </button>
-        </div>
-
-        {/* AURA check-in overlay */}
-        {checkInShown && (
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            background: SURFACE_CARD,
-            borderRadius: BORDER_RADIUS,
-            padding: '24px 32px',
-            textAlign: 'center',
-            border: `1px solid ${ACCENT_BORDER}`,
-            zIndex: 10000,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 12,
-          }} role="alertdialog" aria-label="AURA check-in">
-            <p style={{ color: TEXT_PRIMARY, fontSize: 15, margin: 0 }}>
-              Still going? You are halfway through.
-            </p>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-              <button onClick={handleCheckInYes} style={buttonStyle(true)}>Yes</button>
-              <button onClick={handleCheckInBreak} style={buttonStyle(false)}>Take a break</button>
-            </div>
-          </div>
-        )}
-
-        {/* AURA presence indicator */}
-        <div style={{
-          position: 'fixed',
-          bottom: 24,
-          right: 24,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-        }}>
-          <span style={{
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
-            background: ACCENT_PULSE,
-            display: 'inline-block',
-            animation: 'bodyDoublePulse 2s ease-in-out infinite',
-          }} aria-hidden="true" />
-          <span style={{ fontSize: 12, color: TEXT_FAINT }}>
-            AURA is here with you
-          </span>
-        </div>
-      </div>
+      <FocusBar
+        timeLeft={timeLeft}
+        totalSeconds={MODES[mode].seconds}
+        isRunning={isRunning}
+        studentsNow={studentsNow}
+        ambientSound={ambientSound}
+        onAmbientChange={setAmbientSound}
+        checkInShown={checkInShown}
+        onCheckInYes={handleCheckInYes}
+        onCheckInBreak={handleCheckInBreak}
+        onPause={handlePause}
+        onEnd={handleEndEarly}
+      />
     );
   }
 

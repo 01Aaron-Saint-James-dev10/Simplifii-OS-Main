@@ -95,7 +95,6 @@ export const SettingsProvider = ({ children }) => {
   // Autism-first features (7 features, individually toggleable)
   const [autismFirstEnabled, setAutismFirstEnabled] = useState(localStorage.getItem('simplifii_autism_first') === 'true');
   const [sensoryLevel, setSensoryLevel] = useState(Number(localStorage.getItem('simplifii_sensory_level')) || 5);
-  const [focusLock, setFocusLock] = useState(false);
   const [predictabilityAnnouncements, setPredictabilityAnnouncements] = useState(localStorage.getItem('simplifii_predictability') !== 'false');
   const [specialInterests, setSpecialInterests] = useState(() => {
     try { return JSON.parse(localStorage.getItem('simplifii_special_interests') || '[]'); } catch { return []; }
@@ -237,7 +236,6 @@ export const SettingsProvider = ({ children }) => {
       ambientPreference, setAmbientPreference,
       examExtraTimePercent, setExamExtraTimePercent,
       examQuestionsPerBall, setExamQuestionsPerBall,
-      focusLock, setFocusLock,
       activeRules: rules[mode]
     }}>
       <div

@@ -1075,3 +1075,35 @@ When student opens Phase 1 (Understand), AURA proactively shows relevant communi
 **Location:** src/core/EventBus.js — tier_transition emission
 **Issue:** assessment_title_hash is NULL for all tier_transition telemetry events. The tier_transition payload does not include assessmentTitle at the point of emission, so pushToCloud receives nothing to hash. All other event types include assessmentTitle in their payload and hash correctly.
 **Fix:** Pass assessmentTitle in the tier_transition payload wherever the event is dispatched (CanvasScreen.jsx tier tab switches). EventBus or HistoryOfThought.appendEvent will then hash it via the existing hashValue() path before cloud emission.
+
+---
+
+## Sprint AA: Affiliate and Resource Layer
+
+Build after 500 active students.
+
+Approach: contextual resource surfacing, not advertising. Three surfaces:
+
+1. Resource Drawer (overwhelm trigger): when student reports overwhelm, surface one relevant product with a one-line explanation. Dismiss forever option. Student controls visibility.
+2. Post-session nudge card: after body doubling session ends, surface one relevant product. "Not an ad: a tool recommendation based on how you work."
+3. Institutional procurement page: schools buying the institutional tier get a curated recommended resources page. B2B affiliate revenue, not student-facing advertising.
+
+Top affiliates to sign up for now (no build required):
+1. Amazon Associates (covers most physical products)
+2. Grammarly affiliate (highest CPC in edtech)
+3. Brain.fm affiliate
+4. Headspace education tier
+
+Top product categories:
+- Noise-cancelling headphones (Sony ZX series, Lofi Girl branded)
+- Fidget and stimming tools (Stimtastic, Speks)
+- Weighted blankets (Mosaic, Gravity)
+- Blue light blocking glasses (Felix Gray, Pixel)
+- Desk lamps (BenQ ScreenBar)
+- Physical Pomodoro timers (Time Timer)
+- Noise machines (LectroFan)
+- Focus apps (Brain.fm)
+- Therapy apps (Headspace, Calm education tier)
+- ADHD coaching (Done, Inflow)
+
+Build sequence: Resource Drawer toggle in settings, post-session nudge card, institutional resource page, affiliate dashboard for click tracking.

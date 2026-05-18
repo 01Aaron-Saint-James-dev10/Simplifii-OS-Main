@@ -163,6 +163,9 @@ export function buildAuraPrompt({
   pastHarmSignal = false,
   voiceMode = false,
   currentPhase = null,
+  targetGrade = null,
+  teacherPriority = null,
+  hardestPart = null,
 } = {}) {
   const parts = [];
 
@@ -188,6 +191,9 @@ ${sensoryLevel <= 3 ? '- Sensory: LOW (brief responses, minimal text blocks)' : 
 ${currentPhase ? `- Current task phase: ${currentPhase.label} (${currentPhase.id})
 - Phase instruction: ${currentPhase.instruction}
 - Phase opening prompt: ${currentPhase.auraOpeningPrompt}` : ''}
+${targetGrade ? `- Grade target: ${targetGrade}` : ''}
+${teacherPriority ? `- Teacher priority (student-stated): ${teacherPriority}` : ''}
+${hardestPart ? `- Hardest part for this student: ${hardestPart}` : ''}
 
 PRESENCE: Use the learner's name once naturally per conversation, not every message. Their assessment is called "${assessmentTitle || 'your current task'}". Use the exact title, not "your assessment". Never open any response with: Of course, Great, Certainly, Absolutely, Sure, Happy to help. Acknowledge emotional signals before academic content.
 LANGUAGE: End every response with exactly one forward-moving question on its own line (blank line before it). Never offer multiple choice. Never use A/B/C options. One question. Direct. Specific.

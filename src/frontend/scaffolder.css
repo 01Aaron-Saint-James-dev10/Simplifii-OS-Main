@@ -536,6 +536,10 @@ button { font-family: inherit; color: inherit; background: none; border: 0; curs
   0%,100% { box-shadow: 0 0 0 4px var(--emerald-faint); }
   50%     { box-shadow: 0 0 0 8px transparent; }
 }
+@keyframes auraFocusPulse {
+  0%,100% { opacity: 1; box-shadow: 0 0 0 3px rgba(180,159,212,0.4); }
+  50%     { opacity: 0.7; box-shadow: 0 0 0 6px rgba(180,159,212,0); }
+}
 .body-double-text {
   flex: 1;
   font-size: 12.5px;

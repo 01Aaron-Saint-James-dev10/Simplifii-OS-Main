@@ -56,6 +56,7 @@ export default async function handler(req, res) {
   const documentInventory = req.body?.documentInventory || '';
   const documentContextAvailable = req.body?.documentContextAvailable !== false && briefText && briefText.length >= 100;
   const documentContextPartial = req.body?.documentContextPartial === true;
+  const presessionIntel = req.body?.presessionIntel || null;
 
   let systemPrompt = '';
 
@@ -74,6 +75,11 @@ export default async function handler(req, res) {
   const assessmentSummary = req.body?.assessmentSummary || '';
   if (assessmentSummary) {
     systemPrompt += `STRUCTURED ASSESSMENT DATA (confirmed accurate):\n${assessmentSummary}\n\nUse this for weight, due date, and rubric criteria questions. This data is always reliable.\n\n`;
+  }
+
+  // Pre-session intelligence: student's stated goal, teacher priority, and hardest part
+  if (presessionIntel?.targetGrade) {
+    systemPrompt += `PRE-SESSION INTELLIGENCE (student answered these before starting, reference specifically in every response):\n- Grade target: ${presessionIntel.targetGrade}\n- Teacher priority: ${presessionIntel.teacherPriority || 'not specified'}\n- Hardest part: ${presessionIntel.hardestPart || 'not specified'}\nWhen discussing rubric criteria, connect them to the grade target. Address the hardest part first when relevant.\n\n`;
   }
 
   // Document context injection or hallucination prevention
@@ -110,6 +116,9 @@ export default async function handler(req, res) {
     specialInterests: Array.isArray(specialInterests) ? specialInterests : [],
     sensoryLevel: typeof sensoryLevel === 'number' ? sensoryLevel : 5,
     voiceMode,
+    targetGrade: presessionIntel?.targetGrade || null,
+    teacherPriority: presessionIntel?.teacherPriority || null,
+    hardestPart: presessionIntel?.hardestPart || null,
   });
 
   // EAL/D language support (additive to AURA)
