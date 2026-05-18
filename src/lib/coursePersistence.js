@@ -82,6 +82,7 @@ export async function persistCourseToSupabase({ name, code, tier, term, assessme
       title: brief.title,
       brief_text: brief.body || brief.briefText || null,
       due_date: brief.dueDate ? new Date(brief.dueDate).toISOString().split('T')[0] : null,
+      weight: brief.weight != null ? String(brief.weight) : null,
       status: 'draft',
     });
     if (assessErr && typeof console !== 'undefined') {

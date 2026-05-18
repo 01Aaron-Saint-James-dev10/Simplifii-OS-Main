@@ -264,7 +264,7 @@ export const ProjectProvider = ({ children }) => {
             const jsonBriefs = d.extractionData?.assessmentBriefs || [];
 
             // Reconstruct assessmentBriefs: merge table rows with JSONB metadata
-            // Table has: title, brief_text, due_date. JSONB has: weight, wordCountGoal, rubricCriteria.
+            // Table has: title, brief_text, due_date, weight. JSONB has: wordCountGoal, rubricCriteria.
             const assessmentBriefs = (row.assessments || []).map(a => {
               // Find matching JSONB brief by title for extra metadata
               const jsonMatch = jsonBriefs.find(jb => jb.title === a.title) || {};
@@ -272,7 +272,7 @@ export const ProjectProvider = ({ children }) => {
                 title: a.title,
                 body: a.brief_text || jsonMatch.body || '',
                 dueDate: a.due_date || jsonMatch.dueDate || null,
-                weight: jsonMatch.weight || jsonMatch.weighting || '',
+                weight: a.weight || jsonMatch.weight || jsonMatch.weighting || '',
                 wordCountGoal: jsonMatch.wordCountGoal || jsonMatch.words || 0,
                 rubricCriteria: jsonMatch.rubricCriteria || [],
                 source: 'supabase',
