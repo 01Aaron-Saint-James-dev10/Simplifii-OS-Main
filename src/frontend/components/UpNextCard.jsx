@@ -112,7 +112,7 @@ export default function UpNextCard({ courses, onOpenCanvas, now: nowProp }) {
               color: ACCENT_PULSE,
             }}
           >
-            Up next
+            Most urgent
           </span>
           <p style={{ fontFamily: FONT_SYSTEM, fontSize: 11, color: TEXT_FAINT, margin: '4px 0 0' }}>
             {task.courseName}

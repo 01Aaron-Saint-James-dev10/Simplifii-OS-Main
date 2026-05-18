@@ -41,6 +41,7 @@
     "test:smoke": "playwright test --reporter=list",
     "test:regression": "cp .env.test .env.local && PLAYWRIGHT_LOCAL=true playwright test tests/regression.spec.js --reporter=list",
     "test:regression:prod": "playwright test tests/regression.spec.js --reporter=list",
+    "test:agent": "node tests/agent-test.js",
     "check-style": "node scripts/check-style.js",
     "copy-pdf-worker": "node scripts/copy-pdf-worker.js",
     "prestart": "node scripts/copy-pdf-worker.js && node scripts/build-grounding-manifest.js",

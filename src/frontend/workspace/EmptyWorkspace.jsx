@@ -80,7 +80,7 @@ export default function EmptyWorkspace({ tier, onCourseAdded }) {
 
         <div style={{ maxWidth: 400, margin: '0 auto', textAlign: 'center' }}>
           <p style={{ fontFamily: FONT_SYSTEM, fontSize: 12, color: TEXT_MUTED, margin: '0 0 16px', lineHeight: 1.5 }}>
-            Tap <strong>+ Add work</strong> in the header to get started.
+            Tap <strong>+ Add work</strong> (top right) to get started.
           </p>
           <input ref={fileRef} type="file" accept=".pdf" multiple onChange={handleFilePick} style={{ display: 'none' }} aria-hidden="true" />
 

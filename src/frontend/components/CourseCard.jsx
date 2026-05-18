@@ -137,7 +137,7 @@ export default function CourseCard({ course, courseId, density = 'standard', onO
                 cursor: needsRename ? 'pointer' : 'default',
               }}>
               {name}
-              {needsRename && <span style={{ fontSize: 9, color: '#71717a', marginLeft: 6, fontWeight: 400 }}>Tap to rename</span>}
+              {needsRename && <span style={{ fontSize: 9, color: TEXT_FAINT, marginLeft: 8, fontWeight: 400 }}> Tap to rename</span>}
             </h3>
           )}
           <span style={{
@@ -173,7 +173,7 @@ export default function CourseCard({ course, courseId, density = 'standard', onO
           color: TEXT_MUTED,
           lineHeight: 1.4,
         }}>
-          Next: <span style={{ color: TEXT_PRIMARY, fontWeight: 600 }}>{nextDue.title}</span>
+          Next due: <span style={{ color: TEXT_PRIMARY, fontWeight: 600 }}>{nextDue.title}</span>
           {nextDue.weight ? ` (${nextDue.weight})` : ''}
           {' \u00B7 '}
           <span style={{ color: status?.pill === 'red' ? '#f43f5e' : status?.pill === 'amber' ? '#f59e0b' : TEXT_MUTED }}>

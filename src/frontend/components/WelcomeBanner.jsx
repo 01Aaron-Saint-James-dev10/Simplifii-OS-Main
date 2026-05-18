@@ -54,7 +54,7 @@ export default function WelcomeBanner() {
       </h3>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <Step num="1" text="Tap '+ Add work' to upload your assignment, rubric, or exam paper." />
+        <Step num="1" text="Tap the '+ Add work' button (top right) to upload your assignment, rubric, or exam paper." />
         <Step num="2" text="AURA (the glowing orb) will read your document and build a plan for you." />
         <Step num="3" text="Open your subject to start writing. AURA guides you step by step." />
       </div>
