@@ -134,9 +134,11 @@ export default function CanvasScreen() {
   }, [briefs, assessmentTitle]);
 
   // Document classification: use value baked in during ingestion if present.
+  // Skip modal if already confirmed for this course.
   const preClassifiedType = course.extractionData?.documentType || null;
+  const classificationConfirmed = localStorage.getItem(`simplifii-classified-${courseId}`);
   const [docClassification, setDocClassification] = useState(
-    preClassifiedType ? { type: preClassifiedType, confidence: 1 } : null
+    preClassifiedType && !classificationConfirmed ? { type: preClassifiedType, confidence: 1 } : null
   );
   // Client-side exam heuristic: if pre-classification is missing, check the full
   // extracted text for unambiguous exam paper signals. This prevents the layout
@@ -365,6 +367,7 @@ export default function CanvasScreen() {
 
   useEffect(() => {
     if (docClassification) return;
+    if (localStorage.getItem(`simplifii-classified-${courseId}`)) return;
     if (!briefOrText || briefOrText.length < 30) return;
     const classKey = `simplifii_classified_${courseId}_${currentTitle}`;
     if (sessionStorage.getItem(classKey)) return;
@@ -980,13 +983,15 @@ export default function CanvasScreen() {
             if (docClassification.type === 'rubric') toolMap[0] = 'rubric';
             const panel = toolMap[i];
             if (panel) { setRailVisible(true); setActivePanelWithLog(panel); }
+            localStorage.setItem(`simplifii-classified-${courseId}`, 'true');
             setDocClassification(null);
           }}
           onOverride={(newType) => {
             upgradeCourseExtraction(courseId, { extractionData: { documentType: newType } });
+            localStorage.setItem(`simplifii-classified-${courseId}`, 'true');
             setDocClassification(null);
           }}
-          onDismiss={() => setDocClassification(null)}
+          onDismiss={() => { localStorage.setItem(`simplifii-classified-${courseId}`, 'true'); setDocClassification(null); }}
         />
       )}
 
