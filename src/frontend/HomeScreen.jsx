@@ -284,10 +284,10 @@ export default function HomeScreen() {
             sub = sortedCourses.length > 0 ? `${sortedCourses.length} course${sortedCourses.length === 1 ? '' : 's'} active.` : "Let's get started.";
           }
           return (
-            <div style={{ padding: '20px 24px 8px' }}>
-              <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(1.25rem, 3vw, 1.75rem)', fontWeight: 700, color: 'var(--sov-ink, #e4e4e7)', margin: '0 0 4px' }}>{greeting}</h2>
-              <p style={{ fontFamily: FONT_DISPLAY, fontSize: 14, color: TEXT_MUTED, margin: 0 }}>{sub}</p>
-              <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: 'var(--sov-ink-faint, #52525b)', margin: '8px 0 0', letterSpacing: '0.06em' }}>
+            <div style={{ padding: '8px 0 28px' }}>
+              <h2 style={{ fontFamily: '-apple-system, "SF Pro Display", "Geist", BlinkMacSystemFont, sans-serif', fontSize: 'clamp(1.5rem, 3vw, 2.25rem)', fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--sov-ink, #e4e4e7)', margin: '0 0 6px' }}>{greeting}</h2>
+              <p style={{ fontFamily: '-apple-system, "SF Pro Text", "Inter", sans-serif', fontSize: 15, color: 'var(--sov-ink-dim, #9494a0)', margin: 0, fontWeight: 400 }}>{sub}</p>
+              <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: 'var(--sov-ink-faint, #8d8d96)', margin: '10px 0 0', letterSpacing: '0.06em' }}>
                 {clock.dayOfWeek}, {clock.formattedDate} | {clock.formattedTime} {clock.timezone.replace('_', ' ').split('/').pop()}
               </p>
             </div>

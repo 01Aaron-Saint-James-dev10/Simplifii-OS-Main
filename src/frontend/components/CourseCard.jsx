@@ -95,18 +95,25 @@ export default function CourseCard({ course, courseId, density = 'standard', onO
     <div
       style={{
         background: SURFACE_CARD_GLASS, // allow-style
-        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-        border: `1px solid ${SURFACE_RAISED}`,
-        borderLeft: isPinned ? `3px solid ${ACCENT_BORDER}` : `1px solid ${SURFACE_RAISED}`,
-        borderRadius: BORDER_RADIUS,
-        padding: isCompact ? '12px 14px' : '16px 18px',
+        backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+        border: isPinned ? `1px solid ${ACCENT_BORDER}` : `1px solid ${SURFACE_RAISED}`,
+        borderLeft: isPinned ? `3px solid ${ACCENT_BORDER}` : undefined,
+        borderRadius: 12, /* card surface: 12px per Apple layout sprint */
+        padding: isCompact ? '16px 18px' : '20px 22px',
         display: 'flex',
         flexDirection: 'column',
-        gap: isCompact ? 8 : 12,
-        transitionProperty: 'border-color', transitionDuration: '150ms', // allow-style
+        gap: isCompact ? 10 : 14,
+        boxShadow: '0 1px 4px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.12)', // allow-style
+        transitionProperty: 'border-color, box-shadow', transitionDuration: '160ms', // allow-style
       }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = ACCENT_BORDER; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = SURFACE_RAISED; }}
+      onMouseEnter={e => {
+        e.currentTarget.style.borderColor = ACCENT_BORDER;
+        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.28), 0 8px 32px rgba(0,0,0,0.18)'; // allow-style
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.borderColor = isPinned ? ACCENT_BORDER : SURFACE_RAISED;
+        e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.12)'; // allow-style
+      }}
     >
       {/* Header: name + pill */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
