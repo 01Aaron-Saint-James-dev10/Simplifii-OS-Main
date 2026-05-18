@@ -78,6 +78,24 @@ html[data-theme="minimal"] {
   --sov-stroke: 1px;
 }
 
+/* Clarity (clean white, Apple-inspired) */
+html[data-theme="clarity"] {
+  --sov-bg: #ffffff;
+  --sov-bg-1: #f5f5f7;
+  --sov-bg-2: #fbfbfd;
+  --sov-grid: transparent;
+  --sov-line: #1d1d1f;
+  --sov-line-soft: rgba(29, 29, 31, 0.6);
+  --sov-line-dim: rgba(29, 29, 31, 0.2);
+  --sov-accent: #0071e3;
+  --sov-ink: #1d1d1f;
+  --sov-ink-dim: rgba(29, 29, 31, 0.6);
+  --sov-ink-faint: rgba(110, 110, 115, 1);
+  --sov-hairline: rgba(0, 0, 0, 0.08);
+  --sov-glow: none;
+  --sov-stroke: 1px;
+}
+
 /* Amber (blue-light blocker, warm dark) */
 html[data-theme="amber"] {
   --sov-bg: #1c1407;
@@ -103,7 +121,8 @@ html[data-theme="amber"] {
 
 html[data-theme="vaporwave"] body,
 html[data-theme="surreal"] body,
-html[data-theme="minimal"] body {
+html[data-theme="minimal"] body,
+html[data-theme="clarity"] body {
   background-color: var(--sov-bg);
   color: var(--sov-ink);
 }
@@ -138,7 +157,8 @@ html[data-theme]::selection {
 
 /* Matrix rain: hide on light themes */
 html[data-theme="surreal"] .matrix-rain,
-html[data-theme="minimal"] .matrix-rain {
+html[data-theme="minimal"] .matrix-rain,
+html[data-theme="clarity"] .matrix-rain {
   opacity: 0;
   display: none;
 }
@@ -146,5 +166,95 @@ html[data-theme="minimal"] .matrix-rain {
 /* Disable rain entirely with prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   .matrix-rain { display: none; }
+}
+
+/* ================================================================
+   Clarity theme: component-specific polish
+   Apple-inspired clean white aesthetic
+   ================================================================ */
+
+/* Clarity: remove grid paper background */
+html[data-theme="clarity"] body {
+  background: #ffffff !important;
+}
+
+/* Clarity: dashboard root */
+html[data-theme="clarity"] .home-root {
+  background: #ffffff !important;
+}
+
+/* Clarity: nav bar (frosted glass) */
+html[data-theme="clarity"] .home-nav {
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+html[data-theme="clarity"] .home-nav-title,
+html[data-theme="clarity"] .home-nav-brand,
+html[data-theme="clarity"] .home-nav-logo {
+  color: #1d1d1f !important;
+}
+
+/* Clarity: greeting typography */
+html[data-theme="clarity"] .home-section h2 {
+  font-size: clamp(2rem, 5vw, 3rem) !important;
+  font-weight: 700 !important;
+  color: #1d1d1f !important;
+  letter-spacing: -0.025em;
+}
+
+html[data-theme="clarity"] .home-section p {
+  color: #6e6e73 !important;
+}
+
+/* Clarity: course cards */
+html[data-theme="clarity"] .home-grid > div {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+  padding: 20px !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="clarity"] .home-grid > div:hover {
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Clarity: card text */
+html[data-theme="clarity"] .home-grid > div span,
+html[data-theme="clarity"] .home-grid > div p {
+  color: #1d1d1f !important;
+}
+
+/* Clarity: "Add work" button */
+html[data-theme="clarity"] .home-nav-actions button[data-tour="add-work"] {
+  background: #0071e3 !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 20px !important;
+  padding: 8px 18px !important;
+  font-weight: 600 !important;
+}
+
+html[data-theme="clarity"] .home-nav-actions button[data-tour="add-work"]:hover {
+  background: #0077ed !important;
+}
+
+/* Clarity: section labels */
+html[data-theme="clarity"] .home-section-label {
+  color: #1d1d1f !important;
+}
+
+/* Clarity: body doubling and other cards */
+html[data-theme="clarity"] .home-section > div {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
 }
 

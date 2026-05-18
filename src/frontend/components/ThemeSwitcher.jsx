@@ -7,6 +7,7 @@ import {
 
 const THEMES = [
   { id: 'obsidian', label: 'Dark' },
+  { id: 'clarity', label: 'Clarity' },
   { id: 'amber', label: 'Amber' },
   { id: 'vaporwave', label: 'Neon' },
   { id: 'surreal', label: 'Paper' },
