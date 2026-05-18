@@ -213,7 +213,9 @@ export function useIngestion({
 
     const draft = buildDerived(datedBriefs);
     const draftFirst = draft.assessmentTitles[0];
-    const draftTaskName = draftFirst || data.unitCode || 'Course Brief';
+    const cleanCode = (data.unitCode && data.unitCode !== 'UNTITLED') ? data.unitCode : null;
+    const examFallback = data.documentType === 'exam_paper' ? 'Past Exam Paper' : 'Course Brief';
+    const draftTaskName = draftFirst || cleanCode || examFallback;
     const draftTask = { course: data.unitCode || 'Extracted', task: draftTaskName, level: data.level, rawText: data.rawText };
     const generatedBlocks = mapToWorkspace(data.rawText || '', data.level || 'Tertiary');
     // Write raw text to localStorage so AuraHUD's Sovereign Format Import button

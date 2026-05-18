@@ -445,6 +445,7 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
   return (
     <div
       ref={containerRef}
+      data-tour="aura-orb"
       onPointerDown={handlePointerDown}
       style={{
         position: 'fixed',

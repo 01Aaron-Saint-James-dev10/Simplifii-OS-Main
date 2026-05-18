@@ -707,7 +707,8 @@ export default function CanvasScreen() {
           </div>
 
           {/* Tab: Write (Tier 3 editor, always mounted, display-toggled) */}
-          <div style={{ display: !isExamPaper && canvasTab === 'write' ? 'flex' : 'none', flexDirection: 'column', flex: 1 }}>
+          {/* isExamPaper: tab nav is hidden, so this pane must always be visible for exam papers */}
+          <div style={{ display: (isExamPaper || canvasTab === 'write') ? 'flex' : 'none', flexDirection: 'column', flex: 1 }}>
             {briefs.length === 0 && !extractedText && <NoBriefPrompt courseId={courseId} />}
 
           {/* First Look: auto-generated document summary on first visit */}

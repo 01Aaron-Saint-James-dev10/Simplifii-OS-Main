@@ -175,9 +175,7 @@ export default function AppShell() {
               <EnergyOrbs userId={user?.id || 'anon'} />
               <FeedbackButton />
               <FirstTimeTooltip id="aura_orb" text="Tap me for help at any time. I am AURA, your study guide." position="left" delay={2000}>
-                <div data-tour="aura-orb">
-                  <AuraOrb onClick={() => setAuraChatOpen(prev => !prev)} auraState={auraChatOpen ? 'listening' : 'idle'} />
-                </div>
+                <AuraOrb onClick={() => setAuraChatOpen(prev => !prev)} auraState={auraChatOpen ? 'listening' : 'idle'} />
               </FirstTimeTooltip>
               <AuraChatOverlay open={auraChatOpen} onClose={() => setAuraChatOpen(false)} />
               {settingsOpen && <CanvasSettingsOverlay onClose={() => setSettingsOpen(false)} />}

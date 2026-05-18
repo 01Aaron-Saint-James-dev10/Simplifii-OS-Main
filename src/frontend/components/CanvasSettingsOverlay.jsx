@@ -30,7 +30,7 @@ import {
 
 const SOVEREIGN_THEMES = [
   { value: 'obsidian', label: 'Dark' },
-  { value: 'clarity', label: 'Clarity' },
+  { value: 'amber', label: 'Amber' },
   { value: 'vaporwave', label: 'Neon' },
   { value: 'surreal', label: 'Paper' },
   { value: 'minimal', label: 'Light' },

@@ -40,10 +40,10 @@ export const WHITE_FILL        = 'rgba(255,255,255,0.9)';  // Near-opaque fill
 // Text tokens
 // ============================================================
 
-export const TEXT_PRIMARY  = '#e4e4e7'; // Zinc 200
-export const TEXT_MUTED    = '#71717a'; // Zinc 500
-export const TEXT_FAINT    = '#52525b'; // Zinc 600
-export const TEXT_LABEL    = '#3f3f46'; // Zinc 700: system metadata labels
+export const TEXT_PRIMARY  = '#e4e4e7'; // Zinc 200: 12.9:1 on SURFACE_CARD
+export const TEXT_MUTED    = '#9494a0'; // Custom: 5.3:1 on SURFACE_CARD (WCAG AA)
+export const TEXT_FAINT    = '#8d8d96'; // Custom: 4.9:1 on SURFACE_CARD (WCAG AA)
+export const TEXT_LABEL    = '#8d8d96'; // Custom: 4.9:1 on SURFACE_CARD (WCAG AA)
 
 // WCAG 2.1 Level AA keyboard/eye-tracker focus indicator. Solid near-white
 // ring with >16:1 contrast on any dark surface. Appears on :focus-visible only.
