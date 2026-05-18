@@ -12,7 +12,7 @@ import { getQueuedAuraMessages } from '../../core/TaskLifecycleManager';
 import { buildAssessmentKey, getCurrentPhase } from '../../core/TaskSequenceManager';
 import { loadLastSession } from '../../services/SessionSummaryService';
 import { literalise } from '../../core/LiteralMode';
-import { appendEvent } from '../../core/HistoryOfThought';
+// HistoryOfThought event logging removed with A/B/C variant system
 import { loadDraft } from '../../services/DraftService';
 import {
   SURFACE_CARD, SURFACE_RAISED,
@@ -729,70 +729,23 @@ export default function AuraChatOverlay({ open, onClose }) {
         return isLiteralMode ? literalise(stripped) : stripped;
       };
 
-      // A/B/C variants only for substantive messages (>20 chars)
-      const useVariants = text.trim().length > 20;
-
-      if (useVariants) {
-        const variantSuffixes = [
-          'Respond in a direct, structured format with clear steps.',
-          'Respond conversationally, as if talking with a friend who understands the subject.',
-          'Respond minimally: the single most important thing to think about right now.',
-        ];
-        const delays = [0, 50, 100];
-
-        const fetchVariant = (suffix, delay) => new Promise((resolve) => {
-          setTimeout(async () => {
-            try {
-              const res = await fetch('/api/tutor', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...baseBody, variantSuffix: suffix }),
-              });
-              const d = await res.json();
-              resolve(d.success && d.reply?.trim() ? { reply: d.reply, toolSuggestion: d.toolSuggestion } : null);
-            } catch { resolve(null); }
-          }, delay);
-        });
-
-        const results = await Promise.all(
-          variantSuffixes.map((suffix, i) => fetchVariant(suffix, delays[i]))
-        );
-
-        const labels = ['A', 'B', 'C'];
-        const styles = ['structured', 'conversational', 'minimal'];
-        const variants = results
-          .map((r, i) => r ? { label: labels[i], text: cleanReply(r.reply), rawText: r.reply, style: styles[i] } : null)
-          .filter(Boolean);
-
-        if (variants.length > 0) {
-          const toolSuggestion = results.find(r => r?.toolSuggestion)?.toolSuggestion || null;
-          dispatchAuraState('speaking');
-          setMessages(prev => [...prev, { role: 'tutor', variants, selected: null, toolSuggestion }]);
-          setTimeout(() => dispatchAuraState('success'), 1500);
-          setTimeout(() => dispatchAuraState('idle'), 3000);
-        } else {
-          setMessages(prev => [...prev, { role: 'tutor', text: 'Could not connect. Try again.' }]);
-          dispatchAuraState('idle');
-        }
+      // Single direct response (no A/B/C variants)
+      const response = await fetch('/api/tutor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(baseBody),
+      });
+      const data = await response.json();
+      if (data.success && data.reply && data.reply.trim()) {
+        const finalReply = cleanReply(data.reply);
+        dispatchAuraState('speaking');
+        setMessages(prev => [...prev, { role: 'tutor', text: finalReply, rawText: data.reply, toolSuggestion: data.toolSuggestion || null }]);
+        if (voiceMode || isListeningContinuous || isListening) speak(finalReply);
+        setTimeout(() => dispatchAuraState('success'), 1500);
+        setTimeout(() => dispatchAuraState('idle'), 3000);
       } else {
-        // Short messages: single response (no variants)
-        const response = await fetch('/api/tutor', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(baseBody),
-        });
-        const data = await response.json();
-        if (data.success && data.reply && data.reply.trim()) {
-          const finalReply = cleanReply(data.reply);
-          dispatchAuraState('speaking');
-          setMessages(prev => [...prev, { role: 'tutor', text: finalReply, rawText: data.reply, toolSuggestion: data.toolSuggestion || null }]);
-          if (voiceMode || isListeningContinuous || isListening) speak(finalReply);
-          setTimeout(() => dispatchAuraState('success'), 1500);
-          setTimeout(() => dispatchAuraState('idle'), 3000);
-        } else {
-          setMessages(prev => [...prev, { role: 'tutor', text: 'Could not connect. Try again.' }]);
-          dispatchAuraState('idle');
-        }
+        setMessages(prev => [...prev, { role: 'tutor', text: 'Could not connect. Try again.' }]);
+        dispatchAuraState('idle');
       }
     } catch {
       setMessages(prev => [...prev, { role: 'tutor', text: 'Network error. Try again.' }]);
@@ -803,18 +756,6 @@ export default function AuraChatOverlay({ open, onClose }) {
   }, [messages, loading, activeTier, isLiteralMode, accessibilityProfile, learnerContext, user, isListening, stopVoice, activeAssessmentTitle, activeBriefText, activeDocType, dashboardContext, courses]);
   sendRef.current = send;
 
-  const selectVariant = useCallback((msgIndex, variantIndex) => {
-    setMessages(prev => prev.map((m, i) => {
-      if (i !== msgIndex || !m.variants) return m;
-      const chosen = m.variants[variantIndex];
-      if (!chosen) return m;
-      // Speak selected variant (use cleaned text for voice)
-      if (voiceMode || isListeningContinuous) speak(chosen.text);
-      // Log to HistoryOfThought
-      appendEvent({ event_type: 'pre_write_accepted', payload: { variant: chosen.label, style: chosen.style } }).catch(() => {});
-      return { ...m, text: chosen.text, rawText: chosen.rawText || chosen.text, selected: variantIndex };
-    }));
-  }, [voiceMode, isListeningContinuous, speak]);
 
   if (!open) return null;
 
@@ -935,39 +876,6 @@ export default function AuraChatOverlay({ open, onClose }) {
           const toolLabels = { simplify: 'Scaffold my assessment', rubric: 'Decode my rubric', scorer: 'Check my draft', hidden: 'Hidden curriculum', humanise: 'Make it sound like me', check: 'Rubric check', pastqs: 'Past questions', udl: '4 ways to understand', analysis: 'Writing metrics', open_canvas: 'Open canvas' };
 
           // A/B/C variant cards (unselected state)
-          if (m.variants && m.selected === null) {
-            return (
-              <div key={i} style={{ alignSelf: 'flex-start', maxWidth: '95%', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {m.variants.map((v, vi) => (
-                  <button
-                    key={v.label}
-                    type="button"
-                    onClick={() => selectVariant(i, vi)}
-                    aria-label={`Select response ${v.label}`}
-                    style={{
-                      textAlign: 'left', cursor: 'pointer',
-                      background: SURFACE_CARD, border: `1px solid ${SURFACE_RAISED}`,
-                      borderRadius: BORDER_RADIUS + 4, padding: '8px 10px',
-                      outline: 'none', width: '100%',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = ACCENT_BORDER; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = SURFACE_RAISED; }}
-                    onFocus={e => { e.currentTarget.style.boxShadow = FOCUS_RING; }}
-                    onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
-                  >
-                    <span style={{ fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, color: ACCENT_PULSE, letterSpacing: '0.06em' }}>
-                      {v.label}
-                    </span>
-                    <FormattedMessage
-                      text={(v.rawText || v.text).length > 200 ? (v.rawText || v.text).slice(0, 200) + '...' : (v.rawText || v.text)}
-                      style={{ fontFamily: FONT_BODY, color: TEXT_PRIMARY, marginTop: 4 }}
-                    />
-                  </button>
-                ))}
-              </div>
-            );
-          }
-
           return (
           <div key={i} style={{
             alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
