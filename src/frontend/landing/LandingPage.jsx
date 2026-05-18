@@ -21,6 +21,7 @@ import {
 
 import MatrixRain from '../components/MatrixRain';
 
+import ShowcasePreview from './ShowcasePreview';
 import EducationLevels from './EducationLevels';
 import EmailCapture from '../components/EmailCapture';
 import './LandingPage.css';
@@ -170,13 +171,17 @@ export default function LandingPage() {
                   transition={MQ_REDUCE ? {} : { duration: 3, repeat: Infinity, ease: 'easeOut', delay: 0.5 }}
                   style={{ position: 'absolute', width: 200, height: 200, borderRadius: '50%', border: `1px solid ${ACCENT_PULSE}`, opacity: 0.2 }}
                 />
-                <div style={{ position: 'relative', width: 140, height: 140, margin: '0 auto' }}>
+                <div style={{ position: 'relative', width: 140, height: 140, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <div style={{
                     width: 140, height: 140, borderRadius: '50%',
-                    background: 'radial-gradient(circle at 40% 40%, #00b5a3, #007a6e)',
-                    boxShadow: '0 0 60px rgba(0,181,163,0.5), 0 0 120px rgba(0,181,163,0.2)',
+                    background: 'radial-gradient(circle at 35% 30%, #d0bfe8, #b49fd4)',
+                    border: '2px solid rgba(180,159,212,0.4)',
+                    boxShadow: '0 0 40px rgba(180,159,212,0.5), 0 0 80px rgba(180,159,212,0.2)',
                     animation: MQ_REDUCE ? 'none' : 'aura-pulse 3s ease-in-out infinite',
-                  }} />
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <span style={{ fontFamily: 'monospace', fontSize: 22, fontWeight: 700, color: '#ede9f7', letterSpacing: '-1px', userSelect: 'none' }}>{'>_<'}</span>
+                  </div>
                 </div>
               </div>
 
@@ -263,14 +268,12 @@ export default function LandingPage() {
             </button>
           ))}
         </div>
-        <div role="tabpanel" id={`showcase-panel-${activeTab}`} aria-labelledby={`showcase-tab-${activeTab}`} tabIndex={0} style={{ background: GLASS_SURFACE, border: `1px solid ${GLASS_BORDER}`, borderRadius: 12, padding: '40px', boxShadow: GLOW_EMERALD }}>
-          <h3 style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 'clamp(1.1rem, 2.5vw, 1.5rem)', color: TEXT_PRIMARY, margin: '0 0 16px', lineHeight: 1.3 }}>
-            {SHOWCASE.find(t => t.id === activeTab)?.heading}
-          </h3>
-          <p style={{ fontFamily: FONT_BODY, fontSize: 16, lineHeight: 1.7, color: TEXT_MUTED, margin: 0, maxWidth: 600 }}>
-            {SHOWCASE.find(t => t.id === activeTab)?.body}
-          </p>
+        <div role="tabpanel" id={`showcase-panel-${activeTab}`} aria-labelledby={`showcase-tab-${activeTab}`} tabIndex={0} style={{ background: GLASS_SURFACE, border: `1px solid ${GLASS_BORDER}`, borderRadius: 12, overflow: 'hidden', boxShadow: GLOW_EMERALD }}>
+          <ShowcasePreview activeTab={activeTab} />
         </div>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 15, color: TEXT_MUTED, textAlign: 'center', marginTop: 20 }}>
+          {SHOWCASE.find(t => t.id === activeTab)?.body}
+        </p>
       </section>
 
       {/* ── DIFFERENTIATION ───────────────────────────────────── */}
