@@ -72,9 +72,10 @@ export default function UpNextCard({ courses, onOpenCanvas, now: nowProp }) {
         style={{
           background: SURFACE_CARD,
           border: `1px solid ${SURFACE_RAISED}`,
-          borderRadius: BORDER_RADIUS,
-          padding: '24px 20px',
+          borderRadius: 16,
+          padding: '28px',
           textAlign: 'center',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.12)', // allow-style
         }}
       >
         <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_MUTED, margin: 0 }}>
@@ -91,12 +92,12 @@ export default function UpNextCard({ courses, onOpenCanvas, now: nowProp }) {
       style={{
         background: SURFACE_CARD,
         border: `1px solid ${ACCENT_BORDER}`,
-        borderRadius: BORDER_RADIUS,
-        padding: '22px 20px',
+        borderRadius: 16,
+        padding: '28px',
         display: 'flex',
         flexDirection: 'column',
-        gap: 14,
-        boxShadow: `0 0 24px ${ACCENT_BORDER_FAINT}, 0 0 0 1px ${ACCENT_BORDER}`,
+        gap: 20,
+        boxShadow: `0 0 32px ${ACCENT_BORDER_FAINT}, 0 2px 8px rgba(0,0,0,0.2), 0 8px 32px rgba(0,0,0,0.14)`, // allow-style
       }}
     >
       {/* Header row */}
@@ -105,16 +106,16 @@ export default function UpNextCard({ courses, onOpenCanvas, now: nowProp }) {
           <span
             style={{
               fontFamily: FONT_SYSTEM,
-              fontSize: 10,
+              fontSize: 11,
               fontWeight: 700,
-              letterSpacing: '0.12em',
+              letterSpacing: '0.1em',
               textTransform: 'uppercase',
               color: ACCENT_PULSE,
             }}
           >
             Most urgent
           </span>
-          <p style={{ fontFamily: FONT_SYSTEM, fontSize: 11, color: TEXT_FAINT, margin: '4px 0 0' }}>
+          <p style={{ fontFamily: FONT_SYSTEM, fontSize: 12, color: TEXT_FAINT, margin: '4px 0 0', letterSpacing: '0.02em' }}>
             {task.courseName}
           </p>
         </div>
@@ -122,12 +123,12 @@ export default function UpNextCard({ courses, onOpenCanvas, now: nowProp }) {
       </div>
 
       {/* Task title */}
-      <h2 style={{ fontFamily: FONT_BODY, fontSize: 18, fontWeight: 700, color: TEXT_PRIMARY, margin: 0, lineHeight: 1.3 }}>
+      <h2 style={{ fontFamily: FONT_BODY, fontSize: 22, fontWeight: 700, color: TEXT_PRIMARY, margin: 0, lineHeight: 1.25, letterSpacing: '-0.01em' }}>
         {task.title}
       </h2>
 
       {/* Detail row */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
         {task.weight && (
           <DetailField label="Weight" value={task.weight} />
         )}
@@ -156,21 +157,21 @@ export default function UpNextCard({ courses, onOpenCanvas, now: nowProp }) {
           fontFamily: FONT_SYSTEM,
           fontSize: 11,
           fontWeight: 700,
-          letterSpacing: '0.1em',
+          letterSpacing: '0.08em',
           textTransform: 'uppercase',
           color: '#000',
           background: ACCENT_PULSE,
           border: 'none',
-          borderRadius: BORDER_RADIUS,
-          padding: '12px 20px',
+          borderRadius: 8,
+          padding: '14px 24px',
           cursor: 'pointer',
           minHeight: 44,
-          minWidth: 44,
-          transition: 'background 150ms ease',
+          alignSelf: 'flex-start',
+          transition: 'background 150ms ease, transform 100ms ease', // allow-style
           outline: 'none',
         }}
-        onMouseEnter={e => { e.currentTarget.style.background = ACCENT_HOVER; }}
-        onMouseLeave={e => { e.currentTarget.style.background = ACCENT_PULSE; }}
+        onMouseEnter={e => { e.currentTarget.style.background = ACCENT_HOVER; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = ACCENT_PULSE; e.currentTarget.style.transform = 'none'; }}
         onFocus={e => { e.currentTarget.style.boxShadow = `0 0 0 2px ${FOCUS_RING}`; }}
         onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
       >
@@ -183,10 +184,10 @@ export default function UpNextCard({ courses, onOpenCanvas, now: nowProp }) {
 function DetailField({ label, value }) {
   return (
     <div>
-      <div style={{ fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: TEXT_FAINT }}>
+      <div style={{ fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: TEXT_FAINT }}>
         {label}
       </div>
-      <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: TEXT_PRIMARY, marginTop: 2 }}>
+      <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_PRIMARY, marginTop: 3 }}>
         {value}
       </div>
     </div>
