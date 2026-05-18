@@ -543,6 +543,24 @@ export default function AuraChatOverlay({ open, onClose }) {
     return () => window.removeEventListener('simplifii:aura-inject', handler);
   }, []);
 
+  // Idle nudge: ExecutiveSpine fires simplifii:idle after threshold of inactivity.
+  // Inject once per session with a non-coercive pick-up prompt.
+  const idleNudgedRef = useRef(false);
+  useEffect(() => {
+    if (!courseId) return;
+    const handler = () => {
+      if (idleNudgedRef.current) return;
+      idleNudgedRef.current = true;
+      setMessages(prev => [...prev, {
+        role: 'tutor',
+        text: 'It looks like you stepped away for a bit. No pressure. Want me to help you pick up where you left off?',
+        toolSuggestion: 'simplify',
+      }]);
+    };
+    window.addEventListener('simplifii:idle', handler);
+    return () => window.removeEventListener('simplifii:idle', handler);
+  }, [courseId]);
+
   // Detect new documents added mid-session and proactively acknowledge
   const prevDocCountRef = useRef(allDocs.length);
   useEffect(() => {
@@ -600,6 +618,25 @@ export default function AuraChatOverlay({ open, onClose }) {
       }]);
       setLoading(false);
       dispatchAuraState('idle');
+      return;
+    }
+
+    // Client-side keyword routing: common questions get an immediate tool surface
+    // without an API call. Keeps AURA feeling snappy for high-frequency patterns.
+    const lc = text.toLowerCase();
+    const kwMatch =
+      /am i done|is this (done|finished)|check my (work|draft)|how.s my draft/.test(lc) ? { msg: 'Want me to check your draft against the rubric?', tool: 'scorer' } :
+      /sound.*(like )?ai|ai.*(detect|written|generated)|reads? like ai/.test(lc) ? { msg: 'I can help you rephrase this in your own voice.', tool: 'humanise' } :
+      /\bstuck\b|don.t know where|where do i start|help me start|blank page|can.t start/.test(lc) ? { msg: 'Let me help you break the blank page. Want some starter ideas?', tool: 'simplify' } :
+      /(decode|what does|explain|simplify).*(rubric|criteria)|rubric.*mean/.test(lc) ? { msg: 'I can break the rubric down into plain language actions for you.', tool: 'rubric' } :
+      null;
+
+    if (kwMatch) {
+      setMessages(prev => [...prev, { role: 'tutor', text: kwMatch.msg, toolSuggestion: kwMatch.tool }]);
+      setLoading(false);
+      dispatchAuraState('speaking');
+      setTimeout(() => dispatchAuraState('success'), 1500);
+      setTimeout(() => dispatchAuraState('idle'), 3000);
       return;
     }
 
