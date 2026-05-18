@@ -693,6 +693,7 @@ export default function CanvasScreen() {
             <PreWritePanel
               assessmentTitle={currentTitle}
               briefText={briefOrText}
+              rubricCriteria={rubricCriteria}
               sectionType={activeSection}
               tier={course.extractionData?.detectedLevel || 'tertiary'}
               onInsert={(text) => {

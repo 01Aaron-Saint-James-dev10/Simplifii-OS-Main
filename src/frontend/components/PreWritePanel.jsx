@@ -45,7 +45,7 @@ const TIER_LABEL_STYLE = {
   justifyContent: 'space-between',
 };
 
-export default function PreWritePanel({ assessmentTitle, briefText, sectionType, tier, onInsert, courseId, onContentReady }) {
+export default function PreWritePanel({ assessmentTitle, briefText, rubricCriteria, sectionType, tier, onInsert, courseId, onContentReady }) {
   const { isLiteralMode, accessibilityProfile, sensoryLevel, autismFirstEnabled } = useSettings();
   const { user } = useAuth();
   const [scaffold, setScaffold] = useState('');
@@ -75,20 +75,26 @@ export default function PreWritePanel({ assessmentTitle, briefText, sectionType,
       const profileNote = accessibilityProfile && accessibilityProfile !== 'standard'
         ? `\nAdapt for ${accessibilityProfile} profile.` : '';
       const literalNote = isLiteralMode ? '\nUse plain, literal language. No metaphors or idioms.' : '';
+      const criteriaList = (rubricCriteria || []).map(c => typeof c === 'string' ? c : c.criterion || c.name || '').filter(Boolean);
+      const hasRubric = criteriaList.length > 0;
+      const userPrompt = hasRubric
+        ? `Generate a structured writing scaffold for the ${sectionType?.replace('_', ' ') || 'full'} section of: ${assessmentTitle}. Map it to the rubric criteria provided.`
+        : `Generate a pre-write scaffold for the ${sectionType?.replace('_', ' ') || 'full'} section of: ${assessmentTitle}. Give 3-4 bullet points as starting ideas (not full sentences). Keep it brief.`;
+      const systemPrompt = hasRubric
+        ? `You are a pre-write assistant. Generate a structured writing scaffold for this specific assessment. For each rubric criterion listed below, provide: one concrete starter sentence specific to this task, and two focused questions that push thinking deeper. Format exactly as markdown:\n\n**[Criterion name]**\nStarter: [specific sentence].\nThink about: [specific question]?\nAlso consider: [specific question]?\n\nKeep each starter grounded in the actual task description: never generic. Australian English. No em-dashes.\n\nTask: ${(briefText || '').slice(0, 1500)}\n\nRubric criteria:\n${criteriaList.join('\n')}${profileNote}${literalNote}`
+        : `You are a pre-write assistant. Generate 3-4 concise starting-point bullet points for the learner's ${sectionType || 'section'}. These are ideas to spark their thinking, NOT a completed answer. Australian English. No full paragraphs. No em-dashes.${profileNote}${literalNote}`;
+
       const res = await fetch('/api/tutor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [{
-            role: 'user',
-            text: `Generate a pre-write scaffold for the ${sectionType?.replace('_', ' ')} section of: ${assessmentTitle}. Give 3-4 bullet points as starting ideas (not full sentences). Keep it brief.`,
-          }],
+          messages: [{ role: 'user', text: userPrompt }],
           assessmentTitle,
-          briefText: briefText?.slice(0, 1000) || '',
+          briefText: briefText?.slice(0, 1500) || '',
           tier: tier || 'tertiary',
           literalMode: isLiteralMode || false,
           accessibilityProfile: accessibilityProfile || 'standard',
-          systemOverride: `You are a pre-write assistant. Generate 3-4 concise starting-point bullet points for the learner's ${sectionType || 'section'}. These are ideas to spark their thinking, NOT a completed answer. Australian English. No full paragraphs. No em-dashes.${profileNote}${literalNote}`,
+          systemOverride: systemPrompt,
         }),
       });
       const data = await res.json();
@@ -116,7 +122,7 @@ export default function PreWritePanel({ assessmentTitle, briefText, sectionType,
     } finally {
       setLoading(false);
     }
-  }, [assessmentTitle, briefText, sectionType, tier, isLiteralMode, accessibilityProfile]);
+  }, [assessmentTitle, briefText, rubricCriteria, sectionType, tier, isLiteralMode, accessibilityProfile]);
 
   const handleInsertScaffold = () => {
     if (!scaffold) return;
