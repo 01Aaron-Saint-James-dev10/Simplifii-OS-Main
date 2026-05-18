@@ -36,6 +36,7 @@ import FidgetZone from './components/FidgetZone';
 import QuestionCoach from './components/QuestionCoach';
 import ExamTimer from './components/ExamTimer';
 import ExamBreakOverlay from './components/ExamBreakOverlay';
+import BodyDoublingLine from './components/BodyDoublingLine';
 import { parseExamPaper, parseMarkingGuidelines } from '../services/ExamPaperParser';
 import { startAmbient, stopAmbient } from './services/AmbientSound';
 import { startIdleDetection, stopIdleDetection } from '../core/ExecutiveSpine';
@@ -398,6 +399,7 @@ export default function CanvasScreen() {
 
   const [leftCollapsed, setLeftCollapsed] = useState(() => localStorage.getItem('simplifii_left_collapsed') === 'true');
   const [railVisible, setRailVisible] = useState(false);
+  const [focusTimerOpen, setFocusTimerOpen] = useState(false);
   const toggleLeft = () => { const next = !leftCollapsed; setLeftCollapsed(next); localStorage.setItem('simplifii_left_collapsed', String(next)); };
   const [canvasTab, setCanvasTab] = useState('write'); // 'think' | 'ideas' | 'write'
   const [hasThinkContent, setHasThinkContent] = useState(false);
@@ -921,6 +923,21 @@ export default function CanvasScreen() {
         <ComprehensionBreak onCheckRequest={() => { setRailVisible(true); setActivePanel('check'); }} />
       )}
       {showSaveAffirmation && <AffirmationBanner trigger="save_event" visible={true} />}
+      {/* Focus timer (body doubling) */}
+      {focusTimerOpen && (
+        <div style={{ position: 'fixed', bottom: 48, right: 16, zIndex: 50, width: 340, maxHeight: '70vh', overflowY: 'auto', borderRadius: 8, boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}>
+          <BodyDoublingLine />
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={() => setFocusTimerOpen(prev => !prev)}
+        aria-label={focusTimerOpen ? 'Close focus timer' : 'Open focus timer'}
+        title="Focus timer"
+        style={{ position: 'fixed', bottom: 52, right: focusTimerOpen ? 360 : 16, zIndex: 51, width: 36, height: 36, borderRadius: 18, background: focusTimerOpen ? ACCENT_PULSE : ACCENT_LINE_DIM, border: 'none', color: focusTimerOpen ? '#fff' : 'var(--sov-line, #10b981)', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'right 200ms ease' }} /* allow-style */
+      >
+        {focusTimerOpen ? '\u2715' : '\u23F1'}
+      </button>
       <BottomStrip wordCount={wordCount} targetWords={targetWords} assessmentTitle={currentTitle} />
 
       <ReentryOverlay

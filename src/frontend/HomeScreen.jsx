@@ -10,7 +10,7 @@ import TimelineStrip from './components/TimelineStrip';
 import UpNextCard from './components/UpNextCard';
 import CourseCard from './components/CourseCard';
 import DecisionButton from './components/DecisionButton';
-import BodyDoublingLine from './components/BodyDoublingLine';
+// BodyDoublingLine moved to CanvasScreen
 import AddCourseButton from './components/AddCourseButton';
 import LogoutButton from './auth/LogoutButton';
 import EmptyWorkspace from './workspace/EmptyWorkspace';
@@ -117,7 +117,7 @@ export default function HomeScreen() {
     supabase.from('profiles').select('tier, display_name, has_seen_tester_welcome').eq('id', user.id).single()
       .then(({ data }) => {
         if (data?.tier) setProfileTier(data.tier);
-        if (data?.display_name) setDisplayName(data.display_name);
+        if (data?.display_name) setDisplayName(data.display_name.replace(/,/g, ' ').trim());
         if (data?.tier === 'secondary' && !data?.has_seen_tester_welcome) {
           setShowTesterWelcome(true);
         }
@@ -207,8 +207,8 @@ export default function HomeScreen() {
       {/* Top nav */}
       <nav className="home-nav" role="navigation" aria-label="Home navigation">
         <div className="home-nav-brand">
-          <span className="home-nav-logo">S</span>
-          <span className="home-nav-title">Simplifii-OS</span>
+          <span className="home-nav-logo" aria-hidden="true">S</span>
+          <span className="home-nav-title">implifii-OS</span>
         </div>
         <div className="home-nav-actions">
           <button
@@ -401,13 +401,6 @@ export default function HomeScreen() {
                 }}
               />
             </section>
-
-            {/* Body doubling line */}
-            {display.bodyDoubling && (
-              <section className="home-section" aria-label="Body doubling">
-                <BodyDoublingLine />
-              </section>
-            )}
 
             {/* Course grid */}
             <section className="home-section" aria-label="Your subjects and tasks">
