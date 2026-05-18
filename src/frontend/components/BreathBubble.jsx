@@ -10,7 +10,7 @@ import {
 
 const PHASES = [
   { label: 'Breathe in', duration: 4000, scale: 1.6 },
-  { label: 'Hold', duration: 7000, scale: 1.6 },
+  { label: 'Hold', duration: 6000, scale: 1.6 },
   { label: 'Breathe out', duration: 8000, scale: 1.0 },
 ];
 const CYCLE_MS = PHASES.reduce((s, p) => s + p.duration, 0);
@@ -18,13 +18,16 @@ const CYCLE_MS = PHASES.reduce((s, p) => s + p.duration, 0);
 /**
  * BreathBubble
  *
- * 4-7-8 breathing exercise. Circle expands/holds/contracts.
+ * 4-6-8 breathing exercise. Circle expands/holds/contracts.
  * 2-minute preset (approx 6 cycles). Respects reduced-motion.
  */
 export default function BreathBubble() {
   const [active, setActive] = useState(false);
   const [phaseIdx, setPhaseIdx] = useState(0);
   const [elapsed, setElapsed] = useState(0);
+  // displayScale starts at 1.0 so the CSS transition has a known start point
+  // on first paint before animating to phase.scale via rAF.
+  const [displayScale, setDisplayScale] = useState(1.0);
   const timerRef = useRef(null);
   const startRef = useRef(0);
   const reducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -54,6 +57,14 @@ export default function BreathBubble() {
     };
   }, [active]);
 
+  // Drive displayScale one rAF after phaseIdx/active changes so the browser
+  // paints scale(1.0) first, giving the CSS transition a start point to animate from.
+  useEffect(() => {
+    if (!active) { setDisplayScale(1.0); return; }
+    const id = requestAnimationFrame(() => setDisplayScale(PHASES[phaseIdx].scale));
+    return () => cancelAnimationFrame(id);
+  }, [phaseIdx, active]);
+
   const phase = PHASES[phaseIdx];
   const cycleCount = Math.floor(elapsed / CYCLE_MS);
   const remaining = Math.max(0, Math.ceil((120000 - elapsed) / 1000));
@@ -64,7 +75,7 @@ export default function BreathBubble() {
         Breathing Exercise
       </h3>
       <p style={{ fontFamily: FONT_SYSTEM, fontSize: 11, color: TEXT_MUTED, margin: 0, textAlign: 'center' }}>
-        4-7-8 pattern. Inhale 4s, hold 7s, exhale 8s. Two minutes.
+        4-6-8 pattern. Inhale 4s, hold 6s, exhale 8s. Two minutes.
       </p>
 
       {!active ? (
@@ -89,7 +100,7 @@ export default function BreathBubble() {
               background: ACCENT_GLASS,
               border: `2px solid ${ACCENT_PULSE}`,
               boxShadow: `0 0 ${phase.scale > 1 ? 24 : 8}px ${ACCENT_FOCUS}`,
-              transform: reducedMotion ? 'none' : `scale(${phase.scale})`,
+              transform: reducedMotion ? 'none' : `scale(${displayScale})`,
               transition: `transform ${phase.duration}ms ease-in-out, box-shadow ${phase.duration}ms ease`,
             }} />
           </div>
