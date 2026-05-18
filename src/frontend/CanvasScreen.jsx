@@ -395,7 +395,7 @@ export default function CanvasScreen() {
   const setActivePanelWithLog = useCallback((panel) => {
     setActivePanel(panel);
     if (panel === 'tutor') {
-      appendEvent({ event_type: 'tier_transition', payload: { to: 2, panel: 'tutor' } }).catch(() => {});
+      appendEvent({ event_type: 'tier_transition', payload: { to: 2, panel: 'tutor', assessmentTitle: currentTitle } }).catch(() => {});
     }
   }, []);
   // Pending message to inject into TutorPanel (from MultimodalCanvas "Check my answer" etc)
@@ -805,7 +805,7 @@ export default function CanvasScreen() {
               tier={course.extractionData?.detectedLevel || 'tertiary'}
               onInsert={(text) => {
                 window.dispatchEvent(new CustomEvent('simplifii:voice-transcript', { detail: { text: ' ' + text } }));
-                appendEvent({ event_type: 'tier_transition', payload: { from: 1, to: 3, trigger: 'pre_write_insert' } }).catch(() => {});
+                appendEvent({ event_type: 'tier_transition', payload: { from: 1, to: 3, trigger: 'pre_write_insert', assessmentTitle: currentTitle } }).catch(() => {});
                 setCanvasTab('write');
               }}
               onContentReady={() => setHasIdeasContent(true)}
