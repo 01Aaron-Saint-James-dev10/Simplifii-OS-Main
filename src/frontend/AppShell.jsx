@@ -22,6 +22,7 @@ import CanvasSettingsOverlay from './components/CanvasSettingsOverlay';
 import BetaBanner from './components/BetaBanner';
 import MatrixRain from './components/MatrixRain';
 import ThemeSwitcher from './components/ThemeSwitcher';
+import OnboardingTour from './components/OnboardingTour';
 import { startSession, endSession } from '../core/StudyPatternTracker';
 import { unlockWithUserId, enableCloudSync } from '../core/HistoryOfThought';
 import {
@@ -167,7 +168,6 @@ export default function AppShell() {
             <div style={{ position: 'relative', minHeight: '100vh' }}>
               <MatrixRain />
               <div style={{ position: 'relative', zIndex: 1 }}>
-                <BetaBanner />
                 <ErrorBoundary>
                   <ViewSwitch />
                 </ErrorBoundary>
@@ -175,12 +175,15 @@ export default function AppShell() {
               <EnergyOrbs userId={user?.id || 'anon'} />
               <FeedbackButton />
               <FirstTimeTooltip id="aura_orb" text="Tap me for help at any time. I am AURA, your study guide." position="left" delay={2000}>
-                <AuraOrb onClick={() => setAuraChatOpen(prev => !prev)} auraState={auraChatOpen ? 'listening' : 'idle'} />
+                <div data-tour="aura-orb">
+                  <AuraOrb onClick={() => setAuraChatOpen(prev => !prev)} auraState={auraChatOpen ? 'listening' : 'idle'} />
+                </div>
               </FirstTimeTooltip>
               <AuraChatOverlay open={auraChatOpen} onClose={() => setAuraChatOpen(false)} />
               {settingsOpen && <CanvasSettingsOverlay onClose={() => setSettingsOpen(false)} />}
               {/* ThemeSwitcher: mounted here so the T-key shortcut listener is always active. */}
               <div aria-hidden="true" style={{ display: 'none' }}><ThemeSwitcher /></div>
+              <OnboardingTour />
               <AiDisclaimerFixed />
             </div>
           </RouterProvider>

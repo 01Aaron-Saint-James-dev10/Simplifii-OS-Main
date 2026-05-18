@@ -214,6 +214,7 @@ export default function HomeScreen() {
           <button
             type="button"
             onClick={() => setShowAddWork(true)}
+            data-tour="add-work"
             aria-label="Add homework, assignment, exam prep, or research"
             title="Add homework, an assignment, exam prep, or research. Choose what fits best."
             style={{ padding: '4px 14px', background: 'transparent', border: `1px solid ${ACCENT_BORDER}`, borderRadius: 6, fontFamily: 'system-ui,sans-serif', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_PULSE, cursor: 'pointer', minHeight: 28 }}
@@ -228,6 +229,7 @@ export default function HomeScreen() {
           <button
             type="button"
             onClick={() => window.dispatchEvent(new CustomEvent('simplifii:open-settings'))}
+            data-tour="settings-btn"
             aria-label="Accessibility, display, and learning preferences"
             title="Accessibility, display, and learning preferences. Change your font, theme, and how AURA talks to you."
             style={{ background: 'none', border: `1px solid ${ACCENT_BORDER}`, borderRadius: 3, padding: '3px 8px', cursor: 'pointer', minHeight: 28, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'system-ui,sans-serif', fontSize: 10, fontWeight: 700, color: TEXT_MUTED }}
@@ -261,7 +263,7 @@ export default function HomeScreen() {
         {/* Greeting: tier-aware + time-aware + context-aware */}
         {(() => {
           const name = displayName || '';
-          const nameBit = name ? `, ${name}` : '';
+          const nameBit = name ? ` ${name}` : '';
           const tier = profileTier || activeTier || 'tertiary';
           const timeGreet = clock.timeOfDay === 'late' ? 'Working late' : clock.timeOfDay === 'morning' ? 'Good morning' : clock.timeOfDay === 'afternoon' ? 'Good afternoon' : 'Good evening';
           let greeting, sub;
@@ -413,7 +415,7 @@ export default function HomeScreen() {
                 <h2 className="home-section-label">Your subjects and tasks</h2>
                 <span className="home-sort-label">Sorted by earliest next-due</span>
               </div>
-              <div className={`home-grid ${display.cardDensity === 'compact' ? 'home-grid-compact' : ''}`}>
+              <div data-tour="course-list" className={`home-grid ${display.cardDensity === 'compact' ? 'home-grid-compact' : ''}`}>
                 {sortedCourses.map(([id, course]) => (
                   <CourseCard
                     key={id}
@@ -486,10 +488,6 @@ export default function HomeScreen() {
         {/* Affirmation */}
         <AffirmationBanner trigger="dashboard" />
       </main>
-
-      {showTesterWelcome && (
-        <TesterWelcomeModal onDismiss={() => setShowTesterWelcome(false)} />
-      )}
 
       {showManualEntry && (
         <AddCourseModal
