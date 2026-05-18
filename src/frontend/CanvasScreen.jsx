@@ -347,6 +347,7 @@ export default function CanvasScreen() {
   const [docLibOpen, setDocLibOpen] = useState(false);
   const [midIngest, setMidIngest] = useState(false);
   const [midIngestStatus, setMidIngestStatus] = useState('');
+  const [aiPermDismissed, setAiPermDismissed] = useState(false);
 
   // Mid-session ingestion: adds a new document to the active course without
   // restarting the canvas. Classifies, extracts nodes, and merges into
@@ -594,6 +595,13 @@ export default function CanvasScreen() {
       />
 
       <div className="canvas-body">
+        {/* AI Permission banner: No Assistance warning */}
+        {!aiPermDismissed && course.extractionData?.aiPermission === 'no_assistance' && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: 'var(--colour-warn-tint, rgba(245,158,11,0.06))', borderBottom: '1px solid var(--colour-warn-border, rgba(245,158,11,0.2))', fontFamily: 'var(--font-body, Inter, sans-serif)', fontSize: 12, color: 'var(--colour-warn, #f59e0b)' }}> {/* allow-style */}
+            <span>Your lecturer has set this assessment to No AI Assistance. AURA can help you think but cannot generate content for this task.</span>
+            <button type="button" onClick={() => setAiPermDismissed(true)} aria-label="Dismiss" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--colour-warn, #f59e0b)', fontSize: 16, padding: 4, minHeight: 28, minWidth: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{'\u2715'}</button>
+          </div>
+        )}
         {/* Exam paper: show question nav instead of section rail */}
         {isExamPaper && examData?.questions?.length > 0 && (
           <QuestionNav

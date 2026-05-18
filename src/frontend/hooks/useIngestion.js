@@ -678,6 +678,7 @@ export function useIngestion({
               if (claudeExtraction.rubricCriteria?.length > 0 && !deepData.rubricCriteria?.length) deepData.rubricCriteria = claudeExtraction.rubricCriteria;
               if (claudeExtraction.documentType) deepData.documentType = claudeExtraction.documentType;
               if (claudeExtraction.courseName) deepData.courseName = claudeExtraction.courseName;
+              if (claudeExtraction.aiPermission) deepData.aiPermission = claudeExtraction.aiPermission;
             }
 
             // Typed node extraction (XN, YN, Z schema)

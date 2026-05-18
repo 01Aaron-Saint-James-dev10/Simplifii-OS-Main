@@ -56,6 +56,7 @@ Return ONLY a JSON object:
   "dueDate": "ISO date string or null",
   "wordCount": null or number,
   "rubricCriteria": ["criterion 1", "criterion 2"] or [],
+  "aiPermission": "one of: no_assistance, assistance_with_attribution, full_assistance, or null. Extract from phrases like 'No Assistance', 'Assistance with Attribution', 'Full Assistance', 'No AI', 'AI permitted', 'generative AI may not be used'. Match to the specific assessment described in this brief.",
   "questions": [] (only for exam papers: [{"number": 1, "marks": 5, "text": "..."}])
 }
 
