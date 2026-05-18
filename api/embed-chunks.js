@@ -133,7 +133,7 @@ export default async function handler(req, res) {
       const batch = rows.slice(i, i + 20);
       const { error } = await supabase.from('document_chunks').insert(batch);
       if (error) {
-        return res.status(500).json({ success: false, error: 'Failed to store chunks.' });
+        return res.status(500).json({ success: false, error: 'Failed to store chunks.', detail: error.message });
       }
     }
 

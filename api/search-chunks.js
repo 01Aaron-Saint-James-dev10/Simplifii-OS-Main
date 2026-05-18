@@ -74,7 +74,7 @@ export default async function handler(req, res) {
     });
 
     if (error) {
-      return res.status(500).json({ success: false, error: 'Search failed.' });
+      return res.status(500).json({ success: false, error: 'Search failed.', detail: error.message });
     }
 
     return res.status(200).json({
