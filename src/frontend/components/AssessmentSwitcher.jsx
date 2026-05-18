@@ -63,7 +63,7 @@ export default function AssessmentSwitcher({ assessments, activeTitle, onSelect 
                 {a.title || `Assessment ${i + 1}`}
               </span>
               <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, color: TEXT_FAINT }}>
-                {[a.weight, a.dueDate ? `Due ${a.dueDate}` : ''].filter(Boolean).join(' | ') || 'No details'}
+                {[a.weight, a.dueDate ? `Due ${new Date(a.dueDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}` : ''].filter(Boolean).join(' | ') || 'No details'}
               </span>
             </button>
           );

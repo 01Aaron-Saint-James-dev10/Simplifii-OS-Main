@@ -24,6 +24,13 @@ import {
 } from '../../theme/tokens';
 import stripMarkdown from '../../utils/stripMarkdown';
 
+function formatDate(d) {
+  if (!d) return '';
+  const parsed = new Date(d);
+  if (isNaN(parsed.getTime())) return String(d);
+  return parsed.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 /**
  * AuraChatOverlay
  *
@@ -83,11 +90,11 @@ export default function AuraChatOverlay({ open, onClose }) {
     const parts = [];
     if (activeAssessmentTitle) parts.push(`ASSESSMENT: ${activeAssessmentTitle}`);
     if (activeWeight) parts.push(`Weight: ${activeWeight}`);
-    if (activeDueDate) parts.push(`Due: ${activeDueDate}`);
+    if (activeDueDate) parts.push(`Due: ${formatDate(activeDueDate)}`);
     if (allDocs.length > 1) {
       parts.push(`Other assessments in this course:`);
       allDocs.slice(1, 5).forEach(d => {
-        parts.push(`  - ${d.title || 'Untitled'}${d.weight ? ' (' + d.weight + ')' : ''}${d.dueDate ? ' due ' + d.dueDate : ''}`);
+        parts.push(`  - ${d.title || 'Untitled'}${d.weight ? ' (' + d.weight + ')' : ''}${d.dueDate ? ' due ' + formatDate(d.dueDate) : ''}`);
       });
     }
     if (rubricCriteria.length > 0) {
@@ -139,7 +146,7 @@ export default function AuraChatOverlay({ open, onClose }) {
         const meta = [];
         if (doc.weighting) meta.push(`Weight: ${doc.weighting}%`);
         if (doc.words) meta.push(`Word count: ${doc.words}`);
-        if (doc.dueDate) meta.push(`Due: ${doc.dueDate}`);
+        if (doc.dueDate) meta.push(`Due: ${formatDate(doc.dueDate)}`);
         if (doc.rubricCriteria?.length > 0) meta.push(`Rubric criteria: ${doc.rubricCriteria.join('; ')}`);
         const metaLine = meta.length > 0 ? `\n${meta.join(' | ')}` : '';
         const content = doc.text ? doc.text.slice(0, 600) : '';
@@ -175,7 +182,7 @@ export default function AuraChatOverlay({ open, onClose }) {
       const primary = briefs[0];
       const code = c.code || c.name || 'Untitled';
       const title = primary?.title || 'Assessment';
-      const due = primary?.dueDate || 'date unknown';
+      const due = primary?.dueDate ? formatDate(primary.dueDate) : 'date unknown';
       const weight = primary?.weight || '?';
       return `${code}: ${title} due ${due} (${weight}%)`;
     });
@@ -297,7 +304,7 @@ export default function AuraChatOverlay({ open, onClose }) {
     setTimeout(() => inputRef.current?.focus(), 100);
     const queued = getQueuedAuraMessages();
     if (queued.length > 0) {
-      const phaseMessages = queued.map(q => ({ role: 'tutor', text: q.message }));
+      const phaseMessages = queued.map(q => ({ role: 'tutor', text: stripMarkdown(q.message) }));
       setMessages(prev => [...prev, ...phaseMessages]);
     }
   }, [open]);
@@ -306,7 +313,7 @@ export default function AuraChatOverlay({ open, onClose }) {
   useEffect(() => {
     const handler = (e) => {
       const msg = e.detail?.message;
-      if (msg) setMessages(prev => [...prev, { role: 'tutor', text: msg }]);
+      if (msg) setMessages(prev => [...prev, { role: 'tutor', text: stripMarkdown(msg) }]);
     };
     window.addEventListener('simplifii:aura-inject', handler);
     return () => window.removeEventListener('simplifii:aura-inject', handler);

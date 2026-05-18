@@ -69,7 +69,7 @@ export default function BriefPanel({ brief, rubricCriteria, rubricBands, rubricD
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
           {brief?.weight && <DetailChip label="Weight" value={brief.weight} />}
           {brief?.wordCountGoal && <DetailChip label="Target" value={`${brief.wordCountGoal} words`} />}
-          {brief?.dueDate && <DetailChip label="Due" value={new Date(brief.dueDate).toLocaleDateString('en-AU')} />}
+          {brief?.dueDate && <DetailChip label="Due" value={new Date(brief.dueDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })} />}
         </div>
       </div>
 
