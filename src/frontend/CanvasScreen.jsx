@@ -54,7 +54,7 @@ import './CanvasScreen.css';
 import {
   COLOUR_WARN, COLOUR_WARN_TINT, COLOUR_WARN_BORDER,
   ACCENT_GLASS_SUBTLE, ACCENT_LINE_DIM,
-  ACCENT_BORDER, ACCENT_PULSE, TEXT_MUTED,
+  ACCENT_BORDER, ACCENT_PULSE, TEXT_MUTED, SHADOW_CARD,
 } from '../theme/tokens';
 
 /**
@@ -971,7 +971,7 @@ export default function CanvasScreen() {
       {showSaveAffirmation && <AffirmationBanner trigger="save_event" visible={true} />}
       {/* Focus timer (body doubling) */}
       {focusTimerOpen && (
-        <div style={{ position: 'fixed', bottom: 48, right: 16, zIndex: 50, width: 340, maxWidth: 'calc(100vw - 32px)', maxHeight: '70vh', overflowY: 'auto', borderRadius: 8, boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}>
+        <div style={{ position: 'fixed', bottom: 48, right: 16, zIndex: 50, width: 340, maxWidth: 'calc(100vw - 32px)', maxHeight: '70vh', overflowY: 'auto', borderRadius: 8, boxShadow: `0 4px 24px ${SHADOW_CARD}` }}>
           <BodyDoublingLine />
         </div>
       )}

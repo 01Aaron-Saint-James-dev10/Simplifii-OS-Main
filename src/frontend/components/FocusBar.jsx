@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  SURFACE_CARD,
+  SURFACE_CARD, SHADOW_HEAVY,
   ACCENT_PULSE, ACCENT_GLASS, ACCENT_BORDER, ACCENT_BORDER_FAINT,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
   FONT_SYSTEM, FONT_BODY, BORDER_RADIUS,
@@ -179,7 +179,7 @@ export default function FocusBar({
           background: SURFACE_CARD, border: `1px solid ${ACCENT_BORDER}`,
           borderRadius: BORDER_RADIUS + 2, padding: '10px 16px',
           display: 'flex', alignItems: 'center', gap: 10,
-          boxShadow: '0 4px 16px rgba(0,0,0,0.4)', zIndex: 201, whiteSpace: 'nowrap',
+          boxShadow: `0 4px 16px ${SHADOW_HEAVY}`, zIndex: 201, whiteSpace: 'nowrap',
         }}
           role="alertdialog"
           aria-label="AURA halfway check-in"
