@@ -1,3 +1,23 @@
+## Sprint 17b: AURA Full Context Assembler
+**Date:** 2026-05-18
+
+### Commits
+
+| SHA | Change |
+|-----|--------|
+| `ed8ea73b` | feat(AURA): full context assembler with student profile and all courses |
+
+### Summary
+
+1. **AURA context assembler**: `buildAuraContext()` assembles full student picture: profile (tier, literalMode, accessibility), active course (assessment, weight, daysUntilDue, rubricCriteria, aiPermission, currentPhase, tier2Answers, scaffoldAccepted, draft excerpt from IndexedDB), all courses summary with urgency (overdue/critical/soon/fine), lastSession data. `formatAuraSystemPrefix()` converts to readable text. Injected at top of system prompt in api/tutor.js.
+2. **System audit**: confirmed hydration mappings (brief_text to body, due_date to dueDate, documents reconstruction, unlockWithUserId) are all already correct in current codebase. No additional fixes needed.
+
+### Test Results
+
+122 tests pass (4 suites). Build compiles clean, no errors.
+
+---
+
 ## Sprint 17: P0 Fixes + AURA Upgrades + Section Nav + Dashboard Org + Rubric Scaffold
 **Date:** 2026-05-18
 
