@@ -112,13 +112,14 @@ const fragmentShader = `
 `;
 
 // State configurations: colour, distortion, pulse speed, rotation speed
+// Ditto palette: lavender purple base, shifting on state
 const STATES = {
-  idle: { distortion: 0.08, pulse: 1.0, rotationSpeed: 0.2, primary: [0.94, 0.62, 0.15], secondary: [0.06, 0.73, 0.50] },
-  listening: { distortion: 0.12, pulse: 2.5, rotationSpeed: 0.4, primary: [0.06, 0.73, 0.50], secondary: [0.24, 0.83, 0.93] },
-  thinking: { distortion: 0.15, pulse: 3.0, rotationSpeed: 0.8, primary: [0.94, 0.62, 0.15], secondary: [0.94, 0.82, 0.15] },
-  speaking: { distortion: 0.10, pulse: 2.0, rotationSpeed: 0.3, primary: [0.06, 0.73, 0.50], secondary: [0.94, 0.62, 0.15] },
-  success: { distortion: 0.05, pulse: 1.5, rotationSpeed: 0.1, primary: [0.20, 0.82, 0.40], secondary: [0.34, 0.93, 0.60] },
-  lowEnergy: { distortion: 0.04, pulse: 0.5, rotationSpeed: 0.05, primary: [0.44, 0.44, 0.48], secondary: [0.28, 0.28, 0.31] },
+  idle:      { distortion: 0.08, pulse: 1.0, rotationSpeed: 0.2,  primary: [0.706, 0.624, 0.831], secondary: [0.82, 0.75, 0.91] },
+  listening: { distortion: 0.12, pulse: 2.5, rotationSpeed: 0.4,  primary: [0.54,  0.44,  0.78],  secondary: [0.706, 0.624, 0.831] },
+  thinking:  { distortion: 0.15, pulse: 3.0, rotationSpeed: 0.8,  primary: [0.94,  0.62,  0.15],  secondary: [0.82, 0.69, 0.91] },
+  speaking:  { distortion: 0.10, pulse: 2.0, rotationSpeed: 0.3,  primary: [0.706, 0.624, 0.831], secondary: [0.94, 0.62, 0.15] },
+  success:   { distortion: 0.05, pulse: 1.5, rotationSpeed: 0.1,  primary: [0.60,  0.82,  0.40],  secondary: [0.706, 0.624, 0.831] },
+  lowEnergy: { distortion: 0.04, pulse: 0.5, rotationSpeed: 0.05, primary: [0.44,  0.44,  0.48],  secondary: [0.36, 0.32, 0.44] },
 };
 
 function FluidOrb({ state = 'idle', audioLevel = 0 }) {
@@ -251,6 +252,19 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
   const [audioLevel, setAudioLevel] = useState(0);
   const containerRef = useRef(null);
 
+  // Minimise state: persisted to localStorage
+  const [isMinimised, setIsMinimised] = useState(() => {
+    try { return localStorage.getItem('simplifii_aura_minimised') === 'true'; } catch { return false; }
+  });
+  const toggleMinimise = useCallback((e) => {
+    e.stopPropagation();
+    setIsMinimised(prev => {
+      const next = !prev;
+      try { localStorage.setItem('simplifii_aura_minimised', String(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
+
   // Listen for audio level events from the voice engine
   useEffect(() => {
     const handler = (e) => setAudioLevel(e.detail?.level || 0);
@@ -325,13 +339,67 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
     onClick?.();
   }, [onClick]);
 
-  // Reduced motion fallback: CSS-only gradient orb
-  if (reducedMotion) {
+  // Wake word: "Hey AURA" triggers onClick, same as tapping the orb
+  useEffect(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    const rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = 'en-AU';
+    let triggered = false;
+    rec.onresult = (e) => {
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript.toLowerCase().trim();
+        if (!triggered && (t.includes('hey aura') || t.includes('hey ora') || t.includes('hey laura'))) {
+          triggered = true;
+          onClick?.();
+          setTimeout(() => { triggered = false; }, 3000);
+        }
+      }
+    };
+    rec.onerror = () => {};
+    try { rec.start(); } catch { /* mic not available */ }
+    return () => { try { rec.stop(); } catch { /* ignore */ } };
+  }, [onClick]);
+
+  // Minimised: small pill, click to expand
+  if (isMinimised) {
     return (
       <button
         type="button"
-        onClick={handleClick}
-        aria-label="Open AURA assistant"
+        onClick={() => setIsMinimised(false)}
+        aria-label="Expand AURA assistant"
+        style={{
+          position: 'fixed',
+          bottom: position.bottom,
+          right: position.right,
+          zIndex: 100,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '5px 12px',
+          background: 'rgba(180,159,212,0.18)', /* allow-style */
+          border: '1px solid rgba(180,159,212,0.4)', /* allow-style */
+          borderRadius: 20,
+          cursor: 'pointer',
+          fontFamily: 'var(--font-system, system-ui)',
+          fontSize: 10,
+          fontWeight: 700,
+          letterSpacing: '0.06em',
+          color: '#b49fd4', /* allow-style */
+        }}
+      >
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#b49fd4', display: 'inline-block' }} /> {/* allow-style */}
+        AURA
+      </button>
+    );
+  }
+
+  // Reduced motion fallback: CSS-only Ditto gradient orb
+  if (reducedMotion) {
+    return (
+      <div
         style={{
           position: 'fixed',
           bottom: 24,
@@ -340,24 +408,44 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
           flexDirection: 'column',
           alignItems: 'center',
           gap: 4,
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
           zIndex: 100,
-          outline: 'none',
         }}
       >
-        <span style={{
-          width: 56,
-          height: 56,
-          borderRadius: '50%',
-          background: 'radial-gradient(circle at 30% 30%, #ef9f27, #10b981)', /* allow-style */
-          border: '2px solid rgba(16,185,129,0.3)', /* allow-style */
-          boxShadow: '0 0 24px rgba(239,159,39,0.4), 0 0 48px rgba(16,185,129,0.2)', /* allow-style */
-          display: 'block',
-        }} />
-        <span style={{ fontFamily: 'var(--font-system, system-ui)', fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--sov-line, #10b981)', whiteSpace: 'nowrap' }}>Ask AURA for help</span>
-      </button>
+        <div style={{ position: 'relative' }}>
+          <button
+            type="button"
+            onClick={handleClick}
+            aria-label="Open AURA assistant"
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle at 35% 30%, #d0bfe8, #b49fd4)', /* allow-style */
+              border: '2px solid rgba(180,159,212,0.4)', /* allow-style */
+              boxShadow: '0 0 24px rgba(180,159,212,0.5)', /* allow-style */
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              outline: 'none',
+            }}
+          >
+            {/* Ditto face */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, pointerEvents: 'none' }}>
+              <div style={{ display: 'flex', gap: 9 }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#2d1a4a' }} />
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#2d1a4a' }} />
+              </div>
+              <div style={{ width: 14, height: 7, borderBottom: '2px solid #2d1a4a', borderRadius: '0 0 10px 10px' }} />
+            </div>
+          </button>
+          <button type="button" onClick={toggleMinimise} aria-label="Minimise AURA"
+            style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: 'rgba(180,159,212,0.3)', border: 'none', cursor: 'pointer', fontSize: 9, color: '#2d1a4a', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}> {/* allow-style */}
+            {'\u2212'}
+          </button>
+        </div>
+        <span style={{ fontFamily: 'var(--font-system, system-ui)', fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: '#b49fd4', whiteSpace: 'nowrap' }}>Ask AURA for help</span> {/* allow-style */}
+      </div>
     );
   }
 
@@ -369,13 +457,16 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
         position: 'fixed',
         bottom: position.bottom,
         right: position.right,
-        width: 64,
+        width: 88,
+        height: 88,
         zIndex: 100,
         cursor: 'pointer',
         pointerEvents: 'auto',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        justifyContent: 'center',
+        position: 'fixed',
       }}
       onClick={handleClick}
       role="button"
@@ -383,11 +474,61 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
       aria-label="Open AURA assistant"
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleClick(); }}
     >
-      <span style={{ fontFamily: 'var(--font-system, system-ui)', fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--sov-line, #10b981)', whiteSpace: 'nowrap', marginTop: 66, pointerEvents: 'none' }}>Ask AURA for help</span>
+      {/* Minimise button */}
+      <button
+        type="button"
+        onClick={toggleMinimise}
+        aria-label="Minimise AURA"
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          width: 18,
+          height: 18,
+          borderRadius: '50%',
+          background: 'rgba(180,159,212,0.25)', /* allow-style */
+          border: 'none',
+          cursor: 'pointer',
+          fontSize: 10,
+          color: '#2d1a4a', /* allow-style */
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1,
+          opacity: 0.7,
+        }}
+        onMouseEnter={e => { e.currentTarget.style.opacity = '1'; }}
+        onMouseLeave={e => { e.currentTarget.style.opacity = '0.7'; }}
+      >
+        {'\u2212'}
+      </button>
+
+      {/* Ditto face overlay: centred over the 3D canvas */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '38%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 4,
+          pointerEvents: 'none',
+          zIndex: 1,
+        }}
+      >
+        <div style={{ display: 'flex', gap: 9 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#2d1a4a', boxShadow: '0 0 2px rgba(255,255,255,0.3)' }} /> {/* allow-style */}
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#2d1a4a', boxShadow: '0 0 2px rgba(255,255,255,0.3)' }} /> {/* allow-style */}
+        </div>
+        <div style={{ width: 14, height: 7, borderBottom: '2px solid #2d1a4a', borderRadius: '0 0 10px 10px' }} /> {/* allow-style */}
+      </div>
+
       <Canvas
         camera={{ position: [0, 0, 3], fov: 45 }}
         gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
-        style={{ background: 'transparent' }}
+        style={{ background: 'transparent', width: '100%', height: '100%' }}
         dpr={Math.min(window.devicePixelRatio, 2)}
         onCreated={({ gl }) => {
           const canvas = gl.domElement;
@@ -395,12 +536,14 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
         }}
       >
         <ambientLight intensity={0.3} />
-        <pointLight position={[2, 2, 2]} intensity={0.8} color="#ef9f27" />
-        <pointLight position={[-2, -1, 1]} intensity={0.4} color="#10b981" />
+        <pointLight position={[2, 2, 2]} intensity={0.8} color="#c4a8e0" />
+        <pointLight position={[-2, -1, 1]} intensity={0.4} color="#9b7fd4" />
         <FluidOrb state={currentState} audioLevel={audioLevel} />
         <GlyphCore state={currentState} />
         <OrbParticles state={currentState} />
       </Canvas>
+
+      <span style={{ fontFamily: 'var(--font-system, system-ui)', fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: '#b49fd4', whiteSpace: 'nowrap', position: 'absolute', bottom: -16 }}>Ask AURA for help</span> {/* allow-style */}
     </div>
   );
 }
