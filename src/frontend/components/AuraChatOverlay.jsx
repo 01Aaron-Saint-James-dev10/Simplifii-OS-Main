@@ -481,7 +481,7 @@ export default function AuraChatOverlay({ open, onClose }) {
       window.dispatchEvent(new CustomEvent('aura:canvas-ready', { detail: { courseId } }));
     }, 2000);
     return () => clearTimeout(timer);
-  }, [courseId, activeAssessmentTitle, activeDueDate]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [courseId, activeAssessmentTitle, activeDueDate]); // eslint-disable-line
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef(null);
