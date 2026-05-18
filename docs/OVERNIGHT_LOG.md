@@ -1,3 +1,52 @@
+# Overnight Sprint Log: 18-19 May 2026
+
+## Production URL
+https://simplifii-os-main.vercel.app
+
+## Commits Made Overnight (18 May, chronological)
+
+| Hash | Message |
+|------|---------|
+| `108d8c98` | Landing page: AURA orb hero, showcase tabs, TTS debug logging |
+| `b6dd14d2` | Landing page: AURA purple orb, visual showcase, browser-only TTS |
+| `9fe2805d` | fix: PDF upload, welcome banner, onboarding 6 steps, voice/stim conflict, draft key 400 errors |
+| `11bfd052` | feat: AURA pre-session intelligence, focus bar ambient redesign, privacy FAQ |
+| `fded1e4a` | feat: render real AuraOrb on landing page; fix MatrixRain bottom strip; fix tour frequency |
+| `c96c2b95` | fix: promote rgba to tokens in CanvasScreen and FocusBar |
+| `badf182b` | feat: aura_history presession columns (target_grade, teacher_priority, hardest_part) |
+| `3924c577` | fix: add assessmentTitle to tier_transition telemetry payloads |
+
+## Items Complete
+
+1. **AURA Pre-Session Intelligence Card**: AuraPresessionCard component (AuraChatOverlay.jsx:297-343), DB columns migrated, load/save wired (lines 161-188), API piping to tutor.js (line 895, tutor.js:59-82), proactive greeting references intel (line 644). End-to-end complete.
+2. **FocusBar Ambient Redesign**: 52px portal bar (FocusBar.jsx) replaces fullscreen body-doubling takeover. Timer, ambient sound picker, student badge, halfway check-in. Wired via BodyDoublingLine.jsx:412. Canvas remains fully accessible.
+3. **CRAFT-C1 Bug Fix**: assessmentTitle added to both tier_transition payloads in CanvasScreen.jsx (lines 398, 808). Authenticity Report now records which assessment each transition belongs to.
+4. **rgba Token Promotion**: CanvasScreen.jsx and FocusBar.jsx boxShadow values migrated from raw rgba to SHADOW_CARD and SHADOW_HEAVY tokens.
+5. **aura_history Presession Columns**: Supabase migration applied (20260519000000_aura_history_presession.sql). target_grade, teacher_priority, hardest_part columns live in production.
+6. **Privacy Text Sweep**: No remaining "never sold" instances in frontend JSX. Clean.
+7. **Landing Page Overhaul**: Hero with live AuraOrb (inline mode), five showcase sections ordered by tester validation, browser-only TTS via speechSynthesis, purple orb pulse animation.
+8. **PDF Upload Fix**: PDF MIME types added to three file inputs.
+9. **Onboarding Tour**: Expanded from 4 to 6 steps. Tour-seen flag set on first mount (no repeat on dismissal).
+10. **MatrixRain Fix**: Bottom strip canvas now renders via single fullscreen masked canvas with CSS gradient clip.
+11. **Voice/Stim Conflict**: useAuraStim sounds suppressed when speechSynthesis is active.
+12. **Draft Key Fix**: courseId prefix removed from SectionEditor and AuraChatOverlay draft keys, resolving 400 errors.
+
+## Items Deferred (Not Started)
+
+- **DocLibrary wiring into CanvasScreen**: Insertion point identified (overlay cluster lines 674-704) but not implemented. Requires import and isOpen/onClose state.
+- **currentPhase gap in buildAuraPrompt()**: tutor.js line 96 does not pass currentPhase to buildAuraPrompt(). Phase-specific instructions may not reach the system prompt when a phase is active.
+- **Draft key format inconsistency**: Four components use different key patterns for DraftService. Unification deferred.
+
+## Build and Deploy Status
+- Build: clean (no errors, no warnings in modified files)
+- Style check: clean (Australian English, zero em-dashes)
+- Git: clean working tree, pushed to main
+- Vercel: production deployment live
+
+---
+
+# Prior Overnight Logs (archived below)
+
 # Y10-12 Tester Readiness: FINAL REPORT
 - Started: 2026-05-15T02:30:00+10:00
 - Ended: 2026-05-15T06:45:00+10:00
