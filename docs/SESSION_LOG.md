@@ -1,3 +1,25 @@
+## Sprint 13.7: Weight Extraction Fix + BABS1201 Test Fixture
+**Date:** 2026-05-18
+
+### Commits
+
+| SHA | Change |
+|-----|--------|
+| `d43a4071` | fix-weight-extraction: disambiguate weight for multi-assessment briefs |
+| `3a572f15` | fixture-babs1201: real BABS1201 test course fixture + Sprint 14 backlog |
+
+### Summary
+
+1. **Weight extraction fix**: api/extract-document.js prompt now instructs Claude to extract weight for the specific assessment only, not the first percentage found in multi-assessment documents.
+2. **Test fixture**: tests/fixtures/test-course.json with real BABS1201 structure (XN1-5, YN1-2, QN1-5, six rubric criteria with mark allocations).
+3. **Sprint 14 AI Permission Level**: logged to docs/BACKLOG.md for next session.
+
+### Test Results
+
+15/15 regression tests pass. Build compiles clean.
+
+---
+
 ## Sprint 13.5: Socratic Greeting + Composite Progress + Email Capture + Keyboard Tests
 **Date:** 2026-05-18
 
