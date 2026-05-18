@@ -723,6 +723,61 @@ export default function CanvasScreen() {
             />
           )}
 
+          {/* Section navigation pills: let students switch sections within WRITE tab */}
+          {!isExamPaper && activeSections.length > 1 && (
+            <div
+              role="tablist"
+              aria-label="Assessment sections"
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 6,
+                padding: '8px 16px',
+                borderBottom: '1px solid var(--theme-border, #27272a)', /* allow-style */
+              }}
+            >
+              {activeSections.map(sec => {
+                const isActive = sec.type === activeSection;
+                return (
+                  <button
+                    key={sec.type}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => setActiveSection(sec.type)}
+                    style={{
+                      fontFamily: 'var(--font-system, system-ui)',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      letterSpacing: '0.04em',
+                      padding: '6px 12px',
+                      borderRadius: 'var(--radius, 6px)',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      minHeight: 32,
+                      border: isActive
+                        ? '1px solid var(--sov-line, #10b981)' /* allow-style */
+                        : '1px solid var(--theme-border, #27272a)', /* allow-style */
+                      background: isActive
+                        ? 'var(--accent-glass, rgba(16,185,129,0.06))' /* allow-style */
+                        : 'transparent',
+                      color: isActive
+                        ? 'var(--sov-line, #10b981)' /* allow-style */
+                        : 'var(--text-faint, #71717a)', /* allow-style */
+                    }}
+                  >
+                    {sec.label}
+                    {sec.targetWords > 0 && (
+                      <span style={{ marginLeft: 4, fontWeight: 400, opacity: 0.7 }}>
+                        ({sec.targetWords}w)
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Exam paper: multimodal canvas per question. SectionEditor NEVER renders on exam papers. */}
           {isExamPaper ? (
             <QuestionCoach
