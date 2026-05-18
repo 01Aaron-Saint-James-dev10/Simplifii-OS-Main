@@ -54,6 +54,7 @@ import './CanvasScreen.css';
 import {
   COLOUR_WARN, COLOUR_WARN_TINT, COLOUR_WARN_BORDER,
   ACCENT_GLASS_SUBTLE, ACCENT_LINE_DIM,
+  ACCENT_BORDER, ACCENT_PULSE, TEXT_MUTED,
 } from '../theme/tokens';
 
 /**
