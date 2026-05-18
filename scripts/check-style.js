@@ -29,13 +29,20 @@ const RGBA_RE = /rgba\s*\(/g;
 const TOKEN_FILE = 'src/theme/tokens.js';
 
 const US_FORMS = [
-  { stem: 'behavior', expected: 'behaviour' },
-  { stem: 'color',    expected: 'colour'    },
-  { stem: 'flavor',   expected: 'flavour'   },
-  { stem: 'analyze',  expected: 'analyse'   },
-  { stem: 'organize', expected: 'organise'  },
-  { stem: 'realize',  expected: 'realise'   },
-  { stem: 'optimize', expected: 'optimise'  }
+  { stem: 'behavior',   expected: 'behaviour'   },
+  { stem: 'color',      expected: 'colour'      },
+  { stem: 'flavor',     expected: 'flavour'     },
+  { stem: 'analyze',    expected: 'analyse'     },
+  { stem: 'organize',   expected: 'organise'    },
+  { stem: 'realize',    expected: 'realise'     },
+  { stem: 'optimize',   expected: 'optimise'    },
+  { stem: 'enrollment', expected: 'enrolment'   },
+  { stem: 'canceled',   expected: 'cancelled'   },
+  { stem: 'canceling',  expected: 'cancelling'  },
+  { stem: 'labeled',    expected: 'labelled'    },
+  { stem: 'modeling',   expected: 'modelling'   },
+  { stem: 'traveling',  expected: 'travelling'  },
+  { stem: 'fulfill',    expected: 'fulfil'      },
 ];
 
 // Returns true if the position falls inside a string literal or JSX text.
