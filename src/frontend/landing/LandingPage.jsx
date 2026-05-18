@@ -18,9 +18,9 @@ import {
   FONT_BODY, FONT_SYSTEM, FONT_DISPLAY, TEXT_LINK,
   BORDER_RADIUS, GRADIENT_EMERALD_CYAN,
 } from '../../theme/tokens';
-import NeuralAvatar from '../components/visuals/NeuralAvatar';
+
 import MatrixRain from '../components/MatrixRain';
-import ShowcasePreview from './ShowcasePreview';
+
 import EducationLevels from './EducationLevels';
 import EmailCapture from '../components/EmailCapture';
 import './LandingPage.css';
@@ -39,13 +39,11 @@ const PILLARS = [
 // Awards removed: belong to Aaron personally, not the app. See Sprint V backlog.
 
 const SHOWCASE = [
-  { id: 'upload', label: '1. Upload', desc: 'Drop a PDF or paste a URL. We extract your assessments, due dates, rubric criteria, and build your canvas automatically.' },
-  { id: 'editor', label: '2. Write', desc: 'Full editor with real-time citation flagging. Every claim checked against your uploaded sources. Voice input available.' },
-  { id: 'tutor', label: '3. Ask', desc: 'Socratic tutor powered by Claude. Asks questions to sharpen your thinking. Never writes for you. Adapts to your year level.' },
-  { id: 'voice', label: '4. Speak', desc: 'Voice-to-text input. Speak your thoughts, text appears at cursor. Free, browser-native, no recordings stored.' },
-  { id: 'hsc', label: '5. Practice', desc: 'HSC past papers matched to your assessment topic. Review real exam questions and read marker feedback to understand what high marks look like.' },
-  { id: 'reset', label: '6. Reset', desc: 'Built-in breaks designed for sustainable thinking. No guilt. No streaks. No shame. Just good work habits.' },
-  { id: 'joke', label: '7. Joy', desc: 'Type /joke or say "tell me a joke" to get a clean, ND-friendly joke when you need a brain break. Stays until you dismiss it.' },
+  { id: 'plan',      label: 'Plan',      heading: 'Upload your brief. Get a week-by-week plan.',        body: 'Drop in any PDF. Simplifii extracts every task, every due date, and builds a structured plan broken into beginning, throughout, and end of week steps. With subtask checkboxes and a glossary.' },
+  { id: 'ask',       label: 'Ask AURA',  heading: 'AURA asks you questions. Not the other way around.', body: 'Most AI tools write for you. AURA thinks with you. It asks one direct question at a time, adapts to how your brain works, and remembers what you said last session.' },
+  { id: 'timetable', label: 'Timetable', heading: 'Every deadline. One calendar.',                      body: 'All your assessments organised by urgency. Export to Apple Calendar, Google Calendar, or any app in one tap. Notifications when deadlines are close.' },
+  { id: 'focus',     label: 'Focus',     heading: 'Work with AURA alongside you.',                      body: 'Body doubling used by neurodivergent students everywhere. Pomodoro timer, ambient sound, and AURA present the whole time. See how many other students are working right now.' },
+  { id: 'canvas',    label: 'Canvas',    heading: 'Think, plan, and write in one place.',               body: 'Three modes: THINK for ideas, IDEAS for structure, WRITE for your draft. Rubric decoding, essay scoring, and AI risk checking one click away.' },
 ];
 
 const COMPARISON = [
@@ -172,12 +170,14 @@ export default function LandingPage() {
                   transition={MQ_REDUCE ? {} : { duration: 3, repeat: Infinity, ease: 'easeOut', delay: 0.5 }}
                   style={{ position: 'absolute', width: 200, height: 200, borderRadius: '50%', border: `1px solid ${ACCENT_PULSE}`, opacity: 0.2 }}
                 />
-                <motion.div
-                  animate={MQ_REDUCE ? {} : { scale: [1, 1.02, 1] }}
-                  transition={MQ_REDUCE ? {} : { duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-                >
-                  <NeuralAvatar persona="browser" size={180} state="listening" />
-                </motion.div>
+                <div style={{ position: 'relative', width: 140, height: 140, margin: '0 auto' }}>
+                  <div style={{
+                    width: 140, height: 140, borderRadius: '50%',
+                    background: 'radial-gradient(circle at 40% 40%, #00b5a3, #007a6e)',
+                    boxShadow: '0 0 60px rgba(0,181,163,0.5), 0 0 120px rgba(0,181,163,0.2)',
+                    animation: MQ_REDUCE ? 'none' : 'aura-pulse 3s ease-in-out infinite',
+                  }} />
+                </div>
               </div>
 
               {/* Status line below avatar */}
@@ -263,12 +263,14 @@ export default function LandingPage() {
             </button>
           ))}
         </div>
-        <div role="tabpanel" id={`showcase-panel-${activeTab}`} aria-labelledby={`showcase-tab-${activeTab}`} tabIndex={0} style={{ background: GLASS_SURFACE, border: `1px solid ${GLASS_BORDER}`, borderRadius: 12, overflow: 'hidden', boxShadow: GLOW_EMERALD }}>
-          <ShowcasePreview activeTab={activeTab} />
+        <div role="tabpanel" id={`showcase-panel-${activeTab}`} aria-labelledby={`showcase-tab-${activeTab}`} tabIndex={0} style={{ background: GLASS_SURFACE, border: `1px solid ${GLASS_BORDER}`, borderRadius: 12, padding: '40px', boxShadow: GLOW_EMERALD }}>
+          <h3 style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 'clamp(1.1rem, 2.5vw, 1.5rem)', color: TEXT_PRIMARY, margin: '0 0 16px', lineHeight: 1.3 }}>
+            {SHOWCASE.find(t => t.id === activeTab)?.heading}
+          </h3>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 16, lineHeight: 1.7, color: TEXT_MUTED, margin: 0, maxWidth: 600 }}>
+            {SHOWCASE.find(t => t.id === activeTab)?.body}
+          </p>
         </div>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 15, color: TEXT_MUTED, textAlign: 'center', marginTop: 20 }}>
-          {SHOWCASE.find(t => t.id === activeTab)?.desc}
-        </p>
       </section>
 
       {/* ── DIFFERENTIATION ───────────────────────────────────── */}

@@ -57,6 +57,8 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       const errBody = await response.text().catch(() => '');
+      console.log('[tts] ElevenLabs response status:', response.status);
+      console.log('[tts] ElevenLabs error body:', errBody.slice(0, 200));
       return res.status(200).json({ provider: 'browser', error: 'ElevenLabs unavailable.', _debug: { status: response.status, body: errBody } });
     }
 
