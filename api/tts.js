@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   if (!text || text.length < 2) return res.status(400).json({ error: 'Text required.' });
 
   const apiKey = process.env.CARTESIA_API_KEY;
-  if (!apiKey) return res.status(200).json({ provider: 'browser', message: 'Use window.speechSynthesis.' });
+  if (!apiKey) return res.status(200).json({ provider: 'browser', message: 'Use window.speechSynthesis.', debug: 'CARTESIA_API_KEY not found in env' });
 
   try {
     const cartesia = new Cartesia({ apiKey });
@@ -42,6 +42,6 @@ export default async function handler(req, res) {
     return res.end(buffer);
   } catch (err) {
     console.error('[tts] Cartesia error:', err.message);
-    return res.status(200).json({ provider: 'browser', message: 'Use window.speechSynthesis.' });
+    return res.status(200).json({ provider: 'browser', message: 'Use window.speechSynthesis.', detail: err.message });
   }
 }
