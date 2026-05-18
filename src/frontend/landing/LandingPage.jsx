@@ -20,6 +20,7 @@ import {
 } from '../../theme/tokens';
 
 import MatrixRain from '../components/MatrixRain';
+import AuraOrb from '../components/AuraOrb';
 
 import ShowcasePreview from './ShowcasePreview';
 import EducationLevels from './EducationLevels';
@@ -163,25 +164,16 @@ export default function LandingPage() {
               <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                 <motion.div
                   animate={MQ_REDUCE ? {} : { scale: [1, 1.6, 1], opacity: [0.3, 0, 0.3] }}
-                  transition={MQ_REDUCE ? {} : { duration: 3, repeat: Infinity, ease: 'easeOut' }}
-                  style={{ position: 'absolute', width: 200, height: 200, borderRadius: '50%', border: `1px solid ${ACCENT_PULSE}`, opacity: 0.3 }}
+                  transition={MQ_REDUCE ? {} : { duration: 4, repeat: Infinity, ease: 'easeOut' }}
+                  style={{ position: 'absolute', width: 220, height: 220, borderRadius: '50%', border: `1px solid ${ACCENT_PULSE}`, opacity: 0.3 }}
                 />
                 <motion.div
                   animate={MQ_REDUCE ? {} : { scale: [1, 1.8, 1], opacity: [0.2, 0, 0.2] }}
-                  transition={MQ_REDUCE ? {} : { duration: 3, repeat: Infinity, ease: 'easeOut', delay: 0.5 }}
-                  style={{ position: 'absolute', width: 200, height: 200, borderRadius: '50%', border: `1px solid ${ACCENT_PULSE}`, opacity: 0.2 }}
+                  transition={MQ_REDUCE ? {} : { duration: 4, repeat: Infinity, ease: 'easeOut', delay: 0.5 }}
+                  style={{ position: 'absolute', width: 220, height: 220, borderRadius: '50%', border: `1px solid ${ACCENT_PULSE}`, opacity: 0.2 }}
                 />
-                <div style={{ position: 'relative', width: 140, height: 140, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <div style={{
-                    width: 140, height: 140, borderRadius: '50%',
-                    background: 'radial-gradient(circle at 35% 30%, #d0bfe8, #b49fd4)',
-                    border: '2px solid rgba(180,159,212,0.4)',
-                    boxShadow: '0 0 40px rgba(180,159,212,0.5), 0 0 80px rgba(180,159,212,0.2)',
-                    animation: MQ_REDUCE ? 'none' : 'aura-pulse 3s ease-in-out infinite',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <span style={{ fontFamily: 'monospace', fontSize: 22, fontWeight: 700, color: '#ede9f7', letterSpacing: '-1px', userSelect: 'none' }}>{'>_<'}</span>
-                  </div>
+                <div style={{ position: 'relative', width: 200, height: 200, margin: '0 auto' }}>
+                  <AuraOrb inline auraState="idle" size={200} />
                 </div>
               </div>
 

@@ -107,7 +107,16 @@ function computePosition(rect, vw, vh) {
  * the step refers to. Re-measures on resize and scroll.
  */
 export default function OnboardingTour() {
-  const [done, setDone] = useState(() => !!localStorage.getItem(TOUR_KEY));
+  const [done, setDone] = useState(() => {
+    // Mark as seen on first mount so it fires exactly once, regardless of whether
+    // the user clicks through all steps. Prior behaviour: key only set on last step,
+    // so users who dismissed mid-tour saw it every session.
+    if (!localStorage.getItem(TOUR_KEY)) {
+      localStorage.setItem(TOUR_KEY, 'true');
+      return false; // Show the tour this session
+    }
+    return true;
+  });
   const [step, setStep] = useState(0);
   const [pos, setPos] = useState(null); // { spotX, spotY, spotW, spotH, tipTop, tipLeft, arrowSide }
   const rafRef = useRef(null);

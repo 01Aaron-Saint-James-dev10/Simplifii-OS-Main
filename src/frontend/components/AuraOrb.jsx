@@ -262,7 +262,7 @@ function GlyphCore({ state }) {
   );
 }
 
-export default function AuraOrb({ onClick, auraState = 'idle' }) {
+export default function AuraOrb({ onClick, auraState = 'idle', inline = false, size = 88 }) {
   const [reducedMotion, setReducedMotion] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
   const containerRef = useRef(null);
@@ -356,6 +356,7 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
 
   // Wake word: "Hey AURA" triggers onClick, same as tapping the orb
   useEffect(() => {
+    if (inline) return; // No wake word in inline/landing page mode
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) return;
     const rec = new SR();
@@ -453,6 +454,43 @@ export default function AuraOrb({ onClick, auraState = 'idle' }) {
           </button>
         </div>
         <span style={{ fontFamily: 'var(--font-system, system-ui)', fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: '#b49fd4', whiteSpace: 'nowrap' }}>{STATE_LABELS[currentState] || STATE_LABELS.idle}</span> {/* allow-style */}
+      </div>
+    );
+  }
+
+  // Inline mode: embedded in a parent container, no fixed positioning, no drag, no minimise
+  if (inline) {
+    const faceSize = Math.round(size * 0.15);
+    if (reducedMotion) {
+      return (
+        <div style={{ position: 'relative', width: size, height: size, borderRadius: '50%',
+          background: 'radial-gradient(circle at 35% 30%, #d0bfe8, #b49fd4)', /* allow-style */
+          border: `2px solid ${AURA_BORDER}`, boxShadow: `0 0 24px ${AURA_GLOW}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontFamily: 'monospace', fontSize: faceSize, fontWeight: 700, color: '#ede9f7', letterSpacing: '-1px', userSelect: 'none' }}>{'>_<'}</span> {/* allow-style */}
+        </div>
+      );
+    }
+    return (
+      <div style={{ position: 'relative', width: size, height: size }}>
+        <span style={{ position: 'absolute', top: '42%', left: '50%', transform: 'translate(-50%, -50%)',
+          fontFamily: 'monospace', fontSize: faceSize, fontWeight: 700, color: '#ede9f7', /* allow-style */
+          letterSpacing: '-1px', pointerEvents: 'none', zIndex: 1, userSelect: 'none',
+          textShadow: `0 0 6px ${AURA_GLOW_STRONG}` }}>{'>_<'}</span>
+        <Canvas camera={{ position: [0, 0, 3], fov: 45 }}
+          gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
+          style={{ background: 'transparent', width: '100%', height: '100%' }}
+          dpr={Math.min(window.devicePixelRatio, 2)}
+          onCreated={({ gl }) => {
+            gl.domElement.addEventListener('webglcontextlost', (e) => { e.preventDefault(); setReducedMotion(true); });
+          }}>
+          <ambientLight intensity={0.3} />
+          <pointLight position={[2, 2, 2]} intensity={0.8} color="#c4a8e0" />
+          <pointLight position={[-2, -1, 1]} intensity={0.4} color="#9b7fd4" />
+          <FluidOrb state={currentState} audioLevel={0} />
+          <GlyphCore state={currentState} />
+          <OrbParticles state={currentState} />
+        </Canvas>
       </div>
     );
   }

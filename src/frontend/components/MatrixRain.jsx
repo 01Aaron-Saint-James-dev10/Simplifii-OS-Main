@@ -121,49 +121,26 @@ export default function MatrixRain() {
     };
   }, []);
 
+  // Single fullscreen canvas; CSS mask reveals only the top and bottom 80 px strips.
+  // Previous two-canvas design left the bottom strip canvas without a ref so it was
+  // never drawn. One canvas + masking fixes both strips with one draw loop.
   return (
-    <>
-      {/* Top strip only: 80px tall, subtle, behind header */}
-      <div
-        className="matrix-rain"
-        aria-hidden="true"
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 80,
-          zIndex: 0,
-          pointerEvents: 'none',
-          opacity: 0.15,
-          overflow: 'hidden',
-        }}
-      >
-        <canvas
-          ref={canvasRef}
-          style={{ width: '100%', height: '100vh', display: 'block' }}
-        />
-      </div>
-      {/* Bottom strip: 80px tall, subtle */}
-      <div
-        className="matrix-rain"
-        aria-hidden="true"
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: 80,
-          zIndex: 0,
-          pointerEvents: 'none',
-          opacity: 0.15,
-          overflow: 'hidden',
-        }}
-      >
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '100vh', transform: 'translateY(calc(100% - 80px))' }}>
-          <canvas style={{ width: '100%', height: '100%', display: 'block' }} />
-        </div>
-      </div>
-    </>
+    <div
+      aria-hidden="true"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 0,
+        pointerEvents: 'none',
+        opacity: 0.18,
+        WebkitMaskImage: 'linear-gradient(to bottom, black 80px, transparent 80px, transparent calc(100% - 80px), black calc(100% - 80px))',
+        maskImage: 'linear-gradient(to bottom, black 80px, transparent 80px, transparent calc(100% - 80px), black calc(100% - 80px))',
+      }}
+    >
+      <canvas
+        ref={canvasRef}
+        style={{ width: '100%', height: '100%', display: 'block' }}
+      />
+    </div>
   );
 }
