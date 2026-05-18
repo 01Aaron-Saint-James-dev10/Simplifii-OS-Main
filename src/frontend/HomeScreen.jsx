@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useProject } from './ProjectContext';
 import { useSettings } from './SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
