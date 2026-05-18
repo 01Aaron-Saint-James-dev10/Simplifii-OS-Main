@@ -1,0 +1,116 @@
+{
+  "theme": "light",
+  "archetype": "1-Organic-Earthy-Teal",
+  "brand": {
+    "name": "Simplifii",
+    "tagline": "Built for complex briefs. Not complex brains.",
+    "personality": "Calm, structured, encouraging, deeply functional"
+  },
+  "typography": {
+    "primary_font": "Outfit",
+    "body_font": "Work Sans",
+    "dyslexia_font": "OpenDyslexic",
+    "scale": {
+      "h1": "text-4xl sm:text-5xl tracking-tight leading-tight",
+      "h2": "text-2xl sm:text-3xl tracking-tight",
+      "h3": "text-xl sm:text-2xl font-medium",
+      "body": "text-base sm:text-lg leading-relaxed",
+      "small": "text-sm text-gray-500"
+    },
+    "rules": {
+      "alignment": "Left-align dense text. Avoid center-alignment for anything over 2 lines.",
+      "readability": "Limit line length to 65-75 characters (max-w-3xl).",
+      "modes": "When Read Easy mode is active, switch to OpenDyslexic and leading-loose (1.8)."
+    }
+  },
+  "colors": {
+    "primary": {
+      "DEFAULT": "#007C8C",
+      "hover": "#006473",
+      "active": "#004D59",
+      "foreground": "#FFFFFF",
+      "subtle": "#E5F2F4"
+    },
+    "background": {
+      "DEFAULT": "#FAFAFA",
+      "surface": "#FFFFFF",
+      "cream": "#FDFBF7",
+      "high_contrast": "#0A0A0A"
+    },
+    "text": {
+      "DEFAULT": "#111827",
+      "muted": "#4B5563",
+      "disabled": "#9CA3AF"
+    },
+    "feedback": {
+      "hd": "#10B981", 
+      "d": "#14B8A6", 
+      "c": "#3B82F6", 
+      "p": "#F59E0B", 
+      "f": "#EF4444" 
+    },
+    "borders": "#E5E7EB"
+  },
+  "spacing_and_layout": {
+    "base_grid": "bento-style grids for features, 1-column max-w-4xl for reading mode to prevent tracking errors",
+    "tap_targets": "CRITICAL: min-h-[44px] and min-w-[44px] on ALL buttons, toggles, checkboxes, and links.",
+    "padding": "Generous spacing. Use p-6, p-8, p-12. Avoid cramped containers. Breathing room is essential.",
+    "border_radius": "rounded-2xl for outer cards, rounded-xl for inner elements (Duolingo/Notion hybrid).",
+    "card_style": "Cardless or flat 1px borders (border-border). Avoid heavy drop shadows to minimize sensory load.",
+    "focus_management": "focus-visible:ring-2 focus-visible:ring-[#007C8C] focus-visible:ring-offset-2 on all focusable elements. No outline:none without a replacement."
+  },
+  "components": {
+    "buttons": "Large, solid pill or slightly rounded rectangular shapes. High contrast text.",
+    "cognitive_mode_switcher": {
+      "description": "4-way segmented control at the top of the Results view.",
+      "modes": [
+        {"name": "Focus", "action": "Shows one task at a time, 'Next Task' button"},
+        {"name": "Read Easy", "action": "Changes font to OpenDyslexic, background to cream, line-height 1.8"},
+        {"name": "Calm", "action": "Hides deadlines, adds supportive banner 'You've got this. One step at a time.'"},
+        {"name": "Step by Step", "action": "Hides all context, shows only 'What do I do right now?'"}
+      ]
+    },
+    "accessibility_toolbar": {
+      "position": "fixed top-4 right-4 z-50",
+      "features": ["Font size toggle", "Dyslexia font toggle", "High contrast toggle", "Reduce motion toggle"]
+    },
+    "overwhelm_detection_modal": {
+      "trigger": "User idle on results page for 3 minutes",
+      "style": "Gentle, non-intrusive, soft backdrop. Text: 'Feeling overwhelmed? That's completely normal. Let's just do one thing right now.' Button: 'Show me the next step only'."
+    },
+    "progress_tracking": "Visual progress bars and checkboxes. Trigger subtle confetti/celebration (if motion allowed) on task complete.",
+    "navigation": "Sticky top nav. Links: Brief Simplifier, Rubric Simplifier, Essay Scorer, Humaniser, Assessment Scaffolder, Course Planner. Right side: Credits balance and User profile."
+  },
+  "motion_and_interactions": {
+    "default_transitions": "transition-all duration-200 ease-in-out for hover states.",
+    "loading_states": "Use skeleton loaders instead of spinning wheels where possible to reduce anxiety.",
+    "reduced_motion": "If user toggles 'Reduce Motion', all transition durations map to 0ms. Disable celebratory confetti."
+  },
+  "media": {
+    "rules": "Use images to create a sense of calm and structure. Avoid chaotic or highly detailed stock photos.",
+    "images": [
+      {
+        "category": "hero_background",
+        "description": "Abstract calming geometric shapes in soft teal and cream colors, minimalist 3d shapes",
+        "url": "https://static.prod-images.emergentagent.com/jobs/455d8fe2-1f85-4acb-b7b0-669ce4abbf8b/images/0fdb94c6fa59e7af41d2973c69a3684b2a0fa55646b5227db012fa7daffcc999.png"
+      },
+      {
+        "category": "empty_state_or_about",
+        "description": "Minimalist workspace illustration, neat desk with a single piece of paper, soft warm sunlight, pastel teal accents",
+        "url": "https://static.prod-images.emergentagent.com/jobs/455d8fe2-1f85-4acb-b7b0-669ce4abbf8b/images/95072dc5cad19770accf80ed6e0860afa9b2c606305c222c5b23eaa0093288b2.png"
+      }
+    ]
+  },
+  "testing": {
+    "rules": "All interactive and key informational elements MUST include a data-testid attribute in kebab-case."
+  },
+  "instructions_to_main_agent": [
+    "Prioritize accessibility over flashy UI. The target audience is neurodivergent users who need a calm, predictable interface.",
+    "Implement the 4 Cognitive Modes using React state or Context, wrapping the main Results component.",
+    "Use standard Tailwind classes but leverage arbitrary values for exact brand colors (e.g., bg-[#007C8C]).",
+    "Ensure the 'Accessibility Toolbar' state is saved in localStorage so preferences persist across sessions.",
+    "For the 'Overwhelm Detection', use a simple timeout effect that resets on user interaction.",
+    "Credit balance must always be visible in the navigation bar.",
+    "Use Shadcn UI for complex components (Dialogs, Selects, Dropdowns) but customize them heavily to remove the default Vercel-look. Remove borders where possible to fit the 'Notion/Linear' minimal vibe."
+  ]
+}

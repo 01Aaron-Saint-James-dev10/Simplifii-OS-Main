@@ -60,7 +60,7 @@ export default function SectionEditor({
       const drafts = {};
       for (const sec of sections) {
         try {
-          const key = `${courseId}_${assessmentTitle}_${sec.type}`;
+          const key = `${assessmentTitle}_${sec.type}`;
           const draft = await loadDraft(courseId, key);
           if (draft) drafts[sec.type] = draft.content || '';
         } catch { /* no draft yet */ }
@@ -83,7 +83,7 @@ export default function SectionEditor({
 
     clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
-      const key = `${courseId}_${assessmentTitle}_${sectionType}`;
+      const key = `${assessmentTitle}_${sectionType}`;
       await saveDraft(courseId, key, html, null).catch(() => {});
       lastSavedRef.current = Date.now();
       onSaveStatusChange?.('saved', 'just now');

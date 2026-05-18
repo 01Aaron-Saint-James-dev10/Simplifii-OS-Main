@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-05-12T23:40:23.633Z",
+  "mode": "headless",
+  "workerType": "audit",
+  "model": "haiku",
+  "durationMs": 12740,
+  "executionId": "audit_1778629210893_ynox1h",
+  "success": false,
+  "findings": {
+    "parseError": true,
+    "rawOutput": "Not logged in · Please run /login\n"
+  },
+  "rawOutputPreview": "Not logged in · Please run /login\n",
+  "rawOutputLength": 34
+}

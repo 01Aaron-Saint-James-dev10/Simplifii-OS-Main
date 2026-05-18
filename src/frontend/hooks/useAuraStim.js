@@ -34,6 +34,7 @@ export function useAuraStim() {
 
   const playThinking = useCallback(() => {
     if (sensoryLevel <= 0 || prefersReducedMotion()) return;
+    if (typeof window !== 'undefined' && window.speechSynthesis?.speaking) return;
     try {
       const ctx = getCtx();
       const osc = ctx.createOscillator();
@@ -61,6 +62,7 @@ export function useAuraStim() {
 
   const playResponse = useCallback(() => {
     if (sensoryLevel <= 0 || prefersReducedMotion()) return;
+    if (typeof window !== 'undefined' && window.speechSynthesis?.speaking) return;
     try {
       const ctx = getCtx();
       const osc = ctx.createOscillator();
@@ -79,6 +81,7 @@ export function useAuraStim() {
 
   const playCelebrate = useCallback(() => {
     if (sensoryLevel <= 0 || prefersReducedMotion()) return;
+    if (typeof window !== 'undefined' && window.speechSynthesis?.speaking) return;
     try {
       const ctx = getCtx();
       const vol = getGain(sensoryLevel) * 1.2;

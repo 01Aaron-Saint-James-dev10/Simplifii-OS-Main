@@ -1,0 +1,16 @@
+node_modules/
+
+.env
+.env.local
+.env*.local
+
+build/
+
+.vercel/
+
+# Generated at install time by scripts/copy-pdf-worker.js
+public/pdf.worker.min.js
+
+# Claude Flow daemon-generated logs (churn, not source)
+.claude-flow/logs/
+.vercel

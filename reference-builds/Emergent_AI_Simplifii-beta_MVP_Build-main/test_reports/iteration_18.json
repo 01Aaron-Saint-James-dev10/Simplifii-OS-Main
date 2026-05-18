@@ -1,0 +1,101 @@
+{
+  "summary": "Iteration 18 - Course Planner Two-Phase Pipeline Testing Complete. All 16 backend tests passed. All frontend tests passed. New features verified: (1) POST /api/course-planner/extract with PDF upload returns job_id immediately, (2) GET /api/course-planner/extract/status/{job_id} polling works, (3) Phase 1 extraction returns assessments, scheduled_classes, important_dates, document_intelligence, (4) Each assessment has all required fields, (5) Document intelligence detects semester info, (6) POST /api/course-planner/confirm saves confirmed extraction, (7) POST /api/course-planner/study-plan generates AI study plan with weeklyPlan, priorityOrder, overallAdvice, (8) POST /api/course-planner/export-ics generates valid .ics file, (9) GET /api/user/quick-win returns recommended tool based on nearest deadline, (10) Frontend Course Planner upload phase renders with drag-and-drop zone, (11) Dashboard shows Quick Win card with nearest deadline recommendation.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Course Planner", "issues": ["Guided tour popup appears on every visit - may want to persist dismissal in localStorage (noted in iteration 17)"]}
+    ]
+  },
+
+  "passed_tests": [
+    "POST /api/course-planner/extract without auth returns 401",
+    "POST /api/course-planner/extract with PDF returns {job_id, status:'processing'} immediately (<15s)",
+    "GET /api/course-planner/extract/status/{job_id} returns status and result when complete",
+    "Phase 1 extraction result has keys: assessments, scheduled_classes, important_dates, document_intelligence",
+    "Each assessment has: assessment_title, course_code, university, due_date, week_number, weighting, assessment_type, is_ongoing, is_group_work, submission_format, notes",
+    "Document intelligence has: semester_start, semester_end, total_weeks, university, term_label, needs_semester_start_confirmation",
+    "POST /api/course-planner/confirm saves confirmed extraction and returns {status:'confirmed'}",
+    "POST /api/course-planner/study-plan without assessments returns 400",
+    "POST /api/course-planner/study-plan generates AI study plan with weeklyPlan, priorityOrder, overallAdvice",
+    "POST /api/course-planner/export-ics generates valid .ics file with VCALENDAR and VEVENT",
+    "GET /api/user/quick-win returns recommendation based on nearest deadline",
+    "GET /api/user/quick-win without auth returns 401",
+    "POST /api/course-planner/extract with no files returns 422",
+    "GET /api/course-planner/extract/status/{invalid_job_id} returns 404",
+    "POST /api/course-planner/extract accepts up to 10 files",
+    "POST /api/course-planner/extract rejects more than 10 files with 400",
+    "Frontend: Login works and redirects to dashboard",
+    "Frontend: Dashboard shows Quick Win card with assessment recommendation",
+    "Frontend: Course Planner page loads with heading",
+    "Frontend: Upload zone renders with drag-and-drop",
+    "Frontend: Submit button disabled until files uploaded",
+    "Frontend: PDF upload triggers extraction job",
+    "Frontend: Review phase shows Document Intelligence (university, term, semester start, total weeks)",
+    "Frontend: Review phase shows Assessments table with all extracted data",
+    "Frontend: Review phase shows Scheduled Classes",
+    "Frontend: Confirm button advances to output phase",
+    "Frontend: Output phase shows 4 view tabs (Timeline, Table, Assessment Focus, AI Study Plan)",
+    "Frontend: Timeline view shows weekly load indicators with color coding",
+    "Frontend: Timeline view highlights special weeks (Flexibility Week, Study Break)",
+    "Frontend: Table view shows all assessments in tabular format",
+    "Frontend: Assessment Focus view shows buckets (Due Soon, Coming Up, Plenty of Time, Ongoing)",
+    "Frontend: AI Study Plan view has generate button",
+    "Frontend: AI Study Plan generates with overall advice, priority order, and weekly tasks",
+    "Frontend: ICS export button present"
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/test_iteration18_course_planner.py",
+    "/app/test_reports/pytest/pytest_results_iter18.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "Course Planner two-phase pipeline working correctly - Phase 1 extracts all academic data, Phase 2 generates output views",
+    "Background job pattern for extraction working - POST returns job_id immediately, poll for completion",
+    "Document intelligence correctly detects university, semester dates, total weeks from PDF content",
+    "Assessment extraction captures all required fields including is_ongoing, is_group_work, submission_format",
+    "Quick Win endpoint correctly reads from planner_extractions collection and recommends tool based on assessment type",
+    "ICS export generates valid calendar file with proper VCALENDAR/VEVENT structure",
+    "AI Study Plan uses real assessment data to generate personalized weekly plan with priority order",
+    "Frontend correctly implements polling pattern for extraction status",
+    "All 4 view formats working: Timeline (weekly load), Table, Assessment Focus (buckets), AI Study Plan"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_iteration18_course_planner.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (16/16 passed)",
+    "frontend": "100% (all checks passed)"
+  },
+
+  "test_credentials": {
+    "primary": {
+      "email": "test@simplifii.com",
+      "password": "test123"
+    }
+  },
+
+  "seed_data_creation": "Created test PDF with reportlab containing COMP1511 course outline with 5 assessments, 3 scheduled classes, and important dates",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "mocked_apis": {
+    "Stripe": "Credit check BYPASSED for owner testing",
+    "LLM Tools": "Uses real Emergent LLM Key (funded)"
+  },
+
+  "context_for_next_testing_agent": "Iteration 18 complete. Course Planner two-phase pipeline fully tested. Key endpoints: (1) POST /api/course-planner/extract - upload PDFs, returns job_id immediately, poll GET /api/course-planner/extract/status/{job_id} every 3s for up to 2 minutes. (2) POST /api/course-planner/confirm - saves confirmed extraction with semester_start. (3) POST /api/course-planner/study-plan - generates AI study plan from assessments. (4) POST /api/course-planner/export-ics - exports assessments as .ics calendar file. (5) GET /api/user/quick-win - returns recommended tool based on nearest deadline from planner data. Frontend has 3 phases: upload -> review -> output. Output phase has 4 view tabs: Timeline, Table, Assessment Focus, AI Study Plan. Cookie-based auth working. Test user already has planner data so Quick Win card shows on dashboard."
+}

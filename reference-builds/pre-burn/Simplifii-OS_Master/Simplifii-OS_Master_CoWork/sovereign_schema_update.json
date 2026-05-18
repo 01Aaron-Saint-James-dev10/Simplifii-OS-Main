@@ -1,0 +1,168 @@
+{
+  "schema_version": "2.0",
+  "predecessor_schema": "1.0 (single-tenant tertiary build)",
+  "migration_type": "additive_only",
+  "destructive_changes": [],
+  "compatible_with": ["babs1201_assessment_schema.json v1.0"],
+
+  "table_modifications": {
+    "users": {
+      "new_columns": [
+        {
+          "name": "stream_id",
+          "type": "enum",
+          "values": ["primary", "secondary", "tertiary", "tafe", "homeschool"],
+          "required": true,
+          "default": "tertiary",
+          "indexed": true,
+          "immutable_during_session": true
+        },
+        {
+          "name": "literal_mode_enabled",
+          "type": "boolean",
+          "required": false,
+          "default_rule": "true if stream_id in [primary, secondary] else null",
+          "user_overrideable": true
+        },
+        {
+          "name": "sovereign_credit_balance",
+          "type": "int",
+          "default": 0,
+          "min": 0,
+          "monetary_value": false,
+          "redeemable_outside_app": false
+        },
+        {
+          "name": "history_of_thought_cloud_sync_opted_in",
+          "type": "boolean",
+          "default": false,
+          "required_for_cloud_sync": true
+        }
+      ]
+    }
+  },
+
+  "new_tables": {
+    "streams": {
+      "purpose": "Per-stream config registry (in-DB mirror of /streams/{id}/profile.json)",
+      "columns": [
+        { "name": "id", "type": "enum", "primary_key": true, "values": ["primary","secondary","tertiary","tafe","homeschool"] },
+        { "name": "display_name", "type": "string" },
+        { "name": "default_focus_session_minutes", "type": "int", "default": 25 },
+        { "name": "default_playtime_minutes", "type": "int", "default": 7 },
+        { "name": "section_health_unlock_threshold", "type": "int", "default": 4, "min": 1, "max": 5 },
+        { "name": "literal_mode_default", "type": "boolean" },
+        { "name": "idle_detection_threshold_ms", "type": "int", "default": 180000 }
+      ],
+      "seed_data": [
+        { "id": "primary",     "display_name": "Primary",       "literal_mode_default": true,  "default_focus_session_minutes": 15 },
+        { "id": "secondary",   "display_name": "Secondary",     "literal_mode_default": true,  "default_focus_session_minutes": 20 },
+        { "id": "tertiary",    "display_name": "Tertiary",      "literal_mode_default": false, "default_focus_session_minutes": 25 },
+        { "id": "tafe",        "display_name": "TAFE",          "literal_mode_default": false, "default_focus_session_minutes": 25 },
+        { "id": "homeschool",  "display_name": "Homeschool",    "literal_mode_default": true,  "default_focus_session_minutes": 20 }
+      ]
+    },
+
+    "section_health": {
+      "purpose": "Per-user × section completion dot count (drives PlayTime unlock)",
+      "columns": [
+        { "name": "id", "type": "uuid", "primary_key": true },
+        { "name": "user_id", "type": "uuid", "foreign_key": "users.id", "indexed": true },
+        { "name": "stream_id", "type": "enum", "indexed": true },
+        { "name": "section_id", "type": "string", "indexed": true },
+        { "name": "dots", "type": "int", "min": 0, "max": 5, "default": 0 },
+        { "name": "last_updated_iso", "type": "timestamp" }
+      ],
+      "unique_constraint": ["user_id", "section_id"]
+    },
+
+    "focus_sessions": {
+      "purpose": "Sprint records (timer, completion, nudge events, playtime grants)",
+      "columns": [
+        { "name": "id", "type": "uuid", "primary_key": true },
+        { "name": "user_id", "type": "uuid", "foreign_key": "users.id", "indexed": true },
+        { "name": "stream_id", "type": "enum", "indexed": true },
+        { "name": "task_id", "type": "string" },
+        { "name": "started_iso", "type": "timestamp", "indexed": true },
+        { "name": "planned_duration_ms", "type": "int" },
+        { "name": "ended_iso", "type": "timestamp", "nullable": true },
+        { "name": "actual_duration_ms", "type": "int", "nullable": true },
+        { "name": "completed_subtasks_count", "type": "int", "default": 0 },
+        { "name": "nudges_triggered", "type": "int", "default": 0 },
+        { "name": "playtime_granted_after", "type": "boolean", "default": false }
+      ]
+    },
+
+    "history_of_thought_events": {
+      "purpose": "Local-first encrypted event log for History of Thought / Authenticity Report / future predictive analytics",
+      "storage_primary": "indexeddb",
+      "storage_secondary": "cloud_optional_opt_in",
+      "encryption": {
+        "algorithm": "AES-GCM-256",
+        "key_derivation": "PBKDF2",
+        "key_derivation_iterations": 600000,
+        "salt_per_user": true,
+        "key_source": "user_passphrase",
+        "cloud_payload_double_encrypted": true
+      },
+      "columns": [
+        { "name": "event_id", "type": "uuid", "primary_key": true },
+        { "name": "user_id", "type": "uuid", "indexed": true },
+        { "name": "stream_id", "type": "enum", "indexed": true },
+        { "name": "event_type", "type": "enum", "values": [
+          "text_edit",
+          "citation_added",
+          "citation_removed",
+          "ai_assist_invoked",
+          "focus_session_start",
+          "focus_session_end",
+          "nudge_triggered",
+          "section_health_change",
+          "playtime_granted",
+          "playtime_expired"
+        ]},
+        { "name": "timestamp_iso", "type": "timestamp", "indexed": true },
+        { "name": "payload_encrypted", "type": "blob" },
+        { "name": "device_signature_sha256", "type": "string" },
+        { "name": "schema_version", "type": "string", "default": "2.0" }
+      ]
+    }
+  },
+
+  "file_system_additions": {
+    "stream_profiles": {
+      "/streams/primary/profile.json": "stream metadata, default landing route, theme variant",
+      "/streams/primary/vocab.json": "key → string map for primary-stream vocabulary",
+      "/streams/primary/theme.json": "CSS custom property values",
+      "/streams/primary/capabilities.json": "array of enabled module IDs",
+      "/streams/secondary/...": "same four files, secondary values",
+      "/streams/tertiary/...": "same four files, extracted from existing app (no behaviour change for current users)",
+      "/streams/tafe/...": "same four files, TAFE values",
+      "/streams/homeschool/...": "same four files, homeschool values"
+    },
+    "core_modules": {
+      "/core/SovereignRouter.ts":   "Layer 1 — stream resolution + profile hydration",
+      "/core/ExecutiveSpine.ts":    "Layer 2 — SectionHealth, FocusSession, IdleDetection, PlayTime, Sovereign Credits",
+      "/core/HistoryOfThought.ts":  "Layer 3 — local-first encrypted event log",
+      "/core/LiteralMode.ts":       "Layer 4 — render-time vocabulary transformer"
+    }
+  },
+
+  "data_integrity_rules": {
+    "stream_id_immutable_during_session": true,
+    "stream_switch_requires_full_relogin": true,
+    "history_of_thought_events_local_first": true,
+    "history_of_thought_cloud_sync_requires_opt_in": true,
+    "literal_mode_never_generates_content_only_transforms": true,
+    "focus_session_locks_in_app_only_never_external": true,
+    "no_module_executes_outside_capability_registry": true,
+    "rubric_criterion_data_never_inferred_by_llm": true,
+    "sovereign_credits_have_no_monetary_redemption": true
+  },
+
+  "compatibility_notes": {
+    "babs1201_schema_relationship": "babs1201_assessment_schema.json v1.0 is the prior-art rubric-anchoring pattern. The Literal Mode transformer (Layer 4) re-voices its outputs without modifying the schema. Both files coexist in the same project.",
+    "existing_users_migration": "All current users get stream_id = 'tertiary' on first login post-migration. No content lost. Existing routes unchanged.",
+    "destructive_change_check": "Run schema diff against v1.0; reject migration if any column is dropped, renamed, or retyped."
+  }
+}

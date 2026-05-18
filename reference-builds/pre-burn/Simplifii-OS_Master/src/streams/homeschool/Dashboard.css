@@ -1,0 +1,210 @@
+/* ============================================================
+   HomeschoolDashboard - skeleton styling
+   Uses the global emerald + jet-black tokens from
+   simplifii-studio.css. Stops short of the full Sovereign.html
+   skin (deferred until the design URL resolves).
+   ============================================================ */
+
+.hs-root {
+  min-height: 100vh;
+  background: var(--bg, #0A0A0A);
+  color: var(--ink, #E8E8EA);
+  font-family: var(--f-sans, "Geist", system-ui, sans-serif);
+  padding: 32px clamp(24px, 5vw, 64px);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.hs-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.hs-eyebrow {
+  font-family: var(--f-mono, "JetBrains Mono", monospace);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-mute, #6B6B73);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.hs-pip {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--emerald, #50C878);
+  box-shadow: 0 0 0 3px rgba(80, 200, 120, 0.18);
+}
+
+.hs-title {
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+  color: #fff;
+}
+
+.hs-sub {
+  font-size: 14px;
+  color: var(--ink-soft, #B7B7BD);
+  max-width: 560px;
+  margin: 0;
+  line-height: 1.55;
+}
+
+.hs-credits {
+  text-align: right;
+  border: 1px solid var(--line-strong, rgba(255,255,255,0.10));
+  background: var(--bg-raised, #0E0F12);
+  border-radius: 14px;
+  padding: 14px 20px;
+  min-width: 160px;
+}
+.hs-credits-label {
+  font-family: var(--f-mono, monospace);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--ink-mute);
+  margin-bottom: 6px;
+}
+.hs-credits-value {
+  font-family: var(--f-mono, monospace);
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--emerald, #50C878);
+}
+
+.hs-next {
+  border: 1px solid rgba(80, 200, 120, 0.30);
+  background: rgba(80, 200, 120, 0.07);
+  border-radius: 18px;
+  padding: 20px 24px;
+  box-shadow: 0 0 32px rgba(80, 200, 120, 0.15);
+}
+.hs-next-label {
+  font-family: var(--f-mono, monospace);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--emerald, #50C878);
+  margin-bottom: 6px;
+}
+.hs-next-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 8px;
+}
+.hs-next-meta {
+  display: flex;
+  gap: 16px;
+  font-family: var(--f-mono, monospace);
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.hs-roadmap {
+  border: 1px solid var(--line, rgba(255,255,255,0.06));
+  background: var(--bg-raised, #0E0F12);
+  border-radius: 18px;
+  padding: 22px 24px;
+}
+.hs-roadmap-label {
+  font-family: var(--f-mono, monospace);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--ink-mute);
+  margin-bottom: 16px;
+}
+.hs-roadmap-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+.hs-month {
+  border: 1px solid var(--line, rgba(255,255,255,0.06));
+  border-radius: 12px;
+  padding: 14px 12px;
+  min-height: 110px;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hs-month[data-empty="true"] { opacity: 0.55; }
+.hs-month-name {
+  font-family: var(--f-mono, monospace);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--ink-mute);
+  text-transform: uppercase;
+}
+.hs-month-empty {
+  font-size: 11px;
+  color: var(--ink-faint, #3F3F47);
+  font-style: italic;
+}
+.hs-month-item {
+  border-left: 2px solid var(--emerald, #50C878);
+  padding: 6px 8px;
+  background: rgba(80, 200, 120, 0.05);
+  border-radius: 4px;
+}
+.hs-month-item-title {
+  font-size: 12px;
+  color: var(--ink, #E8E8EA);
+  font-weight: 500;
+}
+.hs-month-item-weight {
+  font-family: var(--f-mono, monospace);
+  font-size: 10px;
+  color: var(--emerald, #50C878);
+  margin-top: 2px;
+}
+
+.hs-pending {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--line, rgba(255,255,255,0.06));
+}
+.hs-pending-label {
+  font-family: var(--f-mono, monospace);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--ink-mute);
+  margin-bottom: 10px;
+}
+.hs-pending-item {
+  font-size: 13px;
+  color: var(--ink-soft);
+  padding: 6px 0;
+}
+
+.hs-foot {
+  display: flex;
+  gap: 24px;
+  border-top: 1px solid var(--line, rgba(255,255,255,0.06));
+  padding-top: 18px;
+  font-family: var(--f-mono, monospace);
+  font-size: 11px;
+  color: var(--ink-mute);
+}
+.hs-foot-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hs-foot-stat span:first-child {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--ink-faint, #3F3F47);
+}
+.hs-foot-stat span:last-child {
+  color: var(--ink, #E8E8EA);
+}

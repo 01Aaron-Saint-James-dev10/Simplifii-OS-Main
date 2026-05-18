@@ -72,7 +72,7 @@ export default function NoBriefPrompt({ courseId }) {
       <input
         ref={fileRef}
         type="file"
-        accept=".pdf,.jpg,.jpeg,.png,.webp"
+        accept=".pdf,application/pdf,.jpg,.jpeg,.png,.webp,image/*"
         multiple
         onChange={handleFiles}
         style={{ display: 'none' }}

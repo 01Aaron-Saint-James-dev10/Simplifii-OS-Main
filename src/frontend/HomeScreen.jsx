@@ -265,6 +265,7 @@ export default function HomeScreen() {
               aria-label="Export assessment due dates to calendar"
               title="Download .ics calendar file with your due dates"
               className="home-export-cal"
+              data-tour="calendar-export"
               style={{ padding: '4px 14px', background: 'transparent', border: `1px solid ${ACCENT_BORDER}`, borderRadius: 6, fontFamily: 'system-ui,sans-serif', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_PULSE, cursor: 'pointer', minHeight: 28 }}
             >
               Export calendar
@@ -297,6 +298,7 @@ export default function HomeScreen() {
               window.dispatchEvent(new CustomEvent('simplifii:fx-toggle'));
               window.location.reload();
             }}
+            data-tour="theme-switcher"
             aria-label="Toggle background visual effects"
             title="Background visual effects. Toggle on or off."
             style={{ background: 'none', border: `1px solid ${ACCENT_BORDER}`, borderRadius: 3, padding: '3px 8px', cursor: 'pointer', minHeight: 28, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'system-ui,sans-serif', fontSize: 10, fontWeight: 700, color: TEXT_MUTED }}
@@ -343,7 +345,8 @@ export default function HomeScreen() {
           );
         })()}
 
-        {/* Empty state */}
+        <WelcomeBanner />
+
         {/* Notification permission prompt */}
         {notifPromptShown && Notification.permission === 'default' && (
           <div style={{ padding: '12px 16px', marginBottom: 20, borderRadius: 8, border: `1px solid ${ACCENT_BORDER}`, background: ACCENT_GLASS, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>

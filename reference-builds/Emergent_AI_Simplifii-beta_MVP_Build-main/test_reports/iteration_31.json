@@ -1,0 +1,100 @@
+{
+  "summary": "Iteration 31 - Promo Code Feature Testing. All 3 fixes verified: FIX 1 (Promo code placement on Credits page - below balance, above tool directory), FIX 2 (Study Buddy text changed to 'Includes Study Buddy AI coach' on all 4 bundle tiers + FAQ entry added), FIX 3 (Owner promo creator section only visible to owner accounts).",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Backend: POST /api/promo/create returns 403 for non-owner (test@simplifii.com)",
+    "Backend: POST /api/promo/redeem returns 404 for invalid code",
+    "Backend: POST /api/promo/redeem returns 400 for empty code",
+    "Backend: GET /api/credits/balance returns is_owner=false for non-owner",
+    "Frontend Credits: Balance section visible at top (data-testid='current-tickets')",
+    "Frontend Credits: Promo section visible (data-testid='promo-section')",
+    "Frontend Credits: Promo input visible (data-testid='promo-input')",
+    "Frontend Credits: Promo apply button visible (data-testid='promo-apply-btn')",
+    "Frontend Credits: Owner promo creator NOT visible for non-owner (data-testid='owner-promo-creator' absent)",
+    "Frontend Credits: Page order correct - Promo section (y=343) is ABOVE tool directory (y=459)",
+    "Frontend Credits: Bundle 'starter' has 'Includes Study Buddy AI coach'",
+    "Frontend Credits: Bundle 'standard' has 'Includes Study Buddy AI coach'",
+    "Frontend Credits: Bundle 'semester' has 'Includes Study Buddy AI coach'",
+    "Frontend Credits: Bundle 'power' has 'Includes Study Buddy AI coach'",
+    "Frontend FAQ: 'Using the Tools' section found in Tab 2",
+    "Frontend FAQ: 'What is Study Buddy?' question found",
+    "Frontend FAQ: Answer contains 'unlocks when you purchase any ticket pack'"
+  ],
+
+  "features_verified": {
+    "FIX_1_promo_placement": {
+      "status": "PASS",
+      "details": "Promo code input section is positioned between balance and tool directory on Credits page"
+    },
+    "FIX_2_study_buddy_text": {
+      "status": "PASS",
+      "details": "All 4 bundle tiers (Starter 10, Standard 30, Semester 75, Power 200) show 'Includes Study Buddy AI coach' instead of 'Unlocks Study Buddy'. FAQ entry added in 'Using the Tools' section with answer mentioning 'unlocks when you purchase any ticket pack'"
+    },
+    "FIX_3_owner_promo_creator": {
+      "status": "PASS",
+      "details": "Owner promo creator section (data-testid='owner-promo-creator') is NOT visible for non-owner test user (test@simplifii.com). Backend returns 403 for non-owner attempting to create promo code."
+    }
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_iteration31_promo.py",
+    "/app/test_reports/pytest/pytest_results_iter31.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "Credits.js line 326: Correctly shows 'Includes Study Buddy AI coach' for bundles with tickets >= 10",
+    "Credits.js line 190-215: Owner promo creator correctly gated by user?.is_owner check",
+    "FAQ.js line 58: Study Buddy FAQ entry correctly placed in 'Using the Tools' section with proper answer text",
+    "payments.py line 185-211: promo/create endpoint correctly checks is_owner and returns 403 for non-owners",
+    "payments.py line 214-246: promo/redeem endpoint correctly returns 404 for invalid codes"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_iteration31_promo.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (4/4 tests passed)",
+    "frontend": "100% (All 17 UI checks passed)"
+  },
+
+  "test_credentials": {
+    "non_owner": {
+      "email": "test@simplifii.com",
+      "password": "test123",
+      "is_owner": false
+    },
+    "owner": {
+      "email": "aaronbugge@gmail.com",
+      "auth": "Google OAuth only",
+      "is_owner": true
+    }
+  },
+
+  "seed_data_creation": "None - used existing test user",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": [],
+    "note": "All APIs are real"
+  },
+
+  "context_for_next_testing_agent": "Iteration 31 complete - All 3 fixes verified. FIX 1: Promo code input is now positioned between balance and tool directory on Credits page. FIX 2: All 4 bundle tiers show 'Includes Study Buddy AI coach' (not 'Unlocks Study Buddy'), and FAQ has 'What is Study Buddy?' entry in 'Using the Tools' section. FIX 3: Owner promo creator section only visible to owner accounts (aaronbugge@gmail.com), non-owners get 403 when trying to create promo codes. Test user: test@simplifii.com / test123 (NOT owner)."
+}

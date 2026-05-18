@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-05-12T23:33:57.161Z",
+  "mode": "headless",
+  "workerType": "optimize",
+  "model": "sonnet",
+  "durationMs": 11453,
+  "executionId": "optimize_1778628825708_yj09uo",
+  "success": false,
+  "findings": {
+    "sections": [],
+    "codeBlocks": []
+  },
+  "rawOutputPreview": "You've hit your limit · resets 11:50am (Australia/Sydney)\n",
+  "rawOutputLength": 58
+}

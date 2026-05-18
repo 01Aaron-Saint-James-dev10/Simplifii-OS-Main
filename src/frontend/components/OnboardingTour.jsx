@@ -17,22 +17,32 @@ const TIP_GAP = 14; // gap between spotlight and tooltip card
 const STEPS = [
   {
     target: '[data-tour="add-work"]',
-    label: 'Start here. Upload your assignment brief, rubric, or exam paper. Simplifii reads it and builds your workspace automatically.',
-    button: 'Next',
-  },
-  {
-    target: '[data-tour="settings-btn"]',
-    label: 'Choose how AURA communicates with you and how the app looks. Sensory dial, reading mode, accessibility profile: all here.',
-    button: 'Next',
-  },
-  {
-    target: '[data-tour="course-list"]',
-    label: 'Your subjects live here, sorted by urgency. Each card opens a full workspace: planning, writing, and checking in one place.',
+    label: 'This is where everything starts. Upload your assignment brief, rubric, or exam paper.',
     button: 'Next',
   },
   {
     target: '[data-tour="aura-orb"]',
-    label: 'This is AURA, your Socratic study guide. It asks you questions instead of writing for you. Open it any time you are stuck.',
+    label: 'This is AURA. It thinks with you, not for you.',
+    button: 'Next',
+  },
+  {
+    target: '[data-tour="course-list"]',
+    label: 'Your subjects live here. Each one has a workspace for thinking, planning, and writing.',
+    button: 'Next',
+  },
+  {
+    target: '[data-tour="settings-btn"]',
+    label: 'Adjust how AURA talks to you and how the app looks.',
+    button: 'Next',
+  },
+  {
+    target: '[data-tour="theme-switcher"]',
+    label: 'Press T to cycle themes. Five options including a blue-light filter.',
+    button: 'Next',
+  },
+  {
+    target: '[data-tour="calendar-export"]',
+    label: 'Export all your due dates to your calendar in one tap.',
     button: "Let's go",
   },
 ];

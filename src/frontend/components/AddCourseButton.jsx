@@ -70,7 +70,7 @@ export default function AddCourseButton() {
       <input
         ref={inputRef}
         type="file"
-        accept=".pdf,.jpg,.jpeg,.png,.webp"
+        accept=".pdf,application/pdf,.jpg,.jpeg,.png,.webp,image/*"
         multiple
         onChange={handleFiles}
         style={{ display: 'none' }}

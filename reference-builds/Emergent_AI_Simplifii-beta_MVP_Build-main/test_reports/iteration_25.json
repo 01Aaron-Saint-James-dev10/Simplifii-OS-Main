@@ -1,0 +1,96 @@
+{
+  "summary": "Iteration 25 - Testing 4 major changes: (1) Nav bar Saved link removal, (2) 4 tool page schema fixes, (3) University context system, (4) Referral system. Backend: 14/15 tests passed (health endpoint 404 is non-critical). Frontend: All features verified via Playwright.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/health", "issue": "Returns 404 - endpoint doesn't exist (non-critical)"}
+    ]
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Backend: Login with test@simplifii.com works",
+    "Backend: GET /api/auth/me returns university, studyYear, faculty, referralCode fields",
+    "Backend: PUT /api/user/profile accepts university, studyYear, faculty fields",
+    "Backend: Profile update requires authentication (401)",
+    "Backend: User has referral code in SIM-XXXXXX format",
+    "Backend: POST /api/user/redeem-referral with invalid code returns 404",
+    "Backend: POST /api/user/redeem-referral with own code returns 400",
+    "Backend: Redeem referral requires authentication (401)",
+    "Backend: POST /api/user/complete-onboarding endpoint works",
+    "Backend: POST /api/user/pain-point endpoint works",
+    "Backend: POST /api/rubric/simplify endpoint exists",
+    "Backend: POST /api/concept/visualise endpoint exists",
+    "Backend: POST /api/decode-jargon endpoint exists",
+    "Backend: POST /api/scaffold endpoint exists",
+    "Frontend FIX 1: Nav bar does NOT show 'Saved' link",
+    "Frontend FIX 1: Profile dropdown HAS 'Saved Outputs' link",
+    "Frontend FIX 1: Profile dropdown shows referral code (SIM-86AB9F) with 'Click to copy'",
+    "Frontend FIX 2: Rubric Simplifier page renders with rubric text input, submit button, optional brief upload",
+    "Frontend FIX 2: Concept Visualiser page renders with concept input, visualise button, ELI5 toggle",
+    "Frontend FIX 2: Hidden Curriculum Decoder page renders with jargon input, decode button",
+    "Frontend FIX 2: Assessment Scaffolder page renders with all 4 document upload zones (Brief, Rubric, Outline, Slides)",
+    "Frontend FIX 3: Onboarding modal appears for users with hasCompletedOnboarding=false",
+    "Frontend FIX 3: Onboarding Step 2 shows 'Tell Us About You' with University dropdown, Year Level dropdown, Faculty input",
+    "Frontend FIX 3: University dropdown has 9 grouped options (NSW, VIC, QLD, WA, SA, ACT, TAS, NT, Other)",
+    "Frontend FIX 3: Settings page shows University section with dropdown, year level, faculty",
+    "Frontend FIX 3: Settings page shows Referral Program section with code display (SIM-86AB9F), copy button, redeem input"
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/test_iteration25_features.py",
+    "/app/test_reports/pytest/pytest_results_iter25.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "ConceptVisualiser.js: Fixed missing tourSteps variable that was causing undefined reference",
+    "Navigation.js: Correctly removed 'Saved' from nav links array, kept 'Saved Outputs' in profile dropdown",
+    "Settings.js: University section properly uses UNIVERSITY_GROUPS with optgroups, referral section shows code with copy functionality",
+    "Dashboard.js: Onboarding modal step 2 correctly shows university form with all 3 fields",
+    "universities.js: Contains 9 state groups with comprehensive Australian university list",
+    "auth.py: referralCode generation uses SIM-{6 hex chars} format, redeem-referral validates own code and invalid codes correctly"
+  ],
+
+  "updated_files": [
+    "/app/frontend/src/pages/ConceptVisualiser.js",
+    "/app/backend/tests/test_iteration25_features.py"
+  ],
+
+  "success_rate": {
+    "backend": "93% (14/15 passed - health endpoint 404 is non-critical)",
+    "frontend": "100% (all features verified)"
+  },
+
+  "test_credentials": {
+    "primary": {
+      "email": "test@simplifii.com",
+      "password": "test123"
+    },
+    "referral_code": "SIM-86AB9F",
+    "university": "UNSW Sydney",
+    "studyYear": "2nd Year",
+    "faculty": "Business"
+  },
+
+  "seed_data_creation": "None - used existing test user. Reset hasCompletedOnboarding=false for onboarding modal testing.",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": [],
+    "note": "All endpoints are real. Stripe payments in TESTING_MODE."
+  },
+
+  "context_for_next_testing_agent": "Iteration 25 complete. Four major changes verified: (1) FIX 1 - Nav bar no longer shows 'Saved' link, profile dropdown has 'Saved Outputs' and referral code display. (2) FIX 2 - All 4 tool pages (RubricSimplifier, ConceptVisualiser, HiddenCurriculumDecoder, AssessmentScaffolder) render their input forms correctly without errors. (3) FIX 3 - University context system working: Settings page has University section with grouped dropdown (9 Australian state groups), Year Level dropdown, Faculty input. Onboarding modal step 2 shows same university form. (4) Referral system working: Users have SIM-XXXXXX format codes, Settings page shows code with copy button and redeem input. Backend validates invalid codes (404) and own codes (400). Test user: test@simplifii.com / test123 with referral code SIM-86AB9F. Note: Fixed missing tourSteps in ConceptVisualiser.js."
+}

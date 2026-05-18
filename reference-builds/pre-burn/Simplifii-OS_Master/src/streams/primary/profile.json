@@ -1,0 +1,11 @@
+{
+  "id": "primary",
+  "displayName": "Primary",
+  "defaultLanding": "scaffolder",
+  "themeVariant": "scaffolder-warm",
+  "literalModeDefault": true,
+  "defaultFocusSessionMinutes": 15,
+  "defaultPlaytimeMinutes": 7,
+  "sectionHealthUnlockThreshold": 3,
+  "idleDetectionThresholdMs": 240000
+}

@@ -1,0 +1,135 @@
+{
+  "summary": "Iteration 27 - Tested ToolExplainerModal on all 9 tools, RecentToolOutputs, Notification deduplication, SavedOutputs page, and Course Planner features. Backend: 14/14 tests passed. Frontend: All 12 Playwright tests passed.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Backend: POST /api/auth/login - login with test credentials",
+    "Backend: GET /api/notifications - returns deduplicated notifications",
+    "Backend: GET /api/notifications - no duplicate titles after normalization",
+    "Backend: GET /api/history - returns history entries",
+    "Backend: GET /api/history/recent/Brief Simplifier - returns entries",
+    "Backend: GET /api/history/recent/Rubric Simplifier - returns entries",
+    "Backend: GET /api/history/recent/Essay Scorer - returns entries",
+    "Backend: GET /api/history/recent/Humaniser - returns entries",
+    "Backend: GET /api/history/recent/Assessment Scaffolder - returns entries",
+    "Backend: GET /api/history/recent/Course Planner - returns entries",
+    "Backend: GET /api/history/recent/Hidden Curriculum Decoder - returns entries",
+    "Backend: GET /api/history/recent/Concept Visualiser - returns entries",
+    "Backend: GET /api/history/recent/Executive Function Planner - returns entries",
+    "Backend: POST /api/history/save + GET + DELETE - CRUD works",
+    "Frontend: Login and redirect to dashboard",
+    "Frontend: Navigation has 'My Outputs' link",
+    "Frontend: Brief Simplifier - tool-explainer-btn present, modal opens",
+    "Frontend: Rubric Simplifier - tool-explainer-btn present",
+    "Frontend: Essay Scorer - tool-explainer-btn present",
+    "Frontend: Humaniser - tool-explainer-btn present",
+    "Frontend: Assessment Scaffolder - tool-explainer-btn present",
+    "Frontend: Course Planner - tool-explainer-btn present, upload zone visible",
+    "Frontend: Hidden Curriculum Decoder - tool-explainer-btn present",
+    "Frontend: Concept Visualiser - tool-explainer-btn present",
+    "Frontend: Executive Function Planner - tool-explainer-btn present",
+    "Frontend: Saved Outputs page - saved-outputs-page testid present, 'My Outputs' title visible"
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/test_iteration27_features.py",
+    "/app/test_reports/pytest/pytest_results_iter27.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "ToolExplainerModal correctly implemented with data-testid='tool-explainer-modal' and content for all 9 tools",
+    "RecentToolOutputs component properly fetches from /api/history/recent/{tool_name} with limit=3",
+    "Notification deduplication uses alphanumeric normalization to prevent OCR artefact duplicates",
+    "SavedOutputs page has tool-specific renderers (RubricOutput, EssayOutput, HumaniserOutput, ScaffolderOutput) plus GenericOutput fallback",
+    "Course Planner has deriveWeekNumber() function that parses 'Week X' patterns from due_date strings",
+    "Course Planner colour legend includes 'Classes' item with indigo-500 colour",
+    "Course Planner has edit-plan-btn and export-planner-pdf-btn in output phase (requires document upload to test)"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_iteration27_features.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (14/14 passed)",
+    "frontend": "100% (12/12 Playwright tests passed)"
+  },
+
+  "test_credentials": {
+    "primary": {
+      "email": "test@simplifii.com",
+      "password": "test123"
+    },
+    "admin": {
+      "email": "aaronbugge@gmail.com",
+      "auth": "Google OAuth only"
+    }
+  },
+
+  "seed_data_creation": "Created and deleted test history entry during CRUD test",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": [],
+    "note": "All APIs are real. Stripe is in test mode. Anthropic/Claude via Emergent LLM Key."
+  },
+
+  "context_for_next_testing_agent": "Iteration 27 complete. All features verified: (1) ToolExplainerModal with data-testid='tool-explainer-btn' present on all 9 tool pages - Brief Simplifier, Rubric Simplifier, Essay Scorer, Humaniser, Assessment Scaffolder, Course Planner, Hidden Curriculum Decoder, Concept Visualiser, Executive Function Planner. (2) RecentToolOutputs component injected on all 9 tool pages, fetches from /api/history/recent/{tool_name}. (3) Notification deduplication working - normalizes titles by stripping non-alphanumeric chars. (4) SavedOutputs page at /saved-outputs has data-testid='saved-outputs-page', shows formatted entries grouped by tool with tool-specific renderers. (5) Navigation has 'My Outputs' link. (6) Course Planner has explainer button, upload zone in initial phase. Edit Plan and PDF export buttons are in output phase (requires uploading a real document to reach that phase). (7) Course Planner colour legend includes 'Classes' item. Test user: test@simplifii.com / test123.",
+
+  "features_verified": {
+    "tool_explainer_modal": {
+      "component": "ToolExplainerModal.js with data-testid='tool-explainer-modal'",
+      "trigger_button": "data-testid='tool-explainer-btn' (HelpCircle icon)",
+      "tools_with_modal": [
+        "Brief Simplifier",
+        "Rubric Simplifier", 
+        "Essay Scorer",
+        "Humaniser",
+        "Assessment Scaffolder",
+        "Course Planner",
+        "Hidden Curriculum Decoder",
+        "Concept Visualiser",
+        "Executive Function Planner"
+      ],
+      "status": "All 9 tools have explainer button and modal"
+    },
+    "recent_tool_outputs": {
+      "component": "RecentToolOutputs.js with data-testid='recent-tool-outputs'",
+      "api_endpoint": "GET /api/history/recent/{tool_name}?limit=3",
+      "status": "Injected on all 9 tool pages"
+    },
+    "notification_deduplication": {
+      "implementation": "routes/notifications.py - normalizes title by stripping non-alphanumeric chars",
+      "status": "Working - no duplicate notifications returned"
+    },
+    "saved_outputs_page": {
+      "route": "/saved-outputs",
+      "testid": "data-testid='saved-outputs-page'",
+      "renderers": ["RubricOutput", "EssayOutput", "HumaniserOutput", "ScaffolderOutput", "GenericOutput"],
+      "status": "Working - shows formatted entries grouped by tool"
+    },
+    "course_planner_fixes": {
+      "timeline_week_mapping": "deriveWeekNumber() parses 'Week X' from due_date strings",
+      "classes_legend": "Colour legend includes 'Classes' with indigo-500",
+      "edit_mode": "data-testid='edit-plan-btn' in output phase",
+      "pdf_export": "data-testid='export-planner-pdf-btn' in output phase",
+      "status": "Code verified - requires document upload to test output phase"
+    }
+  }
+}

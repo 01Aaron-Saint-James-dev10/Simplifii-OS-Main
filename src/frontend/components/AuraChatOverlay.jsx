@@ -478,6 +478,18 @@ export default function AuraChatOverlay({ open, onClose }) {
 
   const { speak, stopSpeaking, isSpeaking, startContinuousListening, stopContinuousListening, isListeningContinuous } = useAuraVoice();
   const [voiceMode, setVoiceMode] = useState(true);
+  const [readAloud, setReadAloud] = useState(false);
+
+  // Simple browser speech for read-aloud (no mic, no ElevenLabs)
+  const readText = useCallback((text) => {
+    if (!readAloud || !text || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 1.0;
+    utterance.lang = 'en-AU';
+    window.speechSynthesis.speak(utterance);
+  }, [readAloud]);
   const [collapsed, setCollapsed] = useState(false);
   const [overlayPos, setOverlayPos] = useState(() => {
     try {
@@ -740,7 +752,7 @@ export default function AuraChatOverlay({ open, onClose }) {
       if (courseId && activeAssessmentTitle) {
         try {
           // Try introduction section first (most common), then fallback to default
-          for (const secKey of [`${courseId}_${activeAssessmentTitle}_introduction`, activeAssessmentTitle]) {
+          for (const secKey of [`${activeAssessmentTitle}_introduction`, activeAssessmentTitle]) {
             const draft = await loadDraft(courseId, secKey);
             const rawText = draft?.content || '';
             const plainText = rawText.replace(/<[^>]*>/g, ' ').trim();
@@ -815,6 +827,7 @@ export default function AuraChatOverlay({ open, onClose }) {
         dispatchAuraState('speaking');
         setMessages(prev => [...prev, { role: 'tutor', text: finalReply, rawText: data.reply, toolSuggestion: data.toolSuggestion || null }]);
         if (voiceMode || isListeningContinuous || isListening) speak(finalReply);
+        readText(finalReply);
         setTimeout(() => dispatchAuraState('success'), 1500);
         setTimeout(() => dispatchAuraState('idle'), 3000);
       } else {
@@ -920,6 +933,23 @@ export default function AuraChatOverlay({ open, onClose }) {
           >
             {voiceMode ? '\u{1F50A}' : '\u{1F507}'}
           </button>
+          {'speechSynthesis' in window && (
+            <button
+              type="button"
+              onClick={() => { setReadAloud(r => !r); if (readAloud) window.speechSynthesis?.cancel(); }}
+              aria-label={readAloud ? 'Stop reading aloud' : 'Read responses aloud'}
+              title={readAloud ? 'Voice: on' : 'Voice: off'}
+              style={{
+                background: readAloud ? ACCENT_GLASS : 'none',
+                border: readAloud ? `1px solid ${ACCENT_BORDER}` : '1px solid transparent',
+                borderRadius: BORDER_RADIUS, cursor: 'pointer', padding: '2px 6px',
+                fontSize: 10, fontWeight: 600, color: readAloud ? ACCENT_PULSE : TEXT_FAINT,
+                minHeight: 28, display: 'flex', alignItems: 'center', gap: 3,
+              }}
+            >
+              {readAloud ? '\u{1F50A}' : '\u{1F508}'} Voice
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setCollapsed(c => !c)}

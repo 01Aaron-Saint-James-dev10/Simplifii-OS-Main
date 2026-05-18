@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-05-12T23:33:59.069Z",
+  "mode": "headless",
+  "workerType": "testgaps",
+  "model": "sonnet",
+  "durationMs": 13361,
+  "executionId": "testgaps_1778628825708_8auphj",
+  "success": false,
+  "findings": {
+    "sections": [],
+    "codeBlocks": []
+  },
+  "rawOutputPreview": "You've hit your limit · resets 11:50am (Australia/Sydney)\n",
+  "rawOutputLength": 58
+}

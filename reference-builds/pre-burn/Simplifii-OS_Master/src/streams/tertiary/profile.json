@@ -1,0 +1,11 @@
+{
+  "id": "tertiary",
+  "displayName": "Tertiary",
+  "defaultLanding": "studio",
+  "themeVariant": "studio-dark",
+  "literalModeDefault": false,
+  "defaultFocusSessionMinutes": 25,
+  "defaultPlaytimeMinutes": 7,
+  "sectionHealthUnlockThreshold": 4,
+  "idleDetectionThresholdMs": 180000
+}
