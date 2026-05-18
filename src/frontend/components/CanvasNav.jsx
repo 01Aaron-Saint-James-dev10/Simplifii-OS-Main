@@ -62,10 +62,10 @@ export default function CanvasNav({ courseName, assessmentTitle, saveStatus, las
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        height: 48,
-        padding: '0 20px',
+        height: 56,
+        padding: '0 24px',
         background: SURFACE_CARD_SOLID, // allow-style
-        backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+        backdropFilter: 'saturate(180%) blur(20px)', WebkitBackdropFilter: 'saturate(180%) blur(20px)',
         borderBottom: `1px solid ${SURFACE_RAISED}`,
       }}
       role="navigation"
@@ -103,11 +103,11 @@ export default function CanvasNav({ courseName, assessmentTitle, saveStatus, las
             tabIndex={onCourseName ? 0 : undefined}
             onClick={onCourseName}
             onKeyDown={onCourseName ? (e) => { if (e.key === 'Enter') onCourseName(); } : undefined}
-            style={{ fontFamily: FONT_SYSTEM, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: TEXT_FAINT, cursor: onCourseName ? 'pointer' : 'default', textDecoration: onCourseName ? 'underline' : 'none', textUnderlineOffset: 3 }}>
+            style={{ fontFamily: FONT_SYSTEM, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: TEXT_FAINT, cursor: onCourseName ? 'pointer' : 'default', textDecoration: onCourseName ? 'underline' : 'none', textUnderlineOffset: 3 }}>
             {stripMarkdown(courseName) || 'Course'}
           </span>
           <span style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_FAINT }}>/</span>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600, color: TEXT_PRIMARY }}>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 14, fontWeight: 700, color: TEXT_PRIMARY }}>
             {stripMarkdown(assessmentTitle) || 'Assessment'}
           </span>
         </div>
@@ -118,15 +118,15 @@ export default function CanvasNav({ courseName, assessmentTitle, saveStatus, las
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <span
             style={{
-              width: 6,
-              height: 6,
+              width: 7,
+              height: 7,
               borderRadius: '50%',
               background: saveStatus === 'saved' ? ACCENT_PULSE : saveStatus === 'saving' ? '#f59e0b' : TEXT_FAINT,
               display: 'inline-block',
             }}
             aria-hidden="true"
           />
-          <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', color: TEXT_FAINT }}>
+          <span style={{ fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', color: TEXT_FAINT }}>
             {saveStatus === 'saved' ? `Auto-saved ${lastSavedAgo || ''}` : saveStatus === 'saving' ? 'Saving...' : 'Unsaved changes'}
           </span>
         </div>

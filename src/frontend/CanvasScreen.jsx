@@ -543,7 +543,7 @@ export default function CanvasScreen() {
       />
 
       {/* Docs button: opens DocLibrary drawer */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '2px 16px 0' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '4px 24px 0' }}>
         <button
           type="button"
           aria-label="Open document library"
@@ -551,14 +551,14 @@ export default function CanvasScreen() {
           style={{
             background: 'transparent',
             border: '1px solid var(--theme-border, #27272a)',
-            borderRadius: 3,
+            borderRadius: 6,
             color: 'var(--text-faint, #71717a)',
             fontFamily: 'var(--font-system, system-ui)',
             fontSize: 9,
             letterSpacing: '0.1em',
             textTransform: 'uppercase',
-            padding: '0 10px',
-            minHeight: 44,
+            padding: '0 12px',
+            minHeight: 32,
             cursor: 'pointer',
             outline: 'none',
           }}
@@ -570,7 +570,7 @@ export default function CanvasScreen() {
       </div>
 
       {taskPhases.length > 0 && (
-        <div style={{ padding: '0 16px' }}>
+        <div style={{ padding: '0 24px' }}>
           <TaskPhaseBar
             phases={taskPhases}
             currentPhaseId={activePhaseId}
@@ -608,14 +608,14 @@ export default function CanvasScreen() {
             role="tablist"
             aria-label="Canvas sections"
             style={{
-              width: 48,
+              width: 52,
               flexShrink: 0,
               display: 'flex',
               flexDirection: 'column',
               background: 'var(--theme-surface, #18181b)', /* allow-style */
               borderRight: '1px solid var(--theme-border, #27272a)', /* allow-style */
-              paddingTop: 8,
-              gap: 2,
+              paddingTop: 12,
+              gap: 4,
             }}
           >
             {[
@@ -633,15 +633,15 @@ export default function CanvasScreen() {
                 onClick={() => setCanvasTab(tab.id)}
                 style={{
                   width: '100%',
-                  minHeight: 80,
+                  minHeight: 72,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 6,
+                  gap: 5,
                   background: 'transparent',
                   border: 'none',
-                  borderLeft: canvasTab === tab.id ? '3px solid var(--sov-line, #10b981)' : '3px solid transparent', /* allow-style */
+                  borderLeft: canvasTab === tab.id ? '2px solid var(--sov-line, #10b981)' : '2px solid transparent', /* allow-style */
                   cursor: 'pointer',
                   outline: 'none',
                   paddingLeft: 0,
@@ -654,11 +654,11 @@ export default function CanvasScreen() {
                   writingMode: 'vertical-rl',
                   transform: 'rotate(180deg)',
                   fontFamily: 'var(--font-system, system-ui)',
-                  fontSize: 9,
+                  fontSize: 10,
                   fontWeight: 700,
-                  letterSpacing: '0.12em',
+                  letterSpacing: '0.1em',
                   textTransform: 'uppercase',
-                  color: canvasTab === tab.id ? 'var(--sov-line, #10b981)' : 'var(--text-faint, #52525b)', /* allow-style */
+                  color: canvasTab === tab.id ? 'var(--sov-line, #10b981)' : 'var(--text-faint, #8d8d96)', /* allow-style */
                   userSelect: 'none',
                 }}>
                   {tab.label}
