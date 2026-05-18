@@ -400,6 +400,7 @@ export default function CanvasScreen() {
   const [leftCollapsed, setLeftCollapsed] = useState(() => localStorage.getItem('simplifii_left_collapsed') === 'true');
   const [railVisible, setRailVisible] = useState(false);
   const [focusTimerOpen, setFocusTimerOpen] = useState(false);
+
   const toggleLeft = () => { const next = !leftCollapsed; setLeftCollapsed(next); localStorage.setItem('simplifii_left_collapsed', String(next)); };
   const [canvasTab, setCanvasTab] = useState('write'); // 'think' | 'ideas' | 'write'
   const [hasThinkContent, setHasThinkContent] = useState(false);

@@ -196,6 +196,24 @@ export default function HomeScreen() {
   const courseCount = courseEntries.length;
   const { overdue: overdueCount, thisWeek: thisWeekCount } = useMemo(() => countByState(courses, now), [courses, now]);
 
+  // Most urgent assessment across all courses
+  const mostUrgent = useMemo(() => {
+    let best = null;
+    for (const [cId, course] of sortedCourses) {
+      const briefs = course.extractionData?.assessmentBriefs || [];
+      for (const b of briefs) {
+        if (!b.dueDate) continue;
+        const due = new Date(b.dueDate);
+        if (isNaN(due.getTime())) continue;
+        const daysUntil = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
+        if (!best || daysUntil < best.daysUntil) {
+          best = { title: b.title, courseName: course.name, courseId: cId, daysUntil, dueDate: due };
+        }
+      }
+    }
+    return best;
+  }, [sortedCourses, now]);
+
   const activeTermLabel = activeTerm
     ? terms.find(t => t.year === activeTerm.year && t.code === activeTerm.code)?.label || `${activeTerm.code || ''} ${activeTerm.year}`.trim()
     : null;
@@ -295,9 +313,9 @@ export default function HomeScreen() {
             sub = sortedCourses.length > 0 ? `${sortedCourses.length} course${sortedCourses.length === 1 ? '' : 's'} active.` : "Let's get started.";
           }
           return (
-            <div style={{ padding: '8px 0 28px' }}>
-              <h2 style={{ fontFamily: '-apple-system, "SF Pro Display", "Geist", BlinkMacSystemFont, sans-serif', fontSize: 'clamp(1.5rem, 3vw, 2.25rem)', fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--sov-ink, #e4e4e7)', margin: '0 0 6px' }}>{greeting}</h2>
-              <p style={{ fontFamily: '-apple-system, "SF Pro Text", "Inter", sans-serif', fontSize: 15, color: 'var(--sov-ink-dim, #9494a0)', margin: 0, fontWeight: 400 }}>{sub}</p>
+            <div style={{ padding: '0 0 32px' }}>
+              <h2 style={{ fontFamily: '-apple-system, "SF Pro Display", "Geist", BlinkMacSystemFont, sans-serif', fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--sov-ink, #e4e4e7)', margin: '0 0 6px' }}>{greeting}</h2>
+              <p style={{ fontFamily: '-apple-system, "SF Pro Text", "Inter", sans-serif', fontSize: 16, color: 'var(--sov-ink-dim, #9494a0)', margin: 0, fontWeight: 400 }}>{sub}</p>
               <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: 'var(--sov-ink-faint, #8d8d96)', margin: '10px 0 0', letterSpacing: '0.06em' }}>
                 {clock.dayOfWeek}, {clock.formattedDate} | {clock.formattedTime} {clock.timezone.replace('_', ' ').split('/').pop()}
               </p>
@@ -330,16 +348,41 @@ export default function HomeScreen() {
         {/* Populated state */}
         {!isEmpty && (
           <>
-            {/* Status summary (replaces timeline strip) */}
-            <section className="home-section" aria-label="Status">
+            {/* Most urgent assessment */}
+            <section className="home-section" aria-label="Most urgent">
+              {mostUrgent ? (
+                <div className="home-urgent-card">
+                  <div>
+                    <p className="home-urgent-title">{mostUrgent.title}</p>
+                    <p className="home-urgent-meta">
+                      {mostUrgent.courseName}
+                      {mostUrgent.daysUntil <= 0 ? ' · Overdue' : ` · ${mostUrgent.daysUntil} day${mostUrgent.daysUntil === 1 ? '' : 's'} left`}
+                    </p>
+                  </div>
+                  <button
+                    className="home-urgent-action"
+                    onClick={() => navigateToCanvas(mostUrgent.courseId, mostUrgent.title)}
+                  >
+                    Open canvas
+                  </button>
+                </div>
+              ) : (
+                <div className="home-urgent-card" style={{ borderLeftColor: 'var(--sov-line, #10b981)' }}>
+                  <p className="home-urgent-title" style={{ margin: 0 }}>You are on track</p>
+                </div>
+              )}
+            </section>
+
+            {/* Quick stats */}
+            <section className="home-section" aria-label="Stats" style={{ marginBottom: 20 }}>
               <div className="home-week-counters" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <span className="home-counter home-counter-muted">{courseCount} course{courseCount !== 1 ? 's' : ''}</span>
                 {overdueCount > 0 && (
                   <span className="home-counter home-counter-red">{overdueCount} overdue</span>
                 )}
                 {thisWeekCount > 0 && (
-                  <span className="home-counter home-counter-amber">{thisWeekCount} this week</span>
+                  <span className="home-counter home-counter-amber">{thisWeekCount} due this week</span>
                 )}
-                <span className="home-counter home-counter-muted">{courseCount} course{courseCount !== 1 ? 's' : ''}</span>
               </div>
             </section>
 
@@ -379,10 +422,10 @@ export default function HomeScreen() {
             </section>
 
             {/* Course grid */}
-            <section className="home-section" aria-label="Your subjects and tasks">
+            <section className="home-section" aria-label="Courses">
               <div className="home-grid-header">
-                <h2 className="home-section-label">Your subjects and tasks</h2>
-                <span className="home-sort-label">Sorted by earliest next-due</span>
+                <h2 className="home-section-label">Courses</h2>
+                <span className="home-sort-label">Sorted by urgency</span>
               </div>
               <div data-tour="course-list" className={`home-grid ${display.cardDensity === 'compact' ? 'home-grid-compact' : ''}`}>
                 {sortedCourses.map(([id, course]) => (

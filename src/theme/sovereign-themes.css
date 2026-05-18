@@ -258,3 +258,19 @@ html[data-theme="clarity"] .home-section > div {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
 }
 
+/* Clarity: most urgent card */
+html[data-theme="clarity"] .home-urgent-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  border-left: 4px solid #0071e3 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Clarity: counter pills */
+html[data-theme="clarity"] .home-counter-muted {
+  color: #6e6e73 !important;
+  background: rgba(0, 0, 0, 0.04) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+

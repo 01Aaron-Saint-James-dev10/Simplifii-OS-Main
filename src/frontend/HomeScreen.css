@@ -40,7 +40,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 40px;
-  height: 64px;
+  height: 52px;
   background: var(--sov-bg-1, rgba(9, 9, 11, 0.88));
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
@@ -106,7 +106,7 @@
 .home-main {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 32px 40px 72px;
+  padding: 48px 40px 72px;
 }
 
 .home-section {
@@ -226,6 +226,53 @@
   color: #71717a; /* TEXT_MUTED */
   background: rgba(255,255,255,0.04); /* WHITE_TINT_FAINT */
   border: 1px solid #27272a; /* SURFACE_RAISED */
+}
+
+/* ============================================================
+   Most urgent card
+   ============================================================ */
+
+.home-urgent-card {
+  padding: 20px 24px;
+  border-radius: 12px;
+  border-left: 4px solid var(--sov-accent, #0071e3);
+  background: var(--sov-bg-1, #0c0c0f);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.home-urgent-title {
+  font-family: -apple-system, 'SF Pro Display', 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--sov-ink, #e4e4e7);
+  margin: 0 0 4px;
+}
+
+.home-urgent-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--sov-ink-dim, #71717a);
+}
+
+.home-urgent-action {
+  font-family: -apple-system, 'SF Pro Text', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 20px;
+  border: none;
+  background: var(--sov-accent, #0071e3);
+  color: #ffffff;
+  cursor: pointer;
+  white-space: nowrap;
+  min-height: 36px;
+}
+
+.home-urgent-action:hover {
+  opacity: 0.9;
 }
 
 /* ============================================================
