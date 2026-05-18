@@ -13,6 +13,7 @@ import { buildAssessmentKey, getCurrentPhase } from '../../core/TaskSequenceMana
 import { loadLastSession } from '../../services/SessionSummaryService';
 import { literalise } from '../../core/LiteralMode';
 import { supabase } from '../../lib/supabaseClient';
+import { useAuraStim } from '../hooks/useAuraStim';
 import { loadDraft } from '../../services/DraftService';
 import {
   SURFACE_CARD, SURFACE_RAISED,
@@ -280,6 +281,7 @@ function formatAuraSystemPrefix(ctx) {
 
 export default function AuraChatOverlay({ open, onClose }) {
   const { user } = useAuth();
+  const { playThinking, stopThinking, playResponse } = useAuraStim();
   const { isLiteralMode, accessibilityProfile, activeTier, scaffoldingLevel, gritLevel, lodLevel, persona } = useSettings();
   const { courses } = useProject();
   const { courseId, assessmentTitle: routerAssessment, navigateToCanvas } = useRouter();
@@ -681,6 +683,7 @@ export default function AuraChatOverlay({ open, onClose }) {
     setMessages(updated);
     setInput('');
     setLoading(true);
+    playThinking();
     if (isListening) stopVoice();
 
     // Navigation intent: if user asks to go somewhere, navigate directly
@@ -807,6 +810,8 @@ export default function AuraChatOverlay({ open, onClose }) {
       const data = await response.json();
       if (data.success && data.reply && data.reply.trim()) {
         const finalReply = cleanReply(data.reply);
+        stopThinking();
+        playResponse();
         dispatchAuraState('speaking');
         setMessages(prev => [...prev, { role: 'tutor', text: finalReply, rawText: data.reply, toolSuggestion: data.toolSuggestion || null }]);
         if (voiceMode || isListeningContinuous || isListening) speak(finalReply);
@@ -820,9 +825,10 @@ export default function AuraChatOverlay({ open, onClose }) {
       setMessages(prev => [...prev, { role: 'tutor', text: 'Network error. Try again.' }]);
       dispatchAuraState('idle');
     } finally {
+      stopThinking();
       setLoading(false);
     }
-  }, [messages, loading, activeTier, isLiteralMode, accessibilityProfile, learnerContext, user, isListening, stopVoice, activeAssessmentTitle, activeBriefText, activeDocType, dashboardContext, courses]);
+  }, [messages, loading, activeTier, isLiteralMode, accessibilityProfile, learnerContext, user, isListening, stopVoice, activeAssessmentTitle, activeBriefText, activeDocType, dashboardContext, courses, playThinking, stopThinking, playResponse]);
   sendRef.current = send;
 
 

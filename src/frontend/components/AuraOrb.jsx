@@ -123,7 +123,8 @@ const STATES = {
   thinking:  { distortion: 0.15, pulse: 3.0, rotationSpeed: 0.8,  primary: [0.94,  0.62,  0.15],  secondary: [0.82, 0.69, 0.91] },
   speaking:  { distortion: 0.10, pulse: 2.0, rotationSpeed: 0.3,  primary: [0.706, 0.624, 0.831], secondary: [0.94, 0.62, 0.15] },
   success:   { distortion: 0.05, pulse: 1.5, rotationSpeed: 0.1,  primary: [0.60,  0.82,  0.40],  secondary: [0.706, 0.624, 0.831] },
-  lowEnergy: { distortion: 0.04, pulse: 0.5, rotationSpeed: 0.05, primary: [0.44,  0.44,  0.48],  secondary: [0.36, 0.32, 0.44] },
+  lowEnergy:    { distortion: 0.04, pulse: 0.5, rotationSpeed: 0.05, primary: [0.44,  0.44,  0.48],  secondary: [0.36, 0.32, 0.44] },
+  celebrating:  { distortion: 0.20, pulse: 4.0, rotationSpeed: 1.5,  primary: [0.94,  0.82,  0.15],  secondary: [0.60, 0.82, 0.40] },
 };
 
 const STATE_LABELS = {
@@ -132,7 +133,8 @@ const STATE_LABELS = {
   thinking:  'Thinking...',
   speaking:  'Responding...',
   success:   'Done',
-  lowEnergy: 'AURA is resting',
+  lowEnergy:   'AURA is resting',
+  celebrating: 'Nice work',
 };
 
 function FluidOrb({ state = 'idle', audioLevel = 0 }) {
