@@ -855,6 +855,29 @@ export default function AuraChatOverlay({ open, onClose }) {
       });
       const auraSystemPrefix = formatAuraSystemPrefix(auraCtx);
 
+      // RAG: retrieve relevant document chunks for grounding AURA's response
+      let ragContext = '';
+      if (courseId && user?.id && text.trim().length > 5) {
+        try {
+          const ragRes = await fetch('/api/search-chunks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: text.trim(),
+              userId: user.id,
+              courseId,
+              assessmentTitle: activeAssessmentTitle || null,
+              limit: 3,
+            }),
+          });
+          const ragData = await ragRes.json();
+          if (ragData.success && ragData.chunks?.length > 0) {
+            ragContext = 'RETRIEVED DOCUMENT CONTEXT (from student\'s uploaded materials, reference specifically):\n' +
+              ragData.chunks.map((c, i) => `[Source: ${c.filename}]\n${c.text}`).join('\n---\n');
+          }
+        } catch { /* RAG unavailable, continue without */ }
+      }
+
       // Use dashboard context when no canvas is active, otherwise use brief text
       const effectiveBriefText = activeBriefText || dashboardContext || '';
       const hasDocContext = effectiveBriefText && effectiveBriefText.length >= 100;
@@ -893,6 +916,7 @@ export default function AuraChatOverlay({ open, onClose }) {
         currentPhase: currentPhase || undefined,
         auraContext: auraSystemPrefix || undefined,
         presessionIntel: presessionIntel && presessionIntel !== false ? presessionIntel : undefined,
+        ragContext: ragContext || undefined,
       };
 
       const cleanReply = (raw) => {

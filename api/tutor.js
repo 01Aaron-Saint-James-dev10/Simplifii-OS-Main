@@ -58,6 +58,7 @@ export default async function handler(req, res) {
   const documentContextPartial = req.body?.documentContextPartial === true;
   const presessionIntel = req.body?.presessionIntel || null;
   const currentPhase = req.body?.currentPhase || null;
+  const ragContext = req.body?.ragContext || '';
 
   let systemPrompt = '';
 
@@ -90,6 +91,11 @@ export default async function handler(req, res) {
     systemPrompt += 'CONTEXT WARNING: No document has been ingested for this session. Do NOT describe, summarise, or reference any document. Do NOT hallucinate document content. If the learner asks about their document, respond: "I cannot see a document in this session. To get specific guidance, upload your brief through the Add Course flow so I can read it properly."\n\n';
   } else if (documentContextPartial) {
     systemPrompt += 'CONTEXT WARNING: Document context is partial. Only reference what is explicitly present. Do not infer or expand.\n\n';
+  }
+
+  // RAG: inject retrieved document chunks for grounded responses
+  if (ragContext) {
+    systemPrompt += `${ragContext}\n\nUse the retrieved context above to give specific, grounded answers. Quote or reference the source document when relevant. If the retrieved context does not answer the question, say so and use general knowledge.\n\n`;
   }
 
   // Inject last session context if available

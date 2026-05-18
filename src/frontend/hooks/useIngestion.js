@@ -276,6 +276,40 @@ export function useIngestion({
       log.warn(' Supabase persist failed:', err?.message);
     });
 
+    // RAG: chunk and embed document text for AURA semantic search (fire-and-forget).
+    // Works with keyword search immediately; upgrades to vector search when VOYAGE_API_KEY is set.
+    if (user?.id && data?.rawText && data.rawText.trim().length > 200) {
+      const ragDocs = draftPayload.extractionData?.documents || [];
+      const ragPromises = ragDocs.length > 0
+        ? ragDocs.filter(d => d.text && d.text.length > 50).map(d =>
+            fetch('/api/embed-chunks', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                text: d.text,
+                userId: user.id,
+                courseId,
+                assessmentTitle: d.title || draft.reconciledBriefs?.[0]?.title || '__global__',
+                filename: d.filename || '__unnamed__',
+                documentType: d.type || 'unknown',
+              }),
+            }).catch(() => {})
+          )
+        : [fetch('/api/embed-chunks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              text: (data.primaryRawText || data.rawText).slice(0, 24000),
+              userId: user.id,
+              courseId,
+              assessmentTitle: draft.reconciledBriefs?.[0]?.title || '__global__',
+              filename: files?.[0]?.name || '__unnamed__',
+              documentType: 'unknown',
+            }),
+          }).catch(() => {})];
+      Promise.all(ragPromises).catch(() => {});
+    }
+
     // Background: run Ollama extraction and nameCourse in parallel, then
     // upgrade the course in place. The learner keeps interacting with the
     // draft state during this window. If both LLM calls fail the draft
