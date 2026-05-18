@@ -937,7 +937,7 @@ export default function CanvasScreen() {
       {showSaveAffirmation && <AffirmationBanner trigger="save_event" visible={true} />}
       {/* Focus timer (body doubling) */}
       {focusTimerOpen && (
-        <div style={{ position: 'fixed', bottom: 48, right: 16, zIndex: 50, width: 340, maxHeight: '70vh', overflowY: 'auto', borderRadius: 8, boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}>
+        <div style={{ position: 'fixed', bottom: 48, right: 16, zIndex: 50, width: 340, maxWidth: 'calc(100vw - 32px)', maxHeight: '70vh', overflowY: 'auto', borderRadius: 8, boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}>
           <BodyDoublingLine />
         </div>
       )}

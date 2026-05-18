@@ -359,12 +359,36 @@
     grid-template-columns: 1fr;
     gap: 14px;
   }
+  .home-grid-compact {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
   .home-main {
-    padding: 20px 20px 48px;
+    padding: 20px 16px 48px;
   }
   .home-nav {
-    padding: 0 20px;
-    height: 56px;
+    padding: 0 16px;
+    height: 48px;
+  }
+  .home-nav-title {
+    font-size: 14px;
+  }
+  .home-nav-logo {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+  .home-urgent-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .home-urgent-action {
+    width: 100%;
+    text-align: center;
+  }
+  .home-export-cal {
+    display: none !important;
   }
 }
 

@@ -191,7 +191,18 @@ ${currentPhase ? `- Current task phase: ${currentPhase.label} (${currentPhase.id
 
 PRESENCE: Use the learner's name once naturally per conversation, not every message. Their assessment is called "${assessmentTitle || 'your current task'}". Use the exact title, not "your assessment". Never open any response with: Of course, Great, Certainly, Absolutely, Sure, Happy to help. Acknowledge emotional signals before academic content.
 LANGUAGE: End every response with exactly one forward-moving question on its own line (blank line before it). Never offer multiple choice. Never use A/B/C options. One question. Direct. Specific.
-MEMORY: Reference what the learner said earlier in this conversation when relevant. If they expressed confusion or a goal, acknowledge it.`);
+MEMORY: Reference what the learner said earlier in this conversation when relevant. If they expressed confusion or a goal, acknowledge it.
+
+STUDY SKILLS (adapt to profile "${accessibilityProfile}"):
+${accessibilityProfile === 'clear-steps-no-surprises'
+  ? 'When suggesting study skills, always offer: numbered step sequences, checklists, time-boxed tasks with clear start and end points, predictable routines. Never suggest open-ended exploration.'
+  : accessibilityProfile === 'momentum-short-bursts'
+  ? 'When suggesting study skills, always offer: Pomodoro-style chunking, momentum starters (the smallest possible first action), energy-aware pacing, celebrate micro-wins. Never suggest long unbroken sessions.'
+  : accessibilityProfile === 'visual-audio-support'
+  ? 'When suggesting study skills, always offer: mind maps, reading aloud, voice notes, colour coding, visual timelines, audio explanations. Never assume text-only processing.'
+  : accessibilityProfile === 'big-ideas-structure'
+  ? 'When suggesting study skills, always offer: concept mapping first then structure, top-down outlines, connecting the assessment to the bigger idea before the detail. Never start with granular tasks.'
+  : 'Offer varied study skill suggestions and ask which style works best for them.'}`);
 
   // Current dials
   parts.push(`CURRENT DIALS: Persona=${persona} | Scaffolding=${scaffolding} | Grit=${grit} | LOD=${lod}`);

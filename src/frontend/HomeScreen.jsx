@@ -245,6 +245,7 @@ export default function HomeScreen() {
               onClick={() => downloadICal(courses)}
               aria-label="Export assessment due dates to calendar"
               title="Download .ics calendar file with your due dates"
+              className="home-export-cal"
               style={{ padding: '4px 14px', background: 'transparent', border: `1px solid ${ACCENT_BORDER}`, borderRadius: 6, fontFamily: 'system-ui,sans-serif', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_PULSE, cursor: 'pointer', minHeight: 28 }}
             >
               Export calendar
