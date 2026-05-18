@@ -157,9 +157,28 @@ export default function QuestionCoach({ questions = [], activeQuestion, onSelect
 
   if (!question) {
     return (
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: TEXT_FAINT, fontFamily: FONT_SYSTEM, fontSize: 12 }}>
-        Parsing exam questions...
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        gap: 10, padding: '32px 24px', textAlign: 'center' }}>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: TEXT_MUTED, margin: 0 }}>
+          Questions could not be parsed automatically from this exam paper.
+        </p>
+        <p style={{ fontFamily: FONT_SYSTEM, fontSize: 11, color: TEXT_FAINT, margin: 0, lineHeight: 1.5, maxWidth: 360 }}>
+          This can happen with scanned papers or unusual formatting. Ask AURA to help you work through the questions manually, or use the Brief panel to read the full paper text.
+        </p>
+        {onAskTutor && (
+          <button
+            type="button"
+            onClick={() => onAskTutor('I have an exam paper but the questions could not be parsed automatically. Can you help me work through it?')}
+            style={{
+              fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
+              textTransform: 'uppercase', color: ACCENT_PULSE, background: 'transparent',
+              border: `1px solid ${ACCENT_BORDER}`, borderRadius: 6, padding: '8px 16px',
+              cursor: 'pointer', minHeight: 36, outline: 'none',
+            }}
+          >
+            Ask AURA for help
+          </button>
+        )}
       </div>
     );
   }

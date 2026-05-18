@@ -66,6 +66,9 @@ export function classifyDocumentText(text, filename) {
   if (/exam|paper|test|quiz/i.test(nameLower)) return 'exam_paper';
   // Content patterns
   if (/\b(Question\s+\d|Section\s+[I|II|III|IV|A-D]|\(\d+\s*marks?\)|\bexam\b.*\bpaper\b|HSC|VCE|QCE|WACE|ATAR)\b/i.test(snippet)) return 'exam_paper';
+  // Broader exam paper signals: NESA/VCAA/QCAA cover pages, answer booklets, HSC long form
+  if (/\b(HIGHER SCHOOL CERTIFICATE|NESA|VCAA|QCAA|SCSA|Board of Studies)\b/i.test(snippet)) return 'exam_paper';
+  if (/\b(Multiple Choice|Extended Response|Answer Booklet|Working Space|Show your working)\b/i.test(snippet)) return 'exam_paper';
   if (/\b(criteria|band\s+[1-6]|high\s+distinction|distinction|credit|pass|fail|marking\s+guide|rubric|expected\s+qualities)\b/i.test(snippet)) return 'rubric';
   if (/\b(assessment\s+task|due\s+date|word\s+count|submission|weighting|learning\s+outcome|submit\s+via)\b/i.test(snippet)) return 'brief';
   if (/\b(course\s+outline|unit\s+guide|subject\s+description|teaching\s+staff|lecture\s+schedule|weekly\s+topic)\b/i.test(snippet)) return 'course_outline';

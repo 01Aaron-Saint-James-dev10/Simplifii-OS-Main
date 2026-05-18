@@ -138,6 +138,35 @@ export const parseExamPaper = (rawText) => {
     }
   }
 
+  // ──────────────────────────────────────────────────────────────────
+  // Step 5: Lettered sub-questions (a), (b), (c) style.
+  // Common in HSC short-answer sections where each question part is
+  // lettered rather than numbered. Convert (a)=1, (b)=2, etc.
+  // Only runs when numbered extraction found nothing usable.
+  // ──────────────────────────────────────────────────────────────────
+  if (questions.length < 3) {
+    const letteredRe = /^\(([a-i])\)\s+(.{8,400})/gm;
+    let letterOffset = 0;
+    const letterBase = questions.length; // offset so letters follow any existing numbers
+    for (const m of text.matchAll(letteredRe)) {
+      const letter = m[1].toLowerCase();
+      const num = letterBase + (letter.charCodeAt(0) - 96); // a=1, b=2 ...
+      if (questions.find(q => q.number === num)) continue;
+      const marksMatch = m[2].match(/\((\d+)\s*marks?\)/i);
+      const marks = marksMatch ? parseInt(marksMatch[1], 10) : 0;
+      // Find which section this falls in
+      let section = 'Questions';
+      for (let i = sections.length - 1; i >= 0; i--) {
+        if (m.index >= sections[i].startIndex) {
+          section = sections[i].title || `Section ${sections[i].number}`;
+          break;
+        }
+      }
+      questions.push({ number: num, text: m[2].trim().slice(0, 500), marks, section });
+      letterOffset++;
+    }
+  }
+
   questions.sort((a, b) => a.number - b.number);
 
   const totalMarks = questions.reduce((sum, q) => sum + q.marks, 0) ||

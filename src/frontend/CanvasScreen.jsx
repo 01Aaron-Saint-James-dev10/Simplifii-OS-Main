@@ -131,7 +131,15 @@ export default function CanvasScreen() {
   const [docClassification, setDocClassification] = useState(
     preClassifiedType ? { type: preClassifiedType, confidence: 1 } : null
   );
-  const effectiveDocType = docClassification?.type || preClassifiedType || null;
+  // Client-side exam heuristic: if pre-classification is missing, check the full
+  // extracted text for unambiguous exam paper signals. This prevents the layout
+  // from flipping mid-render when the async /api/classify-document call is slow.
+  const examHeuristic = !preClassifiedType && !!extractedText && (
+    /\b(?:HIGHER SCHOOL CERTIFICATE|NESA|VCAA|QCAA|SCSA|Board of Studies)\b/i.test(extractedText.slice(0, 4000)) ||
+    /\b(?:Section\s+I{1,3}|Multiple Choice|Extended Response|Answer Booklet)\b/i.test(extractedText.slice(0, 4000)) ||
+    /\bQuestion\s+\d+\b.*\bmarks?\b/i.test(extractedText.slice(0, 4000))
+  );
+  const effectiveDocType = docClassification?.type || preClassifiedType || (examHeuristic ? 'exam_paper' : null);
   const isExamPaper = effectiveDocType === 'exam_paper';
   const targetWords = isExamPaper ? 0 : (brief?.wordCountGoal || 1500);
   const currentTitle = brief?.title || assessmentTitle || 'Assessment';
@@ -249,9 +257,12 @@ export default function CanvasScreen() {
     }
 
     if (!briefOrText || briefOrText.length < 30) return;
+    // Exam papers use QuestionCoach, not SectionEditor - skip section generation.
+    if (isExamPaper) return;
 
     // 2. Session cache (avoids duplicate API calls on re-render).
-    const cacheKey = `simplifii_sections_${courseId}_${currentTitle}`;
+    // Include docType in key so cached essay sections are not reused for exam papers.
+    const cacheKey = `simplifii_sections_${courseId}_${currentTitle}_${effectiveDocType || 'unknown'}`;
     const cached = sessionStorage.getItem(cacheKey);
     if (cached) {
       try {
