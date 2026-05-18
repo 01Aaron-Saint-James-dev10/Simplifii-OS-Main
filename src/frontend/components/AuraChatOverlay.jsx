@@ -125,11 +125,32 @@ function dispatchAuraState(state) {
   window.dispatchEvent(new CustomEvent('simplifii:aura-state', { detail: { state } }));
 }
 
+const NAV_PATTERNS = /take me to|open my|go to|navigate to|open canvas|switch to|show me/i;
+
+function matchNavTarget(text, courses) {
+  if (!NAV_PATTERNS.test(text)) return null;
+  const lower = text.toLowerCase();
+  for (const [cId, course] of Object.entries(courses || {})) {
+    const name = (course.name || '').toLowerCase();
+    if (name && name.length > 3 && lower.includes(name)) {
+      return { courseId: cId, assessmentTitle: null, label: course.name };
+    }
+    const briefs = course.extractionData?.assessmentBriefs || [];
+    for (const b of briefs) {
+      const title = (b.title || '').toLowerCase();
+      if (title && title.length > 3 && lower.includes(title)) {
+        return { courseId: cId, assessmentTitle: b.title, label: b.title };
+      }
+    }
+  }
+  return null;
+}
+
 export default function AuraChatOverlay({ open, onClose }) {
   const { user } = useAuth();
   const { isLiteralMode, accessibilityProfile, activeTier, scaffoldingLevel, gritLevel, lodLevel, persona } = useSettings();
   const { courses } = useProject();
-  const { courseId, assessmentTitle: routerAssessment } = useRouter();
+  const { courseId, assessmentTitle: routerAssessment, navigateToCanvas } = useRouter();
   const { learnerContext } = useLearnerContext();
 
   // Derive active task context
@@ -445,6 +466,22 @@ export default function AuraChatOverlay({ open, onClose }) {
     setInput('');
     setLoading(true);
     if (isListening) stopVoice();
+
+    // Navigation intent: if user asks to go somewhere, navigate directly
+    const navTarget = matchNavTarget(text, courses);
+    if (navTarget) {
+      navigateToCanvas(navTarget.courseId, navTarget.assessmentTitle);
+      setMessages(prev => [...prev, {
+        role: 'tutor',
+        text: `Opening ${navTarget.label} now.`,
+        rawText: `Opening **${navTarget.label}** now.`,
+        navAction: navTarget,
+      }]);
+      setLoading(false);
+      dispatchAuraState('idle');
+      return;
+    }
+
     dispatchAuraState('thinking');
 
     try {
@@ -704,7 +741,7 @@ export default function AuraChatOverlay({ open, onClose }) {
           // Tool suggestion from API (separated server-side, never in m.text)
           const toolMatch = m.toolSuggestion ? [null, m.toolSuggestion] : null;
           const displayText = m.text;
-          const toolLabels = { simplify: 'Scaffold my assessment', rubric: 'Decode my rubric', scorer: 'Check my draft', hidden: 'Hidden curriculum', humanise: 'Make it sound like me', check: 'Rubric check', pastqs: 'Past questions', udl: '4 ways to understand', analysis: 'Writing metrics' };
+          const toolLabels = { simplify: 'Scaffold my assessment', rubric: 'Decode my rubric', scorer: 'Check my draft', hidden: 'Hidden curriculum', humanise: 'Make it sound like me', check: 'Rubric check', pastqs: 'Past questions', udl: '4 ways to understand', analysis: 'Writing metrics', open_canvas: 'Open canvas' };
 
           // A/B/C variant cards (unselected state)
           if (m.variants && m.selected === null) {
@@ -760,7 +797,13 @@ export default function AuraChatOverlay({ open, onClose }) {
             {toolMatch && (
               <button
                 type="button"
-                onClick={() => window.dispatchEvent(new CustomEvent('simplifii:open-tool', { detail: { toolId: toolMatch[1] } }))}
+                onClick={() => {
+                  if (toolMatch[1] === 'open_canvas') {
+                    navigateToCanvas(courseId, routerAssessment);
+                  } else {
+                    window.dispatchEvent(new CustomEvent('simplifii:open-tool', { detail: { toolId: toolMatch[1] } }));
+                  }
+                }}
                 style={{
                   marginTop: 8, display: 'flex', alignItems: 'center', gap: 6,
                   padding: '7px 12px', fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700,
@@ -771,6 +814,22 @@ export default function AuraChatOverlay({ open, onClose }) {
               >
                 <span style={{ fontSize: 12 }}>{'\u2192'}</span>
                 {toolLabels[toolMatch[1]] || toolMatch[1]}
+              </button>
+            )}
+            {m.navAction && (
+              <button
+                type="button"
+                onClick={() => navigateToCanvas(m.navAction.courseId, m.navAction.assessmentTitle)}
+                style={{
+                  marginTop: 8, display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '7px 12px', fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700,
+                  letterSpacing: '0.04em', color: '#000', background: ACCENT_PULSE,
+                  border: 'none', borderRadius: BORDER_RADIUS + 2,
+                  cursor: 'pointer', outline: 'none', minHeight: 36,
+                }}
+              >
+                <span style={{ fontSize: 12 }}>{'\u2192'}</span>
+                Open {m.navAction.label} canvas
               </button>
             )}
             {m.role === 'tutor' && i > 0 && (
