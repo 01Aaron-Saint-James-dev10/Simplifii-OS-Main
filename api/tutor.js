@@ -39,7 +39,7 @@ export default async function handler(req, res) {
   // Build conversation for Claude
   const claudeMessages = (messages || []).map(m => ({
     role: m.role === 'user' ? 'user' : 'assistant',
-    content: m.text,
+    content: m.text || m.content || '',
   }));
 
   // Build AURA system prompt with full runtime context
@@ -206,7 +206,7 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({ success: true, reply, toolSuggestion });
-  } catch {
+  } catch (err) {
     return res.status(500).json({ success: false, error: 'Something went wrong. Try again.' });
   }
 }
