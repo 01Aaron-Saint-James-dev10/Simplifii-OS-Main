@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import AsciiLoader from './AsciiLoader';
 import { transformQuestion } from '../services/QuestionTransformer';
 import { exportToAnswerBooklet } from '../../services/DocxExportService';
+import { supabase } from '../../lib/supabaseClient';
 import {
   SURFACE_RAISED,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
@@ -75,6 +76,22 @@ function saveReadingNote(documentId, questionNumber, text) {
     if (text) localStorage.setItem(readingNoteKey(documentId, questionNumber), text);
     else localStorage.removeItem(readingNoteKey(documentId, questionNumber));
   } catch { /* ok */ }
+}
+
+// Upsert answer + reading note to Supabase (fire-and-forget; silent on failure).
+async function syncAnswerToCloud(documentId, questionNumber, answerText, readingNote) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from('exam_answers').upsert({
+      user_id: user.id,
+      document_id: documentId,
+      question_number: questionNumber,
+      answer_text: answerText ?? '',
+      reading_note: readingNote ?? '',
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,document_id,question_number' });
+  } catch { /* offline or unauthenticated - localStorage still holds the data */ }
 }
 
 function answerKey(documentId, questionNumber) {
@@ -253,6 +270,7 @@ export default function QuestionCoach({
   const [completeness, setCompleteness] = useState(null); // { covered: [], missing: [] }
   const [completenessLoading, setCompletenessLoading] = useState(false);
   const completenessTimerRef = useRef(null);
+  const cloudSyncTimerRef = useRef(null);
 
   // Worked example comparison panel
   const [showComparison, setShowComparison] = useState(false);
@@ -282,6 +300,39 @@ export default function QuestionCoach({
       budgetMins: sectionBudgetMins(groupMap.get(sec), extraTimePercent),
     }));
   }, [questions, extraTimePercent]);
+
+  // Load answer + reading note from Supabase on question change (uses whichever is newer).
+  useEffect(() => {
+    if (!documentId || !question) return;
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data } = await supabase
+          .from('exam_answers')
+          .select('answer_text, reading_note, updated_at')
+          .eq('user_id', user.id)
+          .eq('document_id', documentId)
+          .eq('question_number', question.number)
+          .maybeSingle();
+        if (!data) return;
+        const localTs = (() => {
+          try {
+            const raw = localStorage.getItem(answerKey(documentId, question.number));
+            const parsed = JSON.parse(raw || '{"attempts":[]}');
+            return parsed.attempts?.[parsed.attempts.length - 1]?.ts || 0;
+          } catch { return 0; }
+        })();
+        const sbTs = new Date(data.updated_at).getTime();
+        if (sbTs > localTs) {
+          setAnswer(data.answer_text ?? '');
+          saveAnswer(documentId, question.number, data.answer_text ?? '');
+          setReadingNote(data.reading_note ?? '');
+          saveReadingNote(documentId, question.number, data.reading_note ?? '');
+        }
+      } catch { /* offline */ }
+    })();
+  }, [documentId, question?.number]); // eslint-disable-line
 
   // Track which questions have had energy deducted this session.
   const visitedRef = React.useRef(new Set());
@@ -387,6 +438,11 @@ Return JSON: { "covered": ["short criterion label..."], "missing": ["short crite
       if (completenessTimerRef.current) clearTimeout(completenessTimerRef.current);
       completenessTimerRef.current = setTimeout(() => checkCompleteness(text, criteriaData), 3000);
     }
+    // Debounced cloud sync (2s after typing stops).
+    if (cloudSyncTimerRef.current) clearTimeout(cloudSyncTimerRef.current);
+    cloudSyncTimerRef.current = setTimeout(() => {
+      if (question) syncAnswerToCloud(documentId, question.number, text, readingNote);
+    }, 2000);
   };
 
   const handleSave = () => {
@@ -641,8 +697,13 @@ Return JSON: { "covered": ["short criterion label..."], "missing": ["short crite
                 aria-label={`Reading time note for question ${question.number}`}
                 value={readingNote}
                 onChange={e => {
-                  setReadingNote(e.target.value);
-                  saveReadingNote(documentId, question.number, e.target.value);
+                  const note = e.target.value;
+                  setReadingNote(note);
+                  saveReadingNote(documentId, question.number, note);
+                  if (cloudSyncTimerRef.current) clearTimeout(cloudSyncTimerRef.current);
+                  cloudSyncTimerRef.current = setTimeout(() => {
+                    syncAnswerToCloud(documentId, question.number, answer, note);
+                  }, 2000);
                 }}
                 placeholder="Quick note - e.g. 'Leave for last' or 'Check this formula' or '6 marks, plan carefully'"
                 rows={2}

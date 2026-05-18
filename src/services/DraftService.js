@@ -6,7 +6,11 @@
  * Each save also triggers a HistoryOfThought event (caller responsibility).
  *
  * Schema v2: stores TipTap JSON doc. Migrates v1 string content on load.
+ *
+ * Cloud sync: saveDraft also upserts to Supabase canvas_drafts (fire-and-forget).
+ * loadDraft checks Supabase and returns whichever copy is newer.
  */
+import { supabase } from '../lib/supabaseClient';
 
 const DB_NAME = 'simplifii_drafts';
 const DB_VERSION = 1;
@@ -65,6 +69,23 @@ function countWordsFromDoc(doc) {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
+// Upsert draft to Supabase (fire-and-forget; silent on failure).
+async function syncDraftToCloud(courseId, assessmentTitle, content, tiptapDoc, wordCount, lastSaved) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from('canvas_drafts').upsert({
+      user_id: user.id,
+      course_id: courseId,
+      assessment_title: assessmentTitle || '__default__',
+      content: content || '',
+      tiptap_doc: tiptapDoc || null,
+      word_count: wordCount,
+      updated_at: new Date(lastSaved).toISOString(),
+    }, { onConflict: 'user_id,course_id,assessment_title' });
+  } catch { /* offline or unauthenticated - IndexedDB still holds the data */ }
+}
+
 export const saveDraft = async (courseId, assessmentTitle, content, tiptapDoc) => {
   const db = await openDB();
   const tx = db.transaction(STORE, 'readwrite');
@@ -82,6 +103,8 @@ export const saveDraft = async (courseId, assessmentTitle, content, tiptapDoc) =
     wordCount,
     lastSaved: now,
   });
+  // Cloud sync is fire-and-forget; IndexedDB write proceeds regardless.
+  syncDraftToCloud(courseId, assessmentTitle, content, tiptapDoc, wordCount, now);
   return new Promise((resolve, reject) => {
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
@@ -94,13 +117,47 @@ export const loadDraft = async (courseId, assessmentTitle) => {
   const store = tx.objectStore(STORE);
   const key = draftKey(courseId, assessmentTitle);
   const req = store.get(key);
-  return new Promise((resolve, reject) => {
-    req.onsuccess = () => {
-      const raw = req.result || null;
-      resolve(raw ? migrateToV2(raw) : null);
-    };
+  const localDraft = await new Promise((resolve, reject) => {
+    req.onsuccess = () => resolve(req.result ? migrateToV2(req.result) : null);
     req.onerror = () => reject(req.error);
   });
+
+  // Check Supabase for a newer copy and return it if so.
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data } = await supabase
+        .from('canvas_drafts')
+        .select('content, tiptap_doc, word_count, updated_at')
+        .eq('user_id', user.id)
+        .eq('course_id', courseId)
+        .eq('assessment_title', assessmentTitle || '__default__')
+        .maybeSingle();
+      if (data) {
+        const sbTs = new Date(data.updated_at).getTime();
+        const localTs = localDraft?.lastSaved || 0;
+        if (sbTs > localTs) {
+          const cloudDraft = {
+            key,
+            courseId,
+            assessmentTitle,
+            content: data.content || '',
+            tiptapDoc: data.tiptap_doc || null,
+            schemaVersion: data.tiptap_doc ? CURRENT_SCHEMA : 1,
+            wordCount: data.word_count || 0,
+            lastSaved: sbTs,
+          };
+          // Backfill IndexedDB with the cloud version.
+          const writeDb = await openDB();
+          const writeTx = writeDb.transaction(STORE, 'readwrite');
+          writeTx.objectStore(STORE).put(cloudDraft);
+          return migrateToV2(cloudDraft);
+        }
+      }
+    }
+  } catch { /* offline - fall through to local */ }
+
+  return localDraft;
 };
 
 export const getDraftMeta = async (courseId, assessmentTitle) => {
