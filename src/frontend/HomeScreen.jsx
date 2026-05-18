@@ -22,7 +22,7 @@ import AddCourseModal from './workspace/AddCourseModal';
 import WelcomeBanner from './components/WelcomeBanner';
 import { useRealtimeClock } from './hooks/useRealtimeClock';
 import AffirmationBanner from './components/AffirmationBanner';
-import { ACCENT_BORDER, ACCENT_PULSE, TEXT_MUTED, TEXT_FAINT, FONT_DISPLAY } from '../theme/tokens';
+import { ACCENT_BORDER, ACCENT_PULSE, ACCENT_GLASS, TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT, FONT_DISPLAY } from '../theme/tokens';
 import './HomeScreen.css';
 
 /**

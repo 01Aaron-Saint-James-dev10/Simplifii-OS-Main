@@ -1071,8 +1071,8 @@ export default function AuraChatOverlay({ open, onClose }) {
         {voiceSupported && (
           <button
             type="button"
-            onClick={() => { if (isListening) { stopVoice(); } else { startVoice(); setVoiceMode(true); } }}
-            aria-label={isListening ? 'Stop listening' : 'Voice input'}
+            onClick={() => { sessionStorage.setItem('aura-voice-hint-shown', '1'); if (isListening) { stopVoice(); } else { startVoice(); setVoiceMode(true); } }}
+            aria-label={isListening ? 'Stop listening' : 'Read AURA responses aloud'}
             style={{
               fontFamily: FONT_SYSTEM, fontSize: 14, color: isListening ? '#ef4444' : ACCENT_PULSE,
               background: isListening ? COLOUR_DANGER_FAINT : ACCENT_GLASS,
@@ -1083,6 +1083,9 @@ export default function AuraChatOverlay({ open, onClose }) {
             }}
           >
             {isListening ? '\u25A0' : '\u{1F3A4}'}
+            {!sessionStorage.getItem('aura-voice-hint-shown') && !isListening && (
+              <span style={{ position: 'absolute', bottom: -14, left: '50%', transform: 'translateX(-50%)', fontSize: 8, color: TEXT_FAINT, whiteSpace: 'nowrap', pointerEvents: 'none' }}>Voice</span>
+            )}
           </button>
         )}
         <button

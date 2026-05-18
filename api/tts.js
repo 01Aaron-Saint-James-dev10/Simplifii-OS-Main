@@ -56,7 +56,8 @@ export default async function handler(req, res) {
     });
 
     if (!response.ok) {
-      return res.status(200).json({ provider: 'browser', error: 'ElevenLabs unavailable.' });
+      const errBody = await response.text().catch(() => '');
+      return res.status(200).json({ provider: 'browser', error: 'ElevenLabs unavailable.', _debug: { status: response.status, body: errBody } });
     }
 
     const audioBuffer = await response.arrayBuffer();
