@@ -131,7 +131,8 @@ export default function AppShell() {
           setDisclaimerState('needed');
         }
       } catch {
-        setDisclaimerState('needed');
+        // On network error, assume returning user rather than blocking with disclaimer
+        setDisclaimerState('done');
       }
     })();
   }, [user]);

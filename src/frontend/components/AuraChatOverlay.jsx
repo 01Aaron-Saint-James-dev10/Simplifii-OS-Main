@@ -545,11 +545,11 @@ export default function AuraChatOverlay({ open, onClose }) {
         : null;
       let proactiveMsg;
       if (daysUntilDue !== null && daysUntilDue < 0) {
-        proactiveMsg = `Your ${activeAssessmentTitle} is overdue. No judgement, where are you up to with it?`;
+        proactiveMsg = `Your ${activeAssessmentTitle} is overdue. That happens. No judgement: what is one small thing you could do on it right now, even 10 minutes worth?`;
       } else if (daysUntilDue !== null && daysUntilDue <= 7) {
-        proactiveMsg = `Your ${activeAssessmentTitle} is due very soon. What is the one section you have not started yet?`;
+        proactiveMsg = `Your ${activeAssessmentTitle} is due in ${daysUntilDue} day${daysUntilDue === 1 ? '' : 's'}. That is close enough to matter. What is the one section you have not started yet?`;
       } else {
-        proactiveMsg = `Before we start on ${activeAssessmentTitle}: what do you already know about this topic, even one thing?`;
+        proactiveMsg = `You have opened ${activeAssessmentTitle}. Before anything else: what do you already know about this topic? Even one thing counts.`;
       }
       sessionStorage.setItem(greetKey, 'true');
       setMessages(prev => {
