@@ -207,3 +207,53 @@ export const parseExamPaper = (rawText) => {
 
   return { sections, questions, totalMarks };
 };
+
+/**
+ * Parse HSC/VCE marking guidelines PDF text into per-question criteria.
+ * @param {string} rawText - full PDF text of the marking guidelines
+ * @returns {{ [questionNumber: number]: { criteria: string[], sampleAnswer: string, marks: number } }}
+ */
+export const parseMarkingGuidelines = (rawText) => {
+  if (!rawText || rawText.length < 50) return {};
+  const text = rawText.replace(/\r\n/g, '\n');
+  const result = {};
+
+  // Match "Question 21" or "Question 21 (a)" style headers
+  const qRe = /\bQuestion\s+(\d+)(?:\s*\(([a-i])\))?/gi;
+  const qMatches = [...text.matchAll(qRe)];
+
+  for (let idx = 0; idx < qMatches.length; idx++) {
+    const m = qMatches[idx];
+    const num = parseInt(m[1], 10);
+    // Sub-question letter offset: a=0, b=1... to create unique keys like 21.1, 21.2
+    const sub = m[2] ? m[2].charCodeAt(0) - 96 : 0;
+    const key = sub > 0 ? parseFloat(`${num}.${sub}`) : num;
+
+    const start = m.index + m[0].length;
+    const end = idx + 1 < qMatches.length ? qMatches[idx + 1].index : start + 1500;
+    const block = text.slice(start, end).trim();
+
+    // Extract marks
+    const marksMatch = block.match(/(\d+)\s*marks?/i);
+    const marks = marksMatch ? parseInt(marksMatch[1], 10) : 0;
+
+    // Extract criteria lines (lines with mark counts at end, or bullet points)
+    const criteriaLines = block.split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length > 10 && (
+        /\d\s*$/.test(l) || /^[\u2022\-\*]/.test(l) || /^Criteria/i.test(l)
+      ))
+      .slice(0, 8)
+      .map(l => l.replace(/^\s*[\u2022\-\*]\s*/, ''));
+
+    // Extract sample answer block
+    const sampleMatch = block.match(/(?:sample answer|candidates could|model answer)[:\s\n]+([\s\S]{20,600}?)(?:\n\n|\bQuestion\b|$)/i);
+    const sampleAnswer = sampleMatch ? sampleMatch[1].replace(/\n/g, ' ').replace(/\s+/g, ' ').trim() : '';
+
+    if (criteriaLines.length > 0 || sampleAnswer) {
+      result[key] = { criteria: criteriaLines, sampleAnswer, marks };
+    }
+  }
+
+  return result;
+};

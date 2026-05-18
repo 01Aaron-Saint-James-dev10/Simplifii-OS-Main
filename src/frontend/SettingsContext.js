@@ -101,6 +101,28 @@ export const SettingsProvider = ({ children }) => {
   });
   const [ambientPreference, setAmbientPreference] = useState(localStorage.getItem('simplifii_ambient') || 'none');
 
+  // Exam questions per energy ball: denominator N where each question costs 1/N of a ball.
+  // Default 5 means 5 questions per orb. Student can change to 6, 14, etc.
+  const [examQuestionsPerBall, setExamQuestionsPerBallState] = useState(() => {
+    const stored = localStorage.getItem('simplifii_exam_q_per_ball');
+    return stored !== null ? Number(stored) : 5;
+  });
+  const setExamQuestionsPerBall = (n) => {
+    localStorage.setItem('simplifii_exam_q_per_ball', String(n));
+    setExamQuestionsPerBallState(n);
+  };
+
+  // Exam extra time: percentage of additional time granted by school (0, 10, 25, or custom).
+  // null = not yet set (triggers first-time prompt in ExamTimer).
+  const [examExtraTimePercent, setExamExtraTimePercentState] = useState(() => {
+    const stored = localStorage.getItem('simplifii_exam_extra_time');
+    return stored !== null ? Number(stored) : null;
+  });
+  const setExamExtraTimePercent = (pct) => {
+    localStorage.setItem('simplifii_exam_extra_time', String(pct));
+    setExamExtraTimePercentState(pct);
+  };
+
   // Sprint 6.0: Bio-Sovereignty. Transient stress signal; not persisted.
   // Set to true via the "Simulate Stress" DevTools toggle or by NeuralService
   // when HRV drops below threshold. Causes the Vibe Meter to pulse red and
@@ -212,6 +234,8 @@ export const SettingsProvider = ({ children }) => {
       predictabilityAnnouncements, setPredictabilityAnnouncements,
       specialInterests, setSpecialInterests,
       ambientPreference, setAmbientPreference,
+      examExtraTimePercent, setExamExtraTimePercent,
+      examQuestionsPerBall, setExamQuestionsPerBall,
       activeRules: rules[mode]
     }}>
       <div

@@ -27,20 +27,36 @@ function getTodayKey() {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
-function OrbSVG({ filled, size = 28 }) {
+// fillFraction: 0 = empty, 1 = fully filled, 0.0-1.0 = partial (draining orb)
+function OrbSVG({ filled, fillFraction, size = 28 }) {
+  const fraction = typeof fillFraction === 'number' ? fillFraction : (filled ? 1 : 0);
+  const isEmpty = fraction <= 0;
+  // Partial fill: clip fills from bottom, so clipY = top edge of filled zone
+  const clipY = 32 - Math.round(fraction * 32);
+  const uid = `oc${size}f${Math.round(fraction * 100)}`;
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
-      {/* Sphere */}
-      <circle cx="16" cy="16" r="14" fill={filled ? '#f97316' : '#27272a'} stroke={filled ? '#fb923c' : '#3f3f46'} strokeWidth="1.5" />
-      {/* Inner glow */}
-      {filled && <circle cx="13" cy="12" r="4" fill={WHITE_TINT_BRIGHT} />}
-      {/* Star (DBZ style) */}
+      <defs>
+        <clipPath id={uid}>
+          <rect x="0" y={clipY} width="32" height={32 - clipY} />
+        </clipPath>
+      </defs>
+      {/* Always-visible empty sphere */}
+      <circle cx="16" cy="16" r="14" fill="#27272a" stroke="#3f3f46" strokeWidth="1.5" />
+      {/* Filled layer, clipped to fraction */}
+      {!isEmpty && (
+        <circle cx="16" cy="16" r="14" fill="#f97316" stroke="#fb923c" strokeWidth="1.5"
+          clipPath={`url(#${uid})`} />
+      )}
+      {/* Inner glow when mostly full */}
+      {fraction >= 0.6 && <circle cx="13" cy="12" r="4" fill={WHITE_TINT_BRIGHT} clipPath={`url(#${uid})`} />}
+      {/* Star overlay */}
       <path
         d="M16 8 L17.5 13.5 L23 14 L18.5 17.5 L20 23 L16 19.5 L12 23 L13.5 17.5 L9 14 L14.5 13.5 Z"
-        fill={filled ? '#fbbf24' : '#52525b'}
-        stroke={filled ? '#f59e0b' : '#3f3f46'}
+        fill={isEmpty ? '#52525b' : '#fbbf24'}
+        stroke={isEmpty ? '#3f3f46' : '#f59e0b'}
         strokeWidth="0.5"
-        opacity={filled ? 1 : 0.4}
+        opacity={isEmpty ? 0.4 : 1}
       />
     </svg>
   );
@@ -85,14 +101,19 @@ export default function EnergyOrbs({ userId }) {
     } catch { /* storage unavailable */ }
   }, [total, userId]);
 
-  // Listen for energy spend events from focus sessions
+  // Listen for energy spend and reset events
   useEffect(() => {
-    const handler = (e) => {
+    const spendHandler = (e) => {
       const cost = e.detail?.cost || 1;
       setSpent(prev => Math.min(prev + cost, total));
     };
-    window.addEventListener('simplifii:energy-spend', handler);
-    return () => window.removeEventListener('simplifii:energy-spend', handler);
+    const resetHandler = () => setSpent(0);
+    window.addEventListener('simplifii:energy-spend', spendHandler);
+    window.addEventListener('simplifii:energy-reset', resetHandler);
+    return () => {
+      window.removeEventListener('simplifii:energy-spend', spendHandler);
+      window.removeEventListener('simplifii:energy-reset', resetHandler);
+    };
   }, [total]);
 
   // Map remaining orb count to grit level in SettingsContext
@@ -161,12 +182,20 @@ export default function EnergyOrbs({ userId }) {
         {remaining}
       </span>
 
-      {/* Orbs stack: display only */}
-      {Array.from({ length: total }, (_, i) => (
-        <div key={i} aria-hidden="true" style={{ display: 'flex' }}>
-          <OrbSVG filled={i < remaining} size={24} />
-        </div>
-      ))}
+      {/* Orbs stack: display only. Fractional fill for the partial last orb. */}
+      {Array.from({ length: total }, (_, i) => {
+        const floorRemain = Math.floor(remaining);
+        const frac = remaining % 1;
+        let fillFraction;
+        if (i < floorRemain) fillFraction = 1;          // fully filled
+        else if (i === floorRemain && frac > 0) fillFraction = frac; // partial
+        else fillFraction = 0;                           // empty
+        return (
+          <div key={i} aria-hidden="true" style={{ display: 'flex' }}>
+            <OrbSVG fillFraction={fillFraction} size={24} />
+          </div>
+        );
+      })}
 
       {/* - button: decrease active energy */}
       <button

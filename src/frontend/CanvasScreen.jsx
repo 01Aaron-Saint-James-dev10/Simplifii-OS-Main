@@ -34,7 +34,9 @@ import AnnouncementBanner from './components/AnnouncementBanner';
 import { getSensoryCSSVars, getSensoryProfile } from '../theme/sensoryProfiles';
 import FidgetZone from './components/FidgetZone';
 import QuestionCoach from './components/QuestionCoach';
-import { parseExamPaper } from '../services/ExamPaperParser';
+import ExamTimer from './components/ExamTimer';
+import ExamBreakOverlay from './components/ExamBreakOverlay';
+import { parseExamPaper, parseMarkingGuidelines } from '../services/ExamPaperParser';
 import { startAmbient, stopAmbient } from './services/AmbientSound';
 import { startIdleDetection, stopIdleDetection } from '../core/ExecutiveSpine';
 import ReadingRuler from './components/ReadingRuler';
@@ -67,7 +69,7 @@ export default function CanvasScreen() {
   const { courseId, assessmentTitle, navigateToAssessments } = useRouter();
   const { courses, activeCourse, projectSources, upgradeCourseExtraction } = useProject();
   const { user } = useAuth();
-  const { reducedMotion, isZenMode, theme, autismFirstEnabled, sensoryLevel, isLiteralMode, ambientPreference } = useSettings();
+  const { reducedMotion, isZenMode, theme, autismFirstEnabled, sensoryLevel, isLiteralMode, ambientPreference, examExtraTimePercent, setExamExtraTimePercent, examQuestionsPerBall } = useSettings();
 
   // Ambient sound: start/stop when preference changes
   useEffect(() => {
@@ -190,7 +192,36 @@ export default function CanvasScreen() {
     }
     return `${courseId}_${(h >>> 0).toString(36)}`;
   }, [courseId, extractedText]);
+  // Marking guidelines: parse any uploaded marking_guidelines docs and merge per-question criteria.
+  const markingGuidelines = useMemo(() => {
+    if (!isExamPaper) return {};
+    const docs = course.extractionData?.documents || [];
+    const guidelineDocs = docs.filter(d => d.type === 'marking_guidelines');
+    if (guidelineDocs.length === 0) return {};
+    return guidelineDocs.reduce((acc, doc) => {
+      const parsed = parseMarkingGuidelines(doc.text || '');
+      return { ...acc, ...parsed };
+    }, {});
+  }, [isExamPaper, course.extractionData?.documents]);
+
   const [activeQuestionNum, setActiveQuestionNum] = useState(1);
+  const [examPhase, setExamPhase] = useState('reading');
+  const [examBreakVisible, setExamBreakVisible] = useState(false);
+
+  // Show break overlay when energy hits zero (EnergyOrbs dispatches lowEnergy).
+  useEffect(() => {
+    if (!isExamPaper) return;
+    const handler = (e) => {
+      if (e.detail?.state === 'lowEnergy') setExamBreakVisible(true);
+    };
+    const resetHandler = () => setExamBreakVisible(false);
+    window.addEventListener('simplifii:aura-state', handler);
+    window.addEventListener('simplifii:energy-reset', resetHandler);
+    return () => {
+      window.removeEventListener('simplifii:aura-state', handler);
+      window.removeEventListener('simplifii:energy-reset', resetHandler);
+    };
+  }, [isExamPaper]);
   // Prefer actual content (body or extractedText) over the assessment title.
   // brief.body may be empty if cloud enhancement hasn't completed yet;
   // extractedText always has the raw PDF output from pdfjs.
@@ -808,6 +839,28 @@ export default function CanvasScreen() {
             </div>
           )}
 
+          {/* Exam timer: fixed left-edge strip, only on exam papers */}
+          {isExamPaper && examData && (
+            <ExamTimer
+              examData={examData}
+              activeQuestion={activeQuestionNum}
+              extraTimePercent={examExtraTimePercent}
+              onSetExtraTime={setExamExtraTimePercent}
+              onPhaseChange={setExamPhase}
+              onMoveOn={() => {
+                const idx = (examData.questions || []).findIndex(q => q.number === activeQuestionNum);
+                const next = examData.questions?.[idx + 1];
+                if (next) setActiveQuestionNum(next.number);
+              }}
+              reducedMotion={reducedMotion}
+            />
+          )}
+
+          {/* Break overlay: shown when exam energy hits zero */}
+          {isExamPaper && examBreakVisible && (
+            <ExamBreakOverlay onReturn={() => setExamBreakVisible(false)} />
+          )}
+
           {/* Exam paper: multimodal canvas per question. SectionEditor NEVER renders on exam papers. */}
           {isExamPaper ? (
             <QuestionCoach
@@ -815,6 +868,10 @@ export default function CanvasScreen() {
               activeQuestion={activeQuestionNum}
               onSelectQuestion={setActiveQuestionNum}
               documentId={examDocId}
+              markingGuidelines={markingGuidelines}
+              isReadingTime={examPhase === 'reading'}
+              extraTimePercent={examExtraTimePercent ?? 0}
+              energyCostPerQuestion={examQuestionsPerBall > 0 ? 1 / examQuestionsPerBall : 0}
               onAskTutor={(text) => { setPendingTutorMessage(text); setRailVisible(true); setActivePanelWithLog('tutor'); }}
             />
           ) : (

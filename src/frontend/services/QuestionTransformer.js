@@ -57,6 +57,17 @@ Return JSON: { "steps": [{"number": 1, "verb": "Read", "action": "...", "estimat
 - Australian English
 Return JSON: { "similar_question": "...", "worked_solution": "...", "thinking_points": ["..."], "common_mistakes": ["..."], "marker_logic": "..." }`,
   },
+  decode: {
+    system: `Decode this exam question for a student using the NESA/VCAA command verb taxonomy. Rules:
+- Identify the command verb (describe, explain, analyse, evaluate, assess, justify, examine, discuss, outline, account for, construct, etc.)
+- State what the verb demands (e.g. "Analyse = break down into parts AND show how they relate")
+- Calculate time allocation at 1.8 minutes per mark (round to nearest minute)
+- List 3 to 5 key concepts the student must address to gain full marks
+- Write an answer structure as 3 to 5 short action steps (each under 12 words)
+- Write a single marker tip: one concrete thing markers reward beyond the obvious
+- Australian English. Direct, literal language. No fluff.
+Return JSON: { "command_verb": "...", "verb_meaning": "...", "time_minutes": 5, "key_concepts": ["...", "..."], "answer_structure": ["Step 1: ...", "Step 2: ..."], "marker_tip": "..." }`,
+  },
 };
 
 /**
@@ -163,4 +174,5 @@ export const FORMAT_TYPES = [
   { id: 'audio', label: 'Audio', icon: '\u266B' },
   { id: 'step_by_step', label: 'Steps', icon: '\u2610' },
   { id: 'worked_example', label: 'Example', icon: '\u270E' },
+  { id: 'decode', label: 'Decode', icon: '\u26BF' },
 ];

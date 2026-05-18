@@ -339,3 +339,267 @@ export async function exportToSubmissionPdf({ tiptapDoc, htmlContent, courseCode
     });
   } catch { /* vault may be locked */ }
 }
+
+// ============================================================
+// HSC Answer Booklet PDF export
+// ============================================================
+
+const BK_ML   = 20;        // mm: left margin
+const BK_MR   = 190;       // mm: right boundary (210 - 20)
+const BK_COL  = 170;       // mm: usable width
+const BK_MT   = 28;        // mm: content top (below header)
+const BK_MB   = 272;       // mm: content bottom (above footer)
+const BK_RULE = 8;         // mm: line-rule spacing
+
+// Load a saved answer from localStorage using the same key as QuestionCoach.
+function bookletLoadAnswer(documentId, questionNumber) {
+  try {
+    const raw = localStorage.getItem(`simplifii_answer_${documentId}_q${questionNumber}`);
+    if (!raw) return '';
+    const parsed = JSON.parse(raw);
+    return parsed.attempts?.[parsed.attempts.length - 1]?.text || '';
+  } catch { return ''; }
+}
+
+function bookletPageHeader(doc, examTitle, pageNum) {
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(140, 140, 140);
+  doc.text(examTitle || 'Practice Exam', BK_ML, 12);
+  doc.text(`Page ${pageNum}`, BK_MR, 12, { align: 'right' });
+  doc.setDrawColor(180, 180, 180);
+  doc.setLineWidth(0.25);
+  doc.line(BK_ML, 15, BK_MR, 15);
+  doc.setTextColor(0, 0, 0);
+}
+
+// Draw horizontal ruled lines filling from y down to y+heightMm.
+function bookletRuledSpace(doc, y, heightMm) {
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.2);
+  let lineY = y + BK_RULE;
+  while (lineY <= y + heightMm - 2) {
+    doc.line(BK_ML, lineY, BK_MR, lineY);
+    lineY += BK_RULE;
+  }
+}
+
+// Render answer text with automatic page breaks. Returns new y.
+function bookletText(doc, text, y, examTitle) {
+  doc.setFont('times', 'normal');
+  doc.setFontSize(11);
+  doc.setTextColor(0, 0, 0);
+  const lines = doc.splitTextToSize(text.trim(), BK_COL);
+  for (const line of lines) {
+    if (y > BK_MB) {
+      doc.addPage();
+      bookletPageHeader(doc, examTitle, doc.internal.getCurrentPageInfo().pageNumber);
+      y = BK_MT;
+    }
+    doc.text(line, BK_ML, y);
+    y += 6.5;
+  }
+  return y;
+}
+
+/**
+ * Export student answers as an HSC-style answer booklet PDF.
+ *
+ * @param {object} opts
+ * @param {Array}  opts.questions    Parsed question objects [{ number, marks, section, text }]
+ * @param {string} opts.documentId   Used to load saved answers from localStorage
+ * @param {string} opts.examTitle    Shown in header and cover page
+ * @param {string} opts.studentName  Optional: printed on cover
+ * @param {string} opts.schoolName   Optional: printed on cover
+ * @param {string} opts.examDate     Optional: printed on cover (defaults to today)
+ */
+export async function exportToAnswerBooklet({ questions, documentId, examTitle, studentName, schoolName, examDate }) {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  doc.setDocumentProperties({
+    title: examTitle || 'Answer Booklet',
+    creator: 'Simplifii-OS',
+  });
+
+  const dateStr = examDate || new Date().toLocaleDateString('en-AU', { day: '2-digit', month: 'long', year: 'numeric' });
+  const safeTitle = examTitle || 'Practice Exam';
+
+  // ---- Cover page ----
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(0, 0, 0);
+  doc.text('STUDENT ANSWER BOOKLET', BK_ML, 25);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(60, 60, 60);
+  doc.text('Practice only. Not for submission.', BK_ML, 31);
+
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.4);
+  doc.rect(BK_ML, 38, BK_COL, 52);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.setTextColor(0, 0, 0);
+  const titleLines = doc.splitTextToSize(safeTitle, BK_COL - 8);
+  doc.text(titleLines, BK_ML + 4, 47);
+
+  // Field rows inside the box
+  const fields = [
+    { label: 'Student name', value: studentName || '' },
+    { label: 'School',       value: schoolName || '' },
+    { label: 'Date',         value: dateStr },
+  ];
+  let fieldY = 64;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  for (const f of fields) {
+    doc.setTextColor(80, 80, 80);
+    doc.text(f.label + ':', BK_ML + 4, fieldY);
+    doc.setTextColor(0, 0, 0);
+    doc.setDrawColor(160, 160, 160);
+    doc.setLineWidth(0.3);
+    doc.line(BK_ML + 34, fieldY, BK_MR - 4, fieldY);
+    if (f.value) {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(9);
+      doc.text(f.value, BK_ML + 36, fieldY - 1);
+      doc.setFont('helvetica', 'normal');
+    }
+    fieldY += 10;
+  }
+
+  // Question summary table
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.3);
+  const tableTop = 96;
+  doc.rect(BK_ML, tableTop, BK_COL, 26);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.text('Section', BK_ML + 2, tableTop + 6);
+  doc.text('Questions', BK_ML + 32, tableTop + 6);
+  doc.text('Marks', BK_ML + 70, tableTop + 6);
+  doc.line(BK_ML, tableTop + 9, BK_MR, tableTop + 9);
+
+  // Group by section for summary
+  const sectionMap = new Map();
+  for (const q of questions) {
+    const s = q.section || 'Questions';
+    if (!sectionMap.has(s)) sectionMap.set(s, { count: 0, marks: 0 });
+    const g = sectionMap.get(s);
+    g.count++;
+    g.marks += q.marks || 0;
+  }
+  let sumY = tableTop + 16;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  for (const [sec, g] of sectionMap) {
+    const label = sec.length > 22 ? sec.slice(0, 20) + '\u2026' : sec;
+    doc.text(label, BK_ML + 2, sumY);
+    doc.text(String(g.count), BK_ML + 32, sumY);
+    doc.text(String(g.marks), BK_ML + 70, sumY);
+    sumY += 8;
+  }
+
+  // "Writing begins on next page" rule
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.5);
+  doc.line(BK_ML, 140, BK_MR, 140);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(0, 0, 0);
+  doc.text('WRITING BEGINS ON NEXT PAGE', 105, 146, { align: 'center' });
+  doc.line(BK_ML, 150, BK_MR, 150);
+
+  // ---- Question pages ----
+  let currentSection = null;
+
+  for (const q of questions.slice().sort((a, b) => a.number - b.number)) {
+    doc.addPage();
+    const pageNum = doc.internal.getCurrentPageInfo().pageNumber;
+    bookletPageHeader(doc, safeTitle, pageNum);
+
+    let y = BK_MT;
+
+    // Section heading (once per section)
+    if (q.section && q.section !== currentSection) {
+      currentSection = q.section;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(80, 80, 80);
+      doc.text(q.section.toUpperCase(), BK_ML, y);
+      y += 7;
+      doc.setDrawColor(180, 180, 180);
+      doc.setLineWidth(0.3);
+      doc.line(BK_ML, y, BK_MR, y);
+      y += 5;
+      doc.setTextColor(0, 0, 0);
+    }
+
+    // Question header bar
+    doc.setFillColor(240, 240, 240);
+    doc.rect(BK_ML, y, BK_COL, 8, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Question ${q.number}`, BK_ML + 3, y + 5.5);
+    if (q.marks > 0) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(80, 80, 80);
+      doc.text(`${q.marks} ${q.marks === 1 ? 'mark' : 'marks'}`, BK_MR - 3, y + 5.5, { align: 'right' });
+    }
+    y += 12;
+    doc.setTextColor(0, 0, 0);
+
+    const savedAnswer = bookletLoadAnswer(documentId, q.number);
+
+    if (savedAnswer.trim()) {
+      // Render the student's answer text
+      y = bookletText(doc, savedAnswer, y, safeTitle);
+      y += 4;
+    } else {
+      // Ruled blank space proportional to marks (min 5 lines, max 40 lines at BK_RULE each)
+      const lines = Math.min(40, Math.max(5, (q.marks || 2) * 4));
+      const spaceH = lines * BK_RULE;
+      if (y + spaceH > BK_MB) {
+        doc.addPage();
+        bookletPageHeader(doc, safeTitle, doc.internal.getCurrentPageInfo().pageNumber);
+        y = BK_MT;
+      }
+      bookletRuledSpace(doc, y, spaceH);
+      y += spaceH + 4;
+    }
+
+    // Bottom rule separating questions
+    if (y < BK_MB - 5) {
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.2);
+      doc.line(BK_ML, y, BK_MR, y);
+    }
+  }
+
+  // Footer on every page
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    doc.setDrawColor(180, 180, 180);
+    doc.setLineWidth(0.2);
+    doc.line(BK_ML, 282, BK_MR, 282);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(140, 140, 140);
+    doc.text('Simplifii-OS practice booklet', BK_ML, 288);
+    doc.text(`${p} / ${totalPages}`, BK_MR, 288, { align: 'right' });
+  }
+
+  const safe = (s) => (s || '').replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').slice(0, 40);
+  doc.save(`${safe(safeTitle)}_answer_booklet_${new Date().toISOString().slice(0, 10)}.pdf`);
+
+  try {
+    await appendEvent({
+      event_type: 'export_complete',
+      payload: { format: 'answer_booklet', questionCount: questions.length, examTitle, timestamp: Date.now() },
+    });
+  } catch { /* vault may be locked */ }
+}
