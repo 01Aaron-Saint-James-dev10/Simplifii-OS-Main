@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   SURFACE_RAISED,
   TEXT_PRIMARY, TEXT_MUTED, TEXT_FAINT,
@@ -7,13 +7,55 @@ import {
   BORDER_RADIUS,
 } from '../../theme/tokens';
 
+function AudioBriefButton({ audioScript }) {
+  const [playing, setPlaying] = useState(false);
+  const toggle = useCallback(() => {
+    if (!window.speechSynthesis) return;
+    if (playing) {
+      window.speechSynthesis.cancel();
+      setPlaying(false);
+    } else {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(audioScript);
+      utterance.rate = 0.85;
+      utterance.pitch = 1.0;
+      utterance.lang = 'en-AU';
+      utterance.onend = () => setPlaying(false);
+      utterance.onerror = () => setPlaying(false);
+      window.speechSynthesis.speak(utterance);
+      setPlaying(true);
+    }
+  }, [audioScript, playing]);
+
+  if (!audioScript || typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={playing ? 'Stop audio brief' : 'Listen to audio brief'}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        padding: '8px 14px', fontFamily: FONT_SYSTEM, fontSize: 10, fontWeight: 700,
+        letterSpacing: '0.04em',
+        color: playing ? '#000' : ACCENT_PULSE,
+        background: playing ? ACCENT_PULSE : ACCENT_GLASS,
+        border: `1px solid ${ACCENT_BORDER}`, borderRadius: BORDER_RADIUS + 2,
+        cursor: 'pointer', outline: 'none',
+      }}
+    >
+      {playing ? '\u25A0 Stop' : '\u{1F50A} Listen to brief'}
+    </button>
+  );
+}
+
 /**
  * StructuredScaffold
  *
  * Renders the structured JSON from /api/simplify-brief as visual cards:
  * sections with word counts, starter sentences, checkboxes, time estimates.
  */
-export default function StructuredScaffold({ scaffold }) {
+export default function StructuredScaffold({ scaffold, accessibilityProfile }) {
   const [checkedItems, setCheckedItems] = useState({});
 
   const [weekOpen, setWeekOpen] = useState({});
@@ -23,8 +65,54 @@ export default function StructuredScaffold({ scaffold }) {
 
   const toggle = (key) => setCheckedItems(prev => ({ ...prev, [key]: !prev[key] }));
 
+  // Profile-adaptive section ordering
+  const isAudioFirst = accessibilityProfile === 'visual-audio-support';
+  const isBigIdeasFirst = accessibilityProfile === 'big-ideas-structure';
+  const isMomentum = accessibilityProfile === 'momentum-short-bursts';
+
+  // Extract first 3 micro-tasks for momentum profile
+  const microTasks = isMomentum && scaffold.weeklyPlan?.[0]?.tasks
+    ? [
+        ...(scaffold.weeklyPlan[0].tasks.beginning || []),
+        ...(scaffold.weeklyPlan[0].tasks.throughout || []),
+      ].slice(0, 3)
+    : [];
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {/* Audio brief: prominent for visual-audio profile, available for all */}
+      {isAudioFirst && <AudioBriefButton audioScript={scaffold.audioScript} />}
+
+      {/* Momentum profile: show next 3 micro-tasks immediately */}
+      {isMomentum && microTasks.length > 0 && (
+        <div style={{ padding: '10px 12px', background: ACCENT_GLASS, border: `1px solid ${ACCENT_BORDER}`, borderRadius: BORDER_RADIUS }}>
+          <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_PULSE }}>Start here (3 quick wins)</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+            {microTasks.map((t, i) => (
+              <label key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontFamily: FONT_BODY, fontSize: 11, color: TEXT_PRIMARY, cursor: 'pointer' }}>
+                <input type="checkbox" checked={!!checkedItems[`micro-${i}`]} onChange={() => toggle(`micro-${i}`)} style={{ marginTop: 2 }} />
+                <span style={{ textDecoration: checkedItems[`micro-${i}`] ? 'line-through' : 'none', opacity: checkedItems[`micro-${i}`] ? 0.5 : 1 }}>
+                  {t.task}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Big-ideas profile: overall guidance first */}
+      {isBigIdeasFirst && scaffold.overallGuidance && (
+        <div style={{ padding: '10px 12px', border: `1px solid ${ACCENT_BORDER}`, borderRadius: BORDER_RADIUS, background: ACCENT_GLASS_SUBTLE }}>
+          <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_PULSE }}>The big picture</span>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_PRIMARY, margin: '6px 0 0', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+            {scaffold.overallGuidance}
+          </p>
+        </div>
+      )}
+
+      {/* Audio brief for non-audio-first profiles */}
+      {!isAudioFirst && <AudioBriefButton audioScript={scaffold.audioScript} />}
+
       {/* Normalising message */}
       {scaffold.normalisingMessage && (
         <div style={{ padding: '10px 12px', background: ACCENT_GLASS, border: `1px solid ${ACCENT_BORDER}`, borderRadius: BORDER_RADIUS, fontFamily: FONT_BODY, fontSize: 11, color: TEXT_PRIMARY, lineHeight: 1.5 }}>
@@ -32,8 +120,8 @@ export default function StructuredScaffold({ scaffold }) {
         </div>
       )}
 
-      {/* Overall guidance */}
-      {scaffold.overallGuidance && (
+      {/* Overall guidance (skip if already shown for big-ideas profile) */}
+      {!isBigIdeasFirst && scaffold.overallGuidance && (
         <div style={{ padding: '10px 12px', border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS }}>
           <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_PULSE }}>What this assessment is really asking</span>
           <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_PRIMARY, margin: '6px 0 0', lineHeight: 1.6, whiteSpace: 'pre-line' }}>

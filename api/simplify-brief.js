@@ -205,7 +205,8 @@ Return ONLY a JSON object:
     "what separates HD from D for this specific assessment",
     "the single most common reason students drop from D to C",
     "one thing to check before submitting"
-  ]
+  ],
+  "audioScript": "A 300-400 word conversational script summarising the assessment for reading aloud. Format: 'Your [title] is due in [weeks] weeks and is worth [weight]%. Here is what you need to do...' One sentence at a time. No jargon. Conversational Australian English. Designed to be spoken aloud at 0.85x speed. Covers: what the assessment is, key requirements, the structure you recommend, and one encouraging closing line."
 }
 
 RULES:

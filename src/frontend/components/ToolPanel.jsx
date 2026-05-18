@@ -187,7 +187,7 @@ export default function ToolPanel({
             </button>
           </div>
           {structuredData?.type === 'scaffold' ? (
-            <StructuredScaffold scaffold={structuredData.data} />
+            <StructuredScaffold scaffold={structuredData.data} accessibilityProfile={accessibilityProfile} />
           ) : structuredData?.type === 'rubric' ? (
             <StructuredRubric rubricData={structuredData.data} />
           ) : (
