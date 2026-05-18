@@ -154,6 +154,17 @@ ${briefText.slice(0, 5000)}
 
 Return ONLY a JSON object:
 {
+  "weeklyPlan": [
+    {
+      "week": 1,
+      "title": "string: what this week focuses on",
+      "tasks": {
+        "beginning": [{"task": "string", "subtasks": ["string"], "resources": ["string"]}],
+        "throughout": [{"task": "string", "subtasks": ["string"], "resources": ["string"]}],
+        "end": [{"task": "string", "subtasks": ["string"], "resources": ["string"]}]
+      }
+    }
+  ],
   "overallGuidance": "2-3 paragraph strategic overview: what this assessment is really asking, the cognitive moves it requires, and how the sections below build the argument. Reference the actual document content.",
   "suggestedStructure": [
     {
@@ -178,6 +189,7 @@ Return ONLY a JSON object:
     "total": "X hours"
   },
   "normalisingMessage": "A warm paragraph. Acknowledge that the student may be neurodivergent, time-poor, or returning to study. Name the difficulty without minimising it. Explain that this scaffold exists because blank pages are a design problem, not a character flaw. Direct, not patronising. Never a productivity tip.",
+  "glossary": [{"term": "key domain term", "definition": "plain-language definition"}],
   "hiddenExpectations": ["implicit expectation the brief does not state 1", "implicit expectation 2"],
   "rubricAlignment": [
     {"criterion": "criterion name from the document", "sections": ["which sections address it"], "whatSeparatesHDFromP": "specific difference in evidence, depth, or quality"}
@@ -197,6 +209,7 @@ Return ONLY a JSON object:
 }
 
 RULES:
+- weeklyPlan: generate one object per week available (extract from brief or default to 4 weeks). Each phase (beginning, throughout, end) has minimum 3 tasks. Each task has 2-3 subtasks. Resources are optional reading or reference suggestions.
 - 5-8 sections. Word counts must sum to EXACTLY ${wordTarget}
 - purpose: one sentence per section explaining what it must achieve
 - keyQuestion: THE question the student writes to answer for each section
@@ -205,6 +218,7 @@ RULES:
 - beforeYouStart: 3 specific preparation steps BEFORE writing
 - timeEstimate: realistic breakdown including neurodivergent buffer and total
 - normalisingMessage: warm, direct, acknowledges difficulty without minimising. Never generic. Never a productivity tip. Speaks to the student who has been told they cannot do this.
+- glossary: 3-5 key terms from this assessment domain with plain-language definitions
 - hiddenExpectations: implicit requirements the brief does not spell out
 - rubricAlignment: map every criterion found to sections
 - higherOrderScaffolding: 3 questions pushing beyond what the assessment requires
@@ -217,7 +231,7 @@ RULES:
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, system: systemPrompt, messages: [{ role: 'user', content: userMsg }] }),
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 4000, system: systemPrompt, messages: [{ role: 'user', content: userMsg }] }),
     });
 
     if (!response.ok) return res.status(502).json({ success: false, error: 'AI service unavailable. Try again.' });

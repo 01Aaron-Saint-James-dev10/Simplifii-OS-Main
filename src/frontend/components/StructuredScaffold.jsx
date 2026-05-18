@@ -16,7 +16,10 @@ import {
 export default function StructuredScaffold({ scaffold }) {
   const [checkedItems, setCheckedItems] = useState({});
 
-  if (!scaffold || !scaffold.suggestedStructure) return null;
+  const [weekOpen, setWeekOpen] = useState({});
+  const toggleWeek = (w) => setWeekOpen(prev => ({ ...prev, [w]: !prev[w] }));
+
+  if (!scaffold || (!scaffold.suggestedStructure && !scaffold.weeklyPlan)) return null;
 
   const toggle = (key) => setCheckedItems(prev => ({ ...prev, [key]: !prev[key] }));
 
@@ -48,6 +51,89 @@ export default function StructuredScaffold({ scaffold }) {
               `${k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}: ${v}`
             ).join(' | ')}
           </p>
+        </div>
+      )}
+
+      {/* Weekly plan */}
+      {scaffold.weeklyPlan?.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_PULSE }}>Week-by-week plan</span>
+          {scaffold.weeklyPlan.map((week) => {
+            const isOpen = weekOpen[week.week] !== false; // default open
+            return (
+              <div key={week.week} style={{ border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS }}>
+                <button
+                  type="button"
+                  onClick={() => toggleWeek(week.week)}
+                  style={{
+                    width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '8px 12px', background: 'transparent', border: 'none', cursor: 'pointer',
+                  }}
+                >
+                  <span style={{ fontFamily: FONT_SYSTEM, fontSize: 11, fontWeight: 700, color: TEXT_PRIMARY }}>
+                    Week {week.week}: {week.title}
+                  </span>
+                  <span style={{ fontSize: 10, color: TEXT_FAINT }}>{isOpen ? '\u25B2' : '\u25BC'}</span>
+                </button>
+                {isOpen && (
+                  <div style={{ padding: '0 12px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {['beginning', 'throughout', 'end'].map((phase) => {
+                      const tasks = week.tasks?.[phase];
+                      if (!tasks?.length) return null;
+                      return (
+                        <div key={phase}>
+                          <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: TEXT_FAINT }}>
+                            {phase === 'beginning' ? 'Start of week' : phase === 'throughout' ? 'Throughout' : 'End of week'}
+                          </span>
+                          <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {tasks.map((t, ti) => {
+                              const taskKey = `w${week.week}_${phase}_${ti}`;
+                              return (
+                                <div key={ti}>
+                                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 6, cursor: 'pointer' }}>
+                                    <input type="checkbox" checked={!!checkedItems[taskKey]} onChange={() => toggle(taskKey)} style={{ marginTop: 2, accentColor: ACCENT_PULSE }} />
+                                    <span style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 600, color: TEXT_PRIMARY, lineHeight: 1.4 }}>{t.task}</span>
+                                  </label>
+                                  {t.subtasks?.length > 0 && (
+                                    <div style={{ marginLeft: 24, marginTop: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                      {t.subtasks.map((st, si) => {
+                                        const stKey = `${taskKey}_s${si}`;
+                                        return (
+                                          <label key={si} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, cursor: 'pointer' }}>
+                                            <input type="checkbox" checked={!!checkedItems[stKey]} onChange={() => toggle(stKey)} style={{ marginTop: 2, accentColor: ACCENT_PULSE }} />
+                                            <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: TEXT_MUTED, lineHeight: 1.4 }}>{st}</span>
+                                          </label>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Glossary */}
+      {scaffold.glossary?.length > 0 && (
+        <div style={{ padding: '8px 12px', border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS }}>
+          <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_PULSE }}>Key terms</span>
+          <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {scaffold.glossary.map((g, i) => (
+              <div key={i}>
+                <span style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 600, color: TEXT_PRIMARY }}>{g.term}: </span>
+                <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_MUTED }}>{g.definition}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
