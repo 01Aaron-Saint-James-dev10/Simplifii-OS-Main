@@ -198,7 +198,7 @@ export const extractDeepCourseData = (text) => {
   const words = wordCountMatch ? parseInt(wordCountMatch[1].replace(/,/g, '')) : 2000;
 
   // Extract weighting
-  const weightingMatch = lowerText.match(/(\d{1,3})\s*%(?:\s*weighting)?/i) || lowerText.match(/weighting[:\s]*(\d{1,3})\s*%/i);
+  const weightingMatch = lowerText.match(/(?:^|\n)\s*(?:weighting|weight)\s*[:\-]?\s*(\d{1,3})\s*%/im) || lowerText.match(/\b(?:weighting|weight|worth)\s*[:\-]?\s*(\d{1,3})\s*%/i) || lowerText.match(/(\d{1,3})\s*%\s*weighting\b/i); /* allow-style */
   const weighting = weightingMatch ? parseInt(weightingMatch[1]) : 0;
 
   // Assessment dates. Returns richer objects: { raw, parsed (Date|null), type }
