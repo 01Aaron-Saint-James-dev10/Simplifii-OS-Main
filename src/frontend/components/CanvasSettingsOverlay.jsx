@@ -306,6 +306,12 @@ export default function CanvasSettingsOverlay({ onClose }) {
                 <span style={{ fontFamily: FONT_SYSTEM, fontSize: 11, fontWeight: 700, color: ACCENT_PULSE, minWidth: 20, textAlign: 'center' }}>{sensoryLevel}</span>
               </div>
             </div>
+            <Toggle
+              label="Sound effects"
+              description="AURA thinking/response micro-sounds"
+              value={typeof window !== 'undefined' && localStorage.getItem('simplifii-stim-sounds') !== 'off'}
+              onChange={(val) => { localStorage.setItem('simplifii-stim-sounds', val ? 'on' : 'off'); }}
+            />
             <RadioGroup
               label="Ambient sound"
               options={[

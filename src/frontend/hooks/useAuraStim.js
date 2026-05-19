@@ -20,6 +20,10 @@ function prefersReducedMotion() {
   return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
 }
 
+function stimDisabled() {
+  try { return localStorage.getItem('simplifii-stim-sounds') === 'off'; } catch { return false; }
+}
+
 export function useAuraStim() {
   const { sensoryLevel } = useSettings();
   const ctxRef = useRef(null);
@@ -33,7 +37,7 @@ export function useAuraStim() {
   }, []);
 
   const playThinking = useCallback(() => {
-    if (sensoryLevel <= 0 || prefersReducedMotion()) return;
+    if (stimDisabled() || sensoryLevel <= 0 || prefersReducedMotion()) return;
     if (typeof window !== 'undefined' && window.speechSynthesis?.speaking) return;
     try {
       const ctx = getCtx();
@@ -61,7 +65,7 @@ export function useAuraStim() {
   }, [getCtx]);
 
   const playResponse = useCallback(() => {
-    if (sensoryLevel <= 0 || prefersReducedMotion()) return;
+    if (stimDisabled() || sensoryLevel <= 0 || prefersReducedMotion()) return;
     if (typeof window !== 'undefined' && window.speechSynthesis?.speaking) return;
     try {
       const ctx = getCtx();
@@ -80,7 +84,7 @@ export function useAuraStim() {
   }, [sensoryLevel, getCtx]);
 
   const playCelebrate = useCallback(() => {
-    if (sensoryLevel <= 0 || prefersReducedMotion()) return;
+    if (stimDisabled() || sensoryLevel <= 0 || prefersReducedMotion()) return;
     if (typeof window !== 'undefined' && window.speechSynthesis?.speaking) return;
     try {
       const ctx = getCtx();

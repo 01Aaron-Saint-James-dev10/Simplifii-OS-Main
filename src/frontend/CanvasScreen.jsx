@@ -975,7 +975,7 @@ export default function CanvasScreen() {
                 borderBottom: '1px solid var(--theme-border, #27272a)', /* allow-style */
               }}
             >
-              {activeSections.map(sec => {
+              {activeSections.map((sec, secIdx) => {
                 const isActive = sec.type === activeSection;
                 return (
                   <button
@@ -1014,6 +1014,25 @@ export default function CanvasScreen() {
                   </button>
                 );
               })}
+              <button
+                type="button"
+                onClick={() => {
+                  const idx = activeSections.length + 1;
+                  const newSec = { type: `custom_${idx}`, label: `Section ${idx}`, targetWords: 0, guidance: '' };
+                  setDynamicSections(prev => [...(prev || activeSections), newSec]);
+                  setActiveSection(newSec.type);
+                }}
+                style={{
+                  fontFamily: 'var(--font-system, system-ui)', fontSize: 10, fontWeight: 700,
+                  padding: '6px 10px', borderRadius: 'var(--radius, 6px)', cursor: 'pointer',
+                  border: '1px dashed var(--theme-border, #27272a)', /* allow-style */
+                  background: 'transparent', color: 'var(--text-faint, #71717a)', /* allow-style */
+                  minHeight: 32, outline: 'none',
+                }}
+                aria-label="Add a new section"
+              >
+                + Add section
+              </button>
             </div>
           )}
 

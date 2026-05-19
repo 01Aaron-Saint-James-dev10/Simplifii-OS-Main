@@ -29,8 +29,14 @@ const openDB = () => new Promise((resolve, reject) => {
   req.onerror = () => reject(req.error);
 });
 
+function sanitiseTitle(title) {
+  if (!title) return '__default__';
+  // Strip URL encoding artifacts, version suffixes (:1), and trim
+  return decodeURIComponent(title).replace(/:\d+$/, '').trim() || '__default__';
+}
+
 function draftKey(courseId, assessmentTitle) {
-  return `${courseId}::${assessmentTitle || '__default__'}`;
+  return `${courseId}::${sanitiseTitle(assessmentTitle)}`;
 }
 
 /**
@@ -87,10 +93,11 @@ async function syncDraftToCloud(courseId, assessmentTitle, content, tiptapDoc, w
 }
 
 export const saveDraft = async (courseId, assessmentTitle, content, tiptapDoc) => {
+  const cleanTitle = sanitiseTitle(assessmentTitle);
   const db = await openDB();
   const tx = db.transaction(STORE, 'readwrite');
   const store = tx.objectStore(STORE);
-  const key = draftKey(courseId, assessmentTitle);
+  const key = draftKey(courseId, cleanTitle);
   const now = Date.now();
   const wordCount = tiptapDoc ? countWordsFromDoc(tiptapDoc) : (content || '').trim().split(/\s+/).filter(Boolean).length;
   store.put({
@@ -104,7 +111,7 @@ export const saveDraft = async (courseId, assessmentTitle, content, tiptapDoc) =
     lastSaved: now,
   });
   // Cloud sync is fire-and-forget; IndexedDB write proceeds regardless.
-  syncDraftToCloud(courseId, assessmentTitle, content, tiptapDoc, wordCount, now);
+  syncDraftToCloud(courseId, cleanTitle, content, tiptapDoc, wordCount, now);
   return new Promise((resolve, reject) => {
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
@@ -112,10 +119,11 @@ export const saveDraft = async (courseId, assessmentTitle, content, tiptapDoc) =
 };
 
 export const loadDraft = async (courseId, assessmentTitle) => {
+  const cleanTitle = sanitiseTitle(assessmentTitle);
   const db = await openDB();
   const tx = db.transaction(STORE, 'readonly');
   const store = tx.objectStore(STORE);
-  const key = draftKey(courseId, assessmentTitle);
+  const key = draftKey(courseId, cleanTitle);
   const req = store.get(key);
   const localDraft = await new Promise((resolve, reject) => {
     req.onsuccess = () => resolve(req.result ? migrateToV2(req.result) : null);
@@ -131,7 +139,7 @@ export const loadDraft = async (courseId, assessmentTitle) => {
         .select('content, tiptap_doc, word_count, updated_at')
         .eq('user_id', user.id)
         .eq('course_id', courseId)
-        .eq('assessment_title', assessmentTitle || '__default__')
+        .eq('assessment_title', cleanTitle)
         .maybeSingle();
       if (data) {
         const sbTs = new Date(data.updated_at).getTime();
