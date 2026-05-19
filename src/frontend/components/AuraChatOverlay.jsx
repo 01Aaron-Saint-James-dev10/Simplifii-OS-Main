@@ -543,6 +543,9 @@ export default function AuraChatOverlay({ open, onClose }) {
   const { speak, stopSpeaking, isSpeaking, startContinuousListening, stopContinuousListening, isListeningContinuous } = useAuraVoice();
   const [voiceMode, setVoiceMode] = useState(true);
   const [readAloud, setReadAloud] = useState(() => localStorage.getItem('simplifii-voice-mode') === 'true');
+  const [conversationMode, setConversationMode] = useState(false);
+  const conversationRef = useRef(false);
+  conversationRef.current = conversationMode;
 
   // Simple browser speech for read-aloud (no mic, no ElevenLabs)
   // Read-aloud: Cartesia Sonic 2 via /api/tts, browser speechSynthesis fallback
@@ -972,7 +975,12 @@ export default function AuraChatOverlay({ open, onClose }) {
         dispatchAuraState('speaking');
         setMessages(prev => [...prev, { role: 'tutor', text: finalReply, rawText: data.reply, toolSuggestion: data.toolSuggestion || null }]);
         if (voiceMode || isListeningContinuous || isListening) speak(finalReply);
-        readText(finalReply);
+        readText(finalReply).then(() => {
+          // Conversation mode: auto-restart listening after AURA finishes speaking
+          if (conversationRef.current) {
+            setTimeout(() => { if (conversationRef.current) startVoice(); }, 500);
+          }
+        });
         setTimeout(() => dispatchAuraState('success'), 1500);
         setTimeout(() => dispatchAuraState('idle'), 3000);
       } else {
@@ -1093,6 +1101,34 @@ export default function AuraChatOverlay({ open, onClose }) {
               }}
             >
               {readAloud ? '\u{1F50A}' : '\u{1F508}'} Voice
+            </button>
+          )}
+          {voiceSupported && (
+            <button
+              type="button"
+              onClick={() => {
+                const next = !conversationMode;
+                setConversationMode(next);
+                localStorage.setItem('simplifii-conversation-mode', String(next));
+                if (next) {
+                  setReadAloud(true);
+                  localStorage.setItem('simplifii-voice-mode', 'true');
+                  startVoice();
+                } else {
+                  stopVoice();
+                }
+              }}
+              aria-label={conversationMode ? 'Exit conversation mode' : 'Start conversation mode'}
+              title={conversationMode ? 'Conversation: on' : 'Talk to AURA'}
+              style={{
+                background: conversationMode ? ACCENT_PULSE : 'none',
+                border: conversationMode ? 'none' : `1px solid ${ACCENT_BORDER}`,
+                borderRadius: BORDER_RADIUS, cursor: 'pointer', padding: '2px 6px',
+                fontSize: 10, fontWeight: 600, color: conversationMode ? '#000' : TEXT_FAINT,
+                minHeight: 28, display: 'flex', alignItems: 'center', gap: 3,
+              }}
+            >
+              {conversationMode ? '\u{1F3A4} Talking' : '\u{1F3A4}'}
             </button>
           )}
           <button
@@ -1237,7 +1273,34 @@ export default function AuraChatOverlay({ open, onClose }) {
         </div>
       )}
 
-      {/* Input */}
+      {/* Input: conversation mode shows pulsing mic, normal mode shows text input */}
+      {conversationMode ? (
+        <div style={{ padding: '12px', borderTop: `1px solid ${SURFACE_RAISED}`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: '50%',
+            background: isListening ? ACCENT_PULSE : ACCENT_GLASS,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            animation: isListening ? 'auraFocusPulse 1.2s ease-in-out infinite' : 'none',
+          }}>
+            <span style={{ fontSize: 20 }}>{loading ? '...' : '\u{1F3A4}'}</span>
+          </div>
+          <span style={{ fontFamily: FONT_SYSTEM, fontSize: 9, color: TEXT_FAINT }}>
+            {loading ? 'AURA is thinking...' : isListening ? 'Listening...' : 'Waiting...'}
+          </span>
+          {interimTranscript && (
+            <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: TEXT_MUTED, fontStyle: 'italic' }}>
+              {interimTranscript}...
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => { setConversationMode(false); stopVoice(); localStorage.setItem('simplifii-conversation-mode', 'false'); }}
+            style={{ fontFamily: FONT_SYSTEM, fontSize: 10, color: TEXT_FAINT, background: 'none', border: `1px solid ${SURFACE_RAISED}`, borderRadius: BORDER_RADIUS, padding: '4px 12px', cursor: 'pointer' }}
+          >
+            Stop conversation
+          </button>
+        </div>
+      ) : (
       <div style={{ padding: '8px 12px 12px', borderTop: isListening && interimTranscript ? 'none' : `1px solid ${SURFACE_RAISED}`, display: 'flex', gap: 6 }}>
         <input
           ref={inputRef}
@@ -1290,6 +1353,7 @@ export default function AuraChatOverlay({ open, onClose }) {
           {loading ? '...' : 'Send'}
         </button>
       </div>
+      )}
 
       </>
       )}
